@@ -90,7 +90,7 @@ export default function MyTripsPage() {
               </div>
               <p className="mb-2 text-lg font-medium">У вас пока нет завершённых поездок</p>
               <p className="mb-6 text-sm text-muted-foreground">
-                Создайте свой первый маршрут и начните путешествие с TravelMind
+                Создайте свой первый маршрут и начните путешествие с TraveLM
               </p>
               <Button asChild className="transition-all hover:scale-105">
                 <Link href="/plan">

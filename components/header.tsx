@@ -2,11 +2,45 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, History, User } from "lucide-react"
+import { Map, User, LogOut, Settings, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export function Header() {
   const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    localStorage.removeItem("user")
+    window.location.href = "/"
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all">
@@ -15,51 +49,91 @@ export function Header() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform hover:rotate-12">
             <Map className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold">TravelMind</span>
+          <span className="text-lg font-semibold">TraveLM</span>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2 sm:gap-6">
+          <Link
+            href="/results"
+            className={`text-sm font-medium transition-colors hover:text-primary ${pathname === "/results" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Маршруты
+          </Link>
+
           <Link
             href="/news"
-            className={`flex items-center gap-2 text-sm font-medium transition-all hover:text-primary hover:scale-105 ${
-              pathname === "/news" ? "text-primary" : "text-muted-foreground"
-            }`}
+            className={`text-sm font-medium transition-colors hover:text-primary ${pathname === "/news" ? "text-primary" : "text-muted-foreground"}`}
           >
-            <span className="hidden sm:inline">Новости</span>
+            Лента
           </Link>
 
           <Link
-            href="/demo"
-            className={`flex items-center gap-2 text-sm font-medium transition-all hover:text-primary hover:scale-105 ${
-              pathname === "/demo" ? "text-primary" : "text-muted-foreground"
-            }`}
+            href="/plan"
+            className={`text-sm font-medium transition-colors hover:text-primary ${pathname === "/plan" ? "text-primary" : "text-muted-foreground"}`}
           >
-            <span className="hidden sm:inline">Демо</span>
+            Спланировать
           </Link>
 
-          <Link
-            href="/my-trips"
-            className={`flex items-center gap-2 text-sm font-medium transition-all hover:text-primary hover:scale-105 ${
-              pathname === "/my-trips" ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <History className="h-4 w-4" />
-            <span className="hidden sm:inline">Мои поездки</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <ModeToggle />
 
-          <Link
-            href="/profile"
-            className={`flex items-center gap-2 text-sm font-medium transition-all hover:text-primary hover:scale-105 ${
-              pathname === "/profile" ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Профиль</span>
-          </Link>
-
-          <Button asChild variant="ghost" size="sm" className="transition-all hover:scale-105">
-            <Link href="/auth">Войти</Link>
-          </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9 border-2 border-primary/20">
+                      <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                      <AvatarFallback className="bg-primary/5 text-primary text-xs">
+                        {user.email?.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.user_metadata?.full_name || "Путешественник"}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile?tab=profile" className="cursor-pointer w-full flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Мой профиль</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile?tab=routes" className="cursor-pointer w-full flex items-center">
+                        <Map className="mr-2 h-4 w-4" />
+                        <span>Мои маршруты</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile?tab=settings" className="cursor-pointer w-full flex items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Настройки</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:bg-destructive/10 cursor-pointer" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Выйти</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm" className="ml-2 transition-all hover:scale-105">
+                <Link href="/auth">Войти</Link>
+              </Button>
+            )}
+          </div>
         </nav>
       </div>
     </header>

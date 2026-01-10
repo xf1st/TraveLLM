@@ -11,25 +11,114 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles } from "lucide-react"
+import { Sparkles, CreditCard, Languages } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { supabase } from "@/lib/supabase"
+import { useEffect } from "react"
 
 export default function PlanPage() {
   const router = useRouter()
-  const [destination, setDestination] = useState<"russia" | "abroad">("abroad")
+  const [departureCity, setDepartureCity] = useState("")
+  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed">("abroad")
+  const [countryCount, setCountryCount] = useState("1")
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
-  const [duration, setDuration] = useState("7")
-  const [customDuration, setCustomDuration] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [travelStyle, setTravelStyle] = useState<string[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<string[]>([])
+  const [guideLanguage, setGuideLanguage] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [profile, setProfile] = useState<any>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        if (data) {
+          setProfile(data)
+        }
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    setTimeout(() => {
-      router.push("/results")
-    }, 2000)
+    try {
+      const localPrefs = JSON.parse(localStorage.getItem("userPreferences") || "{}")
+      const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
+
+      const response = await fetch("/api/groq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          departureCity,
+          destinationType: destination,
+          countryCount,
+          budget,
+          startDate,
+          endDate,
+          travelStyle,
+          paymentMethods,
+          requireRussianGuide: guideLanguage,
+          companions: "couple",
+          preferences: finalPreferences
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || "Failed to generate route"
+        const detailedError = errorData.hfError || errorData.groqError
+          ? `\n\nДетали:\nHF: ${errorData.hfError || "n/a"}\nGroq: ${errorData.groqError || "n/a"}`
+          : ""
+        throw new Error(errorMessage + detailedError)
+      }
+
+      const routeData = await response.json()
+
+      // Save to Supabase for all users (persistence requirement)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data: trip, error: dbError } = await supabase.from('trips').insert({
+        user_id: user?.id || null, // Allow NULL for guest trips
+        title: routeData.title,
+        destination: routeData.countries?.[0]?.name || "Travel",
+        description: routeData.description,
+        itinerary: routeData.itinerary,
+        budget_range: budget,
+        total_cost: routeData.totalBudget,
+        departure_city: departureCity,
+        start_date: startDate || null,
+        end_date: endDate || null
+      }).select().single()
+
+      if (dbError) {
+        // Only log if it's not a common RLS/permission issue for guests
+        if (dbError.code !== '42501' && user) {
+          console.error("Database insert error:", dbError)
+        }
+
+        // Generate a unique ID for the guest even if DB fails
+        const tempId = `local-${Math.random().toString(36).substring(2, 11)}`
+        localStorage.setItem(`trip-${tempId}`, JSON.stringify(routeData))
+        localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+        router.push(`/trip/${tempId}`)
+        return
+      }
+
+      const tripId = trip.id
+      router.push(`/trip/${tripId}`)
+    } catch (error: any) {
+      console.error(error)
+      alert(`Ошибка при генерации маршрута: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const toggleStyle = (style: string) => {
@@ -46,36 +135,73 @@ export default function PlanPage() {
             Спланируем вашу идеальную поездку
           </h1>
           <p className="text-lg text-muted-foreground text-balance">
-            ИИ-ассистент с учётом ваших предпочтений, культуры и потребностей
+            ИИ-ассистент с учётом ваших предпочтений, логистики и бюджета
           </p>
         </div>
 
         <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Departure */}
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Ваш город отправления</Label>
+              <Input
+                placeholder="Например: Москва"
+                value={departureCity}
+                onChange={(e) => setDepartureCity(e.target.value)}
+                required
+                className="max-w-md transition-all focus:scale-105"
+              />
+            </div>
+
             {/* Destination */}
             <div className="space-y-4">
               <Label className="text-base font-semibold">Куда планируете поехать?</Label>
               <RadioGroup
                 value={destination}
-                onValueChange={(v) => setDestination(v as "russia" | "abroad")}
-                className="grid gap-4 sm:grid-cols-2"
+                onValueChange={(v) => setDestination(v as any)}
+                className="grid gap-4 sm:grid-cols-3"
               >
                 <Label
                   htmlFor="russia"
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                 >
                   <RadioGroupItem value="russia" id="russia" />
                   <span>По России</span>
                 </Label>
                 <Label
                   htmlFor="abroad"
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                 >
                   <RadioGroupItem value="abroad" id="abroad" />
                   <span>За границу</span>
                 </Label>
+                <Label
+                  htmlFor="mixed"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                >
+                  <RadioGroupItem value="mixed" id="mixed" />
+                  <span>Смешанный</span>
+                </Label>
               </RadioGroup>
             </div>
+
+            {/* Country Count */}
+            {destination !== "russia" && (
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Количество стран</Label>
+                <Select value={countryCount} onValueChange={setCountryCount}>
+                  <SelectTrigger className="max-w-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 страна</SelectItem>
+                    <SelectItem value="2">2 страны</SelectItem>
+                    <SelectItem value="3">3 страны</SelectItem>
+                    <SelectItem value="more">Более 3 стран</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-4">
               <Label className="text-base font-semibold">Бюджет</Label>
@@ -88,7 +214,7 @@ export default function PlanPage() {
                     <RadioGroupItem value="economy" id="economy" />
                     <span className="font-medium">Эконом</span>
                   </div>
-                  <span className="ml-7 text-sm text-muted-foreground">До ₽30к/неделя</span>
+                  <span className="ml-7 text-sm text-muted-foreground">До ₽70к/неделя</span>
                 </Label>
                 <Label
                   htmlFor="comfort"
@@ -98,7 +224,7 @@ export default function PlanPage() {
                     <RadioGroupItem value="comfort" id="comfort" />
                     <span className="font-medium">Комфорт</span>
                   </div>
-                  <span className="ml-7 text-sm text-muted-foreground">₽30-70к/неделя</span>
+                  <span className="ml-7 text-sm text-muted-foreground">₽70-150к/неделя</span>
                 </Label>
                 <Label
                   htmlFor="premium"
@@ -108,7 +234,7 @@ export default function PlanPage() {
                     <RadioGroupItem value="premium" id="premium" />
                     <span className="font-medium">Премиум</span>
                   </div>
-                  <span className="ml-7 text-sm text-muted-foreground">От ₽70к/неделя</span>
+                  <span className="ml-7 text-sm text-muted-foreground">От ₽150к/неделя</span>
                 </Label>
               </RadioGroup>
 
@@ -133,45 +259,34 @@ export default function PlanPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Длительность поездки</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger className="transition-all hover:shadow-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">3 дня</SelectItem>
-                  <SelectItem value="5">5 дней</SelectItem>
-                  <SelectItem value="7">7 дней</SelectItem>
-                  <SelectItem value="10">10 дней</SelectItem>
-                  <SelectItem value="14">14 дней</SelectItem>
-                  <SelectItem value="custom">Другое</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {duration === "custom" && (
-                <div className="space-y-2">
-                  <Label htmlFor="custom-duration" className="text-sm text-muted-foreground">
-                    Укажите количество дней
-                  </Label>
-                  <Input
-                    id="custom-duration"
-                    type="number"
-                    placeholder="12"
-                    value={customDuration}
-                    onChange={(e) => setCustomDuration(e.target.value)}
-                    min="1"
-                    max="90"
-                    className="transition-all focus:scale-105"
-                  />
-                </div>
-              )}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Дата начала</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                  className="transition-all focus:scale-105"
+                />
+              </div>
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Дата окончания</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                  min={startDate}
+                  className="transition-all focus:scale-105"
+                />
+              </div>
             </div>
 
             {/* Travel Style */}
             <div className="space-y-4">
               <Label className="text-base font-semibold">Стиль путешествия</Label>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[
                   { id: "culture", label: "Культура и история" },
                   { id: "nature", label: "Природа и активность" },
@@ -179,11 +294,16 @@ export default function PlanPage() {
                   { id: "relax", label: "Отдых и релакс" },
                   { id: "adventure", label: "Приключения" },
                   { id: "shopping", label: "Шоппинг" },
+                  { id: "photo", label: "Фото-тур" },
+                  { id: "nomad", label: "Диджитал-номад" },
+                  { id: "hike", label: "Хардкор-треккинг" },
+                  { id: "luxury", label: "Люкс и премиум" },
+                  { id: "hidden", label: "Секретные места" },
                 ].map((style) => (
                   <Label
                     key={style.id}
                     htmlFor={style.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
                     <Checkbox
                       id={style.id}
@@ -193,6 +313,55 @@ export default function PlanPage() {
                     <span className="text-sm">{style.label}</span>
                   </Label>
                 ))}
+              </div>
+            </div>
+
+            {/* Payment Methods */}
+            <div className="space-y-4">
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Способы оплаты
+              </Label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  { id: "mir", label: "Карта Мир" },
+                  { id: "unionpay", label: "UnionPay (РФ)" },
+                  { id: "foreign", label: "Зарубежная карта (Visa/MC)" },
+                  { id: "cash", label: "Наличные" },
+                ].map((method) => (
+                  <Label
+                    key={method.id}
+                    htmlFor={method.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                  >
+                    <Checkbox
+                      id={method.id}
+                      checked={paymentMethods.includes(method.id)}
+                      onCheckedChange={() =>
+                        setPaymentMethods(prev =>
+                          prev.includes(method.id) ? prev.filter(m => m !== method.id) : [...prev, method.id]
+                        )
+                      }
+                    />
+                    <span className="text-sm">{method.label}</span>
+                  </Label>
+                ))}
+              </div>
+            </div>
+
+            {/* Guide Language */}
+            <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Languages className="h-5 w-5 text-primary" />
+                    Русскоговорящий гид
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Искать экскурсии и активности с поддержкой русского языка
+                  </p>
+                </div>
+                <Switch checked={guideLanguage} onCheckedChange={setGuideLanguage} />
               </div>
             </div>
 

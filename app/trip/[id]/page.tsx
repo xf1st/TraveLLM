@@ -1,293 +1,441 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Shield, MapPin, ChevronRight, MessageSquare, Car, Train, Bike, Footprints, ExternalLink } from "lucide-react"
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Compass,
+  Download,
+  Hotel,
+  Map,
+  MapPin,
+  Share2,
+  Shield,
+  Star,
+  Utensils,
+  Wallet,
+  Zap,
+  ChevronRight,
+  ExternalLink,
+  Sparkles,
+  PieChart,
+  Plane,
+  Car,
+  Train
+} from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import Image from "next/image"
+import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
-const transportIcons = {
-  walk: Footprints,
-  car: Car,
-  transit: Train,
-  bike: Bike,
+const transportIcons: Record<string, any> = {
+  "Flight": Plane,
+  "Plane": Plane,
+  "Train": Train,
+  "Taxi": Car,
+  "Transfer": Car,
+  "Car": Car,
+  "Walk": Compass,
+  "None": Zap
 }
 
-const mockTrip = {
-  id: "1",
-  title: "Тбилиси и винные долины",
-  destination: "Грузия",
-  duration: "7 дней",
-  tags: ["#уютно", "#гастрономия", "#русскиеговорят"],
-  safetyLevel: 9,
-  budget: "₽45,000",
-  image: "/tbilisi-old-town-panorama.jpg",
-  days: [
-    {
-      day: 1,
-      title: "Прибытие и знакомство со Старым городом",
-      activities: [
-        {
-          time: "14:00",
-          title: "Прибытие в Тбилиси",
-          description: "Встреча в аэропорту, трансфер в отель",
-          location: "Международный аэропорт Тбилиси",
-          address: "Sagarejo Hwy, Tbilisi",
-          coordinates: { lat: 41.6692, lng: 44.9547 },
-          distance: "18 км до центра",
-          transport: "car" as const,
-        },
-        {
-          time: "16:00",
-          title: "Прогулка по району Абанотубани",
-          description: "Серные бани, набережная Куры, водопад",
-          location: "Старый город, Абанотубани",
-          address: "Abanotubani, Old Tbilisi",
-          coordinates: { lat: 41.6897, lng: 44.8096 },
-          distance: "1.2 км",
-          transport: "walk" as const,
-          tips: "Здесь много русскоговорящих, легко общаться",
-        },
-        {
-          time: "19:00",
-          title: "Ужин в традиционном ресторане",
-          description: "Хинкали, хачапури, местное вино",
-          location: 'Ресторан "Шави Ломи"',
-          address: "13 Zandukeli St, Tbilisi",
-          coordinates: { lat: 41.6945, lng: 44.8015 },
-          distance: "800 м",
-          transport: "walk" as const,
-        },
-      ],
-    },
-    {
-      day: 2,
-      title: "Исторический центр и крепость Нарикала",
-      activities: [
-        {
-          time: "10:00",
-          title: "Кафедральный собор Самеба",
-          description: "Главный православный храм Грузии",
-          location: "Собор Святой Троицы",
-          address: "1 Ilia Chavchavadze Ave, Tbilisi",
-          coordinates: { lat: 41.6977, lng: 44.8174 },
-          distance: "2.5 км",
-          transport: "transit" as const,
-          tips: "Вход свободный, фотографировать можно",
-        },
-        {
-          time: "13:00",
-          title: "Обед на проспекте Руставели",
-          description: "Попробуйте хачапури по-аджарски",
-          location: "Проспект Руставели",
-          address: "Rustaveli Ave, Tbilisi",
-          coordinates: { lat: 41.6938, lng: 44.8015 },
-          distance: "1.8 км",
-          transport: "walk" as const,
-        },
-        {
-          time: "15:00",
-          title: "Фуникулёр к крепости Нарикала",
-          description: "Панорамный вид на весь город",
-          location: "Крепость Нарикала",
-          address: "Narikala Fortress, Tbilisi",
-          coordinates: { lat: 41.6879, lng: 44.8082 },
-          distance: "600 м (фуникулёр)",
-          transport: "transit" as const,
-        },
-      ],
-    },
-    {
-      day: 3,
-      title: "Винный тур в Кахетию",
-      activities: [
-        {
-          time: "09:00",
-          title: "Выезд в регион Кахетия",
-          description: "Винодельческий регион Грузии",
-          location: "Кахетия",
-          address: "Kakheti Region",
-          coordinates: { lat: 41.6488, lng: 45.6947 },
-          distance: "110 км",
-          transport: "car" as const,
-        },
-        {
-          time: "11:00",
-          title: "Винодельня Шуми",
-          description: "Дегустация 5 сортов вина с закусками",
-          location: "Цинандали",
-          address: "Tsinandali, Kakheti",
-          coordinates: { lat: 41.8944, lng: 45.5858 },
-          distance: "3 км",
-          transport: "car" as const,
-        },
-        {
-          time: "14:00",
-          title: "Обед в грузинской усадьбе",
-          description: "Традиционные блюда в семейной атмосфере",
-          location: "Телави",
-          address: "Telavi, Kakheti",
-          coordinates: { lat: 41.9182, lng: 45.4733 },
-          distance: "15 км",
-          transport: "car" as const,
-        },
-        {
-          time: "16:00",
-          title: "Монастырь Алаверди",
-          description: "Древний храм XI века",
-          location: "Алаверди",
-          address: "Alaverdi Monastery, Kakheti",
-          coordinates: { lat: 42.0278, lng: 45.3756 },
-          distance: "12 км",
-          transport: "car" as const,
-        },
-      ],
-    },
-  ],
+const modeTranslations: Record<string, string> = {
+  "Flight": "Перелет",
+  "Plane": "Перелет",
+  "Train": "Поезд",
+  "Taxi": "Такси",
+  "Transfer": "Трансфер",
+  "Car": "Автомобиль",
+  "Walk": "Пешком",
+  "None": "Нет"
 }
-
-const hasSubscription = false // Set to true for subscribers
 
 export default function TripDetailPage() {
+  const params = useParams()
   const router = useRouter()
+  const [route, setRoute] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
+  const [showBudgetModal, setShowBudgetModal] = useState(false)
 
-  const handleAddressClick = (coordinates?: { lat: number; lng: number }, address?: string) => {
-    if (hasSubscription && coordinates) {
-      // With subscription: open in app map
-      router.push(`/guide/${mockTrip.id}?lat=${coordinates.lat}&lng=${coordinates.lng}`)
-    } else if (address) {
-      // Without subscription: open in Google Maps
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, "_blank")
+  useEffect(() => {
+    const fetchTrip = async () => {
+      setLoading(true)
+      const id = params.id as string
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+      const isLocal = id?.startsWith('local-')
+
+      console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal)
+
+      let data = null
+      let error = null
+
+      if (isUuid) {
+        const result = await supabase
+          .from('trips')
+          .select('*')
+          .eq('id', id)
+          .single()
+        data = result.data
+        error = result.error
+      } else if (isLocal || id === "ai-last") {
+        const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
+        const stored = localStorage.getItem(key)
+        if (stored) {
+          try {
+            data = JSON.parse(stored)
+          } catch (e) {
+            console.error("Failed to parse local trip data")
+          }
+        }
+      }
+
+      if (!data) {
+        if (error) console.error("Error fetching trip:", error.message)
+        const stored = localStorage.getItem("lastGeneratedRoute")
+        if (stored) setRoute(JSON.parse(stored))
+      } else {
+        console.log("Trip data loaded successfully")
+        setRoute({
+          ...data,
+          title: data.title,
+          description: data.description,
+          totalBudget: data.total_cost || data.totalBudget,
+          itinerary: data.itinerary,
+          countries: data.destination ? [{ name: data.destination }] : (data.countries || [])
+        })
+      }
+      setLoading(false)
     }
+    fetchTrip()
+  }, [params.id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container flex h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
+            <p className="text-muted-foreground animate-pulse">Загружаем детали вашего приключения...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (!route) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container flex h-[60vh] items-center justify-center">
+          <div className="text-center px-4">
+            <h1 className="text-2xl font-bold mb-4">Маршрут не найден</h1>
+            <p className="text-muted-foreground mb-8 text-balance">
+              Мы не смогли найти указанный маршрут. Попробуйте создать новый или проверьте ссылку.
+            </p>
+            <Button onClick={() => router.push('/plan')}>Создать новый маршрут</Button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Generate a dynamic image URL based on destination
+  const destinationName = route.countries?.[0]?.name || route.destination || "Travel"
+  const heroImage = `https://loremflickr.com/1600/900/travel,${encodeURIComponent(destinationName)}/all`
+
+  const handleOpenMap = (searchQuery: string) => {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`, "_blank")
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <Header />
 
-      {/* Hero Image */}
-      <div className="relative aspect-[21/9] w-full overflow-hidden">
-        <img src={mockTrip.image || "/placeholder.svg"} alt={mockTrip.title} className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+      {/* Hero Banner */}
+      <div className="relative h-[40vh] min-h-[400px] w-full overflow-hidden">
+        <img
+          src={heroImage}
+          alt={route.title}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-black/20 to-transparent" />
+
+        <div className="absolute inset-0 flex items-end">
+          <div className="container max-w-5xl px-4 pb-12">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.back()}
+              className="mb-8 rounded-full bg-white/80 backdrop-blur hover:bg-white"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Назад
+            </Button>
+
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex flex-wrap gap-2">
+                {route.tags?.map((tag: string) => (
+                  <Badge key={tag} className="bg-primary/20 text-primary-foreground backdrop-blur border-none">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+              <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl drop-shadow-lg">
+                {route.title}
+              </h1>
+              <div className="flex flex-wrap gap-6 text-white/90 font-medium">
+                <div className="flex items-center gap-2 drop-shadow">
+                  <Calendar className="h-5 w-5 text-sky-400" />
+                  {route.itinerary?.length || 0} дней
+                </div>
+                <div
+                  className="flex items-center gap-2 drop-shadow cursor-pointer hover:text-primary transition-colors group"
+                  onClick={() => setShowBudgetModal(true)}
+                >
+                  <Wallet className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                  <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
+                </div>
+                <div className="flex items-center gap-2 drop-shadow">
+                  <Shield className="h-5 w-5 text-amber-400" />
+                  Безопасность 9/10
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <main className="container max-w-4xl px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            {mockTrip.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
-            ))}
-            <div className="ml-auto flex items-center gap-2 text-sm font-medium">
-              <Shield className="h-4 w-4 text-primary" />
-              Безопасность {mockTrip.safetyLevel}/10
+      <main className="container max-w-5xl px-4 mt-8">
+        <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+          {/* Main Itinerary */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold flex items-center gap-3">
+              <Map className="h-6 w-6 text-primary" />
+              План путешествия
+            </h2>
+
+            <div className="space-y-4">
+              {route.itinerary?.map((day: any, idx: number) => {
+                const isExpanded = expandedDay === day.day;
+                const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
+
+                return (
+                  <Card key={idx} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all">
+                    <button
+                      onClick={() => setExpandedDay(isExpanded ? null : day.day)}
+                      className="w-full flex items-center justify-between p-5 text-left bg-card group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                          {day.day}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">День {day.day}</div>
+                          <div className="font-bold text-lg">{day.title || "Продолжение приключения"}</div>
+                        </div>
+                      </div>
+                      <ChevronRight className={`h-6 w-6 text-muted-foreground/30 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    </button>
+
+                    {isExpanded && (
+                      <div className="px-5 pb-6 bg-card animate-in slide-in-from-top-2 duration-300">
+                        {/* Logistics Bar */}
+                        {day.logistics && (day.logistics.mode !== "None") && (
+                          <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
+                            <TransportIcon className="h-5 w-5 text-primary" />
+                            <span>
+                              {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
+                              ({day.logistics.distance}, ~{day.logistics.duration})
+                            </span>
+                            {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
+                          </div>
+                        )}
+
+                        <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
+                          {(day.activities || [
+                            { time: "Утро", desc: day.morning },
+                            { label: "День", desc: day.daytime },
+                            { label: "Вечер", desc: day.night }
+                          ].filter(i => i.desc)).map((item: any, i: number) => {
+                            const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": Hotel };
+                            const Icon = iconMap[item.time] || Sparkles;
+
+                            return (
+                              <div key={i} className="relative">
+                                <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
+                                      <Icon className="h-3 w-3" />
+                                      {item.time}
+                                    </div>
+                                    {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
+                                  </div>
+                                  <p className="text-sm leading-relaxed text-foreground/80 font-medium">
+                                    {item.desc}
+                                  </p>
+                                  <div className="flex items-center gap-4">
+                                    <Button
+                                      variant="link"
+                                      size="sm"
+                                      className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
+                                      onClick={() => handleOpenMap(item.desc.split('.')[0])}
+                                    >
+                                      <MapPin className="mr-1 h-3 w-3" /> Найти на карте
+                                    </Button>
+                                    {item.link && (
+                                      <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
+                                        <ExternalLink className="mr-1 h-3 w-3" /> Забронировать
+                                      </Link>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {day.tips && (
+                          <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
+                            <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                            <p><strong>Совет:</strong> {day.tips}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           </div>
 
-          <h1 className="mb-2 text-3xl font-bold tracking-tight text-balance md:text-4xl">{mockTrip.title}</h1>
-          <p className="text-lg text-muted-foreground">
-            {mockTrip.destination} • {mockTrip.duration} • {mockTrip.budget}
-          </p>
-        </div>
-
-        {/* Days */}
-        <div className="mb-8 space-y-4">
-          {mockTrip.days.map((day, dayIndex) => (
-            <Card
-              key={day.day}
-              className="overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700"
-              style={{ animationDelay: `${dayIndex * 100}ms` }}
-            >
-              <button
-                onClick={() => setExpandedDay(expandedDay === day.day ? null : day.day)}
-                className="flex w-full items-center justify-between p-5 text-left transition-colors hover:bg-muted/50"
-              >
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Важная информация
+              </h3>
+              <div className="space-y-6">
                 <div>
-                  <div className="mb-1 text-sm font-medium text-primary">День {day.day}</div>
-                  <div className="font-semibold">{day.title}</div>
+                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2">Виза</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{route.visaAdvice}</p>
                 </div>
-                <ChevronRight
-                  className={`h-5 w-5 text-muted-foreground transition-transform duration-300 ${
-                    expandedDay === day.day ? "rotate-90" : ""
-                  }`}
-                />
-              </button>
-
-              {expandedDay === day.day && (
-                <div className="border-t border-border px-5 pb-5">
-                  <div className="space-y-6 pt-5">
-                    {day.activities.map((activity, idx) => {
-                      const TransportIcon = activity.transport ? transportIcons[activity.transport] : Footprints
-
-                      return (
-                        <div key={idx} className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-                              <TransportIcon className="h-4 w-4" />
-                            </div>
-                            {idx < day.activities.length - 1 && <div className="my-2 h-full w-px bg-border" />}
-                          </div>
-
-                          <div className="flex-1 pb-6">
-                            <div className="mb-1 text-sm font-medium text-muted-foreground">{activity.time}</div>
-                            <h4 className="mb-2 font-semibold">{activity.title}</h4>
-                            <p className="mb-2 text-sm text-muted-foreground leading-relaxed">{activity.description}</p>
-
-                            {activity.distance && (
-                              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-primary">
-                                <TransportIcon className="h-3.5 w-3.5" />
-                                {activity.distance}
-                              </div>
-                            )}
-
-                            <button
-                              onClick={() => handleAddressClick(activity.coordinates, activity.address)}
-                              className="group flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span className="underline decoration-dotted underline-offset-2">
-                                {activity.location}
-                              </span>
-                              <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-
-                            {activity.tips && (
-                              <div className="mt-3 rounded-lg bg-primary/5 p-3 text-sm text-primary">
-                                💡 {activity.tips}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                <div>
+                  <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2">Оплата</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">{route.paymentAdvice}</p>
                 </div>
-              )}
+              </div>
             </Card>
-          ))}
-        </div>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-          <Button
-            size="lg"
-            className="flex-1 transition-all hover:scale-105"
-            onClick={() => router.push(`/guide/${mockTrip.id}`)}
-          >
-            <MessageSquare className="mr-2 h-5 w-5" />
-            Открыть ИИ-гида
-          </Button>
-          <Button variant="outline" size="lg" asChild className="transition-all hover:scale-105 bg-transparent">
-            <Link href="/results">Выбрать другой маршрут</Link>
-          </Button>
+            <Card className="p-6 border-none shadow-sm bg-primary/5">
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="h-12 w-12 border-2 border-primary/20">
+                  <AvatarImage src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200" alt="Guide" />
+                  <AvatarFallback className="bg-primary text-white text-xs">AI</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-sm font-bold">Ваш ИИ-гид</h3>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Персональный эксперт</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-primary/20 pl-4 py-1">
+                "Привет! Я подготовила этот маршрут с учетом ваших предпочтений. Если захотите что-то изменить — просто напишите мне в чат ниже."
+              </p>
+            </Card>
+
+            <Card className="p-6 bg-slate-900 text-white border-none shadow-xl overflow-hidden relative group">
+              <Image
+                src="https://images.unsplash.com/photo-1512413316925-fd4b93f31521?auto=format&fit=crop&q=80&w=800"
+                alt="Guide"
+                fill
+                className="object-cover opacity-20 group-hover:scale-110 transition-transform duration-700"
+              />
+              <div className="relative z-10">
+                <Sparkles className="h-8 w-8 text-sky-400 mb-4" />
+                <h3 className="text-xl font-bold mb-2">Ваш ИИ-консьерж</h3>
+                <p className="text-sm text-slate-300 mb-6">
+                  Забронировать стол, найти ближайшую аптеку или перевести меню? Просто спросите меня.
+                </p>
+                <Button className="w-full bg-sky-500 hover:bg-sky-600 text-white border-none" onClick={() => router.push(`/guide/${params.id}`)}>
+                  Запустить гида
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="p-6 border-dashed border-2 border-border bg-transparent text-center">
+              <h3 className="font-bold mb-2">Понравился маршрут?</h3>
+              <p className="text-sm text-muted-foreground mb-4">Сохраните его в свой профиль, чтобы вернуться к нему позже.</p>
+              <Button variant="outline" className="w-full rounded-full">
+                Добавить в избранное
+              </Button>
+            </Card>
+          </div>
         </div>
       </main>
+      {/* Budget Analysis Modal */}
+      <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
+        <DialogContent className="max-w-md rounded-3xl p-8">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <PieChart className="h-6 w-6 text-primary" />
+              Аналитика бюджета
+            </DialogTitle>
+            <DialogDescription>
+              Детальный разбор расходов на вашу поездку
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Проживание</div>
+                <div className="text-xl font-bold">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
+                <div className="text-[10px] text-muted-foreground">в среднем за ночь</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Питание</div>
+                <div className="text-xl font-bold">{route.budgetAnalysis?.avgFood || "—"}</div>
+                <div className="text-[10px] text-muted-foreground">в среднем за день</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border col-span-2">
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Транспорт</div>
+                <div className="text-xl font-bold">{route.budgetAnalysis?.avgTransport || "—"}</div>
+                <div className="text-[10px] text-muted-foreground">всего за маршрут</div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-bold">Общие итоги</h4>
+              <div className="flex justify-between items-center py-2 border-b border-border italic text-sm">
+                <span className="text-muted-foreground font-medium">Предполагаемый бюджет:</span>
+                <span className="font-bold">{route.totalBudget}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range}"). Реальная стоимость может отличаться.
+              </p>
+            </div>
+
+            <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
+              Понятно
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
