@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
@@ -51,7 +51,7 @@ const mockRecommendations = [
   },
 ]
 
-export default function ResultsPage() {
+function ResultsContent() {
   const searchParams = useSearchParams()
   const source = searchParams.get("source")
   const [userRoutes, setUserRoutes] = useState<any[]>([])
@@ -251,5 +251,17 @@ export default function ResultsPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <ResultsContent />
+    </Suspense>
   )
 }
