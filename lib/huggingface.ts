@@ -1,7 +1,7 @@
 export const HUGGINGFACE_MODEL = "meta-llama/Llama-3.1-8B-Instruct:ovhcloud";
 
 export async function hfInference(prompt: string, systemPrompt: string) {
-    const token = process.env.HUGGING_FACE_TOKEN || "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";
+    const token = process.env.HUGGING_FACE_TOKEN;
 
     console.log("Starting HF Chat Inference with model:", HUGGINGFACE_MODEL);
 

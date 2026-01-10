@@ -1,6 +1,10 @@
 import { Groq } from "groq-sdk";
 
-const apiKey = process.env.GROQ_API_KEY || "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";
+const apiKey = process.env.GROQ_API_KEY;
+
+if (!apiKey) {
+  throw new Error("GROQ_API_KEY is not defined");
+}
 
 export const groq = new Groq({
   apiKey: apiKey,
