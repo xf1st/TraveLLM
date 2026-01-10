@@ -1,7 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
@@ -9,20 +7,8 @@ import { Card } from "@/components/ui/card"
 import { Sparkles, Shield, Zap, Map, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        router.push("/plan")
-      }
-    })
-  }, [router])
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
