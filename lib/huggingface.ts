@@ -12,7 +12,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
 
     // Set timeout for HF request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
         const response = await fetch(
@@ -30,7 +30,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
                         { role: "system", content: systemPrompt },
                         { role: "user", content: prompt }
                     ],
-                    max_tokens: 2048, // Reduced from 8192 for faster response
+                    max_tokens: 4096, // Increased for better route generation
                     temperature: 0.7,
                 }),
             }
@@ -60,7 +60,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-            console.error("HF Request timed out after 20 seconds");
+            console.error("HF Request timed out after 30 seconds");
             throw new Error("HF request timeout - server took too long to respond");
         }
         

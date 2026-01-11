@@ -5,9 +5,9 @@ import { NextResponse } from "next/server"
 export async function POST(req: Request) {
   console.log("=== GROQ API ROUTE STARTED ===");
   
-  // Set timeout for the entire function
+  // Set timeout for entire function
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error("Function timeout after 25 seconds")), 25000)
+    setTimeout(() => reject(new Error("Function timeout after 35 seconds")), 35000)
   })
   
   try {
@@ -191,32 +191,21 @@ export async function POST(req: Request) {
     }
 
     try {
-      console.log("🎯 Starting generation pipeline...");
+      console.log("🎯 Starting Hugging Face generation...");
       
-      try {
-        console.log("📍 Step 1: Trying Hugging Face (works without VPN)...");
-        const routeData = await generateAndParse("HF")
-        console.log("✅ Success with Hugging Face");
-        console.log("📊 Final result keys:", Object.keys(routeData));
-        return NextResponse.json(routeData)
-      } catch (hfError: any) {
-        console.error("❌ HF Failed:", hfError.message);
-        console.log("🔄 Falling back to Groq (requires VPN)...");
-        
-        const routeData = await generateAndParse("Groq")
-        console.log("✅ Success with Groq fallback");
-        console.log("📊 Final result keys:", Object.keys(routeData));
-        return NextResponse.json(routeData)
-      }
+      const routeData = await generateAndParse("HF")
+      console.log("✅ Success with Hugging Face");
+      console.log("📊 Final result keys:", Object.keys(routeData));
+      return NextResponse.json(routeData)
+      
     } catch (finalError: any) {
-      console.error("💀 All providers failed:", finalError.message);
+      console.error("💀 Hugging Face failed:", finalError.message);
       console.error("💀 Full error:", finalError);
       return NextResponse.json({
-        error: "All AI providers failed to generate valid JSON",
+        error: "Hugging Face failed to generate route",
         details: finalError.message,
         stack: finalError.stack,
-        hfError: "Hugging Face failed - check token",
-        groqError: "Groq failed - may require VPN"
+        suggestion: "Check HUGGING_FACE_TOKEN and try again"
       }, { status: 500 })
     }
 
