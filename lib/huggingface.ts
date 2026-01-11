@@ -25,7 +25,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
                         { role: "system", content: systemPrompt },
                         { role: "user", content: prompt }
                     ],
-                    max_tokens: 8192,
+                    max_tokens: 16384,
                     temperature: 0.7,
                 }),
             }

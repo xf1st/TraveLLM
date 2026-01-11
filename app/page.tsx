@@ -4,11 +4,198 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Shield, Zap, Map, ChevronRight } from "lucide-react"
+import { Sparkles, Shield, Zap, Map, ChevronRight, Compass, Clock, Star } from "lucide-react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
+  const [user, setUser] = useState<any>(null)
+  const [userTrips, setUserTrips] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user || null)
+      
+      if (session?.user) {
+        // Загружаем маршруты пользователя
+        const { data: trips } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(3)
+        
+        setUserTrips(trips || [])
+      }
+      
+      setLoading(false)
+    }
+
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  // Персонализированная страница для авторизованных пользователей
+  if (user) {
+    return (
+      <div className="flex min-h-screen flex-col bg-background">
+        <Header />
+        
+        <main className="flex-1">
+          {/* Персонализированный Hero */}
+          <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-32">
+            <div className="container px-4 md:px-6">
+              <div className="text-center space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+                  <Sparkles className="h-4 w-4" />
+                  С возвращением, {user.user_metadata?.full_name || user.email?.split('@')[0]}!
+                </div>
+                
+                <h1 className="text-4xl font-extrabold tracking-tight md:text-6xl">
+                  Ваши путешествия<br />
+                  <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    продолжаются
+                  </span>
+                </h1>
+                
+                <p className="max-w-2xl text-lg text-muted-foreground md:text-xl mx-auto">
+                  Готовы к новому приключению? Создайте персонализированный маршрут или продолжите исследование уже запланированных поездок.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-4">
+                  <Button asChild size="lg" className="h-14 px-10 text-lg font-bold rounded-full transition-all hover:scale-105 shadow-xl shadow-primary/20">
+                    <Link href="/plan">
+                      <Compass className="mr-2 h-5 w-5" />
+                      Создать маршрут
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="lg" className="h-14 px-8 text-lg font-medium hover:bg-primary/5">
+                    <Link href="/my-trips">
+                      <Map className="mr-2 h-5 w-5" />
+                      Мои поездки
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Последние маршруты */}
+          {userTrips.length > 0 && (
+            <section className="bg-muted/30 py-24">
+              <div className="container px-4">
+                <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-4">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-extrabold md:text-5xl tracking-tight">Ваши последние маршруты</h2>
+                    <p className="text-muted-foreground text-lg">Продолжайте планирование или создайте новые приключения</p>
+                  </div>
+                  <Button variant="link" className="text-primary font-bold text-lg group h-auto p-0">
+                    Все маршруты <ChevronRight className="ml-1 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </div>
+
+                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                  {userTrips.map((trip, i) => (
+                    <Card key={i} className="group relative overflow-hidden rounded-3xl border-none shadow-lg transition-all hover:shadow-2xl hover:-translate-y-2 flex flex-col h-full bg-background animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${i * 150}ms` }}>
+                      <div className="relative aspect-[4/3] w-full overflow-hidden">
+                        <img
+                          src={trip.image_url || `https://loremflickr.com/600/400/${trip.destination},travel/all`}
+                          alt={trip.title}
+                          className="object-cover h-full w-full transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          {trip.destination}
+                        </div>
+                      </div>
+                      <div className="p-6 flex flex-col flex-1 justify-between">
+                        <div>
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors leading-tight">{trip.title}</h3>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1 font-medium mb-4">
+                            <Clock className="h-3 w-3" /> {trip.duration || '7 дней'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`h-3 w-3 ${i < (trip.rating || 5) ? 'fill-primary text-primary' : 'text-muted'}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Быстрые действия */}
+          <section className="container px-4 py-24">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-extrabold md:text-4xl mb-4">Быстрые действия</h2>
+              <p className="text-muted-foreground text-lg">Все необходимые инструменты для планирования путешествий</p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  icon: <Compass className="h-6 w-6" />,
+                  title: "Новый маршрут",
+                  desc: "Создайте персонализированный план путешествия",
+                  href: "/plan",
+                  color: "bg-blue-500"
+                },
+                {
+                  icon: <Map className="h-6 w-6" />,
+                  title: "Мои поездки",
+                  desc: "Управляйте сохраненными маршрутами",
+                  href: "/my-trips",
+                  color: "bg-green-500"
+                },
+                {
+                  icon: <Star className="h-6 w-6" />,
+                  title: "Популярные места",
+                  desc: "Откройте для себя новые направления",
+                  href: "/results",
+                  color: "bg-purple-500"
+                },
+                {
+                  icon: <Zap className="h-6 w-6" />,
+                  title: "AI гид",
+                  desc: "Получите умные рекомендации",
+                  href: "/trip/ai",
+                  color: "bg-orange-500"
+                }
+              ].map((action, i) => (
+                <Card key={i} className="group p-6 transition-all hover:bg-primary/[0.03] border border-white/10 dark:border-white/5 shadow-xl hover:shadow-2xl rounded-[2rem] animate-in fade-in slide-in-from-bottom-8 duration-700 backdrop-blur-sm bg-white/40 dark:bg-white/5 cursor-pointer" style={{ animationDelay: `${i * 100}ms` }} onClick={() => window.location.href = action.href}>
+                  <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg text-white transition-transform group-hover:scale-110 group-hover:rotate-6" style={{ backgroundColor: action.color.replace('500', '600') }}>
+                    {action.icon}
+                  </div>
+                  <h3 className="mb-3 text-2xl font-bold tracking-tight">{action.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed text-sm font-medium">{action.desc}</p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
+    )
+  }
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />

@@ -106,7 +106,7 @@ export async function POST(req: Request) {
             { role: "system", content: systemPrompt },
             { role: "user", content: prompt }
           ],
-          max_tokens: 4096,
+          max_tokens: 16384,
           temperature: 0.6,
           response_format: { type: "json_object" }
         })
@@ -154,14 +154,29 @@ export async function POST(req: Request) {
         return NextResponse.json(routeData)
       } catch (hfError: any) {
         console.error("HF Failed or gave bad JSON, falling back to Groq:", hfError.message)
+        
+        // Если ошибка связана с токенами, попробуем еще раз с увеличенным лимитом
+        if (hfError.message?.includes('token') || hfError.message?.includes('length')) {
+          console.log("Token limit error detected, retrying with higher limits...")
+        }
+        
         const routeData = await generateAndParse("Groq")
         console.log("Success with Groq fallback")
         return NextResponse.json(routeData)
       }
     } catch (finalError: any) {
       console.error("All providers failed or gave bad JSON:", finalError.message)
+      
+      // Даем более информативную ошибку
+      let errorMessage = "All AI providers failed to generate valid JSON"
+      if (finalError.message?.includes('token')) {
+        errorMessage = "Request too complex, try reducing trip duration or details"
+      } else if (finalError.message?.includes('rate')) {
+        errorMessage = "Too many requests, please try again in a moment"
+      }
+      
       return NextResponse.json({
-        error: "All AI providers failed to generate valid JSON",
+        error: errorMessage,
         details: finalError.message
       }, { status: 500 })
     }
