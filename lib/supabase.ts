@@ -16,6 +16,18 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    try {
+      const { error } = await supabase.auth.signOut()
+      // Игнорируем ошибку "Auth session missing!" - это нормальное поведение при выходе
+      if (error?.message?.includes('Auth session missing')) {
+        return { error: null }
+      }
+      return { error }
+    } catch (error) {
+      // Если произошла ошибка, но это не "Auth session missing", возвращаем её
+      if (error instanceof Error && !error.message.includes('Auth session missing')) {
+        return { error }
+      }
+      return { error: null }
+    }
 }

@@ -41,13 +41,18 @@ export function Header() {
     try {
       const { error } = await signOut()
       
-      if (error) {
+      // Игнорируем ошибку "Auth session missing!" - это нормальное поведение
+      if (error && !error.message?.includes('Auth session missing')) {
         toast.error("Ошибка при выходе: " + error.message)
         return
       }
       
       localStorage.removeItem("user")
       setUser(null) // Явно обновляем состояние
+      
+      // Дополнительная очистка сессии Supabase
+      await supabase.auth.signOut({ scope: 'local' })
+      
       toast.success("Вы успешно вышли из аккаунта")
       
       // Небольшая задержка перед редиректом для показа toast
