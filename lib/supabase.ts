@@ -14,3 +14,8 @@ export async function signInWithGoogle() {
     })
     return { data, error }
 }
+
+export async function signOut() {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+}

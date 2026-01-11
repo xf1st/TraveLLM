@@ -9,8 +9,9 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight } from "lucide-react"
+import { Mail, ArrowRight } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
+import { toast } from "sonner"
 
 export default function AuthPage() {
   const router = useRouter()
@@ -37,7 +38,7 @@ export default function AuthPage() {
     })
 
     if (error) {
-      alert(error.message)
+      toast.error(error.message)
     } else {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
@@ -74,17 +75,19 @@ export default function AuthPage() {
     })
 
     if (error) {
-      alert(error.message)
+      toast.error(error.message)
     } else {
+      toast.success("Регистрация успешна! Проверьте вашу почту для подтверждения аккаунта.")
       localStorage.setItem("user", JSON.stringify({ email, name }))
-      router.push("/onboarding")
+      // Перенаправляем на страницу подтверждения email
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
     }
     setLoading(false)
   }
 
   const handleGoogleLogin = async () => {
     const { error } = await signInWithGoogle()
-    if (error) alert(error.message)
+    if (error) toast.error(error.message)
   }
 
   return (

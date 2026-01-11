@@ -14,9 +14,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { supabase } from "@/lib/supabase"
+import { supabase, signOut } from "@/lib/supabase"
 import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
+import { toast } from "sonner"
 
 export function Header() {
   const pathname = usePathname()
@@ -37,9 +38,26 @@ export function Header() {
   }, [])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    localStorage.removeItem("user")
-    window.location.href = "/"
+    try {
+      const { error } = await signOut()
+      
+      if (error) {
+        toast.error("Ошибка при выходе: " + error.message)
+        return
+      }
+      
+      localStorage.removeItem("user")
+      setUser(null) // Явно обновляем состояние
+      toast.success("Вы успешно вышли из аккаунта")
+      
+      // Небольшая задержка перед редиректом для показа toast
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1000)
+    } catch (error) {
+      toast.error("Произошла ошибка при выходе")
+      console.error("Logout error:", error)
+    }
   }
 
   return (
