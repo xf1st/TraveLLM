@@ -49,55 +49,37 @@ export default function PlanPage() {
     setLoading(true)
 
     try {
-      console.log("🚀 Starting route generation request...");
-      
       const localPrefs = JSON.parse(localStorage.getItem("userPreferences") || "{}")
       const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
-
-      const requestData = {
-        departureCity,
-        destinationType: destination,
-        countryCount,
-        budget,
-        startDate,
-        endDate,
-        travelStyle,
-        paymentMethods,
-        requireRussianGuide: guideLanguage,
-        companions: "couple",
-        preferences: finalPreferences
-      }
-
-      console.log("📤 Sending request data:", JSON.stringify(requestData, null, 2));
 
       const response = await fetch("/api/groq", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify({
+          departureCity,
+          destinationType: destination,
+          countryCount,
+          budget,
+          startDate,
+          endDate,
+          travelStyle,
+          paymentMethods,
+          requireRussianGuide: guideLanguage,
+          companions: "couple",
+          preferences: finalPreferences
+        })
       })
-
-      console.log("📥 Response status:", response.status);
-      console.log("📥 Response headers:", Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error("❌ API Error Response:", errorData);
-        
         const errorMessage = errorData.error || "Failed to generate route"
-        const hfError = errorData.hfError
-        const groqError = errorData.groqError
-        const details = errorData.details
-        
-        let detailedError = ""
-        if (hfError || groqError || details) {
-          detailedError = `\n\nДетали:\n${hfError || groqError || details}`
-        }
-        
+        const detailedError = errorData.hfError || errorData.groqError
+          ? `\n\nДетали:\nHF: ${errorData.hfError || "n/a"}\nGroq: ${errorData.groqError || "n/a"}`
+          : ""
         throw new Error(errorMessage + detailedError)
       }
 
       const routeData = await response.json()
-      console.log("✅ Route generated successfully:", Object.keys(routeData));
 
       // Save to Supabase for all users (persistence requirement)
       const { data: { user } } = await supabase.auth.getUser()

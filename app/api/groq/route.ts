@@ -3,19 +3,9 @@ import { hfInference } from "@/lib/huggingface"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
-  console.log("=== GROQ API ROUTE STARTED ===");
-  
-  // Set timeout for entire function
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error("Function timeout after 120 seconds")), 120000)
-  })
-  
   try {
-    const bodyPromise = req.json()
-    const body = await Promise.race([bodyPromise, timeoutPromise]) as any
-    
-    console.log("📥 Request Body:", JSON.stringify(body, null, 2))
-    
+    const body = await req.json()
+    console.log("AI API Request Body:", JSON.stringify(body, null, 2))
     const {
       departureCity,
       destinationType,
@@ -29,24 +19,6 @@ export async function POST(req: Request) {
       paymentMethods,
       requireRussianGuide
     } = body
-
-    // Проверка обязательных полей
-    if (!departureCity) {
-      console.error("❌ Missing departureCity");
-      return NextResponse.json({ error: "Missing departureCity" }, { status: 400 })
-    }
-
-    console.log("🔑 Checking environment variables...");
-    console.log("GROQ_API_KEY exists:", !!process.env.GROQ_API_KEY);
-    console.log("HUGGING_FACE_TOKEN exists:", !!process.env.HUGGING_FACE_TOKEN);
-
-    if (!process.env.GROQ_API_KEY && !process.env.HUGGING_FACE_TOKEN) {
-      console.error("❌ No API keys available");
-      return NextResponse.json({ 
-        error: "No API keys configured",
-        details: "Both GROQ_API_KEY and HUGGING_FACE_TOKEN are missing"
-      }, { status: 500 })
-    }
 
     const durationDays = startDate && endDate
       ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -122,41 +94,26 @@ export async function POST(req: Request) {
     const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only."
 
     async function generateAndParse(source: "HF" | "Groq"): Promise<any> {
-      console.log(`🚀 Starting generation with ${source}...`);
       let raw = ""
-      
       if (source === "HF") {
-        console.log("📡 Attempting Hugging Face Inference...");
-        if (!process.env.HUGGING_FACE_TOKEN) {
-          throw new Error("HUGGING_FACE_TOKEN is not defined");
-        }
+        console.log("Attempting Hugging Face Inference...");
         raw = await hfInference(prompt, systemPrompt)
       } else {
-        console.log("📡 Attempting Groq Completion...");
-        if (!process.env.GROQ_API_KEY) {
-          throw new Error("GROQ_API_KEY is not defined");
-        }
-        
-        console.log("📝 Sending request to Groq...");
+        console.log("Attempting Groq Completion...");
         const completion = await groq.chat.completions.create({
           model: GROQ_MODEL,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: prompt }
           ],
-          max_tokens: 2048, // Reduced from 4096 for faster response
+          max_tokens: 4096,
           temperature: 0.6,
           response_format: { type: "json_object" }
         })
         raw = completion.choices[0].message.content || ""
       }
 
-      console.log(`📥 Raw response from ${source}:`, raw.substring(0, 200) + "...");
-
-      if (!raw) {
-        console.error(`❌ Empty response from ${source}`);
-        throw new Error(`Empty response from ${source}`)
-      }
+      if (!raw) throw new Error(`Empty response from ${source}`)
 
       // Extraction & Repair
       let clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
@@ -191,33 +148,28 @@ export async function POST(req: Request) {
     }
 
     try {
-      console.log("🎯 Starting Hugging Face generation...");
-      
-      const routeData = await generateAndParse("HF")
-      console.log("✅ Success with Hugging Face");
-      console.log("📊 Final result keys:", Object.keys(routeData));
-      return NextResponse.json(routeData)
-      
+      try {
+        const routeData = await generateAndParse("HF")
+        console.log("Success with Hugging Face")
+        return NextResponse.json(routeData)
+      } catch (hfError: any) {
+        console.error("HF Failed or gave bad JSON, falling back to Groq:", hfError.message)
+        const routeData = await generateAndParse("Groq")
+        console.log("Success with Groq fallback")
+        return NextResponse.json(routeData)
+      }
     } catch (finalError: any) {
-      console.error("💀 Hugging Face failed:", finalError.message);
-      console.error("💀 Full error:", finalError);
+      console.error("All providers failed or gave bad JSON:", finalError.message)
       return NextResponse.json({
-        error: "Hugging Face failed to generate route",
-        details: finalError.message,
-        stack: finalError.stack,
-        suggestion: "Check HUGGING_FACE_TOKEN and try again"
+        error: "All AI providers failed to generate valid JSON",
+        details: finalError.message
       }, { status: 500 })
     }
 
   } catch (error: any) {
-    console.error("🔥 Fatal API Error:", error);
-    console.error("🔥 Full error object:", error);
+    console.error("Fatal API Error:", error)
     return NextResponse.json({
       error: error.message || "Unknown error",
-      details: error.stack,
-      type: error.constructor.name
     }, { status: 500 })
-  } finally {
-    console.log("=== GROQ API ROUTE FINISHED ===");
   }
 }

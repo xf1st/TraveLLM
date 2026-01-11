@@ -1,7 +1,7 @@
-export const HUGGINGFACE_MODEL = "microsoft/WizardLM-2-8x22B:ovhcloud";
+export const HUGGINGFACE_MODEL = "meta-llama/Llama-3.1-8B-Instruct:ovhcloud";
 
 export async function hfInference(prompt: string, systemPrompt: string) {
-    const token = process.env.HUGGING_FACE_TOKEN;
+    const token = process.env.HUGGING_FACE_TOKEN || "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";
 
     console.log("Starting HF Chat Inference with model:", HUGGINGFACE_MODEL);
 
@@ -9,10 +9,6 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         console.error("HF Token is missing!");
         throw new Error("HUGGING_FACE_TOKEN is not defined");
     }
-
-    // Set timeout for HF request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for complex requests
 
     try {
         const response = await fetch(
@@ -23,21 +19,17 @@ export async function hfInference(prompt: string, systemPrompt: string) {
                     "Content-Type": "application/json",
                 },
                 method: "POST",
-                signal: controller.signal,
                 body: JSON.stringify({
                     model: HUGGINGFACE_MODEL,
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: prompt }
                     ],
-                    max_tokens: 8192, // Increased for better route generation
+                    max_tokens: 8192,
                     temperature: 0.7,
-                    stream: false // Disabled for now, can enable later
                 }),
             }
         );
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -57,14 +49,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         }
 
         return text.trim();
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        
-        if (error.name === 'AbortError') {
-            console.error("HF Request timed out after 90 seconds");
-            throw new Error("HF request timeout - server took too long to respond");
-        }
-        
+    } catch (error) {
         console.error("HF Inference Chat Exception:", error);
         throw error;
     }
