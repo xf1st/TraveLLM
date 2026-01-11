@@ -5,8 +5,15 @@ import { NextResponse } from "next/server"
 export async function POST(req: Request) {
   console.log("=== GROQ API ROUTE STARTED ===");
   
+  // Set timeout for the entire function
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error("Function timeout after 25 seconds")), 25000)
+  })
+  
   try {
-    const body = await req.json()
+    const bodyPromise = req.json()
+    const body = await Promise.race([bodyPromise, timeoutPromise]) as any
+    
     console.log("📥 Request Body:", JSON.stringify(body, null, 2))
     
     const {
@@ -137,7 +144,7 @@ export async function POST(req: Request) {
             { role: "system", content: systemPrompt },
             { role: "user", content: prompt }
           ],
-          max_tokens: 4096,
+          max_tokens: 2048, // Reduced from 4096 for faster response
           temperature: 0.6,
           response_format: { type: "json_object" }
         })

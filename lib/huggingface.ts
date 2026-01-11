@@ -10,6 +10,10 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         throw new Error("HUGGING_FACE_TOKEN is not defined");
     }
 
+    // Set timeout for HF request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
     try {
         const response = await fetch(
             `https://router.huggingface.co/v1/chat/completions`,
@@ -19,17 +23,20 @@ export async function hfInference(prompt: string, systemPrompt: string) {
                     "Content-Type": "application/json",
                 },
                 method: "POST",
+                signal: controller.signal,
                 body: JSON.stringify({
                     model: HUGGINGFACE_MODEL,
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: prompt }
                     ],
-                    max_tokens: 8192,
+                    max_tokens: 2048, // Reduced from 8192 for faster response
                     temperature: 0.7,
                 }),
             }
         );
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -49,7 +56,14 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         }
 
         return text.trim();
-    } catch (error) {
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        
+        if (error.name === 'AbortError') {
+            console.error("HF Request timed out after 20 seconds");
+            throw new Error("HF request timeout - server took too long to respond");
+        }
+        
         console.error("HF Inference Chat Exception:", error);
         throw error;
     }
