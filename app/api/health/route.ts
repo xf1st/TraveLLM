@@ -35,7 +35,7 @@ export async function GET() {
         groq: process.env.GROQ_API_KEY ? "available_requires_vpn" : "no_key"
       },
       api_endpoints: {
-        groq: "/api/groq - POST - Route generation (Qwen3-32B only)",
+        groq: "/api/groq - POST - Route generation (WizardLM-2-8x22B only)",
         health: "/api/health - GET - This endpoint"
       },
       dependencies: {
@@ -44,9 +44,9 @@ export async function GET() {
         supabase: "@supabase/supabase-js"
       },
       notes: {
-        huggingface: "Qwen3-32B model - fast and efficient",
+        huggingface: "WizardLM-2-8x22B model - very fast and efficient",
         groq: "Requires VPN for access",
-        fallback: "Using Qwen3-32B for better performance"
+        fallback: "Using WizardLM for maximum speed and reliability"
       }
     }
 

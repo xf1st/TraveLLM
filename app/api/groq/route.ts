@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   
   // Set timeout for entire function
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error("Function timeout after 60 seconds")), 60000)
+    setTimeout(() => reject(new Error("Function timeout after 120 seconds")), 120000)
   })
   
   try {

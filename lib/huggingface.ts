@@ -1,4 +1,4 @@
-export const HUGGINGFACE_MODEL = "Qwen/Qwen3-32B:ovhcloud";
+export const HUGGINGFACE_MODEL = "microsoft/WizardLM-2-8x22B:ovhcloud";
 
 export async function hfInference(prompt: string, systemPrompt: string) {
     const token = process.env.HUGGING_FACE_TOKEN;
@@ -12,7 +12,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
 
     // Set timeout for HF request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for faster model
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout for complex requests
 
     try {
         const response = await fetch(
@@ -61,7 +61,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-            console.error("HF Request timed out after 45 seconds");
+            console.error("HF Request timed out after 90 seconds");
             throw new Error("HF request timeout - server took too long to respond");
         }
         
