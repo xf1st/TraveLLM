@@ -16,6 +16,10 @@ interface HealthStatus {
     NEXT_PUBLIC_SUPABASE_URL_EXISTS: boolean
     NEXT_PUBLIC_SUPABASE_ANON_KEY_EXISTS: boolean
   }
+  api_tests: {
+    huggingface: string
+    groq: string
+  }
   api_endpoints: {
     groq: string
     health: string
@@ -24,6 +28,11 @@ interface HealthStatus {
     groq_sdk: string
     huggingface: string
     supabase: string
+  }
+  notes: {
+    huggingface: string
+    groq: string
+    fallback: string
   }
 }
 
@@ -161,19 +170,56 @@ export default function ApiStatusPage() {
               </div>
             </Card>
 
-            {/* API Endpoints */}
+            {/* API Tests */}
             <Card className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <Database className="h-6 w-6" />
-                <span className="font-semibold">API Endpoints</span>
+                <Activity className="h-6 w-6" />
+                <span className="font-semibold">Тесты API</span>
               </div>
-              <div className="space-y-2">
-                {Object.entries(healthData.api_endpoints).map(([name, desc]) => (
-                  <div key={name} className="p-3 rounded-lg border">
-                    <div className="font-mono text-sm mb-1">{name}</div>
-                    <div className="text-sm text-muted-foreground">{desc}</div>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="font-medium">Hugging Face</span>
+                  <Badge variant={
+                    healthData.api_tests.huggingface === "working" ? "default" : 
+                    healthData.api_tests.huggingface === "not_tested" ? "secondary" : "destructive"
+                  }>
+                    {healthData.api_tests.huggingface === "working" ? "✅ Работает" :
+                     healthData.api_tests.huggingface === "not_tested" ? "⏳ Не тестировался" :
+                     "❌ Ошибка"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <span className="font-medium">Groq</span>
+                  <Badge variant={
+                    healthData.api_tests.groq.includes("available") ? "secondary" : "destructive"
+                  }>
+                    {healthData.api_tests.groq === "available_requires_vpn" ? "🔐 Требует VPN" :
+                     healthData.api_tests.groq === "no_key" ? "❌ Нет ключа" :
+                     "❌ Ошибка"}
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+
+            {/* VPN Info */}
+            <Card className="p-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-3 mb-4">
+                <Database className="h-6 w-6 text-blue-600" />
+                <span className="font-semibold text-blue-800 dark:text-blue-200">Информация о доступе</span>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span><strong>Hugging Face:</strong> {healthData.notes.huggingface}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-orange-600" />
+                  <span><strong>Groq:</strong> {healthData.notes.groq}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 text-blue-600" />
+                  <span><strong>Fallback:</strong> {healthData.notes.fallback}</span>
+                </div>
               </div>
             </Card>
 
@@ -181,9 +227,9 @@ export default function ApiStatusPage() {
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-semibold mb-1">Тестирование Groq API</h3>
+                  <h3 className="font-semibold mb-1">Тестирование генерации маршрутов</h3>
                   <p className="text-sm text-muted-foreground">
-                    Проверить работу генерации маршрутов с тестовыми данными
+                    Проверить работу API (HF → Groq fallback)
                   </p>
                 </div>
                 <Button onClick={testGroqAPI} disabled={loading}>

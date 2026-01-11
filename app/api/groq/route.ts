@@ -187,14 +187,14 @@ export async function POST(req: Request) {
       console.log("🎯 Starting generation pipeline...");
       
       try {
-        console.log("📍 Step 1: Trying Hugging Face...");
+        console.log("📍 Step 1: Trying Hugging Face (works without VPN)...");
         const routeData = await generateAndParse("HF")
         console.log("✅ Success with Hugging Face");
         console.log("📊 Final result keys:", Object.keys(routeData));
         return NextResponse.json(routeData)
       } catch (hfError: any) {
         console.error("❌ HF Failed:", hfError.message);
-        console.log("🔄 Falling back to Groq...");
+        console.log("🔄 Falling back to Groq (requires VPN)...");
         
         const routeData = await generateAndParse("Groq")
         console.log("✅ Success with Groq fallback");
@@ -207,7 +207,9 @@ export async function POST(req: Request) {
       return NextResponse.json({
         error: "All AI providers failed to generate valid JSON",
         details: finalError.message,
-        stack: finalError.stack
+        stack: finalError.stack,
+        hfError: "Hugging Face failed - check token",
+        groqError: "Groq failed - may require VPN"
       }, { status: 500 })
     }
 
