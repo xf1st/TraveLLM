@@ -1,4 +1,4 @@
-export const HUGGINGFACE_MODEL = "meta-llama/Llama-3.1-8B-Instruct:ovhcloud";
+export const HUGGINGFACE_MODEL = "Qwen/Qwen3-32B:ovhcloud";
 
 export async function hfInference(prompt: string, systemPrompt: string) {
     const token = process.env.HUGGING_FACE_TOKEN;
@@ -12,7 +12,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
 
     // Set timeout for HF request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for faster model
 
     try {
         const response = await fetch(
@@ -30,8 +30,9 @@ export async function hfInference(prompt: string, systemPrompt: string) {
                         { role: "system", content: systemPrompt },
                         { role: "user", content: prompt }
                     ],
-                    max_tokens: 4096, // Increased for better route generation
+                    max_tokens: 8192, // Increased for better route generation
                     temperature: 0.7,
+                    stream: false // Disabled for now, can enable later
                 }),
             }
         );
@@ -60,7 +61,7 @@ export async function hfInference(prompt: string, systemPrompt: string) {
         clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-            console.error("HF Request timed out after 30 seconds");
+            console.error("HF Request timed out after 45 seconds");
             throw new Error("HF request timeout - server took too long to respond");
         }
         
