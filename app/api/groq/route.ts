@@ -177,41 +177,16 @@ export async function POST(req: Request) {
             try {
                 const jsonData = JSON.parse(clean);
 
-                // --- ENRICHMENT WITH IMAGES ---
-
+                // --- ENRICHMENT: Only Cover Image (fast) ---
                 try {
-                    // 1. Cover Image
                     if (jsonData.countries && jsonData.countries.length > 0) {
-                        const cover = await getDestinationImage(jsonData.countries[0].name + " travel background");
+                        const cover = await getDestinationImage(jsonData.countries[0].name + " travel");
                         if (cover) jsonData.coverImage = cover;
                     }
-
-                    // 2. Day Images (Parallel)
-                    if (jsonData.itinerary && Array.isArray(jsonData.itinerary)) {
-                        const country = jsonData.countries?.[0]?.name || destinationType;
-                        await Promise.all(jsonData.itinerary.map(async (day: any) => {
-                            try {
-                                // Try to construct a good query: "Paris Eiffel Tower" or "Bali Beach"
-                                // If day title is generic "Day 1", use country + activities desc
-                                let query = `${country} ${day.title || 'travel'}`;
-                                if (day.title?.includes("Day") || day.title?.includes("День")) {
-                                    // generic title, peek activities
-                                    const activity = day.activities?.[0]?.desc || 'landscape';
-                                    // Extract first few words of activity
-                                    const keywords = activity.split(' ').slice(0, 4).join(' ');
-                                    query = `${country} ${keywords}`;
-                                }
-
-                                const img = await getDestinationImage(query);
-                                if (img) day.image = img;
-                            } catch (e) {
-                                console.error("Failed to fetch day image", e);
-                            }
-                        }));
-                    }
                 } catch (imgError) {
-                    console.error("Pexels enrichment failed, proceeding with text only", imgError);
+                    // Cover image is optional, proceed without it
                 }
+                // Day images are now loaded lazily via TripImage component
                 // -------------------------------------
 
                 return jsonData;
