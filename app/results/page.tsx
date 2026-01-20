@@ -3,12 +3,13 @@
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Header } from "@/components/header"
+import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Shield, ArrowRight, Sparkles, Map } from "lucide-react"
 import Image from "next/image"
+import { TripImage } from "@/components/TripImage"
 
 import { supabase } from "@/lib/supabase"
 
@@ -21,7 +22,7 @@ const mockRecommendations = [
     tags: ["#уютно", "#гастрономия", "#русскиеговорят"],
     safetyLevel: 9,
     budget: "75 000 ₽",
-    image: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?auto=format&fit=crop&q=80&w=800",
+    image: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
     description: "Идеальный маршрут для гастрономического путешествия с винными турами в Кахетию",
     style: "Сбалансированный",
   },
@@ -123,134 +124,123 @@ function ResultsContent() {
     ]
     : mockRecommendations
 
+  const title = view === "my" ? "Ваша коллекция маршрутов" : "Откройте новые горизонты"
+  const description = view === "my"
+    ? "Все маршруты, сгенерированные вами и сохраненные в профиле."
+    : "Проверенные маршруты от наших экспертов и популярные направления сообщества."
+
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="mx-auto max-w-7xl px-4 py-12 md:px-6">
-        <div className="mb-12 flex flex-col items-center text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20" variant="secondary">
-            <Sparkles className="mr-1 h-3 w-3" />
-            © 2026 TraveLM AI. Все права защищены.
-          </Badge>
-          <h1 className="mb-4 text-4xl font-extrabold tracking-tight md:text-5xl">
-            {view === "my" ? "Ваша коллекция маршрутов" : "Откройте новые горизонты"}
-          </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground font-medium">
-            {view === "my"
-              ? "Все маршруты, сгенерированные вами и сохраненные в профиле."
-              : "Проверенные маршруты от наших экспертов и популярные направления сообщества."}
-          </p>
-
-          <div className="mt-8 flex gap-2 rounded-xl bg-card p-1 shadow-sm border border-border/50">
-            <Button
-              variant={view === "all" ? "default" : "ghost"}
-              onClick={() => setView("all")}
-              className="px-8 rounded-lg"
-            >
-              Каталог
-            </Button>
-            <Button
-              variant={view === "my" ? "default" : "ghost"}
-              onClick={() => setView("my")}
-              className="px-8 rounded-lg"
-            >
-              Мои маршруты
-            </Button>
-          </div>
+    <AppLayout title={title} description={description}>
+      {/* View Toggle */}
+      <div className="mb-8 flex justify-center">
+        <div className="flex gap-2 rounded-xl bg-card p-1 shadow-sm border border-border/50">
+          <Button
+            variant={view === "all" ? "default" : "ghost"}
+            onClick={() => setView("all")}
+            className="px-8 rounded-lg"
+          >
+            Каталог
+          </Button>
+          <Button
+            variant={view === "my" ? "default" : "ghost"}
+            onClick={() => setView("my")}
+            className="px-8 rounded-lg"
+          >
+            Мои маршруты
+          </Button>
         </div>
+      </div>
 
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
-        ) : (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {displayRoutes.length > 0 ? (
-              displayRoutes.map((trip, index) => (
-                <Card
-                  key={trip.id}
-                  className="group flex flex-col overflow-hidden border-none bg-card shadow-md transition-all hover:shadow-2xl hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8 duration-700"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <Image
-                      src={trip.image}
-                      alt={trip.title}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
-                    <div className="absolute bottom-4 left-4 text-white">
-                      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
-                        <Shield className="h-3 w-3 text-sky-400" />
-                        Безопасность {trip.safetyLevel}/10
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-1 flex-col p-6">
-                    <div className="mb-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-widest text-primary">
-                          {trip.destination}
-                        </span>
-                        <span className="text-xs font-medium text-muted-foreground">{trip.duration}</span>
-                      </div>
-                      <h3 className="text-xl font-bold transition-colors group-hover:text-primary">
-                        {trip.title}
-                      </h3>
-                    </div>
-
-                    <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground font-medium line-clamp-3">
-                      {trip.description}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : (
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {displayRoutes.length > 0 ? (
+            displayRoutes.map((trip, index) => (
+              <Card
+                key={trip.id}
+                className="group flex flex-col overflow-hidden border-none bg-card shadow-md transition-all hover:shadow-2xl hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-8 duration-700"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <TripImage
+                    src={trip.image}
+                    query={trip.destination || "travel"}
+                    alt={trip.title}
+                    className="h-full w-full transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+                      <Shield className="h-3 w-3 text-sky-400" />
+                      Безопасность {trip.safetyLevel}/10
                     </p>
-
-                    <div className="mb-6 flex flex-wrap gap-2">
-                      {trip.tags.map((tag: string) => (
-                        <Badge key={tag} variant="secondary" className="bg-primary/5 text-[10px] font-semibold text-primary hover:bg-primary/10 border-none">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t border-border/50 pt-6">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] uppercase tracking-tighter text-muted-foreground">Бюджет от</span>
-                        <span className="text-xl font-black">{trip.budget}</span>
-                      </div>
-                      <Button asChild className="rounded-full px-6 transition-all hover:shadow-lg hover:shadow-primary/20">
-                        <Link href={`/trip/${trip.id}`}>
-                          Открыть
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
                   </div>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                  <Map className="h-8 w-8 text-slate-400" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Пока нет маршрутов</h3>
-                <p className="mt-2 text-slate-500">
-                  {view === "my"
-                    ? "Вы еще не создали ни одного маршрута. Самое время начать!"
-                    : "Рекомендации скоро появятся."}
-                </p>
-                {view === "my" && (
-                  <Button asChild className="mt-6 rounded-full" variant="outline">
-                    <Link href="/plan">Спланировать поездку</Link>
-                  </Button>
-                )}
+
+                <div className="flex flex-1 flex-col p-6">
+                  <div className="mb-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-widest text-primary">
+                        {trip.destination}
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground">{trip.duration}</span>
+                    </div>
+                    <h3 className="text-xl font-bold transition-colors group-hover:text-primary">
+                      {trip.title}
+                    </h3>
+                  </div>
+
+                  <p className="mb-6 flex-1 text-sm leading-relaxed text-muted-foreground font-medium line-clamp-3">
+                    {trip.description}
+                  </p>
+
+                  <div className="mb-6 flex flex-wrap gap-2">
+                    {trip.tags.map((tag: string) => (
+                      <Badge key={tag} variant="secondary" className="bg-primary/5 text-[10px] font-semibold text-primary hover:bg-primary/10 border-none">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border/50 pt-6">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-tighter text-muted-foreground">Бюджет от</span>
+                      <span className="text-xl font-black">{trip.budget}</span>
+                    </div>
+                    <Button asChild className="rounded-full px-6 transition-all hover:shadow-lg hover:shadow-primary/20">
+                      <Link href={`/trip/${trip.id}`}>
+                        Открыть
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full py-20 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <Map className="h-8 w-8 text-muted-foreground" />
               </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+              <h3 className="text-lg font-bold">Пока нет маршрутов</h3>
+              <p className="mt-2 text-muted-foreground">
+                {view === "my"
+                  ? "Вы еще не создали ни одного маршрута. Самое время начать!"
+                  : "Рекомендации скоро появятся."}
+              </p>
+              {view === "my" && (
+                <Button asChild className="mt-6 rounded-full" variant="outline">
+                  <Link href="/plan">Спланировать поездку</Link>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </AppLayout>
   )
 }
 

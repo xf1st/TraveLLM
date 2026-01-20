@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Mail, ArrowRight } from "lucide-react"
+import { ArrowRight, Map } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -94,14 +94,23 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container max-w-md px-4 py-12 md:py-20">
-        <div className="mb-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="mb-3 text-3xl font-bold">Добро пожаловать</h1>
+      <main className="container max-w-md px-4 py-16 md:py-24">
+        {/* Logo & Title */}
+        <div className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-6 shadow-lg">
+            <Map className="h-7 w-7 text-primary-foreground" />
+          </div>
+          <h1 className="mb-3 text-3xl font-semibold tracking-tight">Добро пожаловать</h1>
           <p className="text-muted-foreground">Войдите или создайте аккаунт для продолжения</p>
         </div>
 
-        <Card className="p-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <Button variant="outline" className="w-full gap-3 mb-6 font-medium h-12" onClick={handleGoogleLogin}>
+        <Card className="p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          {/* Google Login */}
+          <Button
+            variant="outline"
+            className="w-full gap-3 h-12 font-medium"
+            onClick={handleGoogleLogin}
+          >
             <svg viewBox="0 0 24 24" className="h-5 w-5">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -111,38 +120,54 @@ export default function AuthPage() {
             Войти через Google
           </Button>
 
-          <div className="relative mb-6">
+          {/* Divider */}
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
+              <span className="w-full border-t border-border/50" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Или используйте email</span>
+              <span className="bg-card px-3 text-muted-foreground font-medium">Или используйте email</span>
             </div>
           </div>
 
+          {/* Tabs */}
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="login">Вход</TabsTrigger>
               <TabsTrigger value="signup">Регистрация</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
+              <form onSubmit={handleLogin} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input id="login-email" type="email" placeholder="ivan@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="ivan@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Пароль</Label>
-                  <Input id="login-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Label htmlFor="login-password" className="text-sm font-medium">Пароль</Label>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
-                <Button type="submit" className="w-full h-11" disabled={loading}>
+                <Button type="submit" className="w-full h-12" disabled={loading}>
                   {loading ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
                     <>
                       Войти
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
@@ -150,26 +175,46 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Имя</Label>
-                  <Input id="signup-name" placeholder="Иван" value={name} onChange={(e) => setName(e.target.value)} required />
+                  <Label htmlFor="signup-name" className="text-sm font-medium">Имя</Label>
+                  <Input
+                    id="signup-name"
+                    placeholder="Иван"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input id="signup-email" type="email" placeholder="ivan@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="ivan@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Пароль</Label>
-                  <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Label htmlFor="signup-password" className="text-sm font-medium">Пароль</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
                 </div>
-                <Button type="submit" className="w-full h-11" disabled={loading}>
+                <Button type="submit" className="w-full h-12" disabled={loading}>
                   {loading ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   ) : (
                     <>
                       Создать аккаунт
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
                 </Button>
@@ -178,9 +223,9 @@ export default function AuthPage() {
           </Tabs>
         </Card>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p className="mt-8 text-center text-sm text-muted-foreground">
           Продолжая, вы соглашаетесь с{" "}
-          <Link href="#" className="underline hover:text-primary">
+          <Link href="#" className="text-primary hover:underline underline-offset-4">
             условиями использования
           </Link>
         </p>

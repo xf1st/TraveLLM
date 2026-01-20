@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { Header } from "@/components/header"
+import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +27,7 @@ function ProfileContent() {
     pace: "moderate",
     religion: "none",
     languages: [] as string[],
+    visitedCountries: [] as string[],
     dietaryRestrictions: [] as string[],
     dietaryCustom: "",
     interests: [] as string[],
@@ -49,6 +50,7 @@ function ProfileContent() {
             pace: prefs.pace || "moderate",
             religion: prefs.religion || "none",
             languages: data.languages || [],
+            visitedCountries: prefs.visitedCountries || [],
             dietaryRestrictions: prefs.dietaryRestrictions || [],
             dietaryCustom: prefs.dietaryCustom || "",
             interests: prefs.interestsDetailed || [],
@@ -77,6 +79,7 @@ function ProfileContent() {
       ...(profile.preferences || {}),
       pace: editForm.pace,
       religion: editForm.religion,
+      visitedCountries: editForm.visitedCountries,
       dietaryRestrictions: editForm.dietaryRestrictions,
       dietaryCustom: editForm.dietaryCustom,
       interestsDetailed: editForm.interests,
@@ -100,10 +103,8 @@ function ProfileContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      <Header />
-
-      <main className="container max-w-5xl px-4 py-8">
+    <AppLayout>
+      <div className="max-w-5xl mx-auto">
         <div className="grid gap-8 md:grid-cols-[1fr_2fr]">
           {/* Sidebar */}
           <div className="space-y-6">
@@ -270,6 +271,16 @@ function ProfileContent() {
                       </div>
 
                       <div className="space-y-2">
+                        <label className="text-sm font-medium flex items-center gap-2"><Globe className="h-4 w-4" /> Посещённые страны</label>
+                        <Input
+                          placeholder="Грузия, Турция, Таиланд, Италия..."
+                          value={editForm.visitedCountries.join(', ')}
+                          onChange={(e) => setEditForm({ ...editForm, visitedCountries: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
+                        />
+                        <p className="text-xs text-muted-foreground">Страны через запятую. ИИ не будет предлагать только те места, которые вы уже посетили.</p>
+                      </div>
+
+                      <div className="space-y-2">
                         <label className="text-sm font-medium">Языки (английский, русский, и т.д.)</label>
                         <Input
                           placeholder="Введите через запятую"
@@ -324,6 +335,14 @@ function ProfileContent() {
                       <div>
                         <p className="text-sm font-medium text-muted-foreground mb-2">Национальность</p>
                         <p className="text-sm">{profile?.nationality || 'Не указана'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Посещённые страны</p>
+                        <div className="flex flex-wrap gap-2">
+                          {profile?.preferences?.visitedCountries?.length > 0 ? profile.preferences.visitedCountries.map((c: string) => (
+                            <Badge key={c} variant="secondary" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">{c}</Badge>
+                          )) : <span className="text-sm text-muted-foreground italic">Пока нигде не были? Самое время!</span>}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -463,8 +482,8 @@ function ProfileContent() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
 

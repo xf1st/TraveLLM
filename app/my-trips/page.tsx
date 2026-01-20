@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Header } from "@/components/header"
+import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,15 +33,10 @@ export default function MyTripsPage() {
   const generationsLeft = 2
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container max-w-6xl px-4 py-12">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight">Мои поездки</h1>
-            <p className="text-muted-foreground">История ваших путешествий и планов</p>
-          </div>
+    <AppLayout title="Мои поездки" description="История ваших путешествий и планов">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Action Button */}
+        <div className="flex justify-end">
           <Button asChild size="lg" className="transition-all hover:scale-105">
             <Link href="/plan">
               <Plus className="h-5 w-5" />
@@ -50,7 +45,8 @@ export default function MyTripsPage() {
           </Button>
         </div>
 
-        <Card className="mb-8 p-6 bg-gradient-to-br from-primary/5 to-background border-primary/20 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+        {/* Generations Card */}
+        <Card className="p-6 bg-gradient-to-br from-primary/5 to-background border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -81,7 +77,7 @@ export default function MyTripsPage() {
         </Card>
 
         {/* Trips */}
-        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+        <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
           <h2 className="mb-4 text-xl font-semibold">Завершённые поездки ({pastTrips.length})</h2>
           {pastTrips.length === 0 ? (
             <Card className="p-12 text-center">
@@ -146,7 +142,7 @@ export default function MyTripsPage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }

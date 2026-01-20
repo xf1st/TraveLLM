@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Header } from "@/components/header"
+import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -13,13 +13,14 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sparkles, CreditCard, Languages } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { GeneratingModal } from "@/components/GeneratingModal"
 import { supabase } from "@/lib/supabase"
 import { useEffect } from "react"
 
 export default function PlanPage() {
   const router = useRouter()
   const [departureCity, setDepartureCity] = useState("")
-  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed">("abroad")
+  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("abroad")
   const [countryCount, setCountryCount] = useState("1")
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
@@ -29,6 +30,7 @@ export default function PlanPage() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
   const [guideLanguage, setGuideLanguage] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [customDestination, setCustomDestination] = useState("")
   const [profile, setProfile] = useState<any>(null)
 
   useEffect(() => {
@@ -58,6 +60,7 @@ export default function PlanPage() {
         body: JSON.stringify({
           departureCity,
           destinationType: destination,
+          customDestination: destination === 'custom' ? customDestination : undefined,
           countryCount,
           budget,
           startDate,
@@ -126,19 +129,12 @@ export default function PlanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <main className="container max-w-4xl px-4 py-12 md:py-20">
-        <div className="mb-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-balance md:text-5xl">
-            Спланируем вашу идеальную поездку
-          </h1>
-          <p className="text-lg text-muted-foreground text-balance">
-            ИИ-ассистент с учётом ваших предпочтений, логистики и бюджета
-          </p>
-        </div>
-
+    <AppLayout
+      title="Спланируем вашу идеальную поездку"
+      description="ИИ-ассистент с учётом ваших предпочтений, логистики и бюджета"
+    >
+      <GeneratingModal open={loading} destination={customDestination || departureCity} />
+      <div className="max-w-4xl mx-auto">
         <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Departure */}
@@ -182,8 +178,28 @@ export default function PlanPage() {
                   <RadioGroupItem value="mixed" id="mixed" />
                   <span>Смешанный</span>
                 </Label>
+                <Label
+                  htmlFor="custom"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                >
+                  <RadioGroupItem value="custom" id="custom" />
+                  <span>Свой выбор</span>
+                </Label>
               </RadioGroup>
             </div>
+
+            {/* Custom Destination Input */}
+            {destination === "custom" && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                <Label className="text-base font-semibold">Укажите страны или города</Label>
+                <Input
+                  value={customDestination}
+                  onChange={(e) => setCustomDestination(e.target.value)}
+                  placeholder="Например: Италия, Франция, Токио или 'Тур по Скандинавии'"
+                  className="transition-all focus:scale-105"
+                />
+              </div>
+            )}
 
             {/* Country Count */}
             {destination !== "russia" && (
@@ -320,9 +336,13 @@ export default function PlanPage() {
             <div className="space-y-4">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-primary" />
-                Способы оплаты
+                Основной способ оплаты
               </Label>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <RadioGroup
+                value={paymentMethods[0] || ""}
+                onValueChange={(value) => setPaymentMethods([value])}
+                className="grid gap-3 sm:grid-cols-2"
+              >
                 {[
                   { id: "mir", label: "Карта Мир" },
                   { id: "unionpay", label: "UnionPay (РФ)" },
@@ -331,22 +351,14 @@ export default function PlanPage() {
                 ].map((method) => (
                   <Label
                     key={method.id}
-                    htmlFor={method.id}
+                    htmlFor={`payment-${method.id}`}
                     className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                   >
-                    <Checkbox
-                      id={method.id}
-                      checked={paymentMethods.includes(method.id)}
-                      onCheckedChange={() =>
-                        setPaymentMethods(prev =>
-                          prev.includes(method.id) ? prev.filter(m => m !== method.id) : [...prev, method.id]
-                        )
-                      }
-                    />
+                    <RadioGroupItem value={method.id} id={`payment-${method.id}`} />
                     <span className="text-sm">{method.label}</span>
                   </Label>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
 
             {/* Guide Language */}
@@ -408,7 +420,7 @@ export default function PlanPage() {
         <p className="mt-6 text-center text-sm text-muted-foreground animate-in fade-in duration-1000">
           Бесплатно доступно 3 генерации маршрутов
         </p>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   )
 }
