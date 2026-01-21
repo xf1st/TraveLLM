@@ -67,6 +67,7 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
+    { href: "/guide", label: "AI Гид" },
     { href: "/results", label: "Маршруты" },
     { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
@@ -74,24 +75,26 @@ export function Header({ floating = false }: HeaderProps) {
 
   if (floating) {
     return (
-      <div className="absolute top-0 left-0 right-0 z-50 p-4 md:p-6">
-        <header className="mx-auto max-w-5xl flex h-14 items-center justify-between px-6 rounded-full border border-border/50 bg-background/80 backdrop-blur-xl shadow-lg">
+      <div className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6 pointer-events-none">
+        <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <Logo size={32} />
-            <span className="text-base font-semibold tracking-tight hidden sm:block">TraveLM</span>
+            <Logo size={28} />
+            <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
           </Link>
 
-          {/* Navigation */}
+          {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${pathname === link.href
-                  ? "text-foreground bg-accent"
-                  : "text-muted-foreground hover:text-foreground"
-                  }`}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
+                  pathname === link.href
+                    ? "text-foreground bg-accent"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
                 {link.label}
               </Link>
@@ -104,10 +107,10 @@ export function Header({ floating = false }: HeaderProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                    <Avatar className="h-8 w-8">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                    <Avatar className="h-7 w-7">
                       <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
                         {user.email?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -143,7 +146,7 @@ export function Header({ floating = false }: HeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild size="sm" className="rounded-full h-9 px-5">
+              <Button asChild size="sm" className="rounded-lg h-8 px-4">
                 <Link href="/auth">Войти</Link>
               </Button>
             )}
@@ -154,94 +157,93 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto w-full max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
+    <div className="sticky top-0 z-50 w-full p-3 md:p-4">
+      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
-          <Logo size={36} />
-          <span className="text-lg font-semibold tracking-tight">TraveLM</span>
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+          <Logo size={28} />
+          <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
         </Link>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-1 sm:gap-2">
+        <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pathname === link.href
-                ? "text-foreground bg-accent"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                }`}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
+                pathname === link.href
+                  ? "text-foreground bg-accent"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
               {link.label}
             </Link>
           ))}
-
-          <div className="flex items-center gap-2 ml-2">
-            <ModeToggle />
-
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-xl p-0">
-                    <Avatar className="h-9 w-9 rounded-lg">
-                      <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
-                      <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-sm font-medium">
-                        {user.email?.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-60 rounded-xl p-2" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal p-3">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.user_metadata?.full_name || "Путешественник"}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="mx-2" />
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=profile" className="w-full flex items-center p-2">
-                        <User className="mr-3 h-4 w-4" />
-                        <span>Мой профиль</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
-                        <Map className="mr-3 h-4 w-4" />
-                        <span>Мои маршруты</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=settings" className="w-full flex items-center p-2">
-                        <Settings className="mr-3 h-4 w-4" />
-                        <span>Настройки</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="mx-2" />
-                  <DropdownMenuItem
-                    className="rounded-lg text-destructive focus:bg-destructive/10 cursor-pointer p-2"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="mr-3 h-4 w-4" />
-                    <span>Выйти</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild size="sm" className="rounded-xl ml-1">
-                <Link href="/auth">Войти</Link>
-              </Button>
-            )}
-          </div>
         </nav>
-      </div>
-    </header>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <ModeToggle />
+
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                  <Avatar className="h-7 w-7">
+                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                      {user.email?.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal p-3">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/profile?tab=profile" className="w-full flex items-center p-2">
+                      <User className="mr-3 h-4 w-4" />
+                      <span>Мой профиль</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
+                      <Map className="mr-3 h-4 w-4" />
+                      <span>Мои маршруты</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                    <Link href="/profile?tab=settings" className="w-full flex items-center p-2">
+                      <Settings className="mr-3 h-4 w-4" />
+                      <span>Настройки</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="rounded-lg text-destructive cursor-pointer p-2"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span>Выйти</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild size="sm" className="rounded-lg h-8 px-4">
+              <Link href="/auth">Войти</Link>
+            </Button>
+          )}
+        </div>
+      </header>
+    </div>
   )
 }

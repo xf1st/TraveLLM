@@ -432,31 +432,11 @@ export default function TripDetailPage() {
                 </p>
               </Card>
 
-              <Card className="p-6 bg-slate-900 text-white border-none shadow-xl overflow-hidden relative group">
-                <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-700">
-                  <TripImage
-                    query="luxury hotel concierge"
-                    alt="Concierge"
-                    className="h-full w-full"
-                  />
-                </div>
-                <div className="relative z-10">
-                  <Sparkles className="h-8 w-8 text-sky-400 mb-4" />
-                  <h3 className="text-xl font-bold mb-2">Ваш ИИ-консьерж</h3>
-                  <p className="text-sm text-slate-300 mb-6">
-                    Забронировать стол, найти ближайшую аптеку или перевести меню? Просто спросите меня.
-                  </p>
-                  <Button className="w-full bg-sky-500 hover:bg-sky-600 text-white border-none" onClick={() => router.push(`/guide/${params.id}`)}>
-                    Запустить гида
-                  </Button>
-                </div>
-              </Card>
-
               <Card className="p-6 border-dashed border-2 border-border bg-transparent text-center">
-                <h3 className="font-bold mb-2">Понравился маршрут?</h3>
-                <p className="text-sm text-muted-foreground mb-4">Сохраните его в свой профиль, чтобы вернуться к нему позже.</p>
-                <Button variant="outline" className="w-full rounded-full">
-                  Добавить в избранное
+                <h3 className="font-bold mb-2">Готовы отправиться?</h3>
+                <p className="text-sm text-muted-foreground mb-4">Начните ваше путешествие с персональным ИИ-гидом.</p>
+                <Button className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => router.push(`/guide?tripId=${params.id}`)}>
+                  Начать путешествие
                 </Button>
               </Card>
             </div>

@@ -134,6 +134,7 @@ export function AppSidebar() {
         const newState = !isCollapsed
         setIsCollapsed(newState)
         localStorage.setItem('sidebar-collapsed', String(newState))
+        window.dispatchEvent(new Event('sidebar-change'))
     }
 
     return (
