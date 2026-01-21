@@ -117,7 +117,16 @@ export default function TripDetailPage() {
           description: data.description,
           totalBudget: data.total_cost || data.totalBudget,
           itinerary: data.itinerary,
-          countries: data.destination ? [{ name: data.destination }] : (data.countries || [])
+          countries: data.destination ? [{ name: data.destination }] : (data.countries || []),
+          // Map snake_case DB fields to camelCase for frontend
+          budgetAnalysis: data.budget_analysis || data.budgetAnalysis,
+          visaAdvice: data.visa_advice || data.visaAdvice,
+          paymentAdvice: data.payment_advice || data.paymentAdvice,
+          safetyInfo: data.safety_info || data.safetyInfo,
+          restrictions: data.restrictions,
+          tags: data.tags,
+          coverImage: data.cover_image || data.coverImage,
+          budget_range: data.budget_range
         })
       }
       setLoading(false)

@@ -97,7 +97,16 @@ export default function PlanPage() {
         total_cost: routeData.totalBudget,
         departure_city: departureCity,
         start_date: startDate || null,
-        end_date: endDate || null
+        end_date: endDate || null,
+        // New fields for budget analysis and important info
+        budget_analysis: routeData.budgetAnalysis || null,
+        visa_advice: routeData.visaAdvice || null,
+        payment_advice: routeData.paymentAdvice || null,
+        safety_info: routeData.safetyInfo || null,
+        restrictions: routeData.restrictions || null,
+        countries: routeData.countries || null,
+        tags: routeData.tags || null,
+        cover_image: routeData.coverImage || null
       }).select().single()
 
       if (dbError) {

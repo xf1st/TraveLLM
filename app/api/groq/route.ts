@@ -1,4 +1,6 @@
 import { glmInference, llamaInference, GLM_MODEL, LLAMA_MODEL } from "@/lib/cerebras"
+import { qwenInference, QWEN_MODEL } from "@/lib/qwen"
+// import { deepseekInference, DEEPSEEK_MODEL } from "@/lib/deepseek" // DISABLED
 import { hfInference } from "@/lib/huggingface"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
@@ -137,26 +139,54 @@ export async function POST(req: Request) {
          DO NOT include cost information or ticket URLs in the 'desc' field. 
          Cost goes in 'cost' field. Ticket URL goes in 'link' field. Keep 'desc' clean.
       6. Keep response concise to avoid JSON truncation. Focus on quality over quantity of text.
+      
+      7. CRITICAL - 'budgetAnalysis' is MANDATORY! You MUST fill ALL 5 fields with REALISTIC prices in RUB:
+         - "avgAccommodation": Average hotel cost per night (e.g. "5 000 ₽/ночь" for economy, "15 000 ₽/ночь" for luxury)
+         - "avgFood": Average daily food cost (e.g. "2 500 ₽/день" for economy, "8 000 ₽/день" for luxury)
+         - "avgTransport": Total transport cost for entire trip (flights, trains, taxis)
+         - "avgActivities": Average daily entertainment cost (museums, tours, attractions)
+         - "avgMisc": Miscellaneous expenses (tips, souvenirs, emergencies)
+         DO NOT leave these empty or use placeholders like "...". Calculate based on budget level and destination!
+         
+      8. CRITICAL - 'visaAdvice' is MANDATORY! Provide specific visa information for Russian citizens:
+         - Visa required or visa-free? How many days allowed?
+         - How to apply? What documents needed?
+         - Processing time, costs, embassy locations
+         Example: "Для граждан РФ виза не требуется на срок до 30 дней. Необходим загранпаспорт сроком действия минимум 6 месяцев."
+         
+      9. CRITICAL - 'paymentAdvice' is MANDATORY! Provide payment info for Russian travelers:
+         - Does Mir card work? UnionPay? Cash preferred?
+         - Currency exchange tips, ATM availability
+         - Average prices in local currency vs RUB
+         Example: "Карты Мир не принимаются. Рекомендуется UnionPay или наличные евро. Обменники в аэропорту с высокой комиссией - лучше менять в городе."
+         
+      10. CRITICAL - 'safetyInfo' is MANDATORY! Provide:
+          - "rating": Safety score 1-10 for tourists
+          - "tips": Specific safety advice (areas to avoid, scams, emergency numbers)
+          Example: { "rating": 8, "tips": "Избегайте туристических районов ночью. Остерегайтесь карманников в метро. Экстренные службы: 112" }
     `
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only."
 
-        async function generateAndParse(source: "GLM" | "Llama" | "HF"): Promise<any> {
+        async function generateAndParse(source: "Qwen" | "GLM" | "Llama" | "HF"): Promise<any> {
             let raw = ""
             const messages = [
                 { role: "system" as const, content: systemPrompt },
                 { role: "user" as const, content: prompt }
             ]
-            const opts = { maxTokens: 65536, temperature: 0.6 }
+            const opts = { maxTokens: 16384, temperature: 0.6 }
 
-            if (source === "GLM") {
+            if (source === "Qwen") {
+                console.log("Attempting Qwen-32B via HF...");
+                raw = await qwenInference(messages, opts)
+            } else if (source === "GLM") {
                 console.log("Attempting GLM-4.7 via Cerebras...");
                 raw = await glmInference(messages, opts)
             } else if (source === "Llama") {
                 console.log("Attempting Llama-3.3-70B via Cerebras...");
                 raw = await llamaInference(messages, opts)
             } else {
-                console.log("Attempting Hugging Face Inference...");
+                console.log("Attempting Hugging Face 8B Inference...");
                 raw = await hfInference(prompt, systemPrompt)
             }
 
@@ -214,10 +244,17 @@ export async function POST(req: Request) {
                     console.error("Llama-3.3-70B failed:", llamaError.message)
             */
 
-            // Using only HF 8B model (free tier friendly)
-            const routeData = await generateAndParse("HF")
-            console.log("Success with HF 8B")
-            return NextResponse.json(routeData)
+            // Qwen as primary, HF as fallback
+            try {
+                const routeData = await generateAndParse("Qwen")
+                console.log("Success with Qwen-32B")
+                return NextResponse.json(routeData)
+            } catch (qwenError: any) {
+                console.error("Qwen failed:", qwenError.message)
+                const routeData = await generateAndParse("HF")
+                console.log("Success with HF fallback")
+                return NextResponse.json(routeData)
+            }
 
             /*
                 }
