@@ -35,6 +35,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TripImage } from "@/components/TripImage"
+import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,7 @@ export default function TripDetailPage() {
   const [loading, setLoading] = useState(true)
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
+  const [isModifying, setIsModifying] = useState(false)
 
   useEffect(() => {
     const fetchTrip = async () => {
@@ -258,7 +260,7 @@ export default function TripDetailPage() {
                   const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
 
                   return (
-                    <Card key={idx} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all">
+                    <Card key={idx} className={`overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''}`}>
                       <button
                         onClick={() => setExpandedDay(isExpanded ? null : day.day)}
                         className="w-full flex items-center justify-between p-5 text-left bg-card group"
@@ -351,10 +353,29 @@ export default function TripDetailPage() {
                   );
                 })}
               </div>
+
+              {/* Chat Widget - Mobile Only */}
+              <div className="lg:hidden mt-6">
+                <ItineraryChatWidget
+                  itinerary={route}
+                  onItineraryUpdate={setRoute}
+                  onModifying={setIsModifying}
+                  tripId={params.id as string}
+                />
+              </div>
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Chat Widget - Desktop Only */}
+              <div className="hidden lg:block">
+                <ItineraryChatWidget
+                  itinerary={route}
+                  onItineraryUpdate={setRoute}
+                  onModifying={setIsModifying}
+                  tripId={params.id as string}
+                />
+              </div>
               <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
