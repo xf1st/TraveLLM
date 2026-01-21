@@ -14,23 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { TripImage } from "@/components/TripImage"
 
 // Dynamic import for WebGL component (client-side only)
+import { Footer } from "@/components/footer"
+
+// Dynamic import for WebGL component (client-side only)
 const Prism = dynamic(() => import('@/components/Prism'), { ssr: false })
-
-function ImageWithSkeleton({ src, alt, className }: { src: string; alt: string; className?: string }) {
-  const [loaded, setLoaded] = useState(false)
-
-  return (
-    <>
-      <img
-        src={src}
-        alt={alt}
-        className={`${className} ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        onLoad={() => setLoaded(true)}
-      />
-      {!loaded && <Skeleton className="absolute inset-0 h-full w-full" />}
-    </>
-  )
-}
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
@@ -371,8 +358,9 @@ export default function LandingPage() {
                 ].map((d, i) => (
                   <Card key={i} className="group overflow-hidden p-0 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${i * 100}ms` }}>
                     <div className="relative aspect-[4/3] w-full overflow-hidden">
-                      <img
+                      <TripImage
                         src={d.image}
+                        query={d.title} // Use title for fallback search if needed
                         alt={d.title}
                         className="object-cover h-full w-full transition-transform duration-500 group-hover:scale-105"
                       />
@@ -485,27 +473,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      <footer className="py-12 border-t border-border/50">
-        <div className="container px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-2.5">
-              <Logo size={36} />
-              <span className="text-xl font-semibold tracking-tight">TraveLM</span>
-            </div>
-
-            <nav className="flex gap-8 text-sm font-medium text-muted-foreground">
-              <Link href="#" className="hover:text-foreground transition-colors">Обзор</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Помощь</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Политика</Link>
-              <Link href="#" className="hover:text-foreground transition-colors">Контакты</Link>
-            </nav>
-
-            <p className="text-sm text-muted-foreground">
-              © 2026 TraveLM AI. Все права защищены.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

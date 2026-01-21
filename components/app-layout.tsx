@@ -2,6 +2,7 @@
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
+import { Footer } from "@/components/footer"
 
 interface AppLayoutProps {
     children: React.ReactNode
@@ -47,6 +48,7 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
                 <div className="p-4 lg:p-8">
                     {children}
                 </div>
+                <Footer />
             </main>
         </div>
     )

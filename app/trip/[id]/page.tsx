@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { Footer } from "@/components/footer"
 
 const transportIcons: Record<string, any> = {
   "Flight": Plane,
@@ -501,6 +502,9 @@ export default function TripDetailPage() {
             </div>
           </DialogContent>
         </Dialog>
+        <div className="mt-20">
+          <Footer />
+        </div>
       </div>
     </div>
   )
