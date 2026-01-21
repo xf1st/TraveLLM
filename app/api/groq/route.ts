@@ -1,5 +1,4 @@
-import { groq, GROQ_MODEL } from "@/lib/groq"
-// Forced Rebuild verified syntax
+import { glmInference, llamaInference, GLM_MODEL, LLAMA_MODEL } from "@/lib/cerebras"
 import { hfInference } from "@/lib/huggingface"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
@@ -142,24 +141,23 @@ export async function POST(req: Request) {
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only."
 
-        async function generateAndParse(source: "HF" | "Groq"): Promise<any> {
+        async function generateAndParse(source: "GLM" | "Llama" | "HF"): Promise<any> {
             let raw = ""
-            if (source === "HF") {
+            const messages = [
+                { role: "system" as const, content: systemPrompt },
+                { role: "user" as const, content: prompt }
+            ]
+            const opts = { maxTokens: 65536, temperature: 0.6 }
+
+            if (source === "GLM") {
+                console.log("Attempting GLM-4.7 via Cerebras...");
+                raw = await glmInference(messages, opts)
+            } else if (source === "Llama") {
+                console.log("Attempting Llama-3.3-70B via Cerebras...");
+                raw = await llamaInference(messages, opts)
+            } else {
                 console.log("Attempting Hugging Face Inference...");
                 raw = await hfInference(prompt, systemPrompt)
-            } else {
-                console.log("Attempting Groq Completion...");
-                const completion = await groq.chat.completions.create({
-                    model: GROQ_MODEL,
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { role: "user", content: prompt }
-                    ],
-                    max_tokens: 16384,
-                    temperature: 0.6,
-                    response_format: { type: "json_object" }
-                })
-                raw = completion.choices[0].message.content || ""
             }
 
             if (!raw) throw new Error(`Empty response from ${source}`)
@@ -197,17 +195,34 @@ export async function POST(req: Request) {
         }
 
         try {
+            // CEREBRAS MODELS DISABLED - съедают HF free tier слишком быстро
+            // Раскомментируй когда нужна более мощная модель:
+            /*
             try {
-                // Try Groq first as it's more reliable with provided key
-                const routeData = await generateAndParse("Groq")
-                console.log("Success with Groq")
+                // 1. Try GLM-4.7 first (358B, newest)
+                const routeData = await generateAndParse("GLM")
+                console.log("Success with GLM-4.7")
                 return NextResponse.json(routeData)
-            } catch (groqError: any) {
-                console.error("Groq failed, trying HF fallback:", groqError.message)
-                const routeData = await generateAndParse("HF")
-                console.log("Success with HF fallback")
-                return NextResponse.json(routeData)
+            } catch (glmError: any) {
+                console.error("GLM-4.7 failed:", glmError.message)
+                try {
+                    // 2. Try Llama-3.3-70B (reliable)
+                    const routeData = await generateAndParse("Llama")
+                    console.log("Success with Llama-3.3-70B")
+                    return NextResponse.json(routeData)
+                } catch (llamaError: any) {
+                    console.error("Llama-3.3-70B failed:", llamaError.message)
+            */
+
+            // Using only HF 8B model (free tier friendly)
+            const routeData = await generateAndParse("HF")
+            console.log("Success with HF 8B")
+            return NextResponse.json(routeData)
+
+            /*
+                }
             }
+            */
         } catch (finalError: any) {
             console.error("All providers failed or gave bad JSON:", finalError.message)
             return NextResponse.json({
