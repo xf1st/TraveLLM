@@ -2,7 +2,7 @@
 // https://router.huggingface.co
 
 const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "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";
-export const QWEN_MODEL = "Qwen/Qwen3-32B:ovhcloud";
+export const QWEN_MODEL = "Qwen/Qwen3-32B:novita";
 
 interface QwenMessage {
     role: "system" | "user" | "assistant";

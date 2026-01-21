@@ -2,7 +2,10 @@
 // https://api.deepseek.com
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-e39ffbfd729047febe166ac950a5a68a";
-export const DEEPSEEK_MODEL = "deepseek-chat";
+
+// Models with different token limits
+export const DEEPSEEK_CHAT = "deepseek-chat";        // 8k output
+export const DEEPSEEK_REASONER = "deepseek-reasoner"; // 16k output
 
 interface DeepSeekMessage {
     role: "system" | "user" | "assistant";
@@ -12,15 +15,24 @@ interface DeepSeekMessage {
 interface DeepSeekOptions {
     maxTokens?: number;
     temperature?: number;
+    tripDays?: number; // Smart model selection based on trip length
 }
 
 export async function deepseekInference(
     messages: DeepSeekMessage[],
     options: DeepSeekOptions = {}
 ): Promise<string> {
-    const { maxTokens = 16384, temperature = 0.6 } = options;
+    const { maxTokens = 8192, temperature = 0.6, tripDays = 5 } = options;
 
-    console.log("DeepSeek: Starting inference with model:", DEEPSEEK_MODEL);
+    // Smart model selection:
+    // - Short trips (≤7 days): use deepseek-chat (faster, 8k limit)
+    // - Long trips (8+ days): use deepseek-reasoner (16k limit)
+    const isLongTrip = tripDays > 7;
+    const model = isLongTrip ? DEEPSEEK_REASONER : DEEPSEEK_CHAT;
+    const tokenLimit = isLongTrip ? 16384 : 8192;
+    const cappedMaxTokens = Math.min(maxTokens, tokenLimit);
+
+    console.log(`DeepSeek: Using ${model} for ${tripDays} days trip (max ${cappedMaxTokens} tokens)`);
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
         method: "POST",
@@ -29,9 +41,9 @@ export async function deepseekInference(
             "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
         },
         body: JSON.stringify({
-            model: DEEPSEEK_MODEL,
+            model,
             messages,
-            max_tokens: maxTokens,
+            max_tokens: cappedMaxTokens,
             temperature,
             stream: false,
         }),

@@ -1,0 +1,56 @@
+// OpenRouter API Client
+// https://openrouter.ai/api/v1
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "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";
+export const OPENROUTER_MODEL = "qwen/qwen3-32b";
+
+interface OpenRouterMessage {
+    role: "system" | "user" | "assistant";
+    content: string;
+}
+
+interface OpenRouterOptions {
+    maxTokens?: number;
+    temperature?: number;
+}
+
+export async function openrouterInference(
+    messages: OpenRouterMessage[],
+    options: OpenRouterOptions = {}
+): Promise<string> {
+    const { maxTokens = 30000, temperature = 0.6 } = options;
+
+    console.log("OpenRouter: Starting inference with model:", OPENROUTER_MODEL);
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+            model: OPENROUTER_MODEL,
+            messages,
+            max_tokens: maxTokens,
+            temperature,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenRouter API Error:", response.status, errorText);
+        throw new Error(`OpenRouter Error (${response.status}): ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log("OpenRouter: Response received successfully");
+
+    const content = result.choices?.[0]?.message?.content;
+
+    if (!content) {
+        console.error("OpenRouter: Empty response", JSON.stringify(result));
+        throw new Error("Empty response from OpenRouter API");
+    }
+
+    return content.trim();
+}

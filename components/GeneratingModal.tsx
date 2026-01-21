@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { MapPin, Plane, Hotel, Utensils, Camera } from "lucide-react"
+import { MapPin, Plane, Hotel, Utensils, Camera, Clock } from "lucide-react"
 
 const STEPS = [
     { icon: Plane, text: "Подбираем рейсы..." },
@@ -12,6 +12,8 @@ const STEPS = [
     { icon: Camera, text: "Добавляем достопримечательности..." },
 ]
 
+const EXPECTED_TIME_SECONDS = 120 // 2 minutes
+
 interface GeneratingModalProps {
     open: boolean
     destination?: string
@@ -19,12 +21,12 @@ interface GeneratingModalProps {
 
 export function GeneratingModal({ open, destination }: GeneratingModalProps) {
     const [currentStep, setCurrentStep] = useState(0)
-    const [progress, setProgress] = useState(0)
+    const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
     useEffect(() => {
         if (!open) {
             setCurrentStep(0)
-            setProgress(0)
+            setElapsedSeconds(0)
             return
         }
 
@@ -33,19 +35,28 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
             setCurrentStep((prev) => (prev + 1) % STEPS.length)
         }, 2500)
 
-        // Animate progress bar
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 95) return prev // Cap at 95% until actually done
-                return prev + Math.random() * 3
-            })
-        }, 300)
+        // Count elapsed time
+        const timeInterval = setInterval(() => {
+            setElapsedSeconds((prev) => prev + 1)
+        }, 1000)
 
         return () => {
             clearInterval(stepInterval)
-            clearInterval(progressInterval)
+            clearInterval(timeInterval)
         }
     }, [open])
+
+    // Calculate progress based on elapsed time (cap at 95% until done)
+    const progress = Math.min((elapsedSeconds / EXPECTED_TIME_SECONDS) * 100, 95)
+
+    // Format time display
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    const remainingSeconds = Math.max(EXPECTED_TIME_SECONDS - elapsedSeconds, 0)
 
     const CurrentIcon = STEPS[currentStep].icon
 
@@ -84,15 +95,31 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="mx-auto max-w-xs space-y-2">
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+                        <div className="mx-auto max-w-xs space-y-3">
+                            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-700">
                                 <div
-                                    className="h-full rounded-full bg-gradient-to-r from-primary via-sky-400 to-primary transition-all duration-300 ease-out"
+                                    className="h-full rounded-full bg-gradient-to-r from-primary via-sky-400 to-primary transition-all duration-1000 ease-linear"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
+
+                            {/* Time Display */}
+                            <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1.5 text-slate-400">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>{formatTime(elapsedSeconds)}</span>
+                                </div>
+                                <div className="text-slate-500">
+                                    {remainingSeconds > 0 ? (
+                                        <span>~{formatTime(remainingSeconds)} осталось</span>
+                                    ) : (
+                                        <span className="text-primary animate-pulse">Почти готово...</span>
+                                    )}
+                                </div>
+                            </div>
+
                             <p className="text-xs text-slate-500">
-                                Это может занять до 30 секунд...
+                                ИИ создаёт детальный маршрут специально для вас
                             </p>
                         </div>
 

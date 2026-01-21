@@ -1,7 +1,9 @@
-import { glmInference, llamaInference, GLM_MODEL, LLAMA_MODEL } from "@/lib/cerebras"
-import { qwenInference, QWEN_MODEL } from "@/lib/qwen"
-// import { deepseekInference, DEEPSEEK_MODEL } from "@/lib/deepseek" // DISABLED
-import { hfInference } from "@/lib/huggingface"
+// OpenRouter as primary, DeepSeek as fallback
+// import { glmInference, llamaInference, GLM_MODEL, LLAMA_MODEL } from "@/lib/cerebras"
+// import { qwenInference, QWEN_MODEL } from "@/lib/qwen"
+import { openrouterInference, OPENROUTER_MODEL } from "@/lib/openrouter"
+import { deepseekInference } from "@/lib/deepseek"
+// import { hfInference } from "@/lib/huggingface"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 
@@ -166,33 +168,12 @@ export async function POST(req: Request) {
           Example: { "rating": 8, "tips": "Избегайте туристических районов ночью. Остерегайтесь карманников в метро. Экстренные службы: 112" }
     `
 
-        const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only."
+        const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
 
-        async function generateAndParse(source: "Qwen" | "GLM" | "Llama" | "HF"): Promise<any> {
-            let raw = ""
-            const messages = [
-                { role: "system" as const, content: systemPrompt },
-                { role: "user" as const, content: prompt }
-            ]
-            const opts = { maxTokens: 16384, temperature: 0.6 }
-
-            if (source === "Qwen") {
-                console.log("Attempting Qwen-32B via HF...");
-                raw = await qwenInference(messages, opts)
-            } else if (source === "GLM") {
-                console.log("Attempting GLM-4.7 via Cerebras...");
-                raw = await glmInference(messages, opts)
-            } else if (source === "Llama") {
-                console.log("Attempting Llama-3.3-70B via Cerebras...");
-                raw = await llamaInference(messages, opts)
-            } else {
-                console.log("Attempting Hugging Face 8B Inference...");
-                raw = await hfInference(prompt, systemPrompt)
-            }
-
+        // Helper to parse JSON from AI response
+        function parseJsonResponse(raw: string, source: string): any {
             if (!raw) throw new Error(`Empty response from ${source}`)
 
-            // Extraction & Repair
             let clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
 
             if (!clean.trim().endsWith('}')) {
@@ -202,66 +183,242 @@ export async function POST(req: Request) {
                 while (openBraces > closeBraces) { clean += '}'; closeBraces++; }
             }
 
-            try {
-                const jsonData = JSON.parse(clean);
-
-                // --- ENRICHMENT: Only Cover Image (fast) ---
-                try {
-                    if (jsonData.countries && jsonData.countries.length > 0) {
-                        const cover = await getDestinationImage(jsonData.countries[0].name + " travel");
-                        if (cover) jsonData.coverImage = cover;
-                    }
-                } catch (imgError) {
-                    // Cover image is optional, proceed without it
-                }
-                // Day images are now loaded lazily via TripImage component
-                // -------------------------------------
-
-                return jsonData;
-            } catch (e: any) {
-                console.error(`${source} JSON Parsing Failed:`, e.message);
-                throw e;
+            // Also fix truncated arrays
+            if (!clean.trim().endsWith('}')) {
+                clean = clean.replace(/,\s*$/, '') + ']}'
             }
+
+            return JSON.parse(clean);
+        }
+
+        // Generate metadata (title, budget analysis, visa, safety) - small request
+        async function generateMetadata(): Promise<any> {
+            const metaPrompt = `
+Generate ONLY the metadata for a travel itinerary. NO itinerary days needed.
+
+DESTINATION: ${targetDescription}
+DEPARTURE: ${departureCity}
+DURATION: ${durationDays} days
+BUDGET: ${budgetDesc} (max ${budgetCap} RUB)
+STYLE: ${travelStyle.join(', ')}
+PAYMENT METHODS: ${paymentMethods?.join(', ') || 'Not specified'}
+
+Output VALID JSON only (all strings must be in double quotes):
+{
+  "title": "Название маршрута",
+  "description": "Краткое описание на 2-3 предложения",
+  "totalBudget": "${budgetCap} ₽",
+  "budgetAnalysis": {
+    "avgAccommodation": "5000 ₽/ночь",
+    "avgFood": "3000 ₽/день",
+    "avgTransport": "15000 ₽",
+    "avgActivities": "5000 ₽/день",
+    "avgMisc": "3000 ₽"
+  },
+  "visaAdvice": "Детальная информация о визе для граждан РФ",
+  "paymentAdvice": "Какие карты работают, где менять деньги",
+  "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
+  "restrictions": "Текущие ограничения если есть или null",
+  "countries": [{"name": "Название страны"}],
+  "tags": ["вино", "горы", "море"]
+}
+
+CRITICAL: 
+- Output ONLY valid JSON, no markdown, no comments
+- ALL values must be in double quotes (including tags)
+- Do NOT use unquoted hashtags
+- Fill ALL fields with REAL data for this destination!`;
+
+            console.log("Parallel: Generating metadata...");
+            const messages = [
+                { role: "system" as const, content: systemPrompt },
+                { role: "user" as const, content: metaPrompt }
+            ]
+
+            const raw = await deepseekInference(messages, { maxTokens: 2000, temperature: 0.6, tripDays: 3 });
+            return parseJsonResponse(raw, "DeepSeek-Meta");
+        }
+
+        // Generate a chunk of days (e.g., days 1-4)
+        async function generateDayChunk(startDay: number, endDay: number, destination: string): Promise<any[]> {
+            const chunkPrompt = `
+Generate ONLY days ${startDay} to ${endDay} of a ${durationDays}-day trip itinerary.
+
+CONTEXT:
+- DESTINATION: ${destination}
+- DEPARTURE CITY: ${departureCity}
+- STYLE: ${travelStyle.join(', ')}
+- BUDGET LEVEL: ${budgetDesc}
+- START DATE: ${startDate || 'Flexible'}
+- END DATE: ${endDate || 'Flexible'}
+
+For EACH day, provide exactly this JSON structure inside an array:
+[
+  {
+    "day": ${startDay},
+    "title": "Название дня",
+    "dayTotal": "X ₽",
+    "activities": [
+      { 
+        "time": "Утро", 
+        "placeName": "КОНКРЕТНОЕ название места", 
+        "desc": "Описание", 
+        "cost": "X ₽", 
+        "ticketsRequired": false, 
+        "mapLink": "https://www.google.com/maps/search/?api=1&query=PLACE_NAME+CITY",
+        "link": "" 
+      }
+    ],
+    "logistics": { 
+      "mode": "Самолет/Поезд/Такси", 
+      "from": "Откуда", 
+      "to": "Куда", 
+      "distance": "Xkm", 
+      "duration": "Xч", 
+      "price": "X ₽",
+      "bookingLink": "URL для бронирования"
+    }
+  }
+]
+
+CRITICAL LINK FORMATS:
+1. mapLink (ОБЯЗАТЕЛЬНО): https://www.google.com/maps/search/?api=1&query=URL_ENCODED_PLACE_NAME
+   Пример: https://www.google.com/maps/search/?api=1&query=Museo+del+Prado+Madrid
+
+2. Для logistics.bookingLink используй РЕАЛЬНЫЕ ссылки:
+   - АВИАБИЛЕТЫ: https://www.aviasales.ru/search/${departureCity.substring(0, 3).toUpperCase()}${startDate?.replace(/-/g, '')}${destination.substring(0, 3).toUpperCase()}1
+   - ПОЕЗДА РЖД: https://www.rzd.ru/
+   - АВТОБУСЫ: https://www.blablacar.ru/search?fn=${departureCity}&tn=${destination}
+   
+3. Для ticketsRequired=true в link используй:
+   - МУЗЕИ: https://www.google.com/search?q=купить+билеты+НАЗВАНИЕ+МУЗЕЯ+официальный+сайт
+   - ЭКСКУРСИИ: https://www.getyourguide.com/s/?q=DESTINATION+ACTIVITY&searchSource=1
+   - СОБЫТИЯ: https://www.google.com/search?q=tickets+EVENT_NAME+official
+
+RULES:
+- Generate EXACTLY ${endDay - startDay + 1} days (from day ${startDay} to day ${endDay})
+- Each day MUST have exactly 3 activities: Утро, День, Вечер
+- placeName MUST be REAL specific venue names
+- ALL links must be properly URL-encoded
+- Respond in RUSSIAN only
+- Output ONLY the JSON array`;
+
+            console.log(`Parallel: Generating days ${startDay}-${endDay}...`);
+            const messages = [
+                { role: "system" as const, content: systemPrompt },
+                { role: "user" as const, content: chunkPrompt }
+            ]
+
+            const tokensNeeded = (endDay - startDay + 1) * 1800; // ~1800 tokens per day with links
+            const raw = await deepseekInference(messages, {
+                maxTokens: Math.min(tokensNeeded, 8000),
+                temperature: 0.6,
+                tripDays: endDay - startDay + 1
+            });
+
+            // Parse array response
+            let clean = raw.match(/\[[\s\S]*\]/)?.[0] || raw;
+            return JSON.parse(clean);
+        }
+
+        // Main generation logic
+        async function generateParallel(): Promise<any> {
+            const CHUNK_SIZE = 4; // Days per chunk
+            const USE_PARALLEL = durationDays > 7;
+
+            if (!USE_PARALLEL) {
+                // Short trip - use original single request
+                console.log(`Short trip(${durationDays} days) - using single request`);
+                const messages = [
+                    { role: "system" as const, content: systemPrompt },
+                    { role: "user" as const, content: prompt }
+                ]
+                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
+                return parseJsonResponse(raw, "DeepSeek");
+            }
+
+            // Long trip - parallel generation
+            console.log(`Long trip(${durationDays} days) - using PARALLEL generation`);
+            const startTime = Date.now();
+
+            // Create chunk ranges
+            const chunks: { start: number; end: number }[] = [];
+            for (let i = 1; i <= durationDays; i += CHUNK_SIZE) {
+                chunks.push({
+                    start: i,
+                    end: Math.min(i + CHUNK_SIZE - 1, durationDays)
+                });
+            }
+            console.log(`Splitting into ${chunks.length} day chunks + metadata`);
+
+            // Determine destination for day chunks
+            const destName = customDestination ||
+                (destinationType === 'russia' ? 'Россия' :
+                    destinationType === 'abroad' ? 'Европа/Азия' : 'Международный');
+
+            // Run ALL requests in parallel
+            const [metadata, ...dayChunks] = await Promise.all([
+                generateMetadata(),
+                ...chunks.map(chunk => generateDayChunk(chunk.start, chunk.end, destName))
+            ]);
+
+            // Merge all days into single itinerary
+            const allDays = dayChunks.flat().sort((a, b) => a.day - b.day);
+
+            const result = {
+                ...metadata,
+                itinerary: allDays,
+                coverImage: "" // Will be enriched below
+            };
+
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.log(`Parallel generation completed in ${elapsed}s(${chunks.length + 1} requests)`);
+
+            return result;
         }
 
         try {
-            // CEREBRAS MODELS DISABLED - съедают HF free tier слишком быстро
-            // Раскомментируй когда нужна более мощная модель:
-            /*
+            // DeepSeek with parallel generation
             try {
-                // 1. Try GLM-4.7 first (358B, newest)
-                const routeData = await generateAndParse("GLM")
-                console.log("Success with GLM-4.7")
-                return NextResponse.json(routeData)
-            } catch (glmError: any) {
-                console.error("GLM-4.7 failed:", glmError.message)
+                const routeData = await generateParallel();
+
+                // Enrich with cover image
                 try {
-                    // 2. Try Llama-3.3-70B (reliable)
-                    const routeData = await generateAndParse("Llama")
-                    console.log("Success with Llama-3.3-70B")
-                    return NextResponse.json(routeData)
-                } catch (llamaError: any) {
-                    console.error("Llama-3.3-70B failed:", llamaError.message)
-            */
-
-            // Qwen as primary, HF as fallback
-            try {
-                const routeData = await generateAndParse("Qwen")
-                console.log("Success with Qwen-32B")
-                return NextResponse.json(routeData)
-            } catch (qwenError: any) {
-                console.error("Qwen failed:", qwenError.message)
-                const routeData = await generateAndParse("HF")
-                console.log("Success with HF fallback")
-                return NextResponse.json(routeData)
-            }
-
-            /*
+                    if (routeData.countries && routeData.countries.length > 0) {
+                        const cover = await getDestinationImage(routeData.countries[0].name + " travel");
+                        if (cover) routeData.coverImage = cover;
+                    }
+                } catch (imgError) {
+                    // Cover image is optional
                 }
+
+                console.log("Success with DeepSeek parallel generation")
+                return NextResponse.json(routeData)
+            } catch (deepseekError: any) {
+                console.error("DeepSeek parallel failed:", deepseekError.message)
+
+                // Fallback to OpenRouter (single request)
+                console.log("Falling back to OpenRouter single request...");
+                const messages = [
+                    { role: "system" as const, content: systemPrompt },
+                    { role: "user" as const, content: prompt }
+                ]
+                const raw = await openrouterInference(messages, { maxTokens: 30000, temperature: 0.6 });
+                const routeData = parseJsonResponse(raw, "OpenRouter");
+
+                // Enrich cover image
+                try {
+                    if (routeData.countries && routeData.countries.length > 0) {
+                        const cover = await getDestinationImage(routeData.countries[0].name + " travel");
+                        if (cover) routeData.coverImage = cover;
+                    }
+                } catch { }
+
+                console.log("Success with OpenRouter fallback")
+                return NextResponse.json(routeData)
             }
-            */
         } catch (finalError: any) {
-            console.error("All providers failed or gave bad JSON:", finalError.message)
+            console.error("All providers failed:", finalError.message)
             return NextResponse.json({
                 error: "All AI providers failed to generate valid JSON",
                 details: finalError.message
