@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Header } from "@/components/header"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Sparkles, Shield, Zap, Map, ChevronRight, Compass, Clock, Star, ArrowRight } from "lucide-react"
@@ -455,9 +456,7 @@ export default function LandingPage() {
         <div className="container px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
-                <Map className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <Logo size={36} />
               <span className="text-xl font-semibold tracking-tight">TraveLM</span>
             </div>
 

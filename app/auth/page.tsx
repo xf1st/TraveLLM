@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, Map } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { toast } from "sonner"
 
@@ -97,8 +98,8 @@ export default function AuthPage() {
       <main className="container max-w-md px-4 py-16 md:py-24">
         {/* Logo & Title */}
         <div className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary mb-6 shadow-lg">
-            <Map className="h-7 w-7 text-primary-foreground" />
+          <div className="inline-flex mb-6">
+            <Logo size={56} />
           </div>
           <h1 className="mb-3 text-3xl font-semibold tracking-tight">Добро пожаловать</h1>
           <p className="text-muted-foreground">Войдите или создайте аккаунт для продолжения</p>

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Map, User, LogOut, Settings } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -77,9 +78,7 @@ export function Header({ floating = false }: HeaderProps) {
         <header className="mx-auto max-w-5xl flex h-14 items-center justify-between px-6 rounded-full border border-border/50 bg-background/80 backdrop-blur-xl shadow-lg">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Map className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <Logo size={32} />
             <span className="text-base font-semibold tracking-tight hidden sm:block">TraveLM</span>
           </Link>
 
@@ -90,8 +89,8 @@ export function Header({ floating = false }: HeaderProps) {
                 key={link.href}
                 href={link.href}
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${pathname === link.href
-                    ? "text-foreground bg-accent"
-                    : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground bg-accent"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
               >
                 {link.label}
@@ -159,9 +158,7 @@ export function Header({ floating = false }: HeaderProps) {
       <div className="mx-auto w-full max-w-7xl flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <Map className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <Logo size={36} />
           <span className="text-lg font-semibold tracking-tight">TraveLM</span>
         </Link>
 
@@ -172,8 +169,8 @@ export function Header({ floating = false }: HeaderProps) {
               key={link.href}
               href={link.href}
               className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pathname === link.href
-                  ? "text-foreground bg-accent"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                ? "text-foreground bg-accent"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                 }`}
             >
               {link.label}

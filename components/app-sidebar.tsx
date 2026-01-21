@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Logo } from "@/components/logo"
 import {
-    Map,
     Compass,
     Search,
     User,
@@ -152,9 +152,7 @@ export function AppSidebar() {
                     "flex items-center gap-2.5 transition-opacity hover:opacity-80",
                     isCollapsed && "justify-center"
                 )}>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm shrink-0">
-                        <Map className="h-5 w-5 text-primary-foreground" />
-                    </div>
+                    <Logo size={40} className="shrink-0" />
                     {!isCollapsed && (
                         <span className="text-xl font-semibold tracking-tight">TraveLM</span>
                     )}
