@@ -1,0 +1,17 @@
+# Table of contents
+
+* [Travelmind AI Guide](README.md)
+* [Инструкция по деплою TraveLM на Netlify 🚀](NETLIFY_DEPLOY.md)
+* [Настройка Google OAuth для TraveLM](OAUTH_SETUP.md)
+* [🧠 TraveLM AI Architecture — Обновлённая документация](ai_architecture.md)
+* [Добро пожаловать в TraveLM AI 🌍✈️](docs/README.md)
+  * [Table of contents](docs/SUMMARY.md)
+  * [🏁 Начало работы](docs/getting-started.md)
+  * [features](docs/features/README.md)
+    * [🤖 AI Гид и Режимы Чата](docs/features/ai-guide.md)
+    * [🗺️ Интерактивная карта](docs/features/map.md)
+    * [✨ Создание маршрута](docs/features/planning.md)
+    * [📅 Детали поездки и Маршрут](docs/features/trip-details.md)
+  * [tech](docs/tech/README.md)
+    * [💻 Установка и Запуск](docs/tech/installation.md)
+    * [🛠️ Технологический Стек](docs/tech/stack.md)
