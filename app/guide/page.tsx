@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +30,18 @@ interface Place {
 }
 
 export default function GuidePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <GuidePageContent />
+        </Suspense>
+    )
+}
+
+function GuidePageContent() {
     const searchParams = useSearchParams()
     const tripId = searchParams.get("tripId")
     const [trip, setTrip] = useState<any>(null)
