@@ -17,12 +17,13 @@ import { TripImage } from "@/components/TripImage"
 import { Footer } from "@/components/footer"
 
 // Dynamic import for WebGL component (client-side only)
-const Prism = dynamic(() => import('@/components/Prism'), { ssr: false })
+const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
   const [userTrips, setUserTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -53,6 +54,19 @@ export default function LandingPage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    // Check initially
+    checkMobile()
+
+    // Listen for resize
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -68,18 +82,22 @@ export default function LandingPage() {
         <Header />
 
         <main className="flex-1 relative">
-          {/* Fixed Full Page Prism Background */}
-          <div className="fixed inset-0 z-0 opacity-60" style={{ pointerEvents: 'none' }}>
-            <Prism
-              animationType="3drotate"
-              timeScale={0.3}
-              height={3.5}
-              baseWidth={5.5}
-              scale={3.6}
-              hueShift={0}
-              colorFrequency={1}
-              noise={0}
-              glow={0.8}
+          {/* LightRays - All Devices */}
+          <div className="fixed inset-0 z-0 opacity-100" style={{ pointerEvents: 'none' }}>
+            <LightRays
+              raysOrigin="top-center"
+              raysColor="#ffffff"
+              raysSpeed={0.5}
+              lightSpread={0.6}
+              rayLength={4}
+              followMouse={true}
+              mouseInfluence={0.2}
+              noiseAmount={0}
+              distortion={0}
+              className="custom-rays"
+              pulsating={true}
+              fadeDistance={1}
+              saturation={1}
             />
           </div>
 
@@ -234,18 +252,22 @@ export default function LandingPage() {
       <Header floating />
 
       <main className="flex-1 relative">
-        {/* Fixed Full Page Prism Background */}
-        <div className="fixed inset-0 z-0 opacity-50" style={{ pointerEvents: 'none' }}>
-          <Prism
-            animationType="3drotate"
-            timeScale={0.3}
-            height={3.5}
-            baseWidth={5.5}
-            scale={3.6}
-            hueShift={0}
-            colorFrequency={1}
-            noise={0}
-            glow={0.8}
+        {/* LightRays - All Devices */}
+        <div className="fixed inset-0 z-0 opacity-100" style={{ pointerEvents: 'none' }}>
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={0.5}
+            lightSpread={0.6}
+            rayLength={4}
+            followMouse={true}
+            mouseInfluence={0.2}
+            noiseAmount={0}
+            distortion={0}
+            className="custom-rays"
+            pulsating={true}
+            fadeDistance={1}
+            saturation={1}
           />
         </div>
 
@@ -474,6 +496,90 @@ export default function LandingPage() {
       </main>
 
       <Footer />
+    </div>
+  )
+
+
+
+
+  // --- UNAUTHENTICATED LANDING PAGE ---
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
+      <main className="flex-1 relative">
+        {/* LightRays - All Devices */}
+        <div className="fixed inset-0 z-0 opacity-100" style={{ pointerEvents: 'none' }}>
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={0.5}
+            lightSpread={0.6}
+            rayLength={4}
+            followMouse={true}
+            mouseInfluence={0.2}
+            noiseAmount={0}
+            distortion={0}
+            className="custom-rays"
+            pulsating={true}
+            fadeDistance={1}
+            saturation={1}
+          />
+        </div>
+
+        <div className="relative z-10">
+          <section className="relative overflow-hidden pt-24 pb-32">
+            <div className="container px-4 text-center relative z-10 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/50 backdrop-blur px-5 py-2.5 text-sm font-medium shadow-sm mb-4">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>Путешествия нового поколения</span>
+              </div>
+
+              <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
+                Ваш идеальный маршрут <br />
+                <span className="text-gradient">за секунды</span>
+              </h1>
+
+              <p className="max-w-2xl text-xl text-muted-foreground mx-auto leading-relaxed">
+                Искусственный интеллект спланирует ваше путешествие, учитывая бюджет, интересы и тайминг.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center pt-8">
+                <Button asChild size="xl" className="rounded-full shadow-2xl h-14 px-8 text-lg bg-primary hover:bg-primary/90">
+                  <Link href="/auth">
+                    Начать бесплатно <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="xl" className="rounded-full h-14 px-8 text-lg border-2">
+                  <Link href="/auth?mode=login">
+                    Войти
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* Abstract visual elements */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] -z-10" />
+          </section>
+
+          {/* Features Grid */}
+          <section className="container px-4 py-24 border-t border-border/50">
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { icon: <Zap className="w-8 h-8 text-amber-500" />, title: "Мгновенно", desc: "Полный маршрут со всеми деталями генерируется менее чем за минуту." },
+                { icon: <Map className="w-8 h-8 text-blue-500" />, title: "Детально", desc: "Карты, время в пути, билеты и отели - все в одном месте." },
+                { icon: <Star className="w-8 h-8 text-purple-500" />, title: "Персонально", desc: "AI адаптируется под ваши вкусы, бюджет и темп путешествия." }
+              ].map((f, i) => (
+                <Card key={i} className="p-6 border-0 bg-card/50 backdrop-blur hover:bg-card transition-colors">
+                  <div className="mb-4 bg-background p-3 rounded-2xl w-fit shadow-sm">{f.icon}</div>
+                  <h3 className="text-xl font-bold mb-2">{f.title}</h3>
+                  <p className="text-muted-foreground">{f.desc}</p>
+                </Card>
+              ))}
+            </div>
+          </section>
+        </div>
+        <Footer />
+      </main>
     </div>
   )
 }

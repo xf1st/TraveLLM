@@ -159,7 +159,7 @@ export default function PlanPage() {
       <div className="relative z-10">
         <GeneratingModal open={loading} destination={customDestination || departureCity} />
         <div className="max-w-4xl mx-auto">
-          <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-card/60 backdrop-blur-md border-primary/20 shadow-2xl">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Departure */}
               <div className="space-y-4">
