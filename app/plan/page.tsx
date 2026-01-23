@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles, CreditCard, Languages } from "lucide-react"
+import { Sparkles, CreditCard, Languages, MapPin, Calendar, Users, Palette, Mountain, Utensils, Bed, Compass, ShoppingBag, Camera, Laptop, TreePine, Gem, Map } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { GeneratingModal } from "@/components/GeneratingModal"
 import { supabase } from "@/lib/supabase"
@@ -244,57 +244,63 @@ export default function PlanPage() {
               )}
 
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Бюджет</Label>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                  Бюджет на поездку
+                </Label>
                 <RadioGroup value={budget} onValueChange={setBudget} className="grid gap-4 sm:grid-cols-3">
                   <Label
                     htmlFor="economy"
-                    className="flex cursor-pointer flex-col gap-1 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
                   >
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="economy" id="economy" />
-                      <span className="font-medium">Эконом</span>
+                      <span className="font-semibold">Эконом</span>
                     </div>
-                    <span className="ml-7 text-sm text-muted-foreground">До ₽70к/неделя</span>
+                    <span className="ml-7 text-sm text-muted-foreground">До ₽100 000</span>
+                    <span className="ml-7 text-xs text-muted-foreground/70">Хостелы, общ. транспорт</span>
                   </Label>
                   <Label
                     htmlFor="comfort"
-                    className="flex cursor-pointer flex-col gap-1 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
                   >
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="comfort" id="comfort" />
-                      <span className="font-medium">Комфорт</span>
+                      <span className="font-semibold">Комфорт</span>
                     </div>
-                    <span className="ml-7 text-sm text-muted-foreground">₽70-150к/неделя</span>
+                    <span className="ml-7 text-sm text-muted-foreground">₽100к — ₽300к</span>
+                    <span className="ml-7 text-xs text-muted-foreground/70">Отели 3-4*, такси</span>
                   </Label>
                   <Label
                     htmlFor="premium"
-                    className="flex cursor-pointer flex-col gap-1 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:checked]:shadow-md"
+                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
                   >
                     <div className="flex items-center gap-3">
                       <RadioGroupItem value="premium" id="premium" />
-                      <span className="font-medium">Премиум</span>
+                      <span className="font-semibold">Премиум</span>
                     </div>
-                    <span className="ml-7 text-sm text-muted-foreground">От ₽150к/неделя</span>
+                    <span className="ml-7 text-sm text-muted-foreground">От ₽300 000</span>
+                    <span className="ml-7 text-xs text-muted-foreground/70">5*, бизнес-класс</span>
                   </Label>
                 </RadioGroup>
 
-                <div className="space-y-2">
-                  <Label htmlFor="custom-budget" className="text-sm text-muted-foreground">
-                    Или укажите свой бюджет
+                <div className="space-y-2 p-4 rounded-xl bg-muted/30 border border-border/50">
+                  <Label htmlFor="custom-budget" className="text-sm font-medium">
+                    💡 Или укажите точный бюджет
                   </Label>
                   <div className="flex gap-2 items-center">
                     <Input
                       id="custom-budget"
                       type="number"
-                      placeholder="50000"
+                      placeholder="150000"
                       value={customBudget}
                       onChange={(e) => {
                         setCustomBudget(e.target.value)
                         if (e.target.value) setBudget("custom")
                       }}
-                      className="transition-all focus:scale-105"
+                      className="flex-1 transition-all focus:scale-[1.02]"
                     />
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">₽ за поездку</span>
+                    <span className="text-sm text-muted-foreground whitespace-nowrap font-medium">₽ за всю поездку</span>
                   </div>
                 </div>
               </div>
@@ -325,34 +331,40 @@ export default function PlanPage() {
 
               {/* Travel Style */}
               <div className="space-y-4">
-                <Label className="text-base font-semibold">Стиль путешествия</Label>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Palette className="h-5 w-5 text-primary" />
+                  Стиль путешествия
+                </Label>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
-                    { id: "culture", label: "Культура и история" },
-                    { id: "nature", label: "Природа и активность" },
-                    { id: "food", label: "Гастрономия" },
-                    { id: "relax", label: "Отдых и релакс" },
-                    { id: "adventure", label: "Приключения" },
-                    { id: "shopping", label: "Шоппинг" },
-                    { id: "photo", label: "Фото-тур" },
-                    { id: "nomad", label: "Диджитал-номад" },
-                    { id: "hike", label: "Хардкор-треккинг" },
-                    { id: "luxury", label: "Люкс и премиум" },
-                    { id: "hidden", label: "Секретные места" },
-                  ].map((style) => (
-                    <Label
-                      key={style.id}
-                      htmlFor={style.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                      <Checkbox
-                        id={style.id}
-                        checked={travelStyle.includes(style.id)}
-                        onCheckedChange={() => toggleStyle(style.id)}
-                      />
-                      <span className="text-sm">{style.label}</span>
-                    </Label>
-                  ))}
+                    { id: "culture", label: "Культура и история", icon: Compass },
+                    { id: "nature", label: "Природа и активность", icon: Mountain },
+                    { id: "food", label: "Гастрономия", icon: Utensils },
+                    { id: "relax", label: "Отдых и релакс", icon: Bed },
+                    { id: "adventure", label: "Приключения", icon: Map },
+                    { id: "shopping", label: "Шоппинг", icon: ShoppingBag },
+                    { id: "photo", label: "Фото-тур", icon: Camera },
+                    { id: "nomad", label: "Диджитал-номад", icon: Laptop },
+                    { id: "hike", label: "Треккинг", icon: TreePine },
+                    { id: "luxury", label: "Люкс", icon: Gem },
+                  ].map((style) => {
+                    const IconComponent = style.icon
+                    return (
+                      <Label
+                        key={style.id}
+                        htmlFor={style.id}
+                        className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border p-3 transition-all hover:bg-muted hover:border-primary/30 has-[:checked]:border-primary has-[:checked]:bg-primary/10"
+                      >
+                        <Checkbox
+                          id={style.id}
+                          checked={travelStyle.includes(style.id)}
+                          onCheckedChange={() => toggleStyle(style.id)}
+                        />
+                        <IconComponent className="h-4 w-4 text-primary/70" />
+                        <span className="text-sm font-medium">{style.label}</span>
+                      </Label>
+                    )
+                  })}
                 </div>
               </div>
 

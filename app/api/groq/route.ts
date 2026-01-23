@@ -1,9 +1,8 @@
-// OpenRouter as primary, DeepSeek as fallback
-// import { glmInference, llamaInference, GLM_MODEL, LLAMA_MODEL } from "@/lib/cerebras"
-// import { qwenInference, QWEN_MODEL } from "@/lib/qwen"
+// DeepSeek (Primary) -> OpenRouter (Fallback)
+// Gemini 3 Flash temporarily disabled
+// import { geminiInference, GEMINI_MODEL } from "@/lib/gemini"
 import { openrouterInference, OPENROUTER_MODEL } from "@/lib/openrouter"
 import { deepseekInference } from "@/lib/deepseek"
-// import { hfInference } from "@/lib/huggingface"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 
@@ -29,14 +28,15 @@ export async function POST(req: Request) {
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
             : 7
 
-        // Define strict budget caps
+        // Define strict budget caps (updated to match new UI ranges)
         let budgetCap = 0;
         let budgetDesc = "";
         switch (budget) {
-            case "economy": budgetCap = 50000; budgetDesc = "Economy (Cheap/Free activities, Hostels/Cheap Hotels, Public Transport)"; break;
-            case "comfort": budgetCap = 150000; budgetDesc = "Comfort (Good Hotels 3-4*, Taxi/Comfort Transport, Mix of free/paid activities)"; break;
-            case "luxury": budgetCap = 500000; budgetDesc = "Luxury (5* Hotels, VIP Transport, Expensive Restaurants)"; break;
-            default: budgetCap = 150000; budgetDesc = "Moderate";
+            case "economy": budgetCap = 100000; budgetDesc = "Economy (До 100к - Хостелы, публичный транспорт, бесплатные активности)"; break;
+            case "comfort": budgetCap = 300000; budgetDesc = "Comfort (100-300к - Отели 3-4*, такси, хорошие рестораны)"; break;
+            case "premium":
+            case "luxury": budgetCap = 500000; budgetDesc = "Premium (От 300к - 5* отели, бизнес-класс, VIP)"; break;
+            default: budgetCap = 200000; budgetDesc = "Moderate";
         }
         // Adjust cap for duration (approximate)
         if (durationDays > 7) budgetCap = Math.round(budgetCap * (durationDays / 7));
@@ -378,8 +378,9 @@ RULES:
         }
 
         try {
-            // DeepSeek with parallel generation
+            // PRIMARY: DeepSeek with parallel generation
             try {
+                console.log("Using DeepSeek as primary provider...");
                 const routeData = await generateParallel();
 
                 // Enrich with cover image
@@ -392,13 +393,13 @@ RULES:
                     // Cover image is optional
                 }
 
-                console.log("Success with DeepSeek parallel generation")
+                console.log("Success with DeepSeek")
                 return NextResponse.json(routeData)
             } catch (deepseekError: any) {
-                console.error("DeepSeek parallel failed:", deepseekError.message)
+                console.error("DeepSeek failed:", deepseekError.message)
 
-                // Fallback to OpenRouter (single request)
-                console.log("Falling back to OpenRouter single request...");
+                // FALLBACK: OpenRouter (single request)
+                console.log("Falling back to OpenRouter...");
                 const messages = [
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }

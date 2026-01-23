@@ -32,8 +32,9 @@ export function ItineraryChatWidget({
     tripId,
     mode = "planning",
     embedded = false,
-    completedActivities = []
-}: ItineraryChatWidgetProps) {
+    completedActivities = [],
+    className
+}: ItineraryChatWidgetProps & { className?: string }) {
     const [isOpen, setIsOpen] = useState(embedded) // If embedded, start open
     const [messages, setMessages] = useState<Message[]>([
         mode === "planning"
@@ -162,7 +163,8 @@ export function ItineraryChatWidget({
     return (
         <Card className={cn(
             "overflow-hidden border-primary/20 bg-gradient-to-br from-background to-muted/30 flex flex-col",
-            embedded ? "h-full rounded-none border-0 bg-transparent shadow-none" : ""
+            embedded ? "h-full rounded-none border-0 bg-transparent shadow-none" : "",
+            className
         )}>
             {/* Header - conditional visibility based on 'embedded' */}
             {!embedded && (

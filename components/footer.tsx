@@ -4,10 +4,10 @@ import { Separator } from "@/components/ui/separator"
 
 export function Footer() {
     return (
-        <footer className="bg-muted/30 border-t py-12 mt-auto">
+        <footer className="border-t border-white/5 bg-background/20 backdrop-blur-md py-8 mt-auto">
             <div className="container px-4 md:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                    <div className="space-y-4">
+                    <div className="space-y-4 md:col-span-2">
                         <Logo />
                         <p className="text-sm text-muted-foreground leading-relaxed">
                             Ваш персональный ИИ-гид. Планируйте, бронируйте и наслаждайтесь путешествиями без стресса.
@@ -25,20 +25,11 @@ export function Footer() {
                     </div>
 
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-sm tracking-wider uppercase">Компания</h4>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/about" className="hover:text-primary transition-colors">О нас</Link></li>
-                            <li><Link href="/blog" className="hover:text-primary transition-colors">Блог</Link></li>
-                            <li><Link href="/careers" className="hover:text-primary transition-colors">Вакансии</Link></li>
-                            <li><Link href="/privacy" className="hover:text-primary transition-colors">Конфиденциальность</Link></li>
-                        </ul>
-                    </div>
-
-                    <div className="space-y-4">
                         <h4 className="font-semibold text-sm tracking-wider uppercase">Поддержка</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/help" className="hover:text-primary transition-colors">Справка</Link></li>
-                            <li><Link href="/contact" className="hover:text-primary transition-colors">Контакты</Link></li>
+                            <li><Link href="/support" className="hover:text-primary transition-colors">Центр поддержки</Link></li>
+                            <li><Link href="https://t.me/myszf" target="_blank" className="hover:text-primary transition-colors flex items-center gap-2">Telegram: @myszf</Link></li>
+                            <li><Link href="/privacy" className="hover:text-primary transition-colors">Конфиденциальность</Link></li>
                             <li><Link href="/terms" className="hover:text-primary transition-colors">Условия использования</Link></li>
                         </ul>
                     </div>
@@ -48,11 +39,6 @@ export function Footer() {
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
                     <p>© {new Date().getFullYear()} TravelMind AI. Все права защищены.</p>
-                    <div className="flex gap-4">
-                        <Link href="#" className="hover:text-primary transition-colors">Twitter</Link>
-                        <Link href="#" className="hover:text-primary transition-colors">GitHub</Link>
-                        <Link href="#" className="hover:text-primary transition-colors">Discord</Link>
-                    </div>
                 </div>
             </div>
         </footer>

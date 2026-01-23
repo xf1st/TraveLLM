@@ -246,8 +246,8 @@ export default function TripDetailPage() {
           </div>
         </div>
 
-        <main className="container max-w-5xl px-4 mt-8">
-          <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+        <main className="container max-w-7xl px-4 mt-8">
+          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
             {/* Main Itinerary */}
             <div className="space-y-6">
               <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -375,6 +375,7 @@ export default function TripDetailPage() {
                   onItineraryUpdate={setRoute}
                   onModifying={setIsModifying}
                   tripId={params.id as string}
+                  className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 dark:border-white/5 shadow-xl"
                 />
               </div>
               <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
