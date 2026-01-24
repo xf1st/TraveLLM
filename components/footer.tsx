@@ -19,7 +19,7 @@ export function Footer() {
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li><Link href="/plan" className="hover:text-primary transition-colors">Создать маршрут</Link></li>
                             <li><Link href="/guide" className="hover:text-primary transition-colors">AI Гид</Link></li>
-                            <li><Link href="/my-trips" className="hover:text-primary transition-colors">Мои поездки</Link></li>
+                            <li><Link href="/profile?tab=routes" className="hover:text-primary transition-colors">Мои поездки</Link></li>
                             <li><Link href="/features" className="hover:text-primary transition-colors">Возможности</Link></li>
                         </ul>
                     </div>

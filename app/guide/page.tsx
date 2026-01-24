@@ -43,6 +43,7 @@ export default function GuidePage() {
 
 function GuidePageContent() {
     const searchParams = useSearchParams()
+    const router = useRouter()
     const tripId = searchParams.get("tripId")
     const [trip, setTrip] = useState<any>(null)
     const [tripData, setTripData] = useState<any>(null)
@@ -306,6 +307,16 @@ function GuidePageContent() {
         }
     }
 
+    const finishTrip = async () => {
+        try {
+            await supabase.from('trips').update({ status: 'completed' }).eq('id', tripId)
+            router.push('/results')
+        } catch (e) {
+            console.error("Failed to finish trip", e)
+            router.push('/results')
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-background">
@@ -366,121 +377,122 @@ function GuidePageContent() {
                     "lg:ml-64",
                     isSidebarCollapsed && "lg:ml-[72px]"
                 )}>
-                    <div className="container p-6 w-full max-w-4xl mx-auto z-10 space-y-12 mb-auto">
-                        {/* Hero and Trips Grid ... */}
-                        {/* ... existing content ... */}
-
+                    <div className="container p-6 w-full max-w-5xl mx-auto z-10 space-y-12 mb-auto">
                         <div className="text-center space-y-4">
-                            <Badge variant="secondary" className="px-4 py-1.5 text-sm gap-2">
-                                <Sparkles className="w-4 h-4 text-primary" />
+                            <Badge variant="secondary" className="px-4 py-1.5 text-sm gap-2 bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
+                                <Sparkles className="w-4 h-4" />
                                 AI Travel Companion
                             </Badge>
-                            <h1 className="text-4xl md:text-6xl font-black tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
-                                Ваше умное путешествие
+                            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-2">
+                                Ваше умное <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">путешествие</span>
                             </h1>
-                            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                            <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
                                 Гид, который знает ваш маршрут, подскажет лучшие места и поможет в любой ситуации. Выберите поездку, чтобы начать.
                             </p>
                         </div>
 
-                        {/* Trips Grid */}
+                        {/* Trips Grid - Dark Glass Style */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {loadingTrips ? (
                                 Array(3).fill(0).map((_, i) => (
-                                    <Card key={i} className="h-48 animate-pulse bg-muted/50 border-0" />
+                                    <Card key={i} className="h-64 animate-pulse bg-zinc-900 border-white/5 rounded-[2rem]" />
                                 ))
                             ) : trips.length > 0 ? (
                                 trips.map(trip => (
                                     <Link key={trip.id} href={`/guide?tripId=${trip.id}`} className="group block h-full">
-                                        <Card className="h-full overflow-hidden border-0 bg-card hover:shadow-2xl transition-all duration-300 relative group-hover:-translate-y-2 group-hover:scale-[1.02]">
+                                        <Card className="h-full relative overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]">
                                             {/* Status Badge */}
-                                            <div className="absolute top-3 right-3 z-20">
-                                                <Badge
-                                                    variant={trip.status === 'active' ? 'default' : 'secondary'}
-                                                    className={cn(
-                                                        "shadow-lg backdrop-blur-sm",
-                                                        trip.status === 'active' && "bg-green-500 hover:bg-green-600"
-                                                    )}
-                                                >
-                                                    {trip.status === 'active' ? '🚀 В пути' : 'Планируется'}
-                                                </Badge>
+                                            <div className="absolute top-4 right-4 z-20">
+                                                <div className={cn(
+                                                    "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border shadow-lg flex items-center gap-1.5",
+                                                    trip.status === 'active'
+                                                        ? "bg-emerald-500 text-white border-green-400/20"
+                                                        : "bg-black/50 text-white border-white/10"
+                                                )}>
+                                                    {trip.status === 'active' && <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+                                                    {trip.status === 'active' ? 'В пути' : 'Планируется'}
+                                                </div>
                                             </div>
 
-                                            {/* Cover Image */}
-                                            <div className="h-40 bg-muted relative overflow-hidden">
+                                            {/* Cover Image Section */}
+                                            <div className="relative h-48 w-full overflow-hidden">
                                                 {trip.cover_image ? (
                                                     <img
                                                         src={trip.cover_image}
                                                         alt={trip.title || trip.destination}
-                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                     />
                                                 ) : (
-                                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-transparent" />
+                                                    <div className="w-full h-full bg-zinc-800" />
                                                 )}
-                                                {/* Dark overlay for text readability */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                                {/* Seamless Gradient */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
 
-                                                {/* Title on image */}
-                                                <div className="absolute bottom-3 left-4 right-4">
-                                                    <h3 className="font-bold text-lg leading-tight text-white drop-shadow-lg line-clamp-2">
+                                                <div className="absolute bottom-4 left-6 right-6">
+                                                    <h3 className="font-bold text-xl leading-tight text-white line-clamp-2 mb-1 group-hover:text-primary transition-colors">
                                                         {trip.title || trip.destination}
                                                     </h3>
-                                                    <div className="flex items-center gap-1 text-xs text-white/80 mt-1">
-                                                        <MapPin className="w-3 h-3" />
+                                                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-zinc-400">
+                                                        <MapPin className="w-3.5 h-3.5 text-primary" />
                                                         {trip.destination}
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="p-4 flex items-center justify-between bg-gradient-to-r from-card to-muted/30">
-                                                <p className="text-sm text-muted-foreground font-medium">
-                                                    {trip.status === 'active' ? 'Продолжить →' : 'Начать поездку'}
-                                                </p>
-                                                <Button size="icon" variant="ghost" className="rounded-full h-8 w-8 group-hover:bg-primary group-hover:text-primary-foreground transition-all shadow-sm">
+                                            <div className="p-6 pt-2 flex items-center justify-between">
+                                                <span className="text-xs font-medium text-zinc-500">Нажмите, чтобы открыть</span>
+                                                <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-white transition-all">
                                                     <ArrowRight className="w-4 h-4" />
-                                                </Button>
+                                                </div>
                                             </div>
                                         </Card>
                                     </Link>
                                 ))
                             ) : (
-                                <div className="col-span-full text-center py-12 bg-muted/30 rounded-3xl border-2 border-dashed">
-                                    <Compass className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                                    <h3 className="text-lg font-semibold">У вас пока нет маршрутов</h3>
-                                    <p className="text-muted-foreground mb-6">Создайте свой первый идеальный маршрут, и я стану вашим личным гидом!</p>
-                                    <Button asChild size="lg" className="gap-2">
-                                        <Link href="/plan"><Sparkles className="w-4 h-4" /> Создать маршрут</Link>
+                                <div className="col-span-full text-center py-16 bg-zinc-900/50 rounded-[2rem] border border-white/5 border-dashed backdrop-blur-sm">
+                                    <div className="mx-auto h-16 w-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-6">
+                                        <Compass className="w-8 h-8 text-zinc-500" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white mb-2">У вас пока нет маршрутов</h3>
+                                    <p className="text-zinc-400 mb-8 max-w-md mx-auto">Создайте свой первый идеальный маршрут, и я стану вашим личным гидом!</p>
+                                    <Button asChild size="lg" className="rounded-full bg-white text-black hover:bg-white/90 font-bold px-8 h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                                        <Link href="/plan"><Sparkles className="w-4 h-4 mr-2 text-purple-500" /> Создать маршрут</Link>
                                     </Button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Feature Highlights */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t">
-                            <div className="flex flex-col items-center text-center gap-3">
-                                <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                        {/* Feature Highlights - Clean Glass */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-white/5">
+                            <div className="flex flex-col items-center text-center gap-4 p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400">
                                     <MessageSquare className="w-6 h-6" />
                                 </div>
-                                <h3 className="font-semibold">Умный Чат</h3>
-                                <p className="text-sm text-muted-foreground">Задавайте любые вопросы: "где поесть?", "как доехать?", "что интересного рядом?".</p>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">Умный Чат</h3>
+                                    <p className="text-sm text-zinc-400">Задавайте любые вопросы: "где поесть?", "как доехать?", "что интересного рядом?".</p>
+                                </div>
                             </div>
-                            <div className="flex flex-col items-center text-center gap-3">
-                                <div className="p-3 rounded-2xl bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">
+                            <div className="flex flex-col items-center text-center gap-4 p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400">
                                     <CheckCircle2 className="w-6 h-6" />
                                 </div>
-                                <h3 className="font-semibold">Чек-листы</h3>
-                                <p className="text-sm text-muted-foreground">Отслеживайте билеты, брони и подготовку к поездке в удобном формате.</p>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">Чек-листы</h3>
+                                    <p className="text-sm text-zinc-400">Отслеживайте билеты, брони и подготовку к поездке в удобном формате.</p>
+                                </div>
                             </div>
-                            <div className="flex flex-col items-center text-center gap-3">
-                                <div className="p-3 rounded-2xl bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
+                            <div className="flex flex-col items-center text-center gap-4 p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400">
                                     <PlayCircle className="w-6 h-6" />
                                 </div>
-                                <h3 className="font-semibold">Живой маршрут</h3>
-                                <p className="text-sm text-muted-foreground">Маршрут адаптируется под вас в реальном времени. Просто отмечайте посещенные места.</p>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">Живой маршрут</h3>
+                                    <p className="text-sm text-zinc-400">Маршрут адаптируется под вас в реальном времени. Просто отмечайте посещенные места.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <Footer />
                 </main>
             </div>
         )
@@ -489,7 +501,7 @@ function GuidePageContent() {
     // --- BOOKING STATE UI ---
     if (viewMode === "booking") {
         return (
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-background text-foreground">
                 {/* Mobile Header - Visible only on small screens */}
                 <div className="lg:hidden">
                     <Header />
@@ -500,155 +512,177 @@ function GuidePageContent() {
 
                 {/* Main Content - Offset by sidebar width on desktop */}
                 <main className={cn(
-                    "min-h-screen transition-all duration-300 flex flex-col",
+                    "min-h-screen transition-all duration-300 flex flex-col pt-16 lg:pt-0",
                     isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
                 )}>
-                    {/* Header ... */}
-                    {/* Content ... */}
-                    {/* I will inject footer at the end of main */}
-                    <header className="p-4 border-b flex items-center gap-4 bg-card/50 backdrop-blur-md sticky top-0 z-30 shrink-0">
+                    <header className="px-6 py-4 flex items-center gap-4 bg-background/80 backdrop-blur-xl sticky top-0 z-30 shrink-0 border-b border-white/5">
                         <Link href={`/trip/${tripId}`}>
-                            <Button variant="ghost" size="icon" className="rounded-full">
+                            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
                                 <ChevronLeft className="h-6 w-6" />
                             </Button>
                         </Link>
                         <div>
-                            <h1 className="font-bold text-lg leading-tight line-clamp-1">{tripData?.title || "Подготовка к путешествию"}</h1>
-                            <p className="text-xs text-muted-foreground">Этап бронирования</p>
+                            <h1 className="font-bold text-lg leading-tight line-clamp-1 text-white">{tripData?.title || "Подготовка к путешествию"}</h1>
+                            <p className="text-xs text-zinc-400 font-medium">Этап бронирования</p>
                         </div>
                     </header>
 
-                    <div className="flex-1 container max-w-2xl mx-auto p-6 flex flex-col items-center justify-center overflow-y-auto custom-scrollbar pb-20">
-                        {/* Booking cards content... I'm skipping replacement of inner logic to keep it concise, just adding Footer at the end of container is tricky if I don't replace whole block */}
-                        {/* Let's try to target specific lines for replacement */}
+                    <div className="flex-1 container max-w-2xl mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
 
-                        <div className="text-center mb-10 mt-4 lg:mt-0">
-                            <h2 className="text-3xl font-bold mb-3">Готовы лететь? ✈️</h2>
-                            <p className="text-muted-foreground">Давайте проверим, все ли готово перед тем как включить режим "В пути".</p>
+                        <div className="text-center mb-10">
+                            <h2 className="text-4xl font-black mb-3 text-white">Готовы лететь? ✈️</h2>
+                            <p className="text-zinc-400 text-lg">Давайте проверим готовность перед стартом.</p>
                         </div>
 
                         <div className="w-full space-y-4 mb-10">
                             {/* Tickets Card */}
-                            <Card className={cn(
-                                "p-0 overflow-hidden transition-all border-2",
-                                bookings.tickets ? "border-green-500 bg-green-500/5" : "hover:border-primary/50"
+                            <div className={cn(
+                                "group relative overflow-hidden rounded-3xl border transition-all duration-300",
+                                bookings.tickets
+                                    ? "bg-emerald-500/10 border-emerald-500/30"
+                                    : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                {/* ... Tickets Content ... */}
-                                <div className="p-5 flex items-start gap-4">
-                                    <div className={cn("mt-1 h-10 w-10 rounded-full flex items-center justify-center shrink-0", bookings.tickets ? "bg-green-500 text-white" : "bg-blue-100 text-blue-600")}>
-                                        <Plane className="h-5 w-5" />
+                                <div className="p-6 flex items-start gap-5">
+                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.tickets ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-blue-500/10 text-blue-400")}>
+                                        <Plane className="h-6 w-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-semibold text-lg">Авиабилеты</h3>
-                                            {bookings.tickets && <Badge variant="default" className="bg-green-500 hover:bg-green-600">Куплено</Badge>}
+                                            <h3 className="font-bold text-xl text-white">Авиабилеты</h3>
+                                            {bookings.tickets && (
+                                                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" /> Куплено
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-sm text-muted-foreground mb-4">Найдите и купите билеты на Aviasales</p>
+                                        <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Самый важный шаг. Найдите лучшие рейсы и зафиксируйте цены.</p>
 
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2" asChild>
+                                        <div className="flex gap-3 flex-wrap">
+                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
                                                 <a href={smartLinks.aviasales} target="_blank" rel="noopener noreferrer">
-                                                    <Ticket className="h-4 w-4" />
-                                                    Найти билеты
-                                                    <ExternalLink className="h-3 w-3 opacity-50" />
+                                                    <Ticket className="h-4 w-4 text-blue-400" />
+                                                    Найти на Aviasales
+                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
                                                 </a>
                                             </Button>
                                             <Button
-                                                variant={bookings.tickets ? "ghost" : "secondary"}
+                                                variant="ghost"
                                                 size="sm"
-                                                className={cn("gap-2", bookings.tickets && "text-green-600 hover:text-green-700 hover:bg-green-100")}
+                                                className={cn(
+                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    bookings.tickets
+                                                        ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
+                                                        : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                                                )}
                                                 onClick={() => updateBooking('tickets')}
                                             >
-                                                {bookings.tickets ? <CheckCircle2 className="h-4 w-4" /> : null}
-                                                {bookings.tickets ? "Отмечено как купленное" : "Отметить, что купил"}
+                                                {bookings.tickets ? "Готово" : "Отметить купленным"}
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
 
                             {/* Hotel Card */}
-                            <Card className={cn(
-                                "p-0 overflow-hidden transition-all border-2",
-                                bookings.hotel ? "border-green-500 bg-green-500/5" : "hover:border-primary/50"
+                            <div className={cn(
+                                "group relative overflow-hidden rounded-3xl border transition-all duration-300",
+                                bookings.hotel
+                                    ? "bg-emerald-500/10 border-emerald-500/30"
+                                    : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                {/* ... Hotel Content ... */}
-                                <div className="p-5 flex items-start gap-4">
-                                    <div className={cn("mt-1 h-10 w-10 rounded-full flex items-center justify-center shrink-0", bookings.hotel ? "bg-green-500 text-white" : "bg-indigo-100 text-indigo-600")}>
-                                        <Hotel className="h-5 w-5" />
+                                <div className="p-6 flex items-start gap-5">
+                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.hotel ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-purple-500/10 text-purple-400")}>
+                                        <Hotel className="h-6 w-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-semibold text-lg">Жилье</h3>
-                                            {bookings.hotel && <Badge variant="default" className="bg-green-500 hover:bg-green-600">Забронировано</Badge>}
+                                            <h3 className="font-bold text-xl text-white">Жилье</h3>
+                                            {bookings.hotel && (
+                                                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" /> Забронировано
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-sm text-muted-foreground mb-4">Забронируйте отель на Ostrovok или Booking</p>
+                                        <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Забронируйте отель заранее, чтобы не переплачивать в последний момент.</p>
 
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2" asChild>
+                                        <div className="flex gap-3 flex-wrap">
+                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
                                                 <a href={smartLinks.ostrovok} target="_blank" rel="noopener noreferrer">
-                                                    <Building2 className="h-4 w-4" />
+                                                    <Building2 className="h-4 w-4 text-purple-400" />
                                                     Ostrovok
-                                                    <ExternalLink className="h-3 w-3 opacity-50" />
+                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
                                                 </a>
                                             </Button>
                                             <Button
-                                                variant={bookings.hotel ? "ghost" : "secondary"}
+                                                variant="ghost"
                                                 size="sm"
-                                                className={cn("gap-2", bookings.hotel && "text-green-600 hover:text-green-700 hover:bg-green-100")}
+                                                className={cn(
+                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    bookings.hotel
+                                                        ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
+                                                        : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                                                )}
                                                 onClick={() => updateBooking('hotel')}
                                             >
-                                                {bookings.hotel ? <CheckCircle2 className="h-4 w-4" /> : null}
-                                                {bookings.hotel ? "Отмечено как забронированное" : "Отметить, что забронировал"}
+                                                {bookings.hotel ? "Готово" : "Отметить бронь"}
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
 
                             {/* Insurance Card */}
-                            <Card className={cn(
-                                "p-0 overflow-hidden transition-all border-2",
-                                bookings.insurance ? "border-green-500 bg-green-500/5" : "hover:border-primary/50"
+                            <div className={cn(
+                                "group relative overflow-hidden rounded-3xl border transition-all duration-300",
+                                bookings.insurance
+                                    ? "bg-emerald-500/10 border-emerald-500/30"
+                                    : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                {/* ... Insurance Content ... */}
-                                <div className="p-5 flex items-start gap-4">
-                                    <div className={cn("mt-1 h-10 w-10 rounded-full flex items-center justify-center shrink-0", bookings.insurance ? "bg-green-500 text-white" : "bg-orange-100 text-orange-600")}>
-                                        <ShieldCheck className="h-5 w-5" />
+                                <div className="p-6 flex items-start gap-5">
+                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.insurance ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-orange-500/10 text-orange-400")}>
+                                        <ShieldCheck className="h-6 w-6" />
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-semibold text-lg">Страховка</h3>
-                                            {bookings.insurance && <Badge variant="default" className="bg-green-500 hover:bg-green-600">Оформлено</Badge>}
+                                            <h3 className="font-bold text-xl text-white">Страховка</h3>
+                                            {bookings.insurance && (
+                                                <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                    <CheckCircle2 className="w-3.5 h-3.5" /> Оформлено
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="text-sm text-muted-foreground mb-4">Медицинская страховка для безопасности</p>
+                                        <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Безопасность превыше всего. Оформите полис онлайн за 5 минут.</p>
 
-                                        <div className="flex gap-2 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2" asChild>
+                                        <div className="flex gap-3 flex-wrap">
+                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
                                                 <a href="https://www.cherehapa.ru" target="_blank" rel="noopener noreferrer">
-                                                    <ShieldCheck className="h-4 w-4" />
+                                                    <ShieldCheck className="h-4 w-4 text-orange-400" />
                                                     Cherehapa
-                                                    <ExternalLink className="h-3 w-3 opacity-50" />
+                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
                                                 </a>
                                             </Button>
                                             <Button
-                                                variant={bookings.insurance ? "ghost" : "secondary"}
+                                                variant="ghost"
                                                 size="sm"
-                                                className={cn("gap-2", bookings.insurance && "text-green-600 hover:text-green-700 hover:bg-green-100")}
+                                                className={cn(
+                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    bookings.insurance
+                                                        ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
+                                                        : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
+                                                )}
                                                 onClick={() => updateBooking('insurance')}
                                             >
-                                                {bookings.insurance ? <CheckCircle2 className="h-4 w-4" /> : null}
-                                                {bookings.insurance ? "Отмечено как оформленное" : "Отметить, что оформил"}
+                                                {bookings.insurance ? "Готово" : "Отметить полис"}
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
+                            </div>
                         </div>
 
                         <Button
                             size="lg"
-                            className="w-full max-w-sm h-14 text-lg rounded-full font-bold shadow-lg shadow-primary/20"
+                            className="w-full max-w-sm h-14 text-lg rounded-full font-bold shadow-[0_0_20px_rgba(255,255,255,0.2)] bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105"
                             disabled={!bookings.tickets || !bookings.hotel}
                             onClick={startTrip}
                         >
@@ -659,11 +693,11 @@ function GuidePageContent() {
                             )}
                         </Button>
                     </div>
-                    <Footer />
                 </main>
             </div>
         )
     }
+
 
     // --- ACTIVE STATE UI ---
     return (
@@ -696,7 +730,7 @@ function GuidePageContent() {
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="hidden md:flex">Завершить поездку</Button>
+                    <Button variant="outline" size="sm" className="hidden md:flex rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10" onClick={finishTrip}>Завершить поездку</Button>
                 </header>
 
                 {/* Main Content Split */}

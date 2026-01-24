@@ -1,6 +1,4 @@
 // DeepSeek (Primary) -> OpenRouter (Fallback)
-// Gemini 3 Flash temporarily disabled
-// import { geminiInference, GEMINI_MODEL } from "@/lib/gemini"
 import { openrouterInference, OPENROUTER_MODEL } from "@/lib/openrouter"
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
@@ -21,7 +19,8 @@ export async function POST(req: Request) {
             preferences,
             paymentMethods,
             requireRussianGuide,
-            customDestination
+            customDestination,
+            customBudget
         } = body
 
         const durationDays = startDate && endDate
@@ -31,15 +30,30 @@ export async function POST(req: Request) {
         // Define strict budget caps (updated to match new UI ranges)
         let budgetCap = 0;
         let budgetDesc = "";
-        switch (budget) {
-            case "economy": budgetCap = 100000; budgetDesc = "Economy (До 100к - Хостелы, публичный транспорт, бесплатные активности)"; break;
-            case "comfort": budgetCap = 300000; budgetDesc = "Comfort (100-300к - Отели 3-4*, такси, хорошие рестораны)"; break;
-            case "premium":
-            case "luxury": budgetCap = 500000; budgetDesc = "Premium (От 300к - 5* отели, бизнес-класс, VIP)"; break;
-            default: budgetCap = 200000; budgetDesc = "Moderate";
+
+        if (budget === "custom" && customBudget) {
+            budgetCap = parseInt(customBudget.replace(/\D/g, '')) || 100000;
+            budgetDesc = `Custom User Budget (${budgetCap} RUB)`;
+        } else {
+            switch (budget) {
+                case "economy":
+                    budgetCap = 7500 * durationDays;
+                    budgetDesc = `Economy (~7.5k RUB/day - Хостелы, публичный транспорт, бесплатные активности)`;
+                    break;
+                case "comfort":
+                    budgetCap = 20000 * durationDays;
+                    budgetDesc = `Comfort (~20k RUB/day - Отели 3-4*, такси, хорошие рестораны)`;
+                    break;
+                case "premium":
+                case "luxury":
+                    budgetCap = 50000 * durationDays;
+                    budgetDesc = `Premium (~50k RUB/day - 5* отели, бизнес-класс, VIP)`;
+                    break;
+                default:
+                    budgetCap = 15000 * durationDays;
+                    budgetDesc = "Moderate (~15k RUB/day)";
+            }
         }
-        // Adjust cap for duration (approximate)
-        if (durationDays > 7) budgetCap = Math.round(budgetCap * (durationDays / 7));
 
 
         const targetDescription = customDestination
@@ -64,11 +78,12 @@ export async function POST(req: Request) {
       - Citizenship: ${preferences.citizenship || 'Not specified'}
       - Nationality: ${preferences.nationality || 'Not specified'}
       - Known Languages: ${preferences.languages?.join(', ') || 'Not specified'}
+      - Travel Pace: ${preferences.pace || 'moderate'} (STRICT: If 'slow', suggest late starts and more free time. If 'fast', pack the day with activities).
       - Dietary: ${preferences.dietaryRestrictions?.join(', ') || 'None'}, Extra: ${preferences.dietaryCustom || 'None'}
       - Interests: ${preferences.interestsDetailed?.join(', ') || 'General'}, Extra: ${preferences.interestsCustom || 'None'}
       - Available Payment Methods: ${paymentMethods?.join(', ') || 'Not specified'}
       - Require Russian Speaking Guides: ${requireRussianGuide ? 'YES' : 'NO'}
-      - Visited Countries: ${preferences.visitedCountries?.join(', ') || 'None specified'}
+      - Visited Countries: ${preferences.visitedCountries?.join(', ') || 'None specified'} (STRICT: If the target country is in this list, suggest NEW/HIDDEN spots. If exploring regions, AVOID these countries entirely).
 
       COMMANDS:
       1. LOGISTICS: Include full door-to-door logistics (starting from ${departureCity} airport/station).
@@ -201,7 +216,11 @@ DEPARTURE: ${departureCity}
 DURATION: ${durationDays} days
 BUDGET: ${budgetDesc} (max ${budgetCap} RUB)
 STYLE: ${travelStyle.join(', ')}
+PACE: ${preferences.pace || 'moderate'}
+VISITED: ${preferences.visitedCountries?.join(', ') || 'None'}
 PAYMENT METHODS: ${paymentMethods?.join(', ') || 'Not specified'}
+PERSONALIZATION: ${preferences.interestsDetailed?.join(', ') || 'General'}
+DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
 
 Output VALID JSON only (all strings must be in double quotes):
 {
@@ -248,6 +267,8 @@ CONTEXT:
 - DESTINATION: ${destination}
 - DEPARTURE CITY: ${departureCity}
 - STYLE: ${travelStyle.join(', ')}
+- PACE: ${preferences.pace || 'moderate'} (STRICT: Follow intensity based on pace)
+- DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
 - BUDGET LEVEL: ${budgetDesc}
 - START DATE: ${startDate || 'Flexible'}
 - END DATE: ${endDate || 'Flexible'}

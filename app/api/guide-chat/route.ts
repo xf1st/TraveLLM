@@ -11,8 +11,8 @@ export async function POST(req: Request) {
             systemPrompt = `Ты — профессиональный, дружелюбный и эрудированный ИИ-гид. Ты сопровождаешь путешественника.
 
 КОНТЕКСТ ВСЕГО ПУТЕШЕСТВИЯ:
-- Название: ${context.title}
-- Всего дней: ${context.upcomingSteps?.length + (context.completedSteps?.length || 0)}
+- Название: ${context.title || "Мое путешествие"}
+- Всего дней: ${(context.upcomingSteps?.length || 0) + (context.completedSteps?.length || 0)}
 - Пройдено этапов: ${context.completedSteps?.length || 0}
 - Осталось этапов: ${context.upcomingSteps?.length || 0}
 - Ближайшие планы: ${context.upcomingSteps?.slice(0, 5).join(", ") || "Финиш"}...

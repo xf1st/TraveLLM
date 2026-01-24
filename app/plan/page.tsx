@@ -11,7 +11,43 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Sparkles, CreditCard, Languages, MapPin, Calendar, Users, Palette, Mountain, Utensils, Bed, Compass, ShoppingBag, Camera, Laptop, TreePine, Gem, Map } from "lucide-react"
+import { format } from "date-fns"
+import { ru } from "date-fns/locale"
+import { DateRange } from "react-day-picker"
+import Image from "next/image"
+
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import { CityAutocomplete } from "@/components/ui/city-autocomplete"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Sparkles,
+  CreditCard,
+  Languages,
+  MapPin,
+  Calendar as CalendarIcon,
+  Users,
+  Palette,
+  Mountain,
+  Utensils,
+  Bed,
+  Compass,
+  ShoppingBag,
+  Camera,
+  Laptop,
+  TreePine,
+  Gem,
+  Map,
+  Globe,
+  Building2,
+  Flag,
+  Bus,
+  Banknote
+} from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { GeneratingModal } from "@/components/GeneratingModal"
 import { supabase } from "@/lib/supabase"
@@ -28,8 +64,7 @@ export default function PlanPage() {
   const [countryCount, setCountryCount] = useState("1")
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
+  const [date, setDate] = useState<DateRange | undefined>()
   const [travelStyle, setTravelStyle] = useState<string[]>([])
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
   const [guideLanguage, setGuideLanguage] = useState(false)
@@ -45,13 +80,20 @@ export default function PlanPage() {
         if (data) {
           setProfile(data)
         }
+      } else {
+        // Redirect if not logged in
+        router.push("/auth")
       }
     }
     fetchProfile()
-  }, [])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!date?.from || !date?.to) {
+      alert("Пожалуйста, выберите даты поездки")
+      return
+    }
     setLoading(true)
 
     try {
@@ -67,8 +109,9 @@ export default function PlanPage() {
           customDestination: destination === 'custom' ? customDestination : undefined,
           countryCount,
           budget,
-          startDate,
-          endDate,
+          customBudget,
+          startDate: format(date.from, "yyyy-MM-dd"),
+          endDate: format(date.to, "yyyy-MM-dd"),
           travelStyle,
           paymentMethods,
           requireRussianGuide: guideLanguage,
@@ -100,8 +143,8 @@ export default function PlanPage() {
         budget_range: budget,
         total_cost: routeData.totalBudget,
         departure_city: departureCity,
-        start_date: startDate || null,
-        end_date: endDate || null,
+        start_date: format(date.from, "yyyy-MM-dd"),
+        end_date: format(date.to, "yyyy-MM-dd"),
         // New fields for budget analysis and important info
         budget_analysis: routeData.budgetAnalysis || null,
         visa_advice: routeData.visaAdvice || null,
@@ -161,206 +204,272 @@ export default function PlanPage() {
         <div className="max-w-4xl mx-auto">
           <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-card/60 backdrop-blur-md border-primary/20 shadow-2xl">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Departure */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Ваш город отправления</Label>
-                <Input
-                  placeholder="Например: Москва"
-                  value={departureCity}
-                  onChange={(e) => setDepartureCity(e.target.value)}
-                  required
-                  className="max-w-md transition-all focus:scale-105"
-                />
-              </div>
 
-              {/* Destination */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Куда планируете поехать?</Label>
-                <RadioGroup
-                  value={destination}
-                  onValueChange={(v) => setDestination(v as any)}
-                  className="grid gap-4 sm:grid-cols-3"
-                >
-                  <Label
-                    htmlFor="russia"
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value="russia" id="russia" />
-                    <span>По России</span>
+              {/* Row 1: City & Companions */}
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="w-full md:w-[75%] space-y-2">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Город отправления
                   </Label>
-                  <Label
-                    htmlFor="abroad"
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value="abroad" id="abroad" />
-                    <span>За границу</span>
-                  </Label>
-                  <Label
-                    htmlFor="mixed"
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value="mixed" id="mixed" />
-                    <span>Смешанный</span>
-                  </Label>
-                  <Label
-                    htmlFor="custom"
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-border p-4 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value="custom" id="custom" />
-                    <span>Свой выбор</span>
-                  </Label>
-                </RadioGroup>
-              </div>
-
-              {/* Custom Destination Input */}
-              {destination === "custom" && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <Label className="text-base font-semibold">Укажите страны или города</Label>
-                  <Input
-                    value={customDestination}
-                    onChange={(e) => setCustomDestination(e.target.value)}
-                    placeholder="Например: Италия, Франция, Токио или 'Тур по Скандинавии'"
-                    className="transition-all focus:scale-105"
+                  <CityAutocomplete
+                    placeholder="Например: Москва"
+                    value={departureCity}
+                    onValueChange={setDepartureCity}
+                    className="h-14 rounded-2xl text-lg px-4 transition-all focus:scale-[1.01] bg-muted/20 border-border/60"
                   />
                 </div>
-              )}
-
-              {/* Country Count */}
-              {destination !== "russia" && (
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Количество стран</Label>
-                  <Select value={countryCount} onValueChange={setCountryCount}>
-                    <SelectTrigger className="max-w-xs">
+                <div className="w-full md:w-[25%] space-y-2">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Компания
+                  </Label>
+                  <Select defaultValue="couple">
+                    <SelectTrigger className="h-14 rounded-2xl text-lg px-4 transition-all focus:scale-[1.01] bg-muted/20 border-border/60">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 страна</SelectItem>
-                      <SelectItem value="2">2 страны</SelectItem>
-                      <SelectItem value="3">3 страны</SelectItem>
-                      <SelectItem value="more">Более 3 стран</SelectItem>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="solo" className="rounded-lg my-1">
+                        <div className="flex items-center gap-2"><Users className="h-4 w-4" /> Один</div>
+                      </SelectItem>
+                      <SelectItem value="couple" className="rounded-lg my-1">
+                        <div className="flex items-center gap-2"><Users className="h-4 w-4" /> Вдвоем</div>
+                      </SelectItem>
+                      <SelectItem value="family" className="rounded-lg my-1">
+                        <div className="flex items-center gap-2"><Users className="h-4 w-4" /> Семья</div>
+                      </SelectItem>
+                      <SelectItem value="friends" className="rounded-lg my-1">
+                        <div className="flex items-center gap-2"><Users className="h-4 w-4" /> Друзья</div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
+              </div>
 
+              {/* Row 2: Date Range Picker (Real Shadcn Calendar) */}
+              <div className="space-y-2">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
+                  Даты поездки
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full h-16 justify-start text-left font-normal rounded-2xl text-lg px-4 bg-muted/20 border-border/60 hover:bg-muted/40 transition-all",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                      {date?.from ? (
+                        date.to ? (
+                          <>
+                            {format(date.from, "dd MMMM yyyy", { locale: ru })} - {format(date.to, "dd MMMM yyyy", { locale: ru })}
+                            <span className="ml-auto text-sm text-muted-foreground font-medium bg-background/50 px-3 py-1 rounded-lg border border-border/50">
+                              {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} дней
+                            </span>
+                          </>
+                        ) : (
+                          format(date.from, "dd MMMM yyyy", { locale: ru })
+                        )
+                      ) : (
+                        <span>Выберите даты поездки</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={date?.from}
+                      selected={date}
+                      onSelect={setDate}
+                      numberOfMonths={2}
+                      locale={ru}
+                      disabled={(date) => date < new Date()}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Destination Type & Logic */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Бюджет на поездку
+                  <Compass className="h-4 w-4 text-primary" />
+                  Куда вы хотите поехать?
                 </Label>
-                <RadioGroup value={budget} onValueChange={setBudget} className="grid gap-4 sm:grid-cols-3">
-                  <Label
-                    htmlFor="economy"
-                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="economy" id="economy" />
-                      <span className="font-semibold">Эконом</span>
-                    </div>
-                    <span className="ml-7 text-sm text-muted-foreground">До ₽100 000</span>
-                    <span className="ml-7 text-xs text-muted-foreground/70">Хостелы, общ. транспорт</span>
-                  </Label>
-                  <Label
-                    htmlFor="comfort"
-                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="comfort" id="comfort" />
-                      <span className="font-semibold">Комфорт</span>
-                    </div>
-                    <span className="ml-7 text-sm text-muted-foreground">₽100к — ₽300к</span>
-                    <span className="ml-7 text-xs text-muted-foreground/70">Отели 3-4*, такси</span>
-                  </Label>
-                  <Label
-                    htmlFor="premium"
-                    className="flex cursor-pointer flex-col gap-1 rounded-xl border-2 border-border p-4 transition-all hover:bg-muted hover:shadow-sm has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:shadow-md"
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value="premium" id="premium" />
-                      <span className="font-semibold">Премиум</span>
-                    </div>
-                    <span className="ml-7 text-sm text-muted-foreground">От ₽300 000</span>
-                    <span className="ml-7 text-xs text-muted-foreground/70">5*, бизнес-класс</span>
-                  </Label>
+                <RadioGroup
+                  value={destination}
+                  onValueChange={(v) => {
+                    if (v === 'mixed') return;
+                    setDestination(v as any)
+                  }}
+                  className="grid grid-cols-3 gap-3 p-1.5 bg-muted/40 rounded-2xl w-full"
+                >
+                  {[
+                    { id: "russia", label: "По России", icon: <MapPin className="h-4 w-4" /> },
+                    { id: "abroad", label: "За границу", icon: <Globe className="h-4 w-4" /> },
+                    { id: "custom", label: "Свой выбор", icon: <Sparkles className="h-4 w-4" /> }
+                  ].map((type) => (
+                    <Label
+                      key={type.id}
+                      htmlFor={type.id}
+                      className="flex cursor-pointer items-center justify-center gap-2 rounded-xl py-3 text-base font-medium transition-all duration-300 hover:bg-background/60 hover:text-foreground data-[state=checked]:bg-background data-[state=checked]:text-primary data-[state=checked]:shadow-md data-[state=checked]:scale-[1.02]"
+                      data-state={destination === type.id ? "checked" : "unchecked"}
+                    >
+                      <RadioGroupItem value={type.id} id={type.id} className="sr-only" />
+                      {type.icon}
+                      {type.label}
+                    </Label>
+                  ))}
                 </RadioGroup>
 
-                <div className="space-y-2 p-4 rounded-xl bg-muted/30 border border-border/50">
-                  <Label htmlFor="custom-budget" className="text-sm font-medium">
-                    💡 Или укажите точный бюджет
-                  </Label>
-                  <div className="flex gap-2 items-center">
+                {/* Conditional Inputs */}
+                {destination === "custom" ? (
+                  <div className="animate-in fade-in slide-in-from-top-2 pt-2">
+                    <CityAutocomplete
+                      value={customDestination}
+                      onValueChange={setCustomDestination}
+                      placeholder="Укажите город или страну (например: Рим)"
+                      className="h-auto min-h-[56px] rounded-2xl text-lg bg-muted/20 border-border/60"
+                      multiselect={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="animate-in fade-in slide-in-from-top-2 pt-2">
+                    <Select value={countryCount} onValueChange={setCountryCount}>
+                      <SelectTrigger className="h-14 rounded-2xl text-lg px-4 bg-muted/20 border-border/60 w-full">
+                        <SelectValue placeholder={destination === "russia" ? "Сколько городов посетить?" : "Количество стран"} />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {destination === "russia" ? (
+                          <>
+                            <SelectItem value="1" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 1 город</div></SelectItem>
+                            <SelectItem value="2" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 2 города</div></SelectItem>
+                            <SelectItem value="3" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 3 города</div></SelectItem>
+                            <SelectItem value="more" className="rounded-lg my-1"><div className="flex items-center gap-2"><Bus className="h-4 w-4" /> Тур по городам (4+)</div></SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="1" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 1 страна</div></SelectItem>
+                            <SelectItem value="2" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 2 страны</div></SelectItem>
+                            <SelectItem value="3" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 3 страны</div></SelectItem>
+                            <SelectItem value="more" className="rounded-lg my-1"><div className="flex items-center gap-2"><Globe className="h-4 w-4" /> Евротур (4+ стран)</div></SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {/* Budget Cards - Enhanced Typography & Icons */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Бюджет
+                </Label>
+                <RadioGroup value={budget} onValueChange={setBudget} className="grid md:grid-cols-3 gap-4">
+                  {[
+                    { id: "economy", title: "Эконом", range: "₽5k - ₽10k", desc: "в день (Хостелы, автобусы)", icon: ShoppingBag, color: "text-blue-500" },
+                    { id: "comfort", title: "Комфорт", range: "₽15k - ₽30k", desc: "в день (Отели, такси)", icon: CreditCard, color: "text-violet-500" },
+                    { id: "premium", title: "Премиум", range: "От ₽40k", desc: "в день (Люкс сервис)", icon: Gem, color: "text-amber-500" },
+                  ].map((b) => {
+                    const Icon = b.icon
+                    const isSelected = budget === b.id
+                    return (
+                      <Label
+                        key={b.id}
+                        htmlFor={b.id}
+                        className={`relative flex flex-col justify-between gap-3 rounded-2xl border-2 p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${isSelected
+                          ? "border-primary bg-primary/10 shadow-xl shadow-primary/10"
+                          : "border-border/40 bg-card/40 hover:border-primary/30 hover:bg-muted/40"
+                          }`}
+                      >
+                        <RadioGroupItem value={b.id} id={b.id} className="sr-only" />
+                        <div className="flex justify-between items-center gap-4">
+                          <span className={`font-bold text-xl leading-tight ${isSelected ? "text-foreground" : "text-muted-foreground/80"}`}>{b.title}</span>
+                          <div className={`p-2 rounded-full shrink-0 ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                        </div>
+                        <div>
+                          <div className={`text-lg font-bold tracking-tight ${isSelected ? "text-primary" : "text-foreground/90"}`}>{b.range}</div>
+                          <div className="text-xs text-muted-foreground mt-1 font-medium">{b.desc}</div>
+                        </div>
+                      </Label>
+                    )
+                  })}
+                </RadioGroup>
+
+                {/* Custom Budget Toggle - Integrated Look */}
+                <div className="pt-2 animate-in fade-in slide-in-from-top-2">
+                  <div className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${budget === 'custom' ? "bg-primary/5 border border-primary/50 ring-1 ring-primary/20" : "bg-muted/30 border border-border/40"
+                    }`}>
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <span className="p-2 bg-background rounded-full shadow-sm"><Sparkles className="h-4 w-4 text-emerald-500" /></span>
+                      <span className="text-sm font-semibold whitespace-nowrap">Свой бюджет:</span>
+                    </div>
                     <Input
-                      id="custom-budget"
                       type="number"
+                      min="10000"
+                      step="5000"
                       placeholder="150000"
                       value={customBudget}
-                      onChange={(e) => {
-                        setCustomBudget(e.target.value)
-                        if (e.target.value) setBudget("custom")
+                      onBlur={() => {
+                        if (customBudget && parseInt(customBudget) < 10000) setCustomBudget("10000")
                       }}
-                      className="flex-1 transition-all focus:scale-[1.02]"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCustomBudget(val);
+                        if (val) setBudget("custom");
+                      }}
+                      className="h-12 text-lg font-bold bg-transparent border-0 border-b-2 border-border/50 rounded-none focus-visible:ring-0 focus-visible:border-primary px-2 text-right placeholder:text-muted-foreground/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
-                    <span className="text-sm text-muted-foreground whitespace-nowrap font-medium">₽ за всю поездку</span>
+                    <span className="text-base font-bold text-muted-foreground">₽</span>
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Дата начала</Label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    required
-                    className="transition-all focus:scale-105"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Label className="text-base font-semibold">Дата окончания</Label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                    min={startDate}
-                    className="transition-all focus:scale-105"
-                  />
-                </div>
-              </div>
-
-              {/* Travel Style */}
+              {/* Travel Style Grid */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  <Palette className="h-5 w-5 text-primary" />
-                  Стиль путешествия
+                  <Palette className="h-4 w-4 text-primary" />
+                  Интересы
                 </Label>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   {[
-                    { id: "culture", label: "Культура и история", icon: Compass },
-                    { id: "nature", label: "Природа и активность", icon: Mountain },
-                    { id: "food", label: "Гастрономия", icon: Utensils },
-                    { id: "relax", label: "Отдых и релакс", icon: Bed },
+                    { id: "culture", label: "Культура", icon: Compass },
+                    { id: "nature", label: "Природа", icon: Mountain },
+                    { id: "food", label: "Еда", icon: Utensils },
+                    { id: "relax", label: "Релакс", icon: Bed },
                     { id: "adventure", label: "Приключения", icon: Map },
                     { id: "shopping", label: "Шоппинг", icon: ShoppingBag },
-                    { id: "photo", label: "Фото-тур", icon: Camera },
-                    { id: "nomad", label: "Диджитал-номад", icon: Laptop },
-                    { id: "hike", label: "Треккинг", icon: TreePine },
+                    { id: "photo", label: "Фото", icon: Camera },
+                    { id: "events", label: "Ивенты", icon: Sparkles }, // Added Events
                     { id: "luxury", label: "Люкс", icon: Gem },
+                    // Removed: Nomad, Hike/Trekking
                   ].map((style) => {
-                    const IconComponent = style.icon
+                    const Icon = style.icon
+                    const isSelected = travelStyle.includes(style.id)
                     return (
                       <Label
                         key={style.id}
                         htmlFor={style.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-border p-3 transition-all hover:bg-muted hover:border-primary/30 has-[:checked]:border-primary has-[:checked]:bg-primary/10"
+                        className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer hover:scale-[1.02] ${isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                          : "border-border/60 bg-muted/20 hover:bg-muted hover:border-primary/30"
+                          }`}
                       >
                         <Checkbox
                           id={style.id}
-                          checked={travelStyle.includes(style.id)}
+                          checked={isSelected}
                           onCheckedChange={() => toggleStyle(style.id)}
+                          className="sr-only"
                         />
-                        <IconComponent className="h-4 w-4 text-primary/70" />
+                        <Icon className={`h-4 w-4 ${isSelected ? "text-primary-foreground" : "text-muted-foreground"}`} />
                         <span className="text-sm font-medium">{style.label}</span>
                       </Label>
                     )
@@ -368,85 +477,85 @@ export default function PlanPage() {
                 </div>
               </div>
 
-              {/* Payment Methods */}
+              {/* Payment Method - BRANDED IMAGES */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Основной способ оплаты
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Способ оплаты
                 </Label>
-                <RadioGroup
-                  value={paymentMethods[0] || ""}
-                  onValueChange={(value) => setPaymentMethods([value])}
-                  className="grid gap-3 sm:grid-cols-2"
-                >
+                <RadioGroup value={paymentMethods[0]} onValueChange={(v) => setPaymentMethods([v])} className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { id: "mir", label: "Карта Мир" },
-                    { id: "unionpay", label: "UnionPay (РФ)" },
-                    { id: "foreign", label: "Зарубежная карта (Visa/MC)" },
-                    { id: "cash", label: "Наличные" },
-                  ].map((method) => (
-                    <Label
-                      key={method.id}
-                      htmlFor={`payment-${method.id}`}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 transition-all hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                      <RadioGroupItem value={method.id} id={`payment-${method.id}`} />
-                      <span className="text-sm">{method.label}</span>
-                    </Label>
-                  ))}
+                    {
+                      id: "mir",
+                      label: "Карта МИР",
+                      icon: <Image src="/Mir.png" alt="MIR" width={60} height={20} className="h-6 w-auto object-contain" unoptimized />,
+                      bg: "bg-[#00783E]/5",
+                      border: "border-border/60"
+                    },
+                    {
+                      id: "unionpay",
+                      label: "UnionPay",
+                      icon: <Image src="/union.webp" alt="UnionPay" width={60} height={30} className="h-8 w-auto object-contain" unoptimized />,
+                      bg: "bg-red-500/5",
+                      border: "border-border/60"
+                    },
+                    {
+                      id: "foreign",
+                      label: "Visa/MC",
+                      icon: <Image src="/visa.png" alt="Visa" width={60} height={20} className="h-6 w-auto object-contain" unoptimized />,
+                      bg: "bg-blue-600/5",
+                      border: "border-border/60"
+                    },
+                    {
+                      id: "cash",
+                      label: "Наличные",
+                      icon: <Banknote className="h-7 w-7 text-green-600" />,
+                      bg: "bg-green-500/5",
+                      border: "border-border/60"
+                    }
+                  ].map((method) => {
+                    const isSelected = paymentMethods.includes(method.id);
+                    let activeBorderClass = "border-primary"; // Default
+
+                    if (method.id === 'mir') activeBorderClass = "border-[#00783E] ring-[#00783E]";
+                    if (method.id === 'unionpay') activeBorderClass = "border-red-500 ring-red-500";
+                    if (method.id === 'foreign') activeBorderClass = "border-blue-600 ring-blue-600";
+                    if (method.id === 'cash') activeBorderClass = "border-green-600 ring-green-600";
+
+                    return (
+                      <Label
+                        key={method.id}
+                        htmlFor={`pay-${method.id}`}
+                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border cursor-pointer transition-all hover:bg-muted/50 ${isSelected
+                          ? `${activeBorderClass} bg-primary/5 ring-1`
+                          : `${method.border} bg-transparent`
+                          }`}
+                      >
+                        <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />
+                        <div className="flex items-center justify-center h-10 w-full">{method.icon}</div>
+                        <span className="text-xs font-bold text-center mt-1 text-muted-foreground">{method.label}</span>
+                      </Label>
+                    )
+                  })}
                 </RadioGroup>
               </div>
 
-              {/* Guide Language */}
-              <div className="space-y-4 rounded-lg border border-border p-4 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="text-base font-semibold flex items-center gap-2">
-                      <Languages className="h-5 w-5 text-primary" />
-                      Русскоговорящий гид
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Искать экскурсии и активности с поддержкой русского языка
-                    </p>
-                  </div>
-                  <Switch checked={guideLanguage} onCheckedChange={setGuideLanguage} />
-                </div>
-              </div>
-
-              {/* Companions */}
-              <div className="space-y-4">
-                <Label htmlFor="companions" className="text-base font-semibold">
-                  С кем едете?
-                </Label>
-                <Select defaultValue="couple">
-                  <SelectTrigger id="companions" className="transition-all hover:shadow-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="solo">Один/одна</SelectItem>
-                    <SelectItem value="couple">Вдвоём</SelectItem>
-                    <SelectItem value="family">Семья с детьми</SelectItem>
-                    <SelectItem value="friends">С друзьями</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Submit */}
+              {/* Submit Button */}
               <Button
                 type="submit"
                 size="lg"
-                className="w-full transition-all hover:scale-105"
-                disabled={loading || travelStyle.length === 0}
+                className="w-full h-16 text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-2xl font-bold bg-gradient-to-r from-primary to-blue-600 border-0 mt-4"
+                disabled={loading}
               >
                 {loading ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    <span>Генерируем маршруты...</span>
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white mr-3" />
+                    Маршрут создается...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-5 w-5" />
-                    <span>Создать маршруты</span>
+                    <Sparkles className="h-6 w-6 mr-3" />
+                    Сгенерировать путешествие
                   </>
                 )}
               </Button>

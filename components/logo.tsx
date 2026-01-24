@@ -17,10 +17,8 @@ export function Logo({ size = 36, className = "" }: LogoProps) {
         setMounted(true)
     }, [])
 
-    // Determine logo based on theme (default to light for SSR)
-    const logoSrc = mounted && resolvedTheme === "dark"
-        ? "/logo-dark.svg"
-        : "/logo-light.svg"
+    // Unified logo for all themes
+    const logoSrc = "/logo-main.svg"
 
     // Consistent className for both SSR and client
     const combinedClassName = `rounded-xl ${className}`.trim()

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -132,7 +132,7 @@ export function Header({ floating = false }: HeaderProps) {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/my-trips" className="w-full flex items-center">
+                      <Link href="/profile?tab=routes" className="w-full flex items-center">
                         <Map className="mr-2 h-4 w-4" />
                         Мои маршруты
                       </Link>
@@ -165,7 +165,7 @@ export function Header({ floating = false }: HeaderProps) {
           <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
         </Link>
 
-        {/* Navigation */}
+        {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((link) => (
             <Link
@@ -182,6 +182,28 @@ export function Header({ floating = false }: HeaderProps) {
             </Link>
           ))}
         </nav>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden flex items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="mr-2">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 p-2 rounded-xl">
+              <DropdownMenuLabel>Меню</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {navLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                  <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">

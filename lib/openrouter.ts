@@ -2,7 +2,7 @@
 // https://openrouter.ai/api/v1
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "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";
-export const OPENROUTER_MODEL = "qwen/qwen3-32b";
+export const OPENROUTER_MODEL = "qwen/qwen-2.5-72b-instruct";
 
 interface OpenRouterMessage {
     role: "system" | "user" | "assistant";

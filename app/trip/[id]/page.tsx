@@ -28,11 +28,19 @@ import {
   PieChart,
   Plane,
   Car,
-  Train
+  Train,
+  Umbrella,
+  ShoppingBag,
+  Waves,
+  Mountain,
+  Ticket,
+  Building,
+  ArrowRight
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
 import Link from "next/link"
+import { MeshGradient } from "@paper-design/shaders-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TripImage } from "@/components/TripImage"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
@@ -44,6 +52,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Footer } from "@/components/footer"
+import GradientText from "@/components/GradientText"
+import { motion, AnimatePresence } from "framer-motion"
+import dynamic from "next/dynamic"
+
+const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
 const transportIcons: Record<string, any> = {
   "Flight": Plane,
@@ -67,6 +80,32 @@ const modeTranslations: Record<string, string> = {
   "None": "Нет"
 }
 
+const tagColors: Record<string, string> = {
+  "пляж": "text-sky-900 bg-sky-200 hover:bg-sky-300",
+  "шопинг": "text-pink-900 bg-pink-200 hover:bg-pink-300",
+  "аквапарк": "text-cyan-900 bg-cyan-200 hover:bg-cyan-300",
+  "горы": "text-emerald-900 bg-emerald-200 hover:bg-emerald-300",
+  "море": "text-blue-900 bg-blue-200 hover:bg-blue-300",
+  "торговые центры": "text-purple-900 bg-purple-200 hover:bg-purple-300",
+  "природа": "text-green-900 bg-green-200 hover:bg-green-300",
+  "культура": "text-amber-900 bg-amber-200 hover:bg-amber-300",
+  "развлечения": "text-rose-900 bg-rose-200 hover:bg-rose-300",
+  "default": "text-slate-900 bg-slate-200 hover:bg-slate-300"
+}
+
+const tagIcons: Record<string, any> = {
+  "пляж": Umbrella,
+  "шопинг": ShoppingBag,
+  "аквапарк": Waves,
+  "горы": Mountain,
+  "море": Waves,
+  "торговые центры": ShoppingBag,
+  "природа": Mountain,
+  "культура": Building,
+  "развлечения": Ticket,
+  "default": Sparkles
+}
+
 export default function TripDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -76,6 +115,18 @@ export default function TripDetailPage() {
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  useEffect(() => {
+    const checkSidebar = () => {
+      const saved = localStorage.getItem('sidebar-collapsed') === 'true'
+      setIsSidebarCollapsed(saved)
+    }
+    checkSidebar()
+    window.addEventListener('sidebar-change', checkSidebar)
+    return () => window.removeEventListener('sidebar-change', checkSidebar)
+  }, [])
+
   useEffect(() => {
     const fetchTrip = async () => {
       setLoading(true)
@@ -84,6 +135,15 @@ export default function TripDetailPage() {
       const isLocal = id?.startsWith('local-')
 
       console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal)
+
+      // Auth Check for UUID trips
+      if (isUuid) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push(`/auth?next=/trip/${id}`)
+          return
+        }
+      }
 
       let data = null
       let error = null
@@ -139,14 +199,30 @@ export default function TripDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background relative overflow-hidden">
+        {/* LightRays / Mesh Background for loading */}
+        <div className="absolute inset-0 z-0">
+          <MeshGradient
+            className="w-full h-full opacity-20"
+            colors={["#10B981", "#3B82F6", "#8B5CF6", "#10B981"]}
+            speed={0.1}
+          />
+        </div>
+
         <AppSidebar />
-        <div className="lg:ml-64">
+        <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
           <div className="lg:hidden"><Header /></div>
-          <main className="flex h-[60vh] items-center justify-center">
-            <div className="text-center">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4" />
-              <p className="text-muted-foreground animate-pulse">Загружаем детали вашего приключения...</p>
+          <main className="flex min-h-[80vh] items-center justify-center p-6">
+            <div className="text-center space-y-6">
+              <div className="relative mx-auto h-20 w-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
+                <div className="absolute inset-0 rounded-full border border-primary/40 animate-pulse" />
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Загрузка</h3>
+                <p className="text-muted-foreground font-medium animate-pulse tracking-wide italic">Готовим детали вашего приключения...</p>
+              </div>
             </div>
           </main>
         </div>
@@ -158,7 +234,7 @@ export default function TripDetailPage() {
     return (
       <div className="min-h-screen bg-background">
         <AppSidebar />
-        <div className="lg:ml-64">
+        <div className={`transition-[margin] duration-300 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
           <div className="lg:hidden"><Header /></div>
           <main className="flex h-[60vh] items-center justify-center">
             <div className="text-center px-4">
@@ -184,64 +260,93 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <AppSidebar />
 
-      <div className="lg:ml-64 pb-20">
+      {/* LightRays Background */}
+      <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
+        <LightRays
+          raysOrigin="top-center"
+          raysColor="#ffffff"
+          raysSpeed={0.5}
+          lightSpread={0.6}
+          rayLength={4}
+          followMouse={true}
+          mouseInfluence={0.2}
+          className="custom-rays"
+          pulsating={true}
+        />
+      </div>
+
+      <div className={`relative z-10 transition-[margin] duration-300 pb-20 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
         {/* Mobile Header */}
         <div className="lg:hidden"><Header /></div>
 
         {/* Hero Banner */}
-        <div className="relative h-[40vh] min-h-[400px] w-full overflow-hidden">
+        <div className="relative h-[50vh] min-h-[500px] w-full overflow-hidden mt-16 lg:mt-0">
           <TripImage
             src={heroImage}
             query={destinationName}
             alt={route.title || destinationName}
-            className="absolute inset-0 h-full w-full"
+            className="absolute inset-0 h-full w-full object-cover attachment-fixed"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-background/20 to-background" />
 
-          <div className="absolute inset-0 flex items-end">
-            <div className="container max-w-5xl px-4 pb-12">
+          <div className="absolute inset-x-0 bottom-0 p-8 pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
+            <div className="container max-w-7xl px-4">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => router.back()}
-                className="mb-8 rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 border-0"
+                className="mb-6 rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Назад
               </Button>
 
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="space-y-6"
+              >
                 <div className="flex flex-wrap gap-2">
-                  {route.tags?.map((tag: string) => (
-                    <Badge key={tag} className="bg-primary/20 text-primary-foreground backdrop-blur border-none">
-                      {tag}
-                    </Badge>
-                  ))}
+                  {route.tags?.map((tag: string) => {
+                    const tagKey = tag.toLowerCase();
+                    const Icon = tagIcons[tagKey] || tagIcons["default"];
+                    const colorClass = tagColors[tagKey] || tagColors["default"];
+
+                    return (
+                      <Badge key={tag} className={`${colorClass} rounded-full px-4 py-1.5 text-sm font-bold flex items-center gap-1.5 border-none shadow-sm transition-colors`}>
+                        <Icon className="w-3.5 h-3.5" />
+                        {tag}
+                      </Badge>
+                    )
+                  })}
                 </div>
-                <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-5xl drop-shadow-lg">
+
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-2xl">
                   {route.title}
                 </h1>
-                <div className="flex flex-wrap gap-6 text-white/90 font-medium">
-                  <div className="flex items-center gap-2 drop-shadow">
+
+                <div className="flex flex-wrap gap-4 text-white/90 font-medium text-lg">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
                     <Calendar className="h-5 w-5 text-sky-400" />
                     {route.itinerary?.length || 0} дней
                   </div>
                   <div
-                    className="flex items-center gap-2 drop-shadow cursor-pointer hover:text-primary transition-colors group"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
                     onClick={() => setShowBudgetModal(true)}
                   >
                     <Wallet className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
                     <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
                   </div>
-                  <div className="flex items-center gap-2 drop-shadow">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
                     <Shield className="h-5 w-5 text-amber-400" />
                     Безопасность 9/10
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
@@ -261,96 +366,111 @@ export default function TripDetailPage() {
                   const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
 
                   return (
-                    <Card key={idx} className={`overflow-hidden border-none shadow-sm hover:shadow-md transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''}`}>
-                      <button
-                        onClick={() => setExpandedDay(isExpanded ? null : day.day)}
-                        className="w-full flex items-center justify-between p-5 text-left bg-card group"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-black text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                            {day.day}
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">День {day.day}</div>
-                            <div className="font-bold text-lg">{day.title || "Продолжение приключения"}</div>
-                          </div>
-                        </div>
-                        <ChevronRight className={`h-6 w-6 text-muted-foreground/30 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                      </button>
-
-                      {isExpanded && (
-                        <div className="px-5 pb-6 bg-card animate-in slide-in-from-top-2 duration-300">
-                          {/* Logistics Bar */}
-                          {day.logistics && (day.logistics.mode !== "None") && (
-                            <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
-                              <TransportIcon className="h-5 w-5 text-primary" />
-                              <span>
-                                {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
-                                ({day.logistics.distance}, ~{day.logistics.duration})
-                              </span>
-                              {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      key={idx}
+                    >
+                      <Card className={`overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
+                        <button
+                          onClick={() => setExpandedDay(isExpanded ? null : day.day)}
+                          className="w-full flex items-center justify-between p-5 text-left group bg-transparent"
+                        >
+                          <div className="flex items-center gap-6">
+                            <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-white/5 ${isExpanded ? 'bg-white/10' : 'bg-white/5'}`}>
+                              {isExpanded ? (
+                                <span className="text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
+                                  {day.day}
+                                </span>
+                              ) : (
+                                <span className="text-white/60 font-bold">{day.day}</span>
+                              )}
                             </div>
-                          )}
+                            <div>
+                              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">День {day.day}</div>
+                              <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
+                            </div>
+                          </div>
+                          <div className={`p-2 rounded-full bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
+                            <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        </button>
 
-                          <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
-                            {(day.activities || [
-                              { time: "Утро", desc: day.morning },
-                              { time: "День", desc: day.daytime },
-                              { time: "Вечер", desc: day.night }
-                            ].filter(i => i.desc)).map((item: any, i: number) => {
-                              const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": Hotel };
-                              const Icon = iconMap[item.time] || Sparkles;
+                        {isExpanded && (
+                          <div className="px-5 pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300">
+                            {/* Logistics Bar */}
+                            {day.logistics && (day.logistics.mode !== "None") && (
+                              <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
+                                <TransportIcon className="h-5 w-5 text-primary" />
+                                <span>
+                                  {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
+                                  ({day.logistics.distance}, ~{day.logistics.duration})
+                                </span>
+                                {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
+                              </div>
+                            )}
 
-                              return (
-                                <div key={i} className="relative">
-                                  <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
-                                        <Icon className="h-3 w-3" />
-                                        {item.time}
+                            <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
+                              {(day.activities || [
+                                { time: "Утро", desc: day.morning },
+                                { time: "День", desc: day.daytime },
+                                { time: "Вечер", desc: day.night }
+                              ].filter(i => i.desc)).map((item: any, i: number) => {
+                                const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": Hotel };
+                                const Icon = iconMap[item.time] || Sparkles;
+
+                                return (
+                                  <div key={i} className="relative">
+                                    <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
+                                          <Icon className="h-3 w-3" />
+                                          {item.time}
+                                        </div>
+                                        {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
                                       </div>
-                                      {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
-                                    </div>
-                                    {item.placeName && (
-                                      <h4 className="font-semibold text-foreground mb-1">{item.placeName}</h4>
-                                    )}
-                                    <p className="text-sm leading-relaxed text-foreground/80 font-medium">
-                                      {item.desc}
-                                    </p>
-                                    <div className="flex items-center gap-4 mt-2">
-                                      <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
-                                        onClick={() => {
-                                          const mapUrl = item.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName || item.desc.split('.')[0])}`
-                                          window.open(mapUrl, "_blank")
-                                        }}
-                                      >
-                                        <MapPin className="mr-1 h-3 w-3" /> На карте
-                                      </Button>
-                                      {item.link && item.ticketsRequired && (
-                                        <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
-                                          <ExternalLink className="mr-1 h-3 w-3" /> Купить билеты
-                                        </Link>
+                                      {item.placeName && (
+                                        <h4 className="font-semibold text-foreground mb-1">{item.placeName}</h4>
                                       )}
+                                      <p className="text-sm leading-relaxed text-foreground/80 font-medium">
+                                        {item.desc}
+                                      </p>
+                                      <div className="flex items-center gap-4 mt-2">
+                                        <Button
+                                          variant="link"
+                                          size="sm"
+                                          className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
+                                          onClick={() => {
+                                            const mapUrl = item.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName || item.desc.split('.')[0])}`
+                                            window.open(mapUrl, "_blank")
+                                          }}
+                                        >
+                                          <MapPin className="mr-1 h-3 w-3" /> На карте
+                                        </Button>
+                                        {item.link && item.ticketsRequired && (
+                                          <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
+                                            <ExternalLink className="mr-1 h-3 w-3" /> Купить билеты
+                                          </Link>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {day.tips && (
-                            <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
-                              <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                              <p><strong>Совет:</strong> {day.tips}</p>
+                                );
+                              })}
                             </div>
-                          )}
-                        </div>
-                      )}
-                    </Card>
+
+                            {day.tips && (
+                              <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
+                                <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                                <p><strong>Совет:</strong> {day.tips}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -418,28 +538,17 @@ export default function TripDetailPage() {
                 </div>
               </Card>
 
-              <Card className="p-6 border-none shadow-sm bg-primary/5">
-                <div className="flex items-center gap-4 mb-4">
-                  <Avatar className="h-12 w-12 border-2 border-primary/20">
-                    <AvatarImage src="https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png" alt="Guide" />
-                    <AvatarFallback className="bg-primary text-white text-xs">AI</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="text-sm font-bold">Ваш ИИ-гид</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Персональный эксперт</p>
+              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide?tripId=${params.id}`, { scroll: true })}>
+                <div className="relative h-full p-6 bg-black/20 rounded-[1.2rem] transition-colors group-hover:bg-black/30 flex flex-col justify-center">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                      <Sparkles className="h-5 w-5" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
+                  <h3 className="text-lg font-bold text-white mb-1">Ваш ИИ-Гид</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2">Интерактивная карта, чеклисты и помощь ИИ в реальном времени во время поездки.</p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed italic border-l-2 border-primary/20 pl-4 py-1">
-                  "Привет! Я подготовила этот маршрут с учетом ваших предпочтений. Если захотите что-то изменить — просто напишите мне в чат ниже."
-                </p>
-              </Card>
-
-              <Card className="p-6 border-dashed border-2 border-border bg-transparent text-center">
-                <h3 className="font-bold mb-2">Готовы отправиться?</h3>
-                <p className="text-sm text-muted-foreground mb-4">Начните ваше путешествие с персональным ИИ-гидом.</p>
-                <Button className="w-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => router.push(`/guide?tripId=${params.id}`)}>
-                  Начать путешествие
-                </Button>
               </Card>
             </div>
           </div>
@@ -506,7 +615,7 @@ export default function TripDetailPage() {
         <div className="mt-20">
           <Footer />
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }

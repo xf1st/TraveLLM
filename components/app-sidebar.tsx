@@ -329,31 +329,30 @@ export function AppSidebar() {
                                     )}
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 rounded-xl" align={isCollapsed ? "center" : "end"} side="top">
-                                <DropdownMenuLabel className="font-normal p-3">
+                            <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
+                                <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
-                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                                        <p className="text-sm font-semibold text-primary">{user.user_metadata?.full_name || "Путешественник"}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                                        <Link href="/profile" className="w-full flex items-center">
-                                            <User className="mr-2 h-4 w-4" />
+                                <DropdownMenuGroup className="space-y-1">
+                                    <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
+                                        <Link href="/profile" className="w-full flex items-center py-2.5 px-3">
+                                            <User className="mr-3 h-4 w-4" />
                                             Мой профиль
                                         </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                                        <Link href="/profile?tab=settings" className="w-full flex items-center">
-                                            <Settings className="mr-2 h-4 w-4" />
+                                    <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
+                                        <Link href="/profile?tab=settings" className="w-full flex items-center py-2.5 px-3">
+                                            <Settings className="mr-3 h-4 w-4" />
                                             Настройки
                                         </Link>
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer" onClick={handleLogout}>
-                                    <LogOut className="mr-2 h-4 w-4" />
+                                <DropdownMenuSeparator className="bg-border/50 my-1" />
+                                <DropdownMenuItem className="rounded-xl text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer py-2.5 px-3" onClick={handleLogout}>
+                                    <LogOut className="mr-3 h-4 w-4" />
                                     Выйти
                                 </DropdownMenuItem>
                             </DropdownMenuContent>

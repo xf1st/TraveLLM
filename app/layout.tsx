@@ -2,12 +2,12 @@ import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
+import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
-const inter = Inter({
+const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
   display: "swap",
@@ -26,13 +26,8 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo-light.svg",
+        url: "/logo-main.svg",
         type: "image/svg+xml",
-      },
-      {
-        url: "/logo-dark.svg",
-        type: "image/svg+xml",
-        media: "(prefers-color-scheme: dark)",
       },
     ],
     apple: "/apple-icon.png",
@@ -46,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+      <body className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
