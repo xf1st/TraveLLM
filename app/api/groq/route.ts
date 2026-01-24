@@ -3,6 +3,7 @@ import { openrouterInference, OPENROUTER_MODEL } from "@/lib/openrouter"
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
+import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 
 export async function POST(req: Request) {
     try {
@@ -85,6 +86,13 @@ export async function POST(req: Request) {
       - Require Russian Speaking Guides: ${requireRussianGuide ? 'YES' : 'NO'}
       - Visited Countries: ${preferences.visitedCountries?.join(', ') || 'None specified'} (STRICT: If the target country is in this list, suggest NEW/HIDDEN spots. If exploring regions, AVOID these countries entirely).
 
+      EXTREMELY IMPORTANT: CURRENT REALITY (JANUARY 2026)
+      You MUST consider these facts for travel logic, borders, and airports:
+      - RESTRICTIONS: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
+      - AIRPORTS: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
+      - FLIGHTS: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
+      - CURRENT TRENDS: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
+      
       COMMANDS:
       1. LOGISTICS: Include full door-to-door logistics (starting from ${departureCity} airport/station).
       2. TRANSIT: For every movement, specify: Mode, Distance (km), Travel Time, and price. 
@@ -97,6 +105,13 @@ export async function POST(req: Request) {
          - GOOD: "Ресторан 'Dr. Живаго'", "Парк Зарядье", "Третьяковская Галерея", "Попробуйте паэлью в La Barraca".
          - If you don't know a name, SEARCH your knowledge base.
       8. LANGUAGE: **STRICTLY RUSSIAN**. Do NOT use English words like 'nearby', 'local', 'city'. Translate everything.
+      
+      9. ACTUALIZATION & SOCIAL PROOF (MOST IMPORTANT):
+         - You MUST prioritize locations that are currently "viral" or trending on TikTok, Instagram, and Vkontakte for the given destination.
+         - Ensure the places have high ratings on Google Maps/Yandex Maps (above 4.5).
+         - Mention "vibe" or "aesthetic" details that are popular in current travel videos.
+         - If a place is currently closed or has changes (based on your latest known data), AVOID IT.
+         - The itinerary must feel like it was written based on the latest 2024-2025 social media trends.
       
       LANGUAGE: Respond strictly in RUSSIAN.
       FORMAT: JSON ONLY.
@@ -153,6 +168,7 @@ export async function POST(req: Request) {
          Format: https://www.google.com/maps/search/?api=1&query=URL_ENCODED_PLACE_NAME
       4. 'link' should be a real booking/ticket website URL (e.g., GetYourGuide, Viator, official museum site) if ticketsRequired is true. If you don't know the exact URL, use a Google search URL: https://www.google.com/search?q=купить+билеты+PLACE_NAME
       5. CRITICAL: 'desc' should contain ONLY the activity description (what to do, why it's interesting). 
+         **Include current social proof:** Mention why this place is trending, what its current Google Maps rating is (e.g. "Рейтинг 4.8"), or describe the "aesthetic vibe" popular on TikTok. 
          DO NOT include cost information or ticket URLs in the 'desc' field. 
          Cost goes in 'cost' field. Ticket URL goes in 'link' field. Keep 'desc' clean.
       6. Keep response concise to avoid JSON truncation. Focus on quality over quantity of text.
@@ -221,6 +237,10 @@ VISITED: ${preferences.visitedCountries?.join(', ') || 'None'}
 PAYMENT METHODS: ${paymentMethods?.join(', ') || 'Not specified'}
 PERSONALIZATION: ${preferences.interestsDetailed?.join(', ') || 'General'}
 DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
+
+CURRENT REALITY (JAN 2026):
+- Restrictions: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
+- Flights: ${GROUNDING_DATA_2026.flightConnectivity.join(' ')}
 
 Output VALID JSON only (all strings must be in double quotes):
 {

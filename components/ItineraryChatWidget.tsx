@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, Sparkles, MessageSquare, Plus, ChevronDown, ChevronUp, Loader2 } from "lucide-react"
+import { Send, Sparkles, MessageSquare, Plus, ChevronDown, ChevronUp, Loader2, Plane, Hotel as HotelIcon, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -11,6 +11,11 @@ interface Message {
     role: "user" | "assistant"
     content: string
     isModification?: boolean
+    bookingData?: {
+        type: "flight" | "hotel"
+        query?: string
+        destination?: string
+    }
 }
 
 interface ItineraryChatWidgetProps {
@@ -121,7 +126,23 @@ export function ItineraryChatWidget({
             }])
         } finally {
             setIsLoading(false)
-            onModifying?.(false) // Notify parent that modification ended
+            onModifying?.(false)
+
+            // Proactive Booking Suggestion Logic
+            const lowerMsg = userMessage.toLowerCase()
+            if (lowerMsg.includes('билет') || lowerMsg.includes('перелет') || lowerMsg.includes('летим')) {
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: "Я могу помочь подобрать билеты! Хотите посмотреть рейсы?",
+                    bookingData: { type: "flight", destination: itinerary?.[0]?.title }
+                }])
+            } else if (lowerMsg.includes('отель') || lowerMsg.includes('жилье') || lowerMsg.includes('где жить')) {
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: "Нашел несколько вариантов жилья по вашему бюджету. Посмотрим?",
+                    bookingData: { type: "hotel", destination: itinerary?.[0]?.title }
+                }])
+            }
         }
     }
 
@@ -213,6 +234,28 @@ export function ItineraryChatWidget({
                             )}
                         >
                             <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                            {msg.bookingData && (
+                                <div className="mt-3 p-3 rounded-xl bg-background/50 border border-white/10 space-y-3">
+                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
+                                        {msg.bookingData.type === 'flight' ? <Plane className="h-3 w-3 text-sky-400" /> : <HotelIcon className="h-3 w-3 text-emerald-400" />}
+                                        {msg.bookingData.type === 'flight' ? 'Поиск авиабилетов' : 'Подбор отелей'}
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        className="w-full text-[10px] h-8 font-black uppercase tracking-tighter"
+                                        onClick={() => {
+                                            const url = msg.bookingData!.type === 'flight'
+                                                ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                                : `https://ostrovok.ru/hotel/russia/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                            window.open(url, '_blank')
+                                        }}
+                                    >
+                                        Открыть {msg.bookingData.type === 'flight' ? 'Aviasales' : 'Ostrovok'}
+                                        <ExternalLink className="ml-2 h-3 w-3" />
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     ))}
                     {isLoading && (

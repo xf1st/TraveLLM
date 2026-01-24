@@ -134,15 +134,20 @@ export default function PlanPage() {
       // Save to Supabase for all users (persistence requirement)
       const { data: { user } } = await supabase.auth.getUser()
 
+      // Validate mandatory fields
+      if (!routeData.title) {
+        throw new Error("AI не смог сгенерировать название маршрута. Попробуйте снова.")
+      }
+
       const { data: trip, error: dbError } = await supabase.from('trips').insert({
-        user_id: user?.id || null, // Allow NULL for guest trips
+        user_id: user?.id,
         title: routeData.title,
         destination: routeData.countries?.[0]?.name || "Travel",
         description: routeData.description,
         itinerary: routeData.itinerary,
         budget_range: budget,
         total_cost: routeData.totalBudget,
-        departure_city: departureCity,
+        departure_city: departureCity || "Moscow",
         start_date: format(date.from, "yyyy-MM-dd"),
         end_date: format(date.to, "yyyy-MM-dd"),
         // New fields for budget analysis and important info
@@ -157,9 +162,23 @@ export default function PlanPage() {
       }).select().single()
 
       if (dbError) {
-        // Only log if it's not a common RLS/permission issue for guests
+        // Only log if it's NOT an RLS/permission issue for authenticated users
+        // Guests (without user) will naturally fail DB insert, so we skip logging for them
         if (dbError.code !== '42501' && user) {
-          console.error("Database insert error:", dbError)
+          console.error("--- DATABASE INSERT ERROR ---")
+          console.error("Error Object:", dbError)
+          console.error("Error Code:", dbError.code)
+          console.error("Error Message:", dbError.message)
+          console.error("Error Details:", dbError.details)
+          console.error("Error Hint:", dbError.hint)
+          console.log("Attempted Data:", {
+            user_id: user?.id,
+            title: routeData.title,
+            destination: routeData.countries?.[0]?.name || "Travel",
+            itinerary_length: routeData.itinerary?.length,
+            total_cost: routeData.totalBudget
+          })
+          console.error("-----------------------------")
         }
 
         // Generate a unique ID for the guest even if DB fails

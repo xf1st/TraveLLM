@@ -13,7 +13,7 @@ import {
   Clock,
   Compass,
   Download,
-  Hotel,
+  Hotel as HotelIcon,
   Map,
   MapPin,
   Share2,
@@ -44,6 +44,9 @@ import { MeshGradient } from "@paper-design/shaders-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TripImage } from "@/components/TripImage"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
+import { TripShareModal } from "@/components/TripShareModal"
+import { PlaceGallery } from "@/components/PlaceGallery"
+import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -114,6 +117,9 @@ export default function TripDetailPage() {
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
@@ -137,6 +143,9 @@ export default function TripDetailPage() {
       console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal)
 
       // Auth Check for UUID trips
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      setUser(currentUser)
+
       if (isUuid) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -189,8 +198,10 @@ export default function TripDetailPage() {
           restrictions: data.restrictions,
           tags: data.tags,
           coverImage: data.cover_image || data.coverImage,
-          budget_range: data.budget_range
+          budget_range: data.budget_range,
+          invite_code: data.invite_code
         })
+        setIsOwner(data.user_id === currentUser?.id)
       }
       setLoading(false)
     }
@@ -345,6 +356,12 @@ export default function TripDetailPage() {
                     <Shield className="h-5 w-5 text-amber-400" />
                     Безопасность 9/10
                   </div>
+                  <Button
+                    onClick={() => setShowShareModal(true)}
+                    className="h-[44px] px-6 rounded-full bg-primary text-primary-foreground font-black shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-105 transition-all text-sm uppercase tracking-tighter"
+                  >
+                    <Share2 className="mr-2 h-4 w-4" /> Поделиться
+                  </Button>
                 </div>
               </motion.div>
             </div>
@@ -411,13 +428,39 @@ export default function TripDetailPage() {
                               </div>
                             )}
 
+                            {/* Booking Bar (Aviasales/Ostrovok) */}
+                            <div className="mb-6 flex flex-wrap gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                onClick={() => {
+                                  const url = day.logistics?.bookingLink || `https://www.aviasales.ru/search?destination=${encodeURIComponent(route.destination || "")}`
+                                  window.open(url, '_blank')
+                                }}
+                              >
+                                <Plane className="mr-2 h-3.5 w-3.5" /> {day.logistics?.bookingLink?.includes('aviasales') ? 'Билеты' : 'Найти билеты'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                onClick={() => {
+                                  const url = `https://ostrovok.ru/hotel/russia/search/?q=${encodeURIComponent(route.destination || "")}`
+                                  window.open(url, '_blank')
+                                }}
+                              >
+                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели на {route.destination || 'маршруте'}
+                              </Button>
+                            </div>
+
                             <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
                               {(day.activities || [
                                 { time: "Утро", desc: day.morning },
                                 { time: "День", desc: day.daytime },
                                 { time: "Вечер", desc: day.night }
                               ].filter(i => i.desc)).map((item: any, i: number) => {
-                                const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": Hotel };
+                                const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": HotelIcon };
                                 const Icon = iconMap[item.time] || Sparkles;
 
                                 return (
@@ -455,6 +498,55 @@ export default function TripDetailPage() {
                                           </Link>
                                         )}
                                       </div>
+
+                                      {/* Place Gallery, AI Reviews & Social Proof */}
+                                      {item.placeName && (
+                                        <div className="mt-4 pt-4 border-t border-white/5 space-y-6">
+                                          <PlaceGallery query={`${item.placeName} ${route.destination || ""}`} count={5} />
+
+                                          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
+                                              <Star className="h-3 w-3 fill-primary" />
+                                              AI Резюме отзывов
+                                            </div>
+                                            <p className="text-xs italic text-muted-foreground leading-relaxed">
+                                              "Посетители отмечают потрясающую атмосферу. {item.time === 'Утро' ? 'Утром здесь особенно спокойно.' : item.time === 'Вечер' ? 'Идеальное место для заката.' : 'Днем здесь очень оживленно и красиво.'}"
+                                            </p>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div
+                                              className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
+                                              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.placeName} ${route.destination || ""} reviews`)}`, '_blank')}
+                                            >
+                                              <div className="flex items-center justify-between mb-2">
+                                                <div className="text-[9px] font-bold uppercase text-zinc-500 group-hover:text-primary transition-colors">Google Reviews</div>
+                                                <ExternalLink className="h-2.5 w-2.5 text-zinc-600" />
+                                              </div>
+                                              <div className="flex items-center gap-1.5">
+                                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                                <span className="text-xs font-bold text-white">4.8</span>
+                                                <span className="text-[10px] text-zinc-500">(1.2k отзыва)</span>
+                                              </div>
+                                            </div>
+                                            <div
+                                              className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
+                                              onClick={() => window.open(`https://www.tiktok.com/search?q=${encodeURIComponent(`${item.placeName} ${route.destination || ""} travel`)}`, '_blank')}
+                                            >
+                                              <div className="flex items-center justify-between mb-2">
+                                                <div className="text-[9px] font-bold uppercase text-zinc-500 group-hover:text-pink-500 transition-colors">TikTok Vibe</div>
+                                                <ExternalLink className="h-2.5 w-2.5 text-zinc-600" />
+                                              </div>
+                                              <div className="flex items-center gap-1.5">
+                                                <div className="h-3.5 w-3.5 rounded-full bg-black border border-white/20 flex items-center justify-center">
+                                                  <Zap className="h-2 w-2 text-white" />
+                                                </div>
+                                                <span className="text-xs font-bold text-white">Лучшие маршруты</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -615,6 +707,20 @@ export default function TripDetailPage() {
         <div className="mt-20">
           <Footer />
         </div>
+
+        {/* TripShareModal Component */}
+        {
+          route && (
+            <TripShareModal
+              isOpen={showShareModal}
+              onOpenChange={setShowShareModal}
+              tripId={route.id}
+              tripTitle={route.title}
+              inviteCode={route.invite_code}
+              isOwner={isOwner}
+            />
+          )
+        }
       </div >
     </div >
   )

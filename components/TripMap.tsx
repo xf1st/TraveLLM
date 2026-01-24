@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo } from "react"
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet"
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 import { Badge } from "@/components/ui/badge"
@@ -23,25 +23,23 @@ const DefaultIcon = L.icon({
 })
 L.Marker.prototype.options.icon = DefaultIcon
 
-// Custom icon for visited/active places
-const createCustomIcon = (color: string) => {
+// Custom icon for visited/active places with glow and pulse
+const createCustomIcon = (color: string, isActive: boolean) => {
     return L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="
-      background-color: ${color};
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    "></div>`,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12]
+        className: 'custom-marker-wrapper',
+        html: `
+            <div class="marker-container ${isActive ? 'active' : ''}">
+                <div class="marker-pulse" style="background-color: ${color}"></div>
+                <div class="marker-inner" style="background-color: ${color}; border-color: ${isActive ? 'white' : 'rgba(255,255,255,0.8)'}"></div>
+            </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16]
     })
 }
 
-// Mock geocoding for demo purposes (since we don't have real coords in basic trip JSON yet)
+// Mock geocoding for demo purposes
 const CITY_COORDS: Record<string, [number, number]> = {
     "Москва": [55.7558, 37.6173],
     "Санкт-Петербург": [59.9343, 30.3351],
@@ -85,7 +83,7 @@ function MapController({ activePlaceId, places }: { activePlaceId?: string, plac
 
         const active = places.find(p => p.id === activePlaceId)
         if (active && active.coords) {
-            map.flyTo(active.coords, 10, { duration: 2 })
+            map.flyTo(active.coords, 12, { duration: 1.5, easeLinearity: 0.25 })
         }
     }, [activePlaceId, places, map])
 
@@ -110,7 +108,7 @@ interface TripMapProps {
 export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMapProps) {
     // Enrich places with coords if missing (smart mock logic)
     const mappedPlaces = useMemo(() => {
-        let lastValidCoord: [number, number] = [55.7558, 37.6173] // Start with default (Moscow)
+        let lastValidCoord: [number, number] = [55.7558, 37.6173]
 
         return places.map((p, idx) => {
             if (p.coords) {
@@ -118,7 +116,6 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
                 return p
             }
 
-            // Try to find coord by matching name with dictionary
             const foundCity = Object.keys(CITY_COORDS).find(city => p.name.includes(city) || (p.description && p.description.includes(city)))
 
             let baseCoord: [number, number]
@@ -129,7 +126,6 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
                 baseCoord = lastValidCoord
             }
 
-            // Add deterministic random noise
             const noiseLat = (Math.sin(idx * 12.9898) * 43758.5453 % 1) * 0.04 - 0.02
             const noiseLng = (Math.cos(idx * 78.233) * 43758.5453 % 1) * 0.04 - 0.02
 
@@ -143,27 +139,85 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
         })
     }, [places])
 
-    // Initial Center Calculation (Memoized to prevent MapContainer re-initialization)
     const initialCenter = useMemo<[number, number]>(() => {
         if (mappedPlaces.length > 0 && mappedPlaces[0].coords) {
             return mappedPlaces[0].coords
         }
-        return [55.7558, 37.6173] // Moscow default
-    }, []) // Empty deps = truly static initial center
+        return [55.7558, 37.6173]
+    }, [])
 
     return (
-        <div className="h-full w-full rounded-2xl overflow-hidden border border-border/50 shadow-sm relative z-0">
+        <div className="h-full w-full rounded-2xl overflow-hidden border border-border/50 shadow-2xl relative z-0 group">
+            <style jsx global>{`
+                .custom-marker-wrapper {
+                    background: transparent !important;
+                    border: none !important;
+                }
+                .marker-container {
+                    position: relative;
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .marker-inner {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    border: 2px solid white;
+                    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+                    z-index: 2;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                .marker-pulse {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    opacity: 0.5;
+                    z-index: 1;
+                }
+                .marker-container.active .marker-inner {
+                    width: 18px;
+                    height: 18px;
+                    border-width: 3px;
+                }
+                .marker-container.active .marker-pulse {
+                    animation: marker-pulse 2s infinite;
+                }
+                @keyframes marker-pulse {
+                    0% { width: 14px; height: 14px; opacity: 0.6; }
+                    100% { width: 50px; height: 50px; opacity: 0; }
+                }
+                .leaflet-container {
+                    background: #0b0b0c !important;
+                }
+                .leaflet-popup-content-wrapper {
+                    background: rgba(24, 24, 27, 0.9) !important;
+                    backdrop-filter: blur(12px);
+                    color: white !important;
+                    border-radius: 16px !important;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5) !important;
+                }
+                .leaflet-popup-tip {
+                    background: rgba(24, 24, 27, 0.9) !important;
+                }
+            `}</style>
             <MapContainer
-                key="trip-map" // Stable key
+                key="trip-map"
                 center={initialCenter}
                 zoom={10}
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    className="map-tiles"
+                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
 
                 <MapController activePlaceId={activePlaceId} places={mappedPlaces} />
@@ -174,7 +228,8 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
                         position={place.coords!}
                         icon={createCustomIcon(
                             place.status === 'active' ? '#3b82f6' :
-                                place.status === 'visited' ? '#22c55e' : '#94a3b8'
+                                place.status === 'visited' ? '#22c55e' : '#94a3b8',
+                            place.id === activePlaceId
                         )}
                         eventHandlers={{
                             click: () => onPlaceSelect?.(place.id)
@@ -190,7 +245,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
                                 </div>
                                 <h3 className="font-bold text-sm mb-1">{place.name}</h3>
                                 {place.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2">{place.description}</p>
+                                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">{place.description}</p>
                                 )}
                             </div>
                         </Popup>

@@ -17,7 +17,8 @@ import {
     ChevronRight,
     ChevronDown,
     MapPin,
-    Sparkles
+    Sparkles,
+    Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -70,7 +71,10 @@ export function AppSidebar() {
     const [recentTrips, setRecentTrips] = useState<any[]>([])
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [tripsOpen, setTripsOpen] = useState(true)
+    const [tripMembers, setTripMembers] = useState<any[]>([])
     const { theme, setTheme } = useTheme()
+
+    const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
     useEffect(() => {
         // Load collapsed state from localStorage
@@ -105,6 +109,29 @@ export function AppSidebar() {
             .limit(5)
         if (data) setRecentTrips(data)
     }
+
+    const loadTripMembers = async (tId: string) => {
+        const { data } = await supabase
+            .from('trip_members')
+            .select(`
+                id,
+                role,
+                profiles:user_id (
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('trip_id', tId)
+        if (data) setTripMembers(data)
+    }
+
+    useEffect(() => {
+        if (tripId && tripId !== 'ai-last') {
+            loadTripMembers(tripId)
+        } else {
+            setTripMembers([])
+        }
+    }, [tripId])
 
     const handleLogout = async () => {
         try {
@@ -237,6 +264,26 @@ export function AppSidebar() {
                             ))}
                         </CollapsibleContent>
                     </Collapsible>
+                )}
+
+                {/* Group Members Section */}
+                {!isCollapsed && tripMembers.length > 0 && (
+                    <div className="mt-6 px-4 py-2 border-t border-border/30">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/50 mb-4">
+                            <Users className="h-3 w-3" />
+                            Группа ({tripMembers.length})
+                        </div>
+                        <div className="flex -space-x-3 overflow-hidden p-1">
+                            {tripMembers.map((member, i) => (
+                                <Avatar key={i} className="inline-block h-10 w-10 rounded-full ring-2 ring-background border border-white/10 hover:translate-y-[-4px] transition-transform cursor-pointer" title={member.profiles?.full_name}>
+                                    <AvatarImage src={member.profiles?.avatar_url} />
+                                    <AvatarFallback className="bg-primary/20 text-[10px] font-bold">
+                                        {member.profiles?.full_name?.substring(0, 2).toUpperCase() || "?"}
+                                    </AvatarFallback>
+                                </Avatar>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* Collapsed: show trip icons */}

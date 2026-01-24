@@ -1,5 +1,6 @@
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
+import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 
 // Extract city from day title (e.g., "Токио: Сибуя" -> "Токио")
 function extractCity(title: string): string {
@@ -64,6 +65,9 @@ async function generateSingleDay(city: string, dayNumber: number, existingDays: 
     .join(", ")
 
   const prompt = `Сгенерируй ОДИН день путешествия в городе ${city}.
+УЧИТЫВАЙ РЕАЛЬНОСТЬ (Январь 2026): ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}. Аэропорты: ${GROUNDING_DATA_2026.airportStatus.join(' ')}.
+${city === 'Moscow' ? 'Популярные места: ' + GROUNDING_DATA_2026.trendingLocations.Moscow.join(', ') : ''}
+
 
 День номер: ${dayNumber}
 УЖЕ ИСПОЛЬЗОВАННЫЕ МЕСТА (не повторять!): ${usedPlaces || "нет"}

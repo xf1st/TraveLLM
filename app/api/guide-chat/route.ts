@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
+import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 
 export async function POST(req: Request) {
     try {
@@ -7,8 +8,16 @@ export async function POST(req: Request) {
 
         let systemPrompt = ""
 
+        const realityContext = `
+ТЕКУЩАЯ РЕАЛЬНОСТЬ (Январь 2026):
+- Ограничения: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
+- Аэропорты: ${GROUNDING_DATA_2026.airportStatus.join(' ')}
+- Перелеты: ${GROUNDING_DATA_2026.flightConnectivity.join(' ')}
+`
+
         if (mode === 'global') {
             systemPrompt = `Ты — профессиональный, дружелюбный и эрудированный ИИ-гид. Ты сопровождаешь путешественника.
+${realityContext}
 
 КОНТЕКСТ ВСЕГО ПУТЕШЕСТВИЯ:
 - Название: ${context.title || "Мое путешествие"}
