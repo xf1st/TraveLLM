@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Header } from "@/components/header"
@@ -15,7 +15,7 @@ import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -263,5 +263,17 @@ export default function AuthPage() {
         </p>
       </main>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   )
 }

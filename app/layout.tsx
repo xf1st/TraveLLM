@@ -5,6 +5,7 @@ import type { Metadata } from "next"
 import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
+import Script from "next/script"
 import "./globals.css"
 
 const rubik = Rubik({
@@ -20,9 +21,20 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "TraveLM — Ваш умный ИИ-гид по миру",
-  description: "Персонализированные маршруты, умные советы и незабываемые приключения с TraveLM AI.",
-  generator: "v0.app",
+  title: "TraveLM — Ваш умный ИИ-гид для идеальных путешествий",
+  description: "Создавайте персональные маршруты за секунды с помощью ИИ. TraveLM поможет спланировать поездку, найти скрытые места и сэкономить время.",
+  keywords: ["ИИ гид", "планировщик путешествий", "создать маршрут", "умный путеводитель", "travel ai", "отпуск 2024", "куда поехать"],
+  verification: {
+    yandex: "7bc3108ccbcea9e6",
+  },
+  openGraph: {
+    title: "TraveLM — Ваш умный ИИ-гид по миру",
+    description: "Персонализированные маршруты и умные советы для ваших приключений.",
+    url: "https://travelmind.ai",
+    siteName: "TraveLM",
+    locale: "ru_RU",
+    type: "website",
+  },
   icons: {
     icon: [
       {
@@ -52,6 +64,36 @@ export default function RootLayout({
           <Toaster position="top-center" richColors />
           <Analytics />
         </ThemeProvider>
+
+        {/* Yandex.Metrika counter */}
+        <Script id="yandex-metrika" strategy="afterInteractive">
+          {`
+            (function(m,e,t,r,i,k,a){
+                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+                m[i].l=1*new Date();
+                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106431681', 'ym');
+
+            ym(106431681, 'init', {
+                ssr: true,
+                webvisor: true,
+                clickmap: true,
+                ecommerce: "dataLayer",
+                accurateTrackBounce: true,
+                trackLinks: true
+            });
+          `}
+        </Script>
+        <noscript>
+          <div>
+            <img
+              src="https://mc.yandex.ru/watch/106431681"
+              style={{ position: 'absolute', left: '-9999px' }}
+              alt=""
+            />
+          </div>
+        </noscript>
       </body>
     </html>
   )
