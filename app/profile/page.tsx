@@ -35,6 +35,7 @@ function ProfileContent() {
     dietaryCustom: "",
     interests: [] as string[],
     interestsCustom: "",
+    notifications_enabled: true,
   })
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -62,6 +63,7 @@ function ProfileContent() {
             dietaryCustom: prefs.dietaryCustom || "",
             interests: prefs.interestsDetailed || [],
             interestsCustom: prefs.interestsCustom || "",
+            notifications_enabled: data.notifications_enabled ?? true,
           })
         }
 
@@ -96,6 +98,7 @@ function ProfileContent() {
       nationality: editForm.nationality,
       languages: editForm.languages,
       preferences: updatedPreferences,
+      notifications_enabled: editForm.notifications_enabled,
       updated_at: new Date().toISOString(),
     }).eq('id', user.id)
 
@@ -712,18 +715,13 @@ function ProfileContent() {
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
-                                <label className="font-medium">Уведомления</label>
-                                <p className="text-sm text-muted-foreground">Получать новости и предложения</p>
+                                <label className="font-medium">Браузерные уведомления</label>
+                                <p className="text-sm text-muted-foreground">Получать пуш-уведомление, когда маршрут готов</p>
                               </div>
                               <Checkbox
-                                checked={profile?.preferences?.notifications ?? true}
+                                checked={editForm.notifications_enabled}
                                 onCheckedChange={(checked) => {
-                                  // Optimistic update
-                                  const newPrefs = { ...profile.preferences, notifications: checked }
-                                  setProfile({ ...profile, preferences: newPrefs })
-
-                                  // Save to DB
-                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                  setEditForm({ ...editForm, notifications_enabled: !!checked })
                                 }}
                               />
                             </div>

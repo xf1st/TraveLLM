@@ -5,6 +5,7 @@ import type { Metadata } from "next"
 import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
+import { NotificationPrompt } from "@/components/NotificationPrompt"
 import Script from "next/script"
 import "./globals.css"
 
@@ -61,6 +62,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <NotificationPrompt />
           <Toaster position="top-center" richColors />
           <Analytics />
         </ThemeProvider>

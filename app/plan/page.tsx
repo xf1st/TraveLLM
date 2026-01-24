@@ -185,8 +185,24 @@ export default function PlanPage() {
         const tempId = `local-${Math.random().toString(36).substring(2, 11)}`
         localStorage.setItem(`trip-${tempId}`, JSON.stringify(routeData))
         localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+        // Trigger Browser Notification
+        if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
+          new Notification("Маршрут готов! 🌍", {
+            body: `Ваш локальный план поездки в ${routeData.countries?.[0]?.name || "новую страну"} готов.`,
+            icon: "/favicon.ico"
+          });
+        }
+
         router.push(`/trip/${tempId}`)
         return
+      }
+
+      // Trigger Browser Notification
+      if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
+        new Notification("Маршрут готов! 🌍", {
+          body: `Ваш план поездки в ${routeData.countries?.[0]?.name || "новую страну"} успешно составлен.`,
+          icon: "/favicon.ico"
+        });
       }
 
       const tripId = trip.id
