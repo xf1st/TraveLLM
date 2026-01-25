@@ -35,7 +35,17 @@ import {
   Mountain,
   Ticket,
   Building,
-  ArrowRight
+  ArrowRight,
+  MessageCircle,
+  UserPlus,
+  Loader2,
+  CheckCircle2,
+  Camera,
+  Music,
+  Tent,
+  TreeDeciduous,
+  Landmark,
+  Palmtree
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -58,6 +68,7 @@ import { Footer } from "@/components/footer"
 import GradientText from "@/components/GradientText"
 import { motion, AnimatePresence } from "framer-motion"
 import dynamic from "next/dynamic"
+import { TripChat } from "@/components/TripChat"
 
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
@@ -122,6 +133,8 @@ export default function TripDetailPage() {
   const [user, setUser] = useState<any>(null)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isMember, setIsMember] = useState(false)
 
   useEffect(() => {
     const checkSidebar = () => {
@@ -202,6 +215,17 @@ export default function TripDetailPage() {
           invite_code: data.invite_code
         })
         setIsOwner(data.user_id === currentUser?.id)
+
+        // Check if member
+        if (currentUser && data.id) {
+          const { data: memberData } = await supabase
+            .from('trip_members')
+            .select('id')
+            .eq('trip_id', data.id)
+            .eq('user_id', currentUser.id)
+            .single()
+          setIsMember(!!memberData)
+        }
       }
       setLoading(false)
     }
@@ -362,6 +386,43 @@ export default function TripDetailPage() {
                   >
                     <Share2 className="mr-2 h-4 w-4" /> Поделиться
                   </Button>
+
+                  {/* Social Actions */}
+                  <div className="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
+                    {!isOwner && !isMember && user && (
+                      <Button
+                        onClick={async () => {
+                          if (!user) return
+                          const { error } = await supabase.from('trip_members').insert({
+                            trip_id: route.id,
+                            user_id: user.id
+                          })
+                          if (!error) setIsMember(true)
+                        }}
+                        className="rounded-full bg-primary/20 text-primary hover:bg-primary/30"
+                        size="sm"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Присоединиться
+                      </Button>
+                    )}
+
+                    {(isOwner || isMember) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full hover:bg-white/10 relative"
+                        onClick={() => setIsChatOpen(!isChatOpen)}
+                      >
+                        <MessageCircle className="h-5 w-5 text-white" />
+                        {/* Optional: Add badge for unread */}
+                      </Button>
+                    )}
+
+                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" onClick={() => setShowShareModal(true)}>
+                      <Share2 className="h-5 w-5 text-white" />
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             </div>
@@ -722,6 +783,12 @@ export default function TripDetailPage() {
           )
         }
       </div >
+      <TripChat
+        tripId={params.id as string}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentUser={user}
+      />
     </div >
   )
 }

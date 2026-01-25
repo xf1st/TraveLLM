@@ -20,6 +20,7 @@ function ProfileContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [userRoutes, setUserRoutes] = useState<any[]>([])
+  const [debugInfo, setDebugInfo] = useState<any>({ userId: null, error: null, sessionStatus: "Checking..." })
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [activeTab, setActiveTab] = useState(searchParams?.get("tab") || "overview")
@@ -43,10 +44,13 @@ function ProfileContent() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUser(user)
-        const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      const { data: { session } } = await supabase.auth.getSession()
+      const authUser = session?.user || null
+      setUser(authUser)
+      setDebugInfo(prev => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
+
+      if (authUser) {
+        const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single()
         if (data) {
           setProfile(data)
           setAvatarUrl(data.avatar_url) // Load avatar
@@ -67,9 +71,72 @@ function ProfileContent() {
           })
         }
 
-        // Load some mock/stored routes for now
-        const { data: trips } = await supabase.from('trips').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-        if (trips) setUserRoutes(trips)
+        // 1. Fetch from Supabase using FRESH ID
+        const { data: dbTrips, error: dbError } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .order('created_at', { ascending: false })
+
+        if (dbError) {
+          console.error("Profile load error (DB):", dbError.message, "Code:", dbError.code, "Details:", dbError.details)
+          setDebugInfo(prev => ({ ...prev, error: dbError.message }))
+        }
+
+        setDebugInfo(prev => ({ ...prev, userId: authUser.id }))
+        // 2. Fetch from LocalStorage (Guest trips)
+        const localTrips: any[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.startsWith('trip-') || key === 'lastGeneratedRoute')) {
+            try {
+              const tripData = JSON.parse(localStorage.getItem(key) || '{}')
+              if (tripData.title) {
+                const id = key === 'lastGeneratedRoute' ? 'ai-last' : key.replace('trip-', '')
+                localTrips.push({
+                  id,
+                  ...tripData,
+                  created_at: tripData.created_at || new Date().toISOString()
+                })
+              }
+            } catch (e) {
+              console.error("Local trip parse error:", e)
+            }
+          }
+        }
+
+        // 3. Merge avoiding duplicates (prefer DB versions)
+        const allRoutes = [...(dbTrips || [])]
+        localTrips.forEach(lt => {
+          // Check if this local trip is already in DB by title/date if ID is local-
+          const isDup = allRoutes.find(dr =>
+            dr.id === lt.id ||
+            (dr.title === lt.title && Math.abs(new Date(dr.created_at).getTime() - new Date(lt.created_at).getTime()) < 60000)
+          )
+          if (!isDup) allRoutes.push(lt)
+        })
+
+        setUserRoutes(allRoutes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+      } else {
+        // GUEST MODE
+        const localTrips: any[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.startsWith('trip-') || key === 'lastGeneratedRoute')) {
+            try {
+              const tripData = JSON.parse(localStorage.getItem(key) || '{}')
+              if (tripData.title) {
+                const id = key === 'lastGeneratedRoute' ? 'ai-last' : key.replace('trip-', '')
+                localTrips.push({
+                  id,
+                  ...tripData,
+                  created_at: tripData.created_at || new Date().toISOString()
+                })
+              }
+            } catch (e) { }
+          }
+        }
+        setUserRoutes(localTrips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       }
       setLoading(false)
     }
@@ -708,7 +775,15 @@ function ProfileContent() {
                     )}
 
                     {activeTab === "settings" && (
-                      <div className="max-w-2xl mx-auto space-y-8">
+                      <div className="max-w-2xl mx-auto space-y-8 pb-20">
+                        {/* Debug Info (Only for devs/diagnostics) */}
+                        <Card className="p-4 bg-red-500/5 border-red-500/20 text-[10px] font-mono">
+                          <p className="font-bold opacity-50 uppercase mb-2">Diagnostic Data</p>
+                          <p>User ID: {debugInfo.userId || "NONE (GUEST)"}</p>
+                          <p>DB Error: {debugInfo.error || "None"}</p>
+                          <p>Session: {debugInfo.sessionStatus}</p>
+                        </Card>
+
                         <Card className="p-6 bg-card/40 border-border space-y-6">
                           <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Настройки приложения</h3>
 

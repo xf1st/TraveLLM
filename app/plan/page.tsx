@@ -139,8 +139,10 @@ export default function PlanPage() {
         throw new Error("AI не смог сгенерировать название маршрута. Попробуйте снова.")
       }
 
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+
       const { data: trip, error: dbError } = await supabase.from('trips').insert({
-        user_id: user?.id,
+        user_id: authUser?.id,
         title: routeData.title,
         destination: routeData.countries?.[0]?.name || "Travel",
         description: routeData.description,
@@ -160,6 +162,8 @@ export default function PlanPage() {
         tags: routeData.tags || null,
         cover_image: routeData.coverImage || null
       }).select().single()
+
+      let finalTripId: string | null = null
 
       if (dbError) {
         // Only log if it's NOT an RLS/permission issue for authenticated users
@@ -185,6 +189,7 @@ export default function PlanPage() {
         const tempId = `local-${Math.random().toString(36).substring(2, 11)}`
         localStorage.setItem(`trip-${tempId}`, JSON.stringify(routeData))
         localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+
         // Trigger Browser Notification
         if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
           new Notification("Маршрут готов! 🌍", {
@@ -192,23 +197,29 @@ export default function PlanPage() {
             icon: "/favicon.ico"
           });
         }
-
-        router.push(`/trip/${tempId}`)
-        return
+        finalTripId = tempId
+      } else {
+        // Successful DB insert
+        // Trigger Browser Notification
+        if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
+          new Notification("Маршрут готов! 🌍", {
+            body: `Ваш план поездки в ${routeData.countries?.[0]?.name || "новую страну"} успешно составлен.`,
+            icon: "/favicon.ico"
+          });
+        }
+        finalTripId = trip.id
       }
 
-      // Trigger Browser Notification
-      if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
-        new Notification("Маршрут готов! 🌍", {
-          body: `Ваш план поездки в ${routeData.countries?.[0]?.name || "новую страну"} успешно составлен.`,
-          icon: "/favicon.ico"
-        });
+      if (finalTripId) {
+        router.push(`/trip/${finalTripId}`)
+      } else {
+        // ABSOLUTE FALLBACK
+        const randomId = `local-fallback-${Date.now()}`
+        localStorage.setItem(`trip-${randomId}`, JSON.stringify(routeData))
+        router.push(`/trip/${randomId}`)
       }
-
-      const tripId = trip.id
-      router.push(`/trip/${tripId}`)
     } catch (error: any) {
-      console.error(error)
+      console.error("Generation Error:", error)
       alert(`Ошибка при генерации маршрута: ${error.message}`)
     } finally {
       setLoading(false)

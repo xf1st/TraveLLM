@@ -136,15 +136,20 @@ function ResultsContent() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const authUser = session?.user || null
 
       // Fetch user trips
-      if (user) {
-        const { data } = await supabase
+      if (authUser) {
+        const { data, error } = await supabase
           .from('trips')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', authUser.id)
           .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error("Results fetch error:", error.message, "Code:", error.code, "Details:", error.details)
+        }
         if (data) setUserRoutes(data)
       }
 
@@ -153,7 +158,6 @@ function ResultsContent() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored)
-          // Avoid double-counting if recently synced
           setAiRoute(parsed)
         } catch (e) {
           console.error("Failed to parse local route")
@@ -292,7 +296,7 @@ function ResultsContent() {
                       className="group relative flex flex-col h-full overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]"
                     >
                       {/* Image Section - Full bleed with gradient mask */}
-                      <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-[2rem]">
+                      <div className="relative h-72 w-full shrink-0 overflow-hidden">
                         <TripImage
                           src={trip.image}
                           query={trip.destination || "travel"}
@@ -302,13 +306,13 @@ function ResultsContent() {
                         {/* Gradient that matches the card background exactly */}
                         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-zinc-900 via-zinc-900/80 to-transparent" />
 
-                        {/* Match Badge - Smaller */}
-                        <div className="absolute top-4 right-4 relative z-20">
-                          <div className="flex items-center gap-1.5 rounded-full bg-[#22c55e] text-white px-2.5 py-1 shadow-lg border-2 border-green-400/20">
-                            <CheckCircle2 className="h-3.5 w-3.5 fill-white text-[#22c55e]" />
+                        {/* Match Badge - Small/Compact */}
+                        <div className="absolute top-4 right-4 relative z-20 scale-90 origin-top-right">
+                          <div className="flex items-center gap-1.5 rounded-full bg-[#22c55e] text-white px-2 py-0.5 shadow-lg border border-green-400/30">
+                            <CheckCircle2 className="h-3 w-3 fill-white text-[#22c55e]" />
                             <div className="flex flex-col leading-none">
-                              <span className="text-[9px] uppercase font-bold opacity-90">Совпадение</span>
-                              <span className="text-xs font-black text-white">100%</span>
+                              <span className="text-[7px] uppercase font-black opacity-90 tracking-tighter">Совпадение</span>
+                              <span className="text-[10px] font-black text-white">100%</span>
                             </div>
                           </div>
                         </div>
@@ -339,9 +343,13 @@ function ResultsContent() {
 
                         <div className="mb-8 flex flex-wrap gap-2 mt-auto">
                           {trip.tags?.map((tag: string) => {
-                            const tagKey = tag.toLowerCase().replace('#', '');
-                            const colorClass = tagColors[tagKey] || tagColors["default"];
-                            const TagIcon = tagIcons[tagKey] || tagIcons["default"];
+                            const cleanTag = tag.toLowerCase().replace('#', '').trim();
+                            // Find matching key for icons/colors
+                            const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key)) || "default";
+                            const colorKey = Object.keys(tagColors).find(key => cleanTag.includes(key)) || "default";
+
+                            const TagIcon = tagIcons[matchKey];
+                            const colorClass = tagColors[colorKey];
 
                             return (
                               <span key={tag} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide shadow-sm transition-transform hover:scale-105 ${colorClass}`}>
