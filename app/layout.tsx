@@ -67,6 +67,24 @@ export default function RootLayout({
           <Analytics />
         </ThemeProvider>
 
+        {/* Ownership Verification Script */}
+        <Script
+          id="emrld-verification"
+          strategy="afterInteractive"
+          data-noptimize="1"
+          data-cfasync="false"
+          data-wpfc-render="false"
+        >
+          {`
+            (function () {
+                var script = document.createElement("script");
+                script.async = 1;
+                script.src = 'https://emrld.ltd/NDkyMjc2.js?t=492276';
+                document.head.appendChild(script);
+            })();
+          `}
+        </Script>
+
         {/* Yandex.Metrika counter */}
         <Script id="yandex-metrika" strategy="afterInteractive">
           {`
