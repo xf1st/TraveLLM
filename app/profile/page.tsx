@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag } from "lucide-react"
+import { User, Settings, Heart, Map, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Hotel as HotelIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -37,6 +37,8 @@ function ProfileContent() {
     interests: [] as string[],
     interestsCustom: "",
     notifications_enabled: true,
+    budgetTier: "balanced",
+    accommodation: "hotel",
   })
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -68,6 +70,8 @@ function ProfileContent() {
             interests: prefs.interestsDetailed || [],
             interestsCustom: prefs.interestsCustom || "",
             notifications_enabled: data.notifications_enabled ?? true,
+            budgetTier: prefs.budgetTier || "balanced",
+            accommodation: prefs.accommodation || "hotel",
           })
         }
 
@@ -157,6 +161,8 @@ function ProfileContent() {
       dietaryCustom: editForm.dietaryCustom,
       interestsDetailed: editForm.interests,
       interestsCustom: editForm.interestsCustom,
+      budgetTier: editForm.budgetTier,
+      accommodation: editForm.accommodation,
     }
 
     const { error } = await supabase.from('profiles').update({
@@ -426,6 +432,63 @@ function ProfileContent() {
                       }}
                     />
                   </div>
+                </div>
+
+                {/* Visited Countries - Tag Input */}
+                <div className="col-span-2 space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><Globe className="h-4 w-4" /> Посещенные страны (Enter чтобы добавить)</label>
+                  <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
+                    {editForm.visitedCountries.map((tag, i) => (
+                      <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
+                        const newSw = [...editForm.visitedCountries]
+                        newSw.splice(i, 1)
+                        setEditForm({ ...editForm, visitedCountries: newSw })
+                      }}>
+                        {tag} ×
+                      </Badge>
+                    ))}
+                    <input
+                      className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
+                      placeholder={editForm.visitedCountries.length === 0 ? "Италия, Япония..." : ""}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const val = e.currentTarget.value.trim()
+                          if (val && !editForm.visitedCountries.includes(val)) {
+                            setEditForm({ ...editForm, visitedCountries: [...editForm.visitedCountries, val] })
+                            e.currentTarget.value = ''
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Budget Tier */}
+                <div className="col-span-2 sm:col-span-1 space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><Wallet className="h-4 w-4" /> Бюджет поездок</label>
+                  <Select value={editForm.budgetTier} onValueChange={(v) => setEditForm({ ...editForm, budgetTier: v })}>
+                    <SelectTrigger className="bg-background/50 border-input"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="economy">Эконом</SelectItem>
+                      <SelectItem value="balanced">Сбалансированный</SelectItem>
+                      <SelectItem value="luxury">Премиум</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Accommodation Preference */}
+                <div className="col-span-2 sm:col-span-1 space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><HotelIcon className="h-4 w-4" /> Предпочтение жилья</label>
+                  <Select value={editForm.accommodation} onValueChange={(v) => setEditForm({ ...editForm, accommodation: v })}>
+                    <SelectTrigger className="bg-background/50 border-input"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hotel">Отель</SelectItem>
+                      <SelectItem value="hostel">Хостел</SelectItem>
+                      <SelectItem value="airbnb">Апартаменты/Airbnb</SelectItem>
+                      <SelectItem value="resort">Курорт</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="pt-6 col-span-2 flex justify-end gap-3">

@@ -30,7 +30,12 @@ export function Header({ floating = false }: HeaderProps) {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
 
+  // -- Fix: Hydration Mismatch --
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
   useEffect(() => {
+    setIsMounted(true)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null)
     })
@@ -39,7 +44,15 @@ export function Header({ floating = false }: HeaderProps) {
       setUser(session?.user || null)
     })
 
-    return () => subscription.unsubscribe()
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10)
+    }
+    window.addEventListener("scroll", handleScroll)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener("scroll", handleScroll)
+    }
   }, [])
 
   const handleLogout = async () => {
@@ -72,6 +85,9 @@ export function Header({ floating = false }: HeaderProps) {
     { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
   ]
+
+  // Hide on auth pages
+  if (pathname === "/auth" || pathname === "/landing") return null
 
   if (floating) {
     return (
@@ -151,6 +167,17 @@ export function Header({ floating = false }: HeaderProps) {
               </Button>
             )}
           </div>
+        </header>
+      </div>
+    )
+  }
+
+  // Ensure hydration match for main menu (prevents ID mismatches on SSR)
+  if (!isMounted) {
+    return (
+      <div className="sticky top-0 z-50 w-full p-3 md:p-4 opacity-0">
+        <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 border border-border/50 shadow-2xl">
+          {/* Skeleton or empty header to prefer layout shift over hydration error */}
         </header>
       </div>
     )

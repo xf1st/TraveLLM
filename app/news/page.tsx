@@ -109,7 +109,7 @@ export default function NewsFeedPage() {
                   >
                     <div className="grid md:grid-cols-2 gap-0">
                       {/* Image Section */}
-                      <div className="relative h-64 md:h-auto overflow-hidden">
+                      <div className="relative h-64 md:h-full overflow-hidden">
                         <Image
                           src={post.image}
                           alt={post.title}

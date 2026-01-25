@@ -308,3 +308,67 @@
     transform: translateX(100%);
   }
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide UI elements specific to app shell */
+  header,
+  footer,
+  aside,
+  button,
+  .no-print,
+  [role="dialog"],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Ensure content is full width */
+  main,
+  .container {
+    margin: 0 !important;
+    padding: 20px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  /* Make text readable */
+  p,
+  h1,
+  h2,
+  h3,
+  li {
+    color: black !important;
+  }
+
+  /* Hide shadows and backgrounds for clean print */
+  .shadow-xl,
+  .shadow-2xl,
+  .bg-gradient-to-b,
+  .bg-gradient-to-t {
+    box-shadow: none !important;
+    background: none !important;
+  }
+
+  /* Ensure images print */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Avoid breaking itinerary items across pages */
+  .itinerary-day,
+  .activity-item {
+    page-break-inside: avoid;
+  }
+}

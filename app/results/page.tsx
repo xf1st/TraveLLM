@@ -296,7 +296,7 @@ function ResultsContent() {
                       className="group relative flex flex-col h-full overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]"
                     >
                       {/* Image Section - Full bleed with gradient mask */}
-                      <div className="relative h-72 w-full shrink-0 overflow-hidden">
+                      <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
                         <TripImage
                           src={trip.image}
                           query={trip.destination || "travel"}

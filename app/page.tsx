@@ -12,6 +12,7 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import GradientText from "@/components/GradientText"
 import { Footer } from "@/components/footer"
+import { MeshGradient } from "@paper-design/shaders-react"
 
 // Dynamic import for WebGL component (client-side only)
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
@@ -37,19 +38,19 @@ export default function LandingPage() {
     {
       title: "Киото 2050",
       desc: "Футуристические направления в Киото...",
-      image: "/images/kyoto.png",
+      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800",
       slug: "kyoto-future"
     },
     {
       title: "Лунные Врата",
       desc: "Интерес к обнаружению...",
-      image: "/images/moon_gate.png",
+      image: "https://images.unsplash.com/photo-1599571227567-466d3a017006?auto=format&fit=crop&q=80&w=800",
       slug: "moon-gate"
     },
     {
       title: "Ретрит Северного Сияния",
       desc: "Красивый для естественного...",
-      image: "/images/aurora.png",
+      image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&q=80&w=800",
       slug: "northern-lights"
     }
   ]
@@ -69,6 +70,13 @@ export default function LandingPage() {
       <main className="flex-1 relative flex flex-col justify-center min-h-[90vh]">
         {/* Background Effects */}
         <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
+          {/* Liquid Background */}
+          <div className="absolute inset-0 opacity-30 dark:opacity-20 animate-in fade-in duration-1000">
+            <MeshGradient
+              colors={["#000000", "#1e1e1e", "#111111", "#3b0764"]}
+              speed={0.1}
+            />
+          </div>
           <LightRays
             raysOrigin="top-center"
             raysColor="#ffffff"

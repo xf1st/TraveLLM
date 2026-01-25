@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +46,8 @@ import {
   Tent,
   TreeDeciduous,
   Landmark,
-  Palmtree
+  Palmtree,
+  Printer
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -66,7 +68,7 @@ import {
 } from "@/components/ui/dialog"
 import { Footer } from "@/components/footer"
 import GradientText from "@/components/GradientText"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
 
@@ -135,6 +137,12 @@ export default function TripDetailPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
+
+  // Parallax hook
+  const { scrollY } = useScroll()
+  const y = useTransform(scrollY, [0, 500], [0, 250])
+  const opacity = useTransform(scrollY, [0, 400], [1, 0])
+  const scale = useTransform(scrollY, [0, 500], [1, 1.1])
 
   useEffect(() => {
     const checkSidebar = () => {
@@ -294,6 +302,10 @@ export default function TripDetailPage() {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`, "_blank")
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   return (
     <div className="min-h-screen bg-transparent">
       <AppSidebar />
@@ -319,13 +331,15 @@ export default function TripDetailPage() {
 
         {/* Hero Banner */}
         <div className="relative h-[50vh] min-h-[500px] w-full overflow-hidden mt-16 lg:mt-0">
-          <TripImage
-            src={heroImage}
-            query={destinationName}
-            alt={route.title || destinationName}
-            className="absolute inset-0 h-full w-full object-cover attachment-fixed"
-            priority
-          />
+          <motion.div style={{ y, scale }} className="absolute inset-0 h-full w-full">
+            <TripImage
+              src={heroImage}
+              query={destinationName}
+              alt={route.title || destinationName}
+              className="h-full w-full object-cover"
+              priority
+            />
+          </motion.div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-background/20 to-background" />
 
           <div className="absolute inset-x-0 bottom-0 p-8 pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
@@ -380,12 +394,7 @@ export default function TripDetailPage() {
                     <Shield className="h-5 w-5 text-amber-400" />
                     Безопасность 9/10
                   </div>
-                  <Button
-                    onClick={() => setShowShareModal(true)}
-                    className="h-[44px] px-6 rounded-full bg-primary text-primary-foreground font-black shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:scale-105 transition-all text-sm uppercase tracking-tighter"
-                  >
-                    <Share2 className="mr-2 h-4 w-4" /> Поделиться
-                  </Button>
+
 
                   {/* Social Actions */}
                   <div className="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
@@ -397,7 +406,14 @@ export default function TripDetailPage() {
                             trip_id: route.id,
                             user_id: user.id
                           })
-                          if (!error) setIsMember(true)
+                          if (!error) {
+                            setIsMember(true)
+                            toast.success("Вы присоединились к поездке!")
+                          } else {
+                            console.error("Join error:", error)
+                            // Use alert for immediate visibility if toast specific import isn't handy or configured
+                            alert(`Ошибка: ${error.message || "Не удалось присоединиться"}`)
+                          }
                         }}
                         className="rounded-full bg-primary/20 text-primary hover:bg-primary/30"
                         size="sm"
@@ -418,6 +434,10 @@ export default function TripDetailPage() {
                         {/* Optional: Add badge for unread */}
                       </Button>
                     )}
+
+                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" onClick={handlePrint} title="Экспорт в PDF">
+                      <Printer className="h-5 w-5 text-white" />
+                    </Button>
 
                     <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" onClick={() => setShowShareModal(true)}>
                       <Share2 className="h-5 w-5 text-white" />
@@ -496,7 +516,8 @@ export default function TripDetailPage() {
                                 size="sm"
                                 className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
-                                  const url = day.logistics?.bookingLink || `https://www.aviasales.ru/search?destination=${encodeURIComponent(route.destination || "")}`
+                                  const destination = day.logistics?.to || route.destination || ""
+                                  const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
                                   window.open(url, '_blank')
                                 }}
                               >
@@ -507,11 +528,13 @@ export default function TripDetailPage() {
                                 size="sm"
                                 className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
-                                  const url = `https://ostrovok.ru/hotel/russia/search/?q=${encodeURIComponent(route.destination || "")}`
+                                  const destination = day.logistics?.to || route.destination || ""
+                                  // Remove /hotel/russia/ restriction to allow worldwide search
+                                  const url = `https://ostrovok.ru/?q=${encodeURIComponent(destination)}`
                                   window.open(url, '_blank')
                                 }}
                               >
-                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели на {route.destination || 'маршруте'}
+                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {day.logistics?.to || route.destination || 'Поиск'}
                               </Button>
                             </div>
 
@@ -575,38 +598,8 @@ export default function TripDetailPage() {
                                             </p>
                                           </div>
 
-                                          <div className="grid grid-cols-2 gap-3">
-                                            <div
-                                              className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
-                                              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.placeName} ${route.destination || ""} reviews`)}`, '_blank')}
-                                            >
-                                              <div className="flex items-center justify-between mb-2">
-                                                <div className="text-[9px] font-bold uppercase text-zinc-500 group-hover:text-primary transition-colors">Google Reviews</div>
-                                                <ExternalLink className="h-2.5 w-2.5 text-zinc-600" />
-                                              </div>
-                                              <div className="flex items-center gap-1.5">
-                                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                                                <span className="text-xs font-bold text-white">4.8</span>
-                                                <span className="text-[10px] text-zinc-500">(1.2k отзыва)</span>
-                                              </div>
-                                            </div>
-                                            <div
-                                              className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group"
-                                              onClick={() => window.open(`https://www.tiktok.com/search?q=${encodeURIComponent(`${item.placeName} ${route.destination || ""} travel`)}`, '_blank')}
-                                            >
-                                              <div className="flex items-center justify-between mb-2">
-                                                <div className="text-[9px] font-bold uppercase text-zinc-500 group-hover:text-pink-500 transition-colors">TikTok Vibe</div>
-                                                <ExternalLink className="h-2.5 w-2.5 text-zinc-600" />
-                                              </div>
-                                              <div className="flex items-center gap-1.5">
-                                                <div className="h-3.5 w-3.5 rounded-full bg-black border border-white/20 flex items-center justify-center">
-                                                  <Zap className="h-2 w-2 text-white" />
-                                                </div>
-                                                <span className="text-xs font-bold text-white">Лучшие маршруты</span>
-                                              </div>
-                                            </div>
-                                          </div>
                                         </div>
+
                                       )}
                                     </div>
                                   </div>
