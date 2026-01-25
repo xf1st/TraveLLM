@@ -11,19 +11,7 @@ const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
 const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png"
 const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
 
-const DefaultIcon = L.icon({
-    iconUrl,
-    iconRetinaUrl,
-    shadowUrl,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    tooltipAnchor: [16, -28],
-    shadowSize: [41, 41]
-})
-L.Marker.prototype.options.icon = DefaultIcon
-
-// Custom icon for visited/active places with glow and pulse
+// Helper functions for icons - safe to define but require L to be valid
 const createCustomIcon = (color: string, isActive: boolean) => {
     return L.divIcon({
         className: 'custom-marker-wrapper',
@@ -96,6 +84,21 @@ function MapController({ activePlaceId, places, userLocation }: { activePlaceId?
     const map = useMap()
 
     useEffect(() => {
+        // Fix Leaflet icons on client side only
+        if (typeof window !== 'undefined') {
+            const DefaultIcon = L.icon({
+                iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+                shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                tooltipAnchor: [16, -28],
+                shadowSize: [41, 41]
+            })
+            L.Marker.prototype.options.icon = DefaultIcon
+        }
+
         if (userLocation) {
             // Smoothly pan to user
             map.flyTo(userLocation, 14, { duration: 1, easeLinearity: 0.25 })
