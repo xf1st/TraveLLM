@@ -1,48 +1,19 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
-import L from "leaflet"
+// Do not import L globally to avoid SSR issues
+// import L from "leaflet"
 import { Badge } from "@/components/ui/badge"
+import L from "leaflet"
 
-// Fix Leaflet icons
 const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png"
 const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png"
 const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png"
 
-// Helper functions for icons - safe to define but require L to be valid
-const createCustomIcon = (color: string, isActive: boolean) => {
-    return L.divIcon({
-        className: 'custom-marker-wrapper',
-        html: `
-            <div class="marker-container ${isActive ? 'active' : ''}">
-                <div class="marker-pulse" style="background-color: ${color}"></div>
-                <div class="marker-inner" style="background-color: ${color}; border-color: ${isActive ? 'white' : 'rgba(255,255,255,0.8)'}"></div>
-            </div>
-        `,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16]
-    })
-}
+// No global icon overrides here anymore
 
-const createUserIcon = () => {
-    return L.divIcon({
-        className: 'user-marker-wrapper',
-        html: `
-            <div class="user-marker">
-                <div class="user-pulse"></div>
-                <div class="user-avatar">
-                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-white"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-            </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20]
-    })
-}
 
 // Mock geocoding for demo purposes
 const CITY_COORDS: Record<string, [number, number]> = {
@@ -84,21 +55,6 @@ function MapController({ activePlaceId, places, userLocation }: { activePlaceId?
     const map = useMap()
 
     useEffect(() => {
-        // Fix Leaflet icons on client side only
-        if (typeof window !== 'undefined') {
-            const DefaultIcon = L.icon({
-                iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-                iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-                shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-                iconSize: [25, 41],
-                iconAnchor: [12, 41],
-                popupAnchor: [1, -34],
-                tooltipAnchor: [16, -28],
-                shadowSize: [41, 41]
-            })
-            L.Marker.prototype.options.icon = DefaultIcon
-        }
-
         if (userLocation) {
             // Smoothly pan to user
             map.flyTo(userLocation, 14, { duration: 1, easeLinearity: 0.25 })
@@ -172,6 +128,43 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
         }
         return [55.7558, 37.6173]
     }, [])
+
+    // Helper functions need L context
+    const getCustomIcon = (color: string, isActive: boolean) => {
+        if (!L) return undefined
+        return L.divIcon({
+            className: 'custom-marker-wrapper',
+            html: `
+                <div class="marker-container ${isActive ? 'active' : ''}">
+                    <div class="marker-pulse" style="background-color: ${color}"></div>
+                    <div class="marker-inner" style="background-color: ${color}; border-color: ${isActive ? 'white' : 'rgba(255,255,255,0.8)'}"></div>
+                </div>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        })
+    }
+
+    const getUserIcon = () => {
+        if (!L) return undefined
+        return L.divIcon({
+            className: 'user-marker-wrapper',
+            html: `
+                <div class="user-marker">
+                    <div class="user-pulse"></div>
+                    <div class="user-avatar">
+                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-white"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                </div>
+            `,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -20]
+        })
+    }
+
+    if (!L) return null // Wait for Leaflet to load
 
     return (
         <div className="h-full w-full rounded-2xl overflow-hidden border border-border/50 shadow-2xl relative z-0 group">
@@ -296,7 +289,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
                 {userLocation && (
                     <Marker
                         position={userLocation}
-                        icon={createUserIcon()}
+                        icon={getUserIcon()}
                         zIndexOffset={100}
                     />
                 )}
@@ -305,7 +298,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
                     <Marker
                         key={place.id}
                         position={place.coords!}
-                        icon={createCustomIcon(
+                        icon={getCustomIcon(
                             place.status === 'active' ? '#3b82f6' :
                                 place.status === 'visited' ? '#22c55e' : '#94a3b8',
                             place.id === activePlaceId
