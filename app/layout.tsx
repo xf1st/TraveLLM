@@ -6,6 +6,7 @@ import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { NotificationPrompt } from "@/components/NotificationPrompt"
+import { CookieConsent } from "@/components/CookieConsent"
 import Script from "next/script"
 import "./globals.css"
 
@@ -62,7 +63,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          {/* Notification & Cookie System */}
           <NotificationPrompt />
+          <CookieConsent />
           <Toaster position="top-center" richColors />
           <Analytics />
         </ThemeProvider>
