@@ -1,5 +1,5 @@
 // DeepSeek (Primary) -> OpenRouter (Fallback)
-import { openrouterInference, OPENROUTER_MODEL } from "@/lib/openrouter"
+import { openrouterInference } from "@/lib/openrouter"
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
@@ -108,10 +108,18 @@ export async function POST(req: Request) {
       
       9. ACTUALIZATION & SOCIAL PROOF (MOST IMPORTANT):
          - You MUST prioritize locations that are currently "viral" or trending on TikTok, Instagram, and Vkontakte for the given destination.
-         - Ensure the places have high ratings on Google Maps/Yandex Maps (above 4.5).
-         - Mention "vibe" or "aesthetic" details that are popular in current travel videos.
-         - If a place is currently closed or has changes (based on your latest known data), AVOID IT.
-         - The itinerary must feel like it was written based on the latest 2024-2025 social media trends.
+         - Ensure the places have high ratings on Google Maps/Yandex Maps.
+
+      10. **STRICT LOGISTICS & CONTINUITY (NO TELEPORTATION):**
+          - **CONTINUITY RULE:** If Day N ends in City A, Day N+1 **MUST** start in City A. You cannot simply appear in City B.
+          - **MOVEMENT:** If moving between cities, Day N MUST have a "Logistics" entry describing the transfer.
+          - **FEASIBILITY (2026):** 
+            - Direct flights from Russia to Europe/USA are **RESTRICTED**. You MUST simulate a layover (e.g., via Istanbul, Dubai, Belgrade, Yerevan).
+            - If Flight is indirect, set Mode to "Flight (w/ Layover in [City])".
+            - Show total duration including layovers (e.g., "6h flight + 3h layover + 4h flight").
+          - **RETURN:** The FINAL Day must logically conclude the trip (e.g., "Transfer to Airport" or "Return Flight to ${departureCity}").
+          - **MULTI-MODAL:** If distance < 600km, prefer High-Speed Train (Sapsan, Lastochka, TGV) over Flight.
+          - **REALISM:** Do NOT schedule a flight and a full day of museum tours in the same morning. Travel takes time.
       
       LANGUAGE: Respond strictly in RUSSIAN.
       FORMAT: JSON ONLY.
@@ -162,42 +170,52 @@ export async function POST(req: Request) {
       CRITICAL INSTRUCTIONS:
       1. For 'activities', you MUST generate EXACTLY 3 items for every single day: "Утро", "День", "Вечер".
       2. 'placeName' is MANDATORY. It MUST be the REAL, SPECIFIC name of a venue, museum, restaurant, park, etc. 
-         FORBIDDEN: "местный ресторан", "парк", "музей", "центр города".
-         REQUIRED: "Ресторан 'Beluga'", "Музей Ван Гога", "Парк Вондела", "Ночной клуб 'Paradiso'".
-      3. 'mapLink' is MANDATORY. Generate a Google Maps search URL for each placeName:
-         Format: https://www.google.com/maps/search/?api=1&query=URL_ENCODED_PLACE_NAME
-      4. 'link' should be a real booking/ticket website URL (e.g., GetYourGuide, Viator, official museum site) if ticketsRequired is true. If you don't know the exact URL, use a Google search URL: https://www.google.com/search?q=купить+билеты+PLACE_NAME
-      5. CRITICAL: 'desc' should contain ONLY the activity description (what to do, why it's interesting). 
-         **Include current social proof:** Mention why this place is trending, what its current Google Maps rating is (e.g. "Рейтинг 4.8"), or describe the "aesthetic vibe" popular on TikTok. 
-         DO NOT include cost information or ticket URLs in the 'desc' field. 
-         Cost goes in 'cost' field. Ticket URL goes in 'link' field. Keep 'desc' clean.
-      6. Keep response concise to avoid JSON truncation. Focus on quality over quantity of text.
+      3. 'mapLink' is MANDATORY. Generate a Google Maps search URL for each placeName.
+      4. 'link' should be a real booking/ticket website URL (GetYourGuide, Viator, Aviasales) if ticketsRequired is true.
       
-      7. CRITICAL - 'budgetAnalysis' is MANDATORY! You MUST fill ALL 5 fields with REALISTIC prices in RUB:
-         - "avgAccommodation": Average hotel cost per night (e.g. "5 000 ₽/ночь" for economy, "15 000 ₽/ночь" for luxury)
-         - "avgFood": Average daily food cost (e.g. "2 500 ₽/день" for economy, "8 000 ₽/день" for luxury)
-         - "avgTransport": Total transport cost for entire trip (flights, trains, taxis)
-         - "avgActivities": Average daily entertainment cost (museums, tours, attractions)
-         - "avgMisc": Miscellaneous expenses (tips, souvenirs, emergencies)
-         DO NOT leave these empty or use placeholders like "...". Calculate based on budget level and destination!
+      5. **REALISM & PRICING (2026 REALITY):**
+         - Prices have risen significantly. Do NOT underestimate.
+         - 'avgTransport' MUST include ROUND TRIP flights + local transport. 
+         - 'avgAccommodation': Real 2026 rates (e.g., Moscow 4* is ~12k₽, Istanbul 3* is ~8k₽).
+         - 'avgFood': Real restaurant prices (e.g., Dinner ~2000-5000₽/person).
          
-      8. CRITICAL - 'visaAdvice' is MANDATORY! Provide specific visa information for Russian citizens:
-         - Visa required or visa-free? How many days allowed?
-         - How to apply? What documents needed?
-         - Processing time, costs, embassy locations
-         Example: "Для граждан РФ виза не требуется на срок до 30 дней. Необходим загранпаспорт сроком действия минимум 6 месяцев."
+      6. **FLIGHT & TRANSPORT LINKS:**
+         - For flight booking links, TRY to use the correct IATA codes if you know them (e.g. MOW, LED, IST, DXB).
+         - Format: https://www.aviasales.ru/search/{ORIGIN_IATA}{DATE_DDMM}{DEST_IATA}1
+         - If unsure of IATA, use the search format: https://www.aviasales.ru/search?origin_name={CITY}&destination_name={DEST}&depart_date={YYYY-MM-DD}
+      
+      7. **VIRAL / GHOST SPOTS (TIKTOK/INSTAGRAM):**
+         - You MUST generate a 'viralSpots' array in the metadata (or root JSON).
+         - These are "Hidden Gems" or "Photo Spots" that might not be in the main daily plan but are highly popular on socials.
+         - Format: { "name": "...", "description": "Why it's viral (e.g. 'Painted walls', 'Best sunset view')", "coordinates": [lat, lng] (approximate) or "mapLink" }
          
-      9. CRITICAL - 'paymentAdvice' is MANDATORY! Provide payment info for Russian travelers:
-         - Does Mir card work? UnionPay? Cash preferred?
-         - Currency exchange tips, ATM availability
-         - Average prices in local currency vs RUB
-         Example: "Карты Мир не принимаются. Рекомендуется UnionPay или наличные евро. Обменники в аэропорту с высокой комиссией - лучше менять в городе."
-         
-      10. CRITICAL - 'safetyInfo' is MANDATORY! Provide:
-          - "rating": Safety score 1-10 for tourists
-          - "tips": Specific safety advice (areas to avoid, scams, emergency numbers)
-          Example: { "rating": 8, "tips": "Избегайте туристических районов ночью. Остерегайтесь карманников в метро. Экстренные службы: 112" }
-    `
+      JSON Schema:
+      {
+        "title": "Topic",
+        "description": "Intro",
+        "totalBudget": "150 000 ₽",
+        "budgetAnalysis": {
+          "avgAccommodation": "5 000 ₽/ночь",
+          "avgFood": "3 000 ₽/день",
+          "avgTransport": "10 000 ₽",
+          "avgActivities": "20 000 ₽",
+          "avgMisc": "5 000 ₽"
+        },
+        "visaAdvice": "...",
+        "paymentAdvice": "...",
+        "safetyInfo": { "rating": 9, "tips": "..." },
+        "restrictions": "...",
+        "countries": [{"name": "Russia"}],
+        "tags": ["#tag"],
+        "coverImage": "",
+        "viralSpots": [
+            { "name": "Pink Lake", "desc": "Trending for pink water photos", "mapLink": "..." }
+        ],
+        "itinerary": [ ... ]
+      }
+      
+      LANGUAGE: Respond strictly in RUSSIAN.
+      FORMAT: JSON ONLY.`;
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
 
@@ -206,6 +224,11 @@ export async function POST(req: Request) {
             if (!raw) throw new Error(`Empty response from ${source}`)
 
             let clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
+
+            // Basic repair for unquoted hashtags which DeepSeek sometimes outputs
+            clean = clean.replace(/:\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ': "#$1"'); // keys or values starting with #
+            clean = clean.replace(/,\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ', "#$1"'); // array items starting with #
+            clean = clean.replace(/\[\s*#([a-zA-Zа-яА-Я0-9_]+)/g, '["#$1"'); // first array item
 
             if (!clean.trim().endsWith('}')) {
                 console.warn(`${source} JSON appears truncated, attempting basic repair...`);
@@ -219,7 +242,14 @@ export async function POST(req: Request) {
                 clean = clean.replace(/,\s*$/, '') + ']}'
             }
 
-            return JSON.parse(clean);
+            try {
+                return JSON.parse(clean);
+            } catch (e) {
+                // Last ditch: try to just regex out the whole tags array if it's the culprit
+                console.warn("JSON repair failed, trying to strip tags...", e);
+                clean = clean.replace(/"tags":\s*\[[^\]]*\]/g, '"tags": []');
+                return JSON.parse(clean);
+            }
         }
 
         // Generate metadata (title, budget analysis, visa, safety) - small request
@@ -241,6 +271,8 @@ DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
 CURRENT REALITY (JAN 2026):
 - Restrictions: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
 - Flights: ${GROUNDING_DATA_2026.flightConnectivity.join(' ')}
+- Prices are HIGH. Flights are expensive.
+- Include "viralSpots" (Top 5 TikTok/Instagram spots for 2025/2026).
 
 Output VALID JSON only (all strings must be in double quotes):
 {
@@ -259,13 +291,16 @@ Output VALID JSON only (all strings must be in double quotes):
   "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
   "restrictions": "Текущие ограничения если есть или null",
   "countries": [{"name": "Название страны"}],
-  "tags": ["вино", "горы", "море"]
+  "tags": ["вино", "горы", "море"],
+  "viralSpots": [
+    { "name": "Название места", "desc": "Почему это хайпово (TikTok/Insta)", "mapLink": "https://..." }
+  ]
 }
 
 CRITICAL: 
 - Output ONLY valid JSON, no markdown, no comments
-- ALL values must be in double quotes (including tags)
-- Do NOT use unquoted hashtags
+- ALL values must be in double quotes (including tags like "#tag")
+- NEVER use unquoted hashtags in the JSON
 - Fill ALL fields with REAL data for this destination!`;
 
             console.log("Parallel: Generating metadata...");
@@ -292,6 +327,12 @@ CONTEXT:
 - BUDGET LEVEL: ${budgetDesc}
 - START DATE: ${startDate || 'Flexible'}
 - END DATE: ${endDate || 'Flexible'}
+
+STRICT LOGISTICS RULES:
+1. **NO TELEPORTATION:** check where the previous day ended. Start there.
+2. **LAYOVERS:** If flying Russia <-> Europe/USA, you MUST include a layover (Istanbul/Dubai).
+3. **RETURN:** If this is the last chunk, ensure the trip ends with a return to origin or airport transfer.
+4. **TIMING:** Travel time must be realistic. Don't teleport.
 
 For EACH day, provide exactly this JSON structure inside an array:
 [
@@ -409,7 +450,16 @@ RULES:
             const result = {
                 ...metadata,
                 itinerary: allDays,
-                coverImage: "" // Will be enriched below
+                coverImage: "", // Will be enriched below
+                preferences: {
+                    pace: preferences.pace || 'moderate',
+                    travel_style: travelStyle,
+                    interestsDetailed: preferences.interestsDetailed || [],
+                    dietaryRestrictions: preferences.dietaryRestrictions || [],
+                    companions: companions,
+                    paymentMethods: paymentMethods || [],
+                    visitedCountries: preferences.visitedCountries || []
+                }
             };
 
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

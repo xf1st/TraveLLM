@@ -111,7 +111,7 @@ export default function PlanPage() {
       const localPrefs = JSON.parse(localStorage.getItem("userPreferences") || "{}")
       const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
 
-      const response = await fetch("/api/groq", {
+      const response = await fetch("/api/deepseek", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -171,7 +171,8 @@ export default function PlanPage() {
         restrictions: routeData.restrictions || null,
         countries: routeData.countries || null,
         tags: routeData.tags || null,
-        cover_image: routeData.coverImage || null
+        cover_image: routeData.coverImage || null,
+        preferences: routeData.preferences || null // Save preferences
       }).select().single()
 
       let finalTripId: string | null = null

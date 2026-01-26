@@ -136,24 +136,28 @@ function ResultsContent() {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      const { data: { session } } = await supabase.auth.getSession()
-      const authUser = session?.user || null
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const authUser = session?.user || null
 
-      // Fetch user trips
-      if (authUser) {
-        const { data, error } = await supabase
-          .from('trips')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .order('created_at', { ascending: false })
+        // Fetch user trips
+        if (authUser) {
+          const { data, error } = await supabase
+            .from('trips')
+            .select('*')
+            .eq('user_id', authUser.id)
+            .order('created_at', { ascending: false })
 
-        if (error) {
-          console.error("Results fetch error:", error.message, "Code:", error.code, "Details:", error.details)
+          if (error) {
+            console.warn("Supabase fetch warning:", error.message)
+          }
+          if (data) setUserRoutes(data)
         }
-        if (data) setUserRoutes(data)
+      } catch (err) {
+        console.warn("Network/Supabase connection issue:", err)
       }
 
-      // Check for last generated (even for guests)
+      // Check for last generated (even for guests or if offline)
       const stored = localStorage.getItem("lastGeneratedRoute")
       if (stored) {
         try {
@@ -166,6 +170,7 @@ function ResultsContent() {
 
       setLoading(false)
     }
+
     fetchData()
   }, [])
 
