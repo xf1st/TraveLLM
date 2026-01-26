@@ -47,8 +47,16 @@ import {
   TreeDeciduous,
   Landmark,
   Palmtree,
-  Printer
+  Printer,
+  PenLine,
+  Navigation,
+  Globe,
+  Layout,
+  Users
 } from "lucide-react"
+import { TripInvite } from "@/components/social/TripInvite"
+import { BudgetTracker } from "@/components/social/BudgetTracker"
+import { VotingBoard } from "@/components/social/VotingBoard"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
 import Link from "next/link"
@@ -630,11 +638,13 @@ export default function TripDetailPage() {
                   tripId={params.id as string}
                 />
               </div>
+              {/* --- SOCIAL LAYER REMOVED BY USER REQUEST --- */}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Chat Widget - Desktop Only */}
+              <TripInvite tripId={route.id} tripTitle={route.title} />
+
               <div className="hidden lg:block">
                 <ItineraryChatWidget
                   itinerary={route}
@@ -644,6 +654,7 @@ export default function TripDetailPage() {
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 dark:border-white/5 shadow-xl"
                 />
               </div>
+
               <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
@@ -699,6 +710,7 @@ export default function TripDetailPage() {
             </div>
           </div>
         </main>
+
         {/* Budget Analysis Modal */}
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
           <DialogContent className="max-w-md rounded-3xl p-8">
@@ -748,7 +760,7 @@ export default function TripDetailPage() {
                   <span className="font-bold">{route.totalBudget}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range}"). Реальная стоимость может отличаться.
+                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range || "Комфорт"}"). Реальная стоимость может отличаться.
                 </p>
               </div>
 
@@ -758,6 +770,7 @@ export default function TripDetailPage() {
             </div>
           </DialogContent>
         </Dialog>
+
         <div className="mt-20">
           <Footer />
         </div>
@@ -775,13 +788,14 @@ export default function TripDetailPage() {
             />
           )
         }
-      </div >
-      <TripChat
-        tripId={params.id as string}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        currentUser={user}
-      />
-    </div >
+
+        <TripChat
+          tripId={params.id as string}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          currentUser={user}
+        />
+      </div>
+    </div>
   )
 }

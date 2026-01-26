@@ -187,9 +187,9 @@ export function Header({ floating = false }: HeaderProps) {
     <div className="sticky top-0 z-50 w-full p-3 md:p-4">
       <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Logo size={28} />
-          <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
+          <Logo size={24} />
+          <span className="text-sm font-semibold tracking-tight">TraveLM</span>
         </Link>
 
         {/* Navigation - Desktop */}
@@ -210,30 +210,30 @@ export function Header({ floating = false }: HeaderProps) {
           ))}
         </nav>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden flex items-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-2">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 p-2 rounded-xl">
-              <DropdownMenuLabel>Меню</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {navLinks.map((link) => (
-                <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                  <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
-                    {link.label}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Actions */}
+        {/* Actions & Mobile Menu */}
         <div className="flex items-center gap-2">
+          {/* Mobile Navigation Trigger */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="mr-1">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {navLinks.map((link) => (
+                  <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                    <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
+                      {link.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <ModeToggle />
 
           {user ? (

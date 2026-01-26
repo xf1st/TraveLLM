@@ -126,9 +126,9 @@ export function CityAutocomplete({
     }
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <div className={cn("relative w-full", className)}>
+        <div className={cn("relative w-full", className)}>
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
                     <Button
                         type="button"
                         variant="outline"
@@ -164,45 +164,50 @@ export function CityAutocomplete({
                         </div>
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
                     </Button>
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="p-0" align="start">
-                <Command shouldFilter={false}>
-                    <CommandInput
-                        placeholder="Поиск..."
-                        value={inputValue}
-                        onValueChange={setInputValue}
-                    />
-                    <CommandList>
-                        {loading && <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Поиск...</div>}
-                        {!loading && options.length === 0 && inputValue.length > 1 && (
-                            <CommandEmpty>Не найдено.</CommandEmpty>
-                        )}
-                        {!loading && inputValue.length < 2 && (
-                            <div className="py-6 text-center text-sm text-muted-foreground">Введите название (Ru/En)</div>
-                        )}
+                </PopoverTrigger>
+                <PopoverContent className="p-0" align="start">
+                    <Command shouldFilter={false}>
+                        <CommandInput
+                            placeholder="Поиск..."
+                            value={inputValue}
+                            onValueChange={setInputValue}
+                        />
+                        <CommandList>
+                            {loading && <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Поиск...</div>}
+                            {!loading && options.length === 0 && inputValue.length > 1 && (
+                                <CommandEmpty>Не найдено.</CommandEmpty>
+                            )}
+                            {!loading && inputValue.length < 2 && (
+                                <div className="py-6 text-center text-sm text-muted-foreground">Введите название (Ru/En)</div>
+                            )}
 
-                        <CommandGroup>
-                            {options.map((option, idx) => (
-                                <CommandItem
-                                    key={`${option.value}-${idx}`}
-                                    value={option.text}
-                                    onSelect={() => handleSelect(option.value)}
-                                >
-                                    <MapPin className="mr-2 h-4 w-4 opacity-50" />
-                                    {option.label}
-                                    <Check
-                                        className={cn(
-                                            "ml-auto h-4 w-4",
-                                            selectedValues.includes(option.value) ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
+                            <CommandGroup>
+                                {options.map((option, idx) => (
+                                    <CommandItem
+                                        key={`${option.value}-${idx}`}
+                                        value={option.text}
+                                        onSelect={() => handleSelect(option.value)}
+                                    >
+                                        <MapPin className="mr-2 h-4 w-4 opacity-50" />
+                                        {option.label}
+                                        <Check
+                                            className={cn(
+                                                "ml-auto h-4 w-4",
+                                                selectedValues.includes(option.value) ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                    </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                        <div className="p-2 border-t md:hidden">
+                            <Button className="w-full h-10 rounded-xl" onClick={() => setOpen(false)}>
+                                Готово
+                            </Button>
+                        </div>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+        </div>
     )
 }
