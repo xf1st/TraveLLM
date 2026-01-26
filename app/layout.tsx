@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   description: "Создавайте персональные маршруты за секунды с помощью ИИ. TraveLM поможет спланировать поездку, найти скрытые места и сэкономить время.",
   keywords: ["ИИ гид", "планировщик путешествий", "создать маршрут", "умный путеводитель", "travel ai", "отпуск 2024", "куда поехать"],
   verification: {
-    yandex: "cd2088ddfacf4be8"
+    yandex: "7b52a6c68729b348"
   },
   openGraph: {
     title: "TraveLM — Ваш умный ИИ-гид по миру",
@@ -93,22 +93,15 @@ export default function RootLayout({
                 m[i].l=1*new Date();
                 for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
                 k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106431681', 'ym');
+            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106450259', 'ym');
 
-            ym(106431681, 'init', {
-                ssr: true,
-                webvisor: true,
-                clickmap: true,
-                ecommerce: "dataLayer",
-                accurateTrackBounce: true,
-                trackLinks: true
-            });
+            ym(106450259, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
           `}
         </Script>
         <noscript>
           <div>
             <img
-              src="https://mc.yandex.ru/watch/106431681"
+              src="https://mc.yandex.ru/watch/106450259"
               style={{ position: 'absolute', left: '-9999px' }}
               alt=""
             />
