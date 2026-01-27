@@ -5,6 +5,70 @@ import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 
+function sanitizeClosedAirportLogistics(routeData: any) {
+    const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
+
+    const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
+    const closedTokens = closed
+        .flatMap((a: any) => [a?.city, a?.iata, `${a?.city} (${a?.iata})`])
+        .filter(Boolean)
+        .map((s: string) => String(s).toLowerCase())
+
+    const isClosedMentioned = (text: unknown) => {
+        if (!text) return false
+        const t = String(text).toLowerCase()
+        return closedTokens.some((token: string) => token && t.includes(token))
+    }
+
+    const sanitizeMode = (mode: unknown) => {
+        const m = String(mode || '').toLowerCase()
+        return m.includes('самол') || m.includes('flight') || m.includes('plane')
+    }
+
+    for (const day of itinerary) {
+        const lg = day?.logistics
+        if (!lg) continue
+
+        const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
+
+        if (targetsClosed && sanitizeMode(lg.mode)) {
+            const toLabel = lg.to || day?.title || "пункт назначения"
+            day.logistics = {
+                mode: "Поезд/авто (аэропорт закрыт)",
+                from: lg.from || "Отправление",
+                to: lg.to || "Пункт назначения",
+                distance: lg.distance || "—",
+                duration: lg.duration || "—",
+                price: lg.price || "—",
+                bookingLink: "https://www.rzd.ru/"
+            }
+            if (typeof day.title === 'string') {
+                day.title = day.title
+                    .replace(/прямой\s+рейс/ig, "наземный переезд")
+                    .replace(/аэрофлот|победа/ig, "")
+                    .replace(/\(.*?\)/g, (m: string) => m.toLowerCase().includes('urs') ? '' : m)
+                    .trim()
+            }
+            if (Array.isArray(day.activities)) {
+                for (const a of day.activities) {
+                    if (a?.placeName && isClosedMentioned(a.placeName)) {
+                        a.placeName = String(a.placeName).replace(/\(.*?\)/g, '').trim()
+                    }
+                    if (a?.desc && isClosedMentioned(a.desc)) {
+                        a.desc = String(a.desc)
+                            .replace(/прямой\s+рейс.*?(\.|$)/ig, "Аэропорт закрыт — используйте наземный транспорт.")
+                    }
+                }
+            }
+
+            day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toLabel}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}).`
+        }
+    }
+
+    routeData.itinerary = itinerary
+    return routeData
+}
+
 export async function POST(req: Request) {
     try {
         const body = await req.json()
@@ -91,6 +155,7 @@ export async function POST(req: Request) {
       - RESTRICTIONS: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
       - AIRPORTS: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
       - FLIGHTS: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
+      - CLOSED AIRPORTS (ABSOLUTE BAN ON FLIGHTS): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'N/A'}
       - CURRENT TRENDS: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
       
       COMMANDS:
@@ -117,6 +182,7 @@ export async function POST(req: Request) {
             - Direct flights from Russia to Europe/USA are **RESTRICTED**. You MUST simulate a layover (e.g., via Istanbul, Dubai, Belgrade, Yerevan).
             - If Flight is indirect, set Mode to "Flight (w/ Layover in [City])".
             - Show total duration including layovers (e.g., "6h flight + 3h layover + 4h flight").
+            - **ABSOLUTE BAN:** If destination or origin is in CLOSED AIRPORTS list (example: Курск (URS)), you MUST NOT propose any flight. Use train/bus/car and explain that the airport is closed.
           - **RETURN:** The FINAL Day must logically conclude the trip (e.g., "Transfer to Airport" or "Return Flight to ${departureCity}").
           - **MULTI-MODAL:** If distance < 600km, prefer High-Speed Train (Sapsan, Lastochka, TGV) over Flight.
           - **REALISM:** Do NOT schedule a flight and a full day of museum tours in the same morning. Travel takes time.
@@ -472,7 +538,7 @@ RULES:
             // PRIMARY: DeepSeek with parallel generation
             try {
                 console.log("Using DeepSeek as primary provider...");
-                const routeData = await generateParallel();
+                const routeData = sanitizeClosedAirportLogistics(await generateParallel());
 
                 // Enrich with cover image
                 try {
@@ -496,7 +562,7 @@ RULES:
                     { role: "user" as const, content: prompt }
                 ]
                 const raw = await openrouterInference(messages, { maxTokens: 30000, temperature: 0.6 });
-                const routeData = parseJsonResponse(raw, "OpenRouter");
+                const routeData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "OpenRouter"));
 
                 // Enrich cover image
                 try {

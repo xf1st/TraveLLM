@@ -17,7 +17,6 @@ import {
   Hotel as HotelIcon,
   Map,
   MapPin,
-  Share2,
   Shield,
   Star,
   Utensils,
@@ -54,17 +53,12 @@ import {
   Layout,
   Users
 } from "lucide-react"
-import { TripInvite } from "@/components/social/TripInvite"
-import { BudgetTracker } from "@/components/social/BudgetTracker"
-import { VotingBoard } from "@/components/social/VotingBoard"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
 import Link from "next/link"
 import { MeshGradient } from "@paper-design/shaders-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TripImage } from "@/components/TripImage"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
-import { TripShareModal } from "@/components/TripShareModal"
 import { PlaceGallery } from "@/components/PlaceGallery"
 import { cn } from "@/lib/utils"
 import {
@@ -138,8 +132,6 @@ export default function TripDetailPage() {
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [isOwner, setIsOwner] = useState(false)
   const [user, setUser] = useState<any>(null)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -230,7 +222,6 @@ export default function TripDetailPage() {
           budget_range: data.budget_range,
           invite_code: data.invite_code
         })
-        setIsOwner(data.user_id === currentUser?.id)
 
         // Check if member
         if (currentUser && data.id) {
@@ -305,6 +296,9 @@ export default function TripDetailPage() {
   const destinationName = route.countries?.[0]?.name || route.destination || "Travel"
   // Prioritize Pexels image from generation, fallback to placeholder
   const heroImage = route.coverImage || route.image || "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
+
+  const tripDurationDays = Array.isArray(route.itinerary) ? route.itinerary.length : 0
+  const tripDestinationLabel = route.destination || route.countries?.[0]?.name || destinationName
 
   const handleOpenMap = (searchQuery: string) => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`, "_blank")
@@ -408,10 +402,6 @@ export default function TripDetailPage() {
                   <div className="flex items-center gap-1 border-l border-white/10 pl-3 ml-2">
                     <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={handlePrint} title="Экспорт в PDF">
                       <Printer className="h-4 w-4 md:h-5 md:w-5 text-white" />
-                    </Button>
-
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={() => setShowShareModal(true)}>
-                      <Share2 className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </Button>
                   </div>
                 </div>
@@ -622,8 +612,6 @@ export default function TripDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              <TripInvite tripId={route.id} tripTitle={route.title} />
-
               <div className="hidden lg:block">
                 <ItineraryChatWidget
                   itinerary={route}
@@ -752,8 +740,8 @@ export default function TripDetailPage() {
 
         <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24 opacity-60 hover:opacity-100 transition-opacity">
           <div className="p-6 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm text-xs text-muted-foreground flex flex-wrap gap-x-8 gap-y-4 justify-center items-center shadow-inner">
-            <div className="flex items-center gap-2"><MapPin className="h-3 w-3" /> <span className="text-foreground font-medium">{route.destination}</span></div>
-            <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /> <span className="text-foreground font-medium">{route.duration} дней</span></div>
+            <div className="flex items-center gap-2"><MapPin className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDestinationLabel}</span></div>
+            <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDurationDays} дней</span></div>
             <div className="flex items-center gap-2"><Wallet className="h-3 w-3" /> <span className="text-foreground font-medium">{route.budget_range || route.totalBudget}</span></div>
 
             {/* Helpers for preferences access */}
@@ -812,18 +800,7 @@ export default function TripDetailPage() {
         </div>
 
         {/* TripShareModal Component */}
-        {
-          route && (
-            <TripShareModal
-              isOpen={showShareModal}
-              onOpenChange={setShowShareModal}
-              tripId={route.id}
-              tripTitle={route.title}
-              inviteCode={route.invite_code}
-              isOwner={isOwner}
-            />
-          )
-        }
+
 
         <TripChat
           tripId={params.id as string}
