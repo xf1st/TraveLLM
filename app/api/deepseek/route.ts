@@ -4,6 +4,7 @@ import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
+import { createClient } from '@supabase/supabase-js'
 
 function sanitizeClosedAirportLogistics(routeData: any) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
@@ -71,6 +72,74 @@ function sanitizeClosedAirportLogistics(routeData: any) {
 
 export async function POST(req: Request) {
     try {
+        // Check maintenance mode
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gsmdgtopofvklvkninfl.supabase.co',
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzbWRndG9wb2Z2a2x2a25pbmZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5OTUwNjMsImV4cCI6MjA4MzU3MTA2M30.YBHU74Z1riS8nUTb-ewVBVvfK6TiVGsHuAcuQVJcy6c'
+        )
+        
+        const { data: settings } = await supabase
+            .from('app_settings')
+            .select('maintenance_mode, maintenance_message, maintenance_allow_admin_bypass')
+            .single()
+        
+        if (settings?.maintenance_mode) {
+            // Check if user is admin (can bypass)
+            const { data: { user } } = await supabase.auth.getUser()
+            let canBypass = false
+            
+            if (user && settings.maintenance_allow_admin_bypass) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single()
+                
+                canBypass = profile?.role === 'admin' || profile?.role === 'super_admin'
+            }
+            
+            if (!canBypass) {
+                return NextResponse.json(
+                    { error: 'Техническое обслуживание', message: settings.maintenance_message || 'Сервис временно недоступен' },
+                    { status: 503 }
+                )
+            }
+        }
+        
+        // Check user access mode (block AI generation if blocked)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('access_mode, block_reason, blocked_until')
+                .eq('id', user.id)
+                .single()
+            
+            if (profile) {
+                // Check if temporary block expired
+                if (profile.blocked_until) {
+                    const blockedUntil = new Date(profile.blocked_until)
+                    if (blockedUntil < new Date()) {
+                        // Block expired, reset to active
+                        await supabase
+                            .from('profiles')
+                            .update({ access_mode: 'active', block_reason: null, blocked_until: null })
+                            .eq('id', user.id)
+                    } else if (profile.access_mode === 'ai_blocked' || profile.access_mode === 'full_blocked') {
+                        return NextResponse.json(
+                            { error: 'Генерация маршрутов временно недоступна для вашего аккаунта', reason: profile.block_reason },
+                            { status: 403 }
+                        )
+                    }
+                } else if (profile.access_mode === 'ai_blocked' || profile.access_mode === 'full_blocked') {
+                    return NextResponse.json(
+                        { error: 'Генерация маршрутов временно недоступна для вашего аккаунта', reason: profile.block_reason },
+                        { status: 403 }
+                    )
+                }
+            }
+        }
+        
         const body = await req.json()
         const {
             departureCity,

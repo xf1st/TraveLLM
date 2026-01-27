@@ -71,6 +71,7 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false)
   const [customDestination, setCustomDestination] = useState("")
   const [profile, setProfile] = useState<any>(null)
+  const [accessMode, setAccessMode] = useState<string>("active")
 
   // UI State
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -90,6 +91,20 @@ export default function PlanPage() {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         if (data) {
           setProfile(data)
+          setAccessMode(data.access_mode || 'active')
+          
+          // Check if temporary block expired
+          if (data.blocked_until) {
+            const blockedUntil = new Date(data.blocked_until)
+            if (blockedUntil < new Date()) {
+              // Block expired, reset to active
+              await supabase
+                .from('profiles')
+                .update({ access_mode: 'active', block_reason: null, blocked_until: null })
+                .eq('id', user.id)
+              setAccessMode('active')
+            }
+          }
         }
       } else {
         // Redirect if not logged in
@@ -101,6 +116,13 @@ export default function PlanPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check access mode
+    if (accessMode === 'ai_blocked' || accessMode === 'full_blocked') {
+      alert("Генерация маршрутов временно недоступна для вашего аккаунта")
+      return
+    }
+    
     if (!date?.from || !date?.to) {
       alert("Пожалуйста, выберите даты поездки")
       return
@@ -611,7 +633,7 @@ export default function PlanPage() {
                 type="submit"
                 size="lg"
                 className="w-full h-16 text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-2xl font-bold bg-gradient-to-r from-primary to-blue-600 border-0 mt-4"
-                disabled={loading}
+                disabled={loading || accessMode === 'ai_blocked' || accessMode === 'full_blocked'}
               >
                 {loading ? (
                   <>

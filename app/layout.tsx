@@ -7,6 +7,8 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { NotificationPrompt } from "@/components/NotificationPrompt"
 import { CookieConsent } from "@/components/CookieConsent"
+import { MaintenanceGuard } from "@/components/admin/maintenance-guard"
+import { UserAccessGuard } from "@/components/admin/user-access-guard"
 import Script from "next/script"
 import "./globals.css"
 
@@ -62,7 +64,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <MaintenanceGuard>
+            <UserAccessGuard>
+              {children}
+            </UserAccessGuard>
+          </MaintenanceGuard>
           {/* Notification & Cookie System */}
           <NotificationPrompt />
           <CookieConsent />
