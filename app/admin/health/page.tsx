@@ -107,16 +107,21 @@ export default function AdminHealthPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           departureCity: "Москва",
-          destinationType: "country",
+          destinationType: "russia",
           countryCount: 1,
-          budget: "medium",
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          travelStyle: "relaxed",
+          budget: "comfort",
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          travelStyle: ["культура"],
           companions: "solo",
-          preferences: [],
+          preferences: {
+            pace: "moderate",
+            visitedCountries: [],
+            interestsDetailed: [],
+            dietaryRestrictions: []
+          },
           paymentMethods: ["card"],
-          requireRussianGuide: true,
+          requireRussianGuide: false,
         }),
       })
 

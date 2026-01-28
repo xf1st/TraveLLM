@@ -43,7 +43,7 @@ export interface TokenUsage {
     promptCacheMissTokens?: number;
     model: string;
     costUsd: number;
-    costRub: number; // Approximate at ~100 RUB/USD
+    costRub: number; // Approximate at ~80 RUB/USD
 }
 
 // Global accumulator for session usage
@@ -133,7 +133,7 @@ export async function deepseekInference(
         sessionUsage.promptCacheHitTokens = (sessionUsage.promptCacheHitTokens || 0) + cacheHit;
         sessionUsage.promptCacheMissTokens = (sessionUsage.promptCacheMissTokens || 0) + cacheMiss;
         sessionUsage.costUsd += totalCostUsd;
-        sessionUsage.costRub += totalCostUsd * 100; // ~100 RUB/USD
+        sessionUsage.costRub += totalCostUsd * 80; // ~80 RUB/USD
 
         console.log(`DeepSeek: Tokens used - prompt: ${usage.prompt_tokens}, completion: ${usage.completion_tokens}, total: ${usage.total_tokens}`);
         if (cacheHit > 0) {

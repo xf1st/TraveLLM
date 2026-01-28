@@ -43,6 +43,8 @@ interface User {
   created_at: string
   last_seen_at: string | null
   trips_count?: number
+  total_tokens?: number
+  total_cost_rub?: number
 }
 
 export default function AdminUsersPage() {
@@ -88,15 +90,26 @@ export default function AdminUsersPage() {
 
       if (error) throw error
 
-      // Get trip counts for each user
+      // Get trip counts and token usage for each user
       const usersWithCounts = await Promise.all(
         (data || []).map(async (user) => {
-          const { count } = await supabase
+          const { data: trips, count } = await supabase
             .from("trips")
-            .select("*", { count: "exact", head: true })
+            .select("token_usage", { count: "exact" })
             .eq("user_id", user.id)
 
-          return { ...user, trips_count: count || 0 }
+          let total_tokens = 0
+          let total_cost_rub = 0
+          if (trips) {
+            for (const trip of trips) {
+              if (trip.token_usage) {
+                total_tokens += trip.token_usage.totalTokens || 0
+                total_cost_rub += trip.token_usage.costRub || 0
+              }
+            }
+          }
+
+          return { ...user, trips_count: count || 0, total_tokens, total_cost_rub }
         })
       )
 
@@ -270,6 +283,8 @@ export default function AdminUsersPage() {
                     <TableHead>Роль</TableHead>
                     <TableHead>Доступ</TableHead>
                     <TableHead>Маршрутов</TableHead>
+                    <TableHead>Токены</TableHead>
+                    <TableHead>Потрачено</TableHead>
                     <TableHead>Регистрация</TableHead>
                     <TableHead>Последний вход</TableHead>
                     <TableHead className="text-right">Действия</TableHead>
@@ -318,6 +333,16 @@ export default function AdminUsersPage() {
                         )}
                       </TableCell>
                       <TableCell>{user.trips_count || 0}</TableCell>
+                      <TableCell>
+                        {user.total_tokens
+                          ? user.total_tokens.toLocaleString("ru-RU")
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {user.total_cost_rub
+                          ? `${user.total_cost_rub.toFixed(2)} ₽`
+                          : "—"}
+                      </TableCell>
                       <TableCell>
                         {new Date(user.created_at).toLocaleDateString("ru-RU")}
                       </TableCell>

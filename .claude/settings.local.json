@@ -4,7 +4,9 @@
       "Bash(npm run lint)",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(npx next build)"
+      "Bash(npx next build)",
+      "Bash(npx tsc:*)",
+      "Bash(curl:*)"
     ]
   }
 }

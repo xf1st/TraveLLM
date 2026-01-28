@@ -683,7 +683,7 @@ export default function TripDetailPage() {
                 </div>
               </Card>
 
-              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide/${params.id}`)}>
+              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide?tripId=${params.id}`)}>
                 <div className="relative h-full p-6 bg-black/20 rounded-[1.2rem] transition-colors group-hover:bg-black/30 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-2">
                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">

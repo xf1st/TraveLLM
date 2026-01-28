@@ -251,11 +251,14 @@ export async function POST(req: Request) {
    - ПЛОХО: "Местный ресторан", "Центральный парк", "Городской музей"
    - ХОРОШО: "Ресторан 'Dr. Живаго'", "Парк Зарядье", "Третьяковская галерея"
 
-4. КОНТИНУИТЕТ (НЕТ ТЕЛЕПОРТАЦИИ):
+4. КОНТИНУИТЕТ И РЕАЛЬНЫЕ РЕЙСЫ (КРИТИЧНО):
    - День N заканчивается в городе A → День N+1 НАЧИНАЕТСЯ в городе A
    - Перемещение между городами = отдельная запись в logistics
-   - Перелёты Россия↔Европа/США только с ПЕРЕСАДКОЙ (Стамбул, Дубай, Белград)
+   - ПРЯМЫЕ РЕЙСЫ ИЗ МОСКВЫ СУЩЕСТВУЮТ ТОЛЬКО В: Турция (Стамбул, Анталья), ОАЭ (Дубай), Сербия (Белград), Китай (Пекин, Шанхай), Таиланд (Бангкок, Пхукет), Грузия (Тбилиси, Батуми), Армения (Ереван), Азербайджан (Баку), Казахстан (Алматы, Астана), Узбекистан (Ташкент), Египет (Хургада, Шарм), Мальдивы, Шри-Ланка
+   - В ЕВРОПУ (кроме Сербии/Турции) И США ПРЯМЫХ РЕЙСОВ НЕТ! Только с пересадкой!
+   - Пересадочные маршруты в Европу: Москва → Стамбул/Белград → Европа
    - Расстояние < 600км = поезд вместо самолёта
+   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2026: Москва-Стамбул ~25000₽, Москва-Дубай ~35000₽, Москва-Пекин ~45000₽, Москва-Бангкок ~50000₽
 
 5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО — НЕТ МГНОВЕННОЙ ТЕЛЕПОРТАЦИИ):
    - Если в logistics указан перелёт/поезд → ПЕРВАЯ активность дня ДОЛЖНА быть "Прибытие и заселение"
@@ -268,9 +271,33 @@ export async function POST(req: Request) {
 
 6. VIRAL SPOTS: Добавь 3-5 популярных в TikTok/Instagram локаций в отдельный массив viralSpots.
 
+7. СООТВЕТСТВИЕ НАЗВАНИЯ И МАРШРУТА (КРИТИЧНО):
+   - Название маршрута ДОЛЖНО отражать РЕАЛЬНЫЕ страны/города в itinerary
+   - ПЛОХО: title="Пекин и Гуанчжоу" но countries=["Болгария", "Греция"]
+   - ХОРОШО: title="Балканское приключение" если едем в Болгарию и Грецию
+   - Проверь: все страны в countries[] ДОЛЖНЫ быть в itinerary
+
+8. ВИЗОВАЯ ИНФОРМАЦИЯ ДЛЯ КАЖДОЙ СТРАНЫ (КРИТИЧНО):
+   - Поле visaAdvice должно содержать инфу для КАЖДОЙ страны в маршруте
+   - Формат: "Страна1: требования. Страна2: требования."
+   - Для Шенгена указать: "Болгария: НЕ входит в Шенген, нужна отдельная виза или мультивиза"
+   - Для безвизовых: "Турция: безвизовый въезд до 60 дней"
+
+9. РАБОЧИЕ ССЫЛКИ НА БРОНИРОВАНИЕ (КРИТИЧНО):
+   - Авиабилеты: https://www.aviasales.ru/
+   - Поезда РЖД: https://ticket.rzd.ru/
+   - Отели: https://ostrovok.ru/ или https://www.booking.com/
+   - НЕ ВЫДУМЫВАЙ URL - используй только реальные сайты бронирования
+
+10. КИЛОМЕТРАЖ И ВРЕМЯ В ЛОГИСТИКЕ (ОБЯЗАТЕЛЬНО):
+   - В каждом logistics ОБЯЗАТЕЛЬНО указывай distance (расстояние) и duration (время в пути)
+   - Пример: "distance": "2800 км", "duration": "4 ч 15 мин (перелёт)"
+   - Для поездов: "distance": "700 км", "duration": "4 ч (Сапсан)"
+   - Для такси/автобуса: "distance": "35 км", "duration": "45 мин"
+
 JSON СХЕМА (строго следуй):
 {
-  "title": "Название маршрута",
+  "title": "Название маршрута (ДОЛЖНО соответствовать странам в countries[])",
   "description": "Описание на 2-3 предложения",
   "totalBudget": "150 000 ₽",
   "budgetAnalysis": {
@@ -280,11 +307,11 @@ JSON СХЕМА (строго следуй):
     "avgActivities": "20 000 ₽",
     "avgMisc": "5 000 ₽"
   },
-  "visaAdvice": "Информация о визе для граждан РФ",
-  "paymentAdvice": "Какие карты работают, где менять деньги",
+  "visaAdvice": "Страна1: требования для граждан РФ. Страна2: требования. И т.д.",
+  "paymentAdvice": "Какие карты работают, где менять деньги (для каждой страны)",
   "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
   "restrictions": "Текущие ограничения или null",
-  "countries": [{"name": "Название страны"}],
+  "countries": [{"name": "Название страны", "visaRequired": true, "visaType": "Шенген/национальная/безвиз"}],
   "tags": ["культура", "еда", "природа"],
   "coverImage": "",
   "viralSpots": [
@@ -315,7 +342,7 @@ JSON СХЕМА (строго следуй):
         "distance": "10 км",
         "duration": "30 мин",
         "price": "1000 ₽",
-        "bookingLink": "https://..."
+        "bookingLink": "https://aviasales.ru или https://ticket.rzd.ru (РЕАЛЬНЫЙ URL)"
       }
     }
   ]
@@ -324,6 +351,7 @@ JSON СХЕМА (строго следуй):
 КРИТИЧНО:
 - Ровно 3 активности в день: "Утро", "День", "Вечер"
 - placeName и mapLink ОБЯЗАТЕЛЬНЫ
+- logistics.distance и logistics.duration ОБЯЗАТЕЛЬНЫ для каждого дня
 - Все строки в двойных кавычках, включая теги
 - Ответ ТОЛЬКО JSON, без markdown
 
@@ -374,11 +402,11 @@ DEPARTURE: ${departureCity}
 DURATION: ${durationDays} days
 BUDGET: ${budgetDesc} (max ${budgetCap} RUB)
 STYLE: ${travelStyle.join(', ')}
-PACE: ${preferences.pace || 'moderate'}
-VISITED: ${preferences.visitedCountries?.join(', ') || 'None'}
-PAYMENT METHODS: ${paymentMethods?.join(', ') || 'Not specified'}
-PERSONALIZATION: ${preferences.interestsDetailed?.join(', ') || 'General'}
-DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
+PACE: ${preferences?.pace || 'moderate'}
+VISITED: ${toArray(preferences?.visitedCountries).join(', ') || 'None'}
+PAYMENT METHODS: ${toArray(paymentMethods).join(', ') || 'Not specified'}
+PERSONALIZATION: ${toArray(preferences?.interestsDetailed).join(', ') || 'General'}
+DIETARY: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'None'}
 
 CURRENT REALITY (JAN 2026):
 - Restrictions: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
@@ -386,9 +414,14 @@ CURRENT REALITY (JAN 2026):
 - Prices are HIGH. Flights are expensive.
 - Include "viralSpots" (Top 5 TikTok/Instagram spots for 2025/2026).
 
+CRITICAL RULES:
+1. Title MUST match the destination countries (if going to Bulgaria, don't call it "Beijing trip")
+2. visaAdvice MUST include requirements for EACH country separately
+3. countries[] must have visaRequired and visaType for each
+
 Output VALID JSON only (all strings must be in double quotes):
 {
-  "title": "Название маршрута",
+  "title": "Название маршрута (ДОЛЖНО соответствовать направлению: ${targetDescription})",
   "description": "Краткое описание на 2-3 предложения",
   "totalBudget": "${budgetCap} ₽",
   "budgetAnalysis": {
@@ -398,22 +431,23 @@ Output VALID JSON only (all strings must be in double quotes):
     "avgActivities": "5000 ₽/день",
     "avgMisc": "3000 ₽"
   },
-  "visaAdvice": "Детальная информация о визе для граждан РФ",
-  "paymentAdvice": "Какие карты работают, где менять деньги",
+  "visaAdvice": "Страна1: требования для РФ граждан. Страна2: требования. (ДЛЯ КАЖДОЙ СТРАНЫ!)",
+  "paymentAdvice": "Какие карты работают в каждой стране, где менять деньги",
   "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
   "restrictions": "Текущие ограничения если есть или null",
-  "countries": [{"name": "Название страны"}],
+  "countries": [{"name": "Страна", "visaRequired": true, "visaType": "Шенген/национальная/безвиз"}],
   "tags": ["вино", "горы", "море"],
   "viralSpots": [
     { "name": "Название места", "desc": "Почему это хайпово (TikTok/Insta)", "mapLink": "https://..." }
   ]
 }
 
-CRITICAL: 
+CRITICAL:
 - Output ONLY valid JSON, no markdown, no comments
 - ALL values must be in double quotes (including tags like "#tag")
 - NEVER use unquoted hashtags in the JSON
-- Fill ALL fields with REAL data for this destination!`;
+- Fill ALL fields with REAL data for this destination!
+- Title MUST reflect the actual destination, NOT random cities!`;
 
             console.log("Parallel: Generating metadata...");
             const messages = [

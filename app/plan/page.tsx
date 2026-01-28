@@ -17,6 +17,7 @@ import { DateRange } from "react-day-picker"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { Calendar } from "@/components/ui/calendar"
 import { CityAutocomplete } from "@/components/ui/city-autocomplete"
 import {
@@ -199,7 +200,7 @@ export default function PlanPage() {
 
     // Check access mode
     if (accessMode === 'ai_blocked' || accessMode === 'full_blocked') {
-      alert("Генерация маршрутов временно недоступна для вашего аккаунта")
+      toast.error("Генерация маршрутов временно недоступна для вашего аккаунта")
       return
     }
 
@@ -207,7 +208,7 @@ export default function PlanPage() {
     const errors = validateForm()
     if (errors.length > 0) {
       setValidationErrors(errors)
-      alert(errors.join('\n'))
+      toast.error(errors.join('. '))
       return
     }
     setValidationErrors([])
@@ -217,9 +218,14 @@ export default function PlanPage() {
       const localPrefs = JSON.parse(safeLocalStorage.getItem("userPreferences") || "{}")
       const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
 
+      // Long trips can take 3+ minutes to generate, set 5 min timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000)
+
       const response = await fetch("/api/deepseek", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           departureCity: sanitizeInput(departureCity),
           destinationType: destination,
@@ -236,6 +242,8 @@ export default function PlanPage() {
           preferences: finalPreferences
         })
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -338,7 +346,11 @@ export default function PlanPage() {
       }
     } catch (error: any) {
       console.error("Generation Error:", error)
-      alert(`Ошибка при генерации маршрута: ${error.message}`)
+      if (error.name === 'AbortError') {
+        toast.error("Генерация заняла слишком много времени. Попробуйте уменьшить количество дней.")
+      } else {
+        toast.error(`Ошибка генерации: ${error.message}`)
+      }
     } finally {
       setLoading(false)
     }

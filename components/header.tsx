@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu, Shield } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,6 +29,7 @@ interface HeaderProps {
 export function Header({ floating = false }: HeaderProps) {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
@@ -36,8 +37,16 @@ export function Header({ floating = false }: HeaderProps) {
 
   useEffect(() => {
     setIsMounted(true)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user || null)
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -153,6 +162,14 @@ export function Header({ floating = false }: HeaderProps) {
                         Мои маршруты
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                        <Link href="/admin" className="w-full flex items-center">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Админ-панель
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer" onClick={handleLogout}>
@@ -275,6 +292,14 @@ export function Header({ floating = false }: HeaderProps) {
                       <span>Настройки</span>
                     </Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                      <Link href="/admin" className="w-full flex items-center p-2">
+                        <Shield className="mr-3 h-4 w-4" />
+                        <span>Админ-панель</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

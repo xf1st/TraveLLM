@@ -193,6 +193,8 @@ export default function AdminTripsPage() {
                     <TableHead>Пользователь</TableHead>
                     <TableHead>Дней</TableHead>
                     <TableHead>Статус</TableHead>
+                    <TableHead>Токены</TableHead>
+                    <TableHead>Стоимость</TableHead>
                     <TableHead>Создан</TableHead>
                     <TableHead className="text-right">Действия</TableHead>
                   </TableRow>
@@ -200,7 +202,7 @@ export default function AdminTripsPage() {
                 <TableBody>
                   {filteredTrips.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         Маршруты не найдены
                       </TableCell>
                     </TableRow>
@@ -237,6 +239,16 @@ export default function AdminTripsPage() {
                               ? "Завершён"
                               : "Черновик"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {trip.token_usage?.totalTokens
+                            ? trip.token_usage.totalTokens.toLocaleString("ru-RU")
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {trip.token_usage?.costRub
+                            ? `${trip.token_usage.costRub.toFixed(2)} ₽`
+                            : "—"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1 text-sm">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp } from "lucide-react"
+import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -14,6 +14,7 @@ interface AIStats {
     totalCostUsd: number
     totalCostRub: number
     avgTokensPerRequest: number
+    avgCostPerRequest: number
     cacheHitRate: string
   }
   dailyStats: { date: string; tokens: number; cost: number; requests: number }[]
@@ -31,6 +32,7 @@ export default function AdminDashboard() {
   const [aiStats, setAiStats] = useState<AIStats | null>(null)
   const [aiStatsPeriod, setAiStatsPeriod] = useState<"today" | "week" | "month" | "all">("week")
   const [loading, setLoading] = useState(true)
+  const [aiLoading, setAiLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -96,6 +98,7 @@ export default function AdminDashboard() {
   // Fetch AI stats
   useEffect(() => {
     const fetchAiStats = async () => {
+      setAiLoading(true)
       try {
         const res = await fetch(`/api/admin/ai-stats?period=${aiStatsPeriod}`)
         if (res.ok) {
@@ -104,6 +107,8 @@ export default function AdminDashboard() {
         }
       } catch (error) {
         console.error('Failed to fetch AI stats:', error)
+      } finally {
+        setAiLoading(false)
       }
     }
     fetchAiStats()
@@ -111,9 +116,11 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Загрузка...</h1>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Загрузка админ-панели</h2>
+          <p className="text-muted-foreground">Получение статистики...</p>
         </div>
       </div>
     )
@@ -210,6 +217,12 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {aiLoading ? (
+            <div className="col-span-full flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+              <span className="text-muted-foreground">Загрузка статистики AI...</span>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -266,14 +279,15 @@ export default function AdminDashboard() {
                   {aiStats?.summary.totalCostRub?.toFixed(0) || "0"} ₽
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Курс ~100 ₽/$
+                  Курс ~80 ₽/$
                 </p>
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Daily chart */}
-          {aiStats?.dailyStats && aiStats.dailyStats.length > 0 && (
+          {!aiLoading && aiStats?.dailyStats && aiStats.dailyStats.length > 0 && (
             <Card className="mt-4">
               <CardHeader>
                 <CardTitle className="text-sm font-medium">Использование за последние 7 дней</CardTitle>

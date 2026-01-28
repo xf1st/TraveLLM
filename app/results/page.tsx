@@ -311,13 +311,13 @@ function ResultsContent() {
                         {/* Gradient that matches the card background exactly */}
                         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-zinc-900 via-zinc-900/80 to-transparent" />
 
-                        {/* Match Badge - Small/Compact */}
+                        {/* Safety Badge */}
                         <div className="absolute top-4 right-4 relative z-20 scale-90 origin-top-right">
-                          <div className="flex items-center gap-1.5 rounded-full bg-[#22c55e] text-white px-2 py-0.5 shadow-lg border border-green-400/30">
-                            <CheckCircle2 className="h-3 w-3 fill-white text-[#22c55e]" />
+                          <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/90 text-white px-2 py-0.5 shadow-lg border border-emerald-400/30">
+                            <Shield className="h-3 w-3" />
                             <div className="flex flex-col leading-none">
-                              <span className="text-[7px] uppercase font-black opacity-90 tracking-tighter">Совпадение</span>
-                              <span className="text-[10px] font-black text-white">100%</span>
+                              <span className="text-[7px] uppercase font-black opacity-90 tracking-tighter">Безопасность</span>
+                              <span className="text-[10px] font-black text-white">{trip.safetyLevel}/10</span>
                             </div>
                           </div>
                         </div>

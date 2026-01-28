@@ -2,52 +2,65 @@
 // 1. Wikimedia Commons (Primary - Works in Russia, high quality)
 // 2. Static Fallback (Reliable known images for popular destinations)
 
+// --- In-memory cache for image URLs ---
+const imageCache = new Map<string, { url: string; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 // --- Wikimedia Logic (Strict Photo Filter) ---
 
 async function searchWikimedia(query: string) {
     try {
+        // Only try first 2 queries to speed up
         const queries = [
             query + " travel",
-            query + " landmark",
-            query + " city",
-            query.split(' ').slice(0, 2).join(' '),
-            query.split(' ')[0]
+            query + " landmark"
         ];
 
         for (const q of queries) {
             if (!q || q.length < 2) continue;
 
-            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=15`;
-            const res = await fetch(url, {
-                headers: { 'Accept': 'application/json' }
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout per request
 
-            if (!res.ok) continue;
-            const data = await res.json();
-
-            if (data.query && data.query.pages) {
-                const pages = Object.values(data.query.pages) as any[];
-
-                // Strict Filter: Photos only (JPG), no maps/flags/icons
-                const validImage = pages.find(p => {
-                    const imgUrl = p.imageinfo?.[0]?.url?.toLowerCase();
-                    const title = p.title?.toLowerCase() || "";
-
-                    if (!imgUrl) return false;
-
-                    // Must be JPG
-                    if (!imgUrl.endsWith('.jpg') && !imgUrl.endsWith('.jpeg')) return false;
-
-                    // Content blacklist
-                    const blacklist = ['map', 'chart', 'diagram', 'coat of arms', 'flag', 'icon', 'logo', 'stamp', 'seal', 'location'];
-                    if (blacklist.some(word => title.includes(word))) return false;
-
-                    return true;
+            try {
+                const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=10`;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
-                if (validImage) {
-                    return validImage.imageinfo[0].url;
+                if (!res.ok) continue;
+                const data = await res.json();
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages) as any[];
+
+                    // Strict Filter: Photos only (JPG), no maps/flags/icons
+                    const validImage = pages.find(p => {
+                        const imgUrl = p.imageinfo?.[0]?.url?.toLowerCase();
+                        const title = p.title?.toLowerCase() || "";
+
+                        if (!imgUrl) return false;
+
+                        // Must be JPG
+                        if (!imgUrl.endsWith('.jpg') && !imgUrl.endsWith('.jpeg')) return false;
+
+                        // Content blacklist
+                        const blacklist = ['map', 'chart', 'diagram', 'coat of arms', 'flag', 'icon', 'logo', 'stamp', 'seal', 'location'];
+                        if (blacklist.some(word => title.includes(word))) return false;
+
+                        return true;
+                    });
+
+                    if (validImage) {
+                        return validImage.imageinfo[0].url;
+                    }
                 }
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                // Timeout or network error, try next query
+                continue;
             }
         }
         return null;
@@ -101,12 +114,31 @@ function getStaticFallback(query: string): string {
 // --- Main Export ---
 
 export async function getDestinationImage(query: string) {
-    // 1. Try Wikimedia (Primary - Works in Russia)
-    const wikiImage = await searchWikimedia(query);
-    if (wikiImage) return wikiImage;
+    const cacheKey = query.toLowerCase().trim();
 
-    // 2. Fallback: Known static images for popular destinations
-    return getStaticFallback(query);
+    // Check cache first
+    const cached = imageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.url;
+    }
+
+    // Check static fallback first (instant)
+    const staticImage = getStaticFallback(query);
+    if (staticImage !== FALLBACK_IMAGES["travel"]) {
+        imageCache.set(cacheKey, { url: staticImage, timestamp: Date.now() });
+        return staticImage;
+    }
+
+    // Try Wikimedia (slower, with timeout)
+    const wikiImage = await searchWikimedia(query);
+    if (wikiImage) {
+        imageCache.set(cacheKey, { url: wikiImage, timestamp: Date.now() });
+        return wikiImage;
+    }
+
+    // Fallback to generic travel image
+    imageCache.set(cacheKey, { url: staticImage, timestamp: Date.now() });
+    return staticImage;
 }
 
 export async function getGalleryImages(query: string, count: number = 4) {

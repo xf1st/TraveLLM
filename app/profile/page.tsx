@@ -839,13 +839,15 @@ function ProfileContent() {
 
                     {activeTab === "settings" && (
                       <div className="max-w-2xl mx-auto space-y-8 pb-20">
-                        {/* Debug Info (Only for devs/diagnostics) */}
+                        {/* Debug Info (Only for devs/diagnostics) - Hidden in production */}
+                        {process.env.NODE_ENV === 'development' && (
                         <Card className="p-4 bg-red-500/5 border-red-500/20 text-[10px] font-mono">
                           <p className="font-bold opacity-50 uppercase mb-2">Diagnostic Data</p>
                           <p>User ID: {debugInfo.userId || "NONE (GUEST)"}</p>
                           <p>DB Error: {debugInfo.error || "None"}</p>
                           <p>Session: {debugInfo.sessionStatus}</p>
                         </Card>
+                        )}
 
                         <Card className="p-6 bg-card/40 border-border space-y-6">
                           <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Настройки приложения</h3>
