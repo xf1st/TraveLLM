@@ -3,9 +3,21 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, MapPin, Activity, AlertCircle } from "lucide-react"
+import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+
+interface AIStats {
+  summary: {
+    totalRequests: number
+    totalTokens: number
+    totalCostUsd: number
+    totalCostRub: number
+    avgTokensPerRequest: number
+    cacheHitRate: string
+  }
+  dailyStats: { date: string; tokens: number; cost: number; requests: number }[]
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -16,6 +28,8 @@ export default function AdminDashboard() {
     todayTrips: 0,
     thisWeekTrips: 0,
   })
+  const [aiStats, setAiStats] = useState<AIStats | null>(null)
+  const [aiStatsPeriod, setAiStatsPeriod] = useState<"today" | "week" | "month" | "all">("week")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -78,6 +92,22 @@ export default function AdminDashboard() {
 
     fetchStats()
   }, [])
+
+  // Fetch AI stats
+  useEffect(() => {
+    const fetchAiStats = async () => {
+      try {
+        const res = await fetch(`/api/admin/ai-stats?period=${aiStatsPeriod}`)
+        if (res.ok) {
+          const data = await res.json()
+          setAiStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch AI stats:', error)
+      }
+    }
+    fetchAiStats()
+  }, [aiStatsPeriod])
 
   if (loading) {
     return (
@@ -157,6 +187,124 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* AI Usage Statistics */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-primary" />
+              Статистика DeepSeek AI
+            </h2>
+            <div className="flex gap-2">
+              {(["today", "week", "month", "all"] as const).map((period) => (
+                <Button
+                  key={period}
+                  variant={aiStatsPeriod === period ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAiStatsPeriod(period)}
+                >
+                  {period === "today" ? "Сегодня" : period === "week" ? "Неделя" : period === "month" ? "Месяц" : "Всё время"}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Запросов к AI</CardTitle>
+                <Zap className="h-4 w-4 text-blue-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-400">
+                  {aiStats?.summary.totalRequests || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ~{aiStats?.summary.avgTokensPerRequest?.toLocaleString() || 0} токенов/запрос
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Токенов использовано</CardTitle>
+                <TrendingUp className="h-4 w-4 text-purple-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-400">
+                  {(aiStats?.summary.totalTokens || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Кэш: {aiStats?.summary.cacheHitRate || "0%"}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Стоимость (USD)</CardTitle>
+                <DollarSign className="h-4 w-4 text-emerald-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-emerald-400">
+                  ${aiStats?.summary.totalCostUsd?.toFixed(2) || "0.00"}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ~${aiStats?.summary.avgCostPerRequest?.toFixed(4) || "0"}/запрос
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Стоимость (RUB)</CardTitle>
+                <span className="text-amber-400 font-bold">₽</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-400">
+                  {aiStats?.summary.totalCostRub?.toFixed(0) || "0"} ₽
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Курс ~100 ₽/$
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Daily chart */}
+          {aiStats?.dailyStats && aiStats.dailyStats.length > 0 && (
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Использование за последние 7 дней</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-end justify-between h-32 gap-2">
+                  {aiStats.dailyStats.map((day, i) => {
+                    const maxTokens = Math.max(...aiStats.dailyStats.map(d => d.tokens), 1)
+                    const height = (day.tokens / maxTokens) * 100
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className="w-full bg-primary/20 rounded-t transition-all hover:bg-primary/30"
+                          style={{ height: `${Math.max(height, 4)}%` }}
+                          title={`${day.tokens.toLocaleString()} токенов, $${day.cost.toFixed(4)}`}
+                        />
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(day.date).toLocaleDateString("ru-RU", { weekday: "short" })}
+                        </span>
+                        <span className="text-[10px] font-medium">{day.requests}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-muted-foreground">
+                  <span>Запросов</span>
+                  <span>Наведите для деталей</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

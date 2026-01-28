@@ -129,22 +129,29 @@ export function ItineraryChatWidget({
         } finally {
             setIsLoading(false)
             onModifying?.(false)
+        }
+    }
 
-            // Proactive Booking Suggestion Logic
-            const lowerMsg = userMessage.toLowerCase()
-            if (lowerMsg.includes('билет') || lowerMsg.includes('перелет') || lowerMsg.includes('летим')) {
-                setMessages(prev => [...prev, {
-                    role: "assistant",
-                    content: "Я могу помочь подобрать билеты! Хотите посмотреть рейсы?",
-                    bookingData: { type: "flight", destination: itinerary?.[0]?.title }
-                }])
-            } else if (lowerMsg.includes('отель') || lowerMsg.includes('жилье') || lowerMsg.includes('где жить')) {
-                setMessages(prev => [...prev, {
-                    role: "assistant",
-                    content: "Нашел несколько вариантов жилья по вашему бюджету. Посмотрим?",
-                    bookingData: { type: "hotel", destination: itinerary?.[0]?.title }
-                }])
-            }
+    // Proactive Booking Suggestion - called after successful response, not in finally
+    const maybeAddBookingSuggestion = (userMessage: string, currentMessages: Message[]) => {
+        const lowerMsg = userMessage.toLowerCase()
+        const hasBookingSuggestion = currentMessages.some(m => m.bookingData)
+
+        // Don't add if there's already a booking suggestion in recent messages
+        if (hasBookingSuggestion) return
+
+        if (lowerMsg.includes('билет') || lowerMsg.includes('перелет') || lowerMsg.includes('летим')) {
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: "Я могу помочь подобрать билеты! Хотите посмотреть рейсы?",
+                bookingData: { type: "flight", destination: itinerary?.countries?.[0]?.name || itinerary?.destination || "" }
+            }])
+        } else if (lowerMsg.includes('отель') || lowerMsg.includes('жилье') || lowerMsg.includes('где жить')) {
+            setMessages(prev => [...prev, {
+                role: "assistant",
+                content: "Нашел несколько вариантов жилья по вашему бюджету. Посмотрим?",
+                bookingData: { type: "hotel", destination: itinerary?.countries?.[0]?.name || itinerary?.destination || "" }
+            }])
         }
     }
 
@@ -250,7 +257,7 @@ export function ItineraryChatWidget({
                                         onClick={() => {
                                             const url = msg.bookingData!.type === 'flight'
                                                 ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
-                                                : `https://ostrovok.ru/hotel/russia/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                                : `https://ostrovok.ru/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
                                             window.open(url, '_blank')
                                         }}
                                     >

@@ -1,6 +1,6 @@
 // DeepSeek (Primary) -> OpenRouter (Fallback)
 import { openrouterInference } from "@/lib/openrouter"
-import { deepseekInference } from "@/lib/deepseek"
+import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
@@ -73,10 +73,18 @@ function sanitizeClosedAirportLogistics(routeData: any) {
 export async function POST(req: Request) {
     try {
         // Check maintenance mode
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://gsmdgtopofvklvkninfl.supabase.co',
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzbWRndG9wb2Z2a2x2a25pbmZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5OTUwNjMsImV4cCI6MjA4MzU3MTA2M30.YBHU74Z1riS8nUTb-ewVBVvfK6TiVGsHuAcuQVJcy6c'
-        )
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error("Supabase credentials not configured")
+            return NextResponse.json(
+                { error: "Сервис временно недоступен. Попробуйте позже." },
+                { status: 503 }
+            )
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey)
         
         const { data: settings } = await supabase
             .from('app_settings')
@@ -157,6 +165,14 @@ export async function POST(req: Request) {
             customBudget
         } = body
 
+        // Helper to safely convert value to array (handles strings, arrays, null/undefined)
+        const toArray = (val: any): string[] => {
+            if (!val) return []
+            if (Array.isArray(val)) return val.filter(Boolean)
+            if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
+            return []
+        }
+
         const durationDays = startDate && endDate
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
             : 7
@@ -195,162 +211,123 @@ export async function POST(req: Request) {
             : destinationType === 'mixed' ? 'Mixed (Russia + Abroad)' : destinationType === 'russia' ? 'Inside Russia' : 'Abroad'
 
         const prompt = `
-      Create a highly detailed, professional travel itinerary.
-      
-      DEPARTURE CITY: ${departureCity}
-      TARGET: ${targetDescription}
-      COUNTRY COUNT: ${countryCount}
-      START DATE: ${startDate || 'Any'}
-      END DATE: ${endDate || 'Any'}
-      DURATION: ${durationDays} days (STRICT: Generate exactly ${durationDays} days)
-      SEASONALITY: Dates are ${startDate} to ${endDate}. CHECK FOR SEASONS/HOLIDAYS. If winter, NO beach swimming unless tropical. If New Year, mention events.
-      BUDGET: ${budgetDesc}. STRICT CAP: ${budgetCap} RUB total. do NOT exceed.
-      STYLE: ${travelStyle.join(', ')}
-      COMPANIONS: ${companions}
-      
-      PERSONALIZATION CONTEXT (VERY IMPORTANT):
-      - Citizenship: ${preferences.citizenship || 'Not specified'}
-      - Nationality: ${preferences.nationality || 'Not specified'}
-      - Known Languages: ${preferences.languages?.join(', ') || 'Not specified'}
-      - Travel Pace: ${preferences.pace || 'moderate'} (STRICT: If 'slow', suggest late starts and more free time. If 'fast', pack the day with activities).
-      - Dietary: ${preferences.dietaryRestrictions?.join(', ') || 'None'}, Extra: ${preferences.dietaryCustom || 'None'}
-      - Interests: ${preferences.interestsDetailed?.join(', ') || 'General'}, Extra: ${preferences.interestsCustom || 'None'}
-      - Available Payment Methods: ${paymentMethods?.join(', ') || 'Not specified'}
-      - Require Russian Speaking Guides: ${requireRussianGuide ? 'YES' : 'NO'}
-      - Visited Countries: ${preferences.visitedCountries?.join(', ') || 'None specified'} (STRICT: If the target country is in this list, suggest NEW/HIDDEN spots. If exploring regions, AVOID these countries entirely).
+Создай детальный профессиональный маршрут путешествия на РУССКОМ языке.
 
-      EXTREMELY IMPORTANT: CURRENT REALITY (JANUARY 2026)
-      You MUST consider these facts for travel logic, borders, and airports:
-      - RESTRICTIONS: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
-      - AIRPORTS: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
-      - FLIGHTS: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
-      - CLOSED AIRPORTS (ABSOLUTE BAN ON FLIGHTS): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'N/A'}
-      - CURRENT TRENDS: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
-      
-      COMMANDS:
-      1. LOGISTICS: Include full door-to-door logistics (starting from ${departureCity} airport/station).
-      2. TRANSIT: For every movement, specify: Mode, Distance (km), Travel Time, and price. 
-      3. COST BREAKDOWN: For EVERY activity, provide a REALISTIC estimated cost in RUB. **NEVER use '0' or 'Free' for everything.** Even a walk involves buying water/snack. Estimate ~500-1000 RUB for free activities (as misc expenses). Dinner must be 1500-5000 RUB depending on budget.
-      4. LINKS: Provide links only for PAID tickets (museums, events).
-      5. DAILY SUMMARY: Sum up costs.
-      6. BUDGET ANALYSIS: Fill 'budgetAnalysis' with concrete numbers. 'avgAccommodation' must be realistic (e.g. 5000-15000 RUB).
-      7. NAMED ENTITIES (CRITICAL): **BAN GENERIC NAMES.**
-         - BAD: "Local Restaurant", "Central Park", "City Museum", "Try local cuisine".
-         - GOOD: "Ресторан 'Dr. Живаго'", "Парк Зарядье", "Третьяковская Галерея", "Попробуйте паэлью в La Barraca".
-         - If you don't know a name, SEARCH your knowledge base.
-      8. LANGUAGE: **STRICTLY RUSSIAN**. Do NOT use English words like 'nearby', 'local', 'city'. Translate everything.
-      
-      9. ACTUALIZATION & SOCIAL PROOF (MOST IMPORTANT):
-         - You MUST prioritize locations that are currently "viral" or trending on TikTok, Instagram, and Vkontakte for the given destination.
-         - Ensure the places have high ratings on Google Maps/Yandex Maps.
+ИСХОДНЫЕ ДАННЫЕ:
+- Город отправления: ${departureCity}
+- Направление: ${targetDescription}
+- Количество стран/городов: ${countryCount}
+- Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
+- Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
+- Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
+- Бюджет: ${budgetDesc}. СТРОГИЙ ЛИМИТ: ${budgetCap} ₽. НЕ ПРЕВЫШАЙ.
+- Стиль: ${travelStyle.join(', ')}
+- Компания: ${companions}
 
-      10. **STRICT LOGISTICS & CONTINUITY (NO TELEPORTATION):**
-          - **CONTINUITY RULE:** If Day N ends in City A, Day N+1 **MUST** start in City A. You cannot simply appear in City B.
-          - **MOVEMENT:** If moving between cities, Day N MUST have a "Logistics" entry describing the transfer.
-          - **FEASIBILITY (2026):** 
-            - Direct flights from Russia to Europe/USA are **RESTRICTED**. You MUST simulate a layover (e.g., via Istanbul, Dubai, Belgrade, Yerevan).
-            - If Flight is indirect, set Mode to "Flight (w/ Layover in [City])".
-            - Show total duration including layovers (e.g., "6h flight + 3h layover + 4h flight").
-            - **ABSOLUTE BAN:** If destination or origin is in CLOSED AIRPORTS list (example: Курск (URS)), you MUST NOT propose any flight. Use train/bus/car and explain that the airport is closed.
-          - **RETURN:** The FINAL Day must logically conclude the trip (e.g., "Transfer to Airport" or "Return Flight to ${departureCity}").
-          - **MULTI-MODAL:** If distance < 600km, prefer High-Speed Train (Sapsan, Lastochka, TGV) over Flight.
-          - **REALISM:** Do NOT schedule a flight and a full day of museum tours in the same morning. Travel takes time.
-      
-      LANGUAGE: Respond strictly in RUSSIAN.
-      FORMAT: JSON ONLY.
+ПЕРСОНАЛИЗАЦИЯ:
+- Гражданство: ${preferences?.citizenship || 'Не указано'}
+- Языки: ${toArray(preferences?.languages).join(', ') || 'Не указано'}
+- Темп: ${preferences?.pace || 'moderate'} (slow = поздние подъёмы, много свободного времени; fast = насыщенный день)
+- Диета: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'Без ограничений'}, доп: ${preferences?.dietaryCustom || 'Нет'}
+- Интересы: ${toArray(preferences?.interestsDetailed).join(', ') || 'Общие'}, доп: ${preferences?.interestsCustom || 'Нет'}
+- Способы оплаты: ${toArray(paymentMethods).join(', ') || 'Не указано'}
+- Русскоговорящий гид: ${requireRussianGuide ? 'ДА' : 'НЕТ'}
+- Посещённые страны: ${toArray(preferences?.visitedCountries).join(', ') || 'Нет'} (предлагай НОВЫЕ места, избегай повторов)
 
-      JSON Schema:
-      {
-        "title": "Topic",
-        "description": "Intro",
-        "totalBudget": "150 000 ₽",
-        "budgetAnalysis": {
-          "avgAccommodation": "5 000 ₽/ночь",
-          "avgFood": "3 000 ₽/день",
-          "avgTransport": "10 000 ₽",
-          "avgActivities": "20 000 ₽",
-          "avgMisc": "5 000 ₽"
+РЕАЛЬНОСТЬ ЯНВАРЯ 2026 (КРИТИЧНО):
+- Ограничения: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
+- Аэропорты: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
+- Авиасообщение: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
+- ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
+- Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
+
+ПРАВИЛА ГЕНЕРАЦИИ:
+
+1. ЛОГИСТИКА: Полная door-to-door логистика от ${departureCity}.
+
+2. СТОИМОСТЬ: Для КАЖДОЙ активности указывай реальную цену в рублях. НИКОГДА не пиши "0" или "Бесплатно" — даже прогулка = 500-1000₽ (вода, перекус). Ужин = 1500-5000₽.
+
+3. КОНКРЕТНЫЕ НАЗВАНИЯ (КРИТИЧНО):
+   - ПЛОХО: "Местный ресторан", "Центральный парк", "Городской музей"
+   - ХОРОШО: "Ресторан 'Dr. Живаго'", "Парк Зарядье", "Третьяковская галерея"
+
+4. КОНТИНУИТЕТ (НЕТ ТЕЛЕПОРТАЦИИ):
+   - День N заканчивается в городе A → День N+1 НАЧИНАЕТСЯ в городе A
+   - Перемещение между городами = отдельная запись в logistics
+   - Перелёты Россия↔Европа/США только с ПЕРЕСАДКОЙ (Стамбул, Дубай, Белград)
+   - Расстояние < 600км = поезд вместо самолёта
+
+5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО — НЕТ МГНОВЕННОЙ ТЕЛЕПОРТАЦИИ):
+   - Если в logistics указан перелёт/поезд → ПЕРВАЯ активность дня ДОЛЖНА быть "Прибытие и заселение"
+   - Перелёт 2-4 часа + трансфер = активности начинаются с "День" или "Вечер", НЕ с "Утро"
+   - Перелёт 5+ часов = день посвящён перелёту, активности только вечером (ужин, прогулка)
+   - ПЛОХО: logistics "Перелёт Белград→Стамбул 4ч" + Утро: "Прогулка по Балат"
+   - ХОРОШО: logistics "Перелёт Белград→Стамбул 4ч" + Утро: "Перелёт и прибытие в Стамбул" + День: "Заселение в отель, район Бейоглу" + Вечер: "Прогулка по Балат"
+   - Последний день = возвращение в ${departureCity} (весь день на обратный путь)
+   - Цены 2026: Москва 4* = ~12000₽/ночь, Стамбул 3* = ~8000₽/ночь
+
+6. VIRAL SPOTS: Добавь 3-5 популярных в TikTok/Instagram локаций в отдельный массив viralSpots.
+
+JSON СХЕМА (строго следуй):
+{
+  "title": "Название маршрута",
+  "description": "Описание на 2-3 предложения",
+  "totalBudget": "150 000 ₽",
+  "budgetAnalysis": {
+    "avgAccommodation": "5 000 ₽/ночь",
+    "avgFood": "3 000 ₽/день",
+    "avgTransport": "10 000 ₽",
+    "avgActivities": "20 000 ₽",
+    "avgMisc": "5 000 ₽"
+  },
+  "visaAdvice": "Информация о визе для граждан РФ",
+  "paymentAdvice": "Какие карты работают, где менять деньги",
+  "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
+  "restrictions": "Текущие ограничения или null",
+  "countries": [{"name": "Название страны"}],
+  "tags": ["культура", "еда", "природа"],
+  "coverImage": "",
+  "viralSpots": [
+    { "name": "Название", "desc": "Почему популярно", "mapLink": "https://..." }
+  ],
+  "itinerary": [
+    {
+      "day": 1,
+      "title": "Прибытие в город",
+      "dayTotal": "15 000 ₽",
+      "activities": [
+        {
+          "time": "Утро",
+          "placeName": "КОНКРЕТНОЕ название места",
+          "desc": "Подробное описание",
+          "cost": "500 ₽",
+          "ticketsRequired": false,
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Название+Места",
+          "link": ""
         },
-        "visaAdvice": "...",
-        "paymentAdvice": "...",
-        "safetyInfo": { "rating": 9, "tips": "..." },
-        "restrictions": "...",
-        "countries": [{"name": "Russia"}],
-        "tags": ["#tag"],
-        "coverImage": "",
-        "itinerary": [
-          {
-            "day": 1,
-            "title": "Arrival in Moscow",
-            "image": "", 
-            "dayTotal": "15 000 ₽",
-            "activities": [
-              { 
-                "time": "Утро", 
-                "placeName": "Конкретное Название Места (ОБЯЗАТЕЛЬНО)",
-                "desc": "Подробное описание активности, что делать и почему это интересно...", 
-                "cost": "500 ₽", 
-                "ticketsRequired": false,
-                "mapLink": "https://www.google.com/maps/search/?api=1&query=Название+Места",
-                "link": "" 
-              },
-              { "time": "День", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": true, "mapLink": "...", "link": "https://..." },
-              { "time": "Вечер", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": false, "mapLink": "...", "link": "" }
-            ],
-            "logistics": { "mode": "Taxi", "from": "A", "to": "B", "distance": "10km", "duration": "30m", "price": "1000 ₽" }
-          }
-        ]
+        { "time": "День", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": true, "mapLink": "...", "link": "https://..." },
+        { "time": "Вечер", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": false, "mapLink": "...", "link": "" }
+      ],
+      "logistics": {
+        "mode": "Такси/Самолёт/Поезд",
+        "from": "Откуда",
+        "to": "Куда",
+        "distance": "10 км",
+        "duration": "30 мин",
+        "price": "1000 ₽",
+        "bookingLink": "https://..."
       }
-      
-      CRITICAL INSTRUCTIONS:
-      1. For 'activities', you MUST generate EXACTLY 3 items for every single day: "Утро", "День", "Вечер".
-      2. 'placeName' is MANDATORY. It MUST be the REAL, SPECIFIC name of a venue, museum, restaurant, park, etc. 
-      3. 'mapLink' is MANDATORY. Generate a Google Maps search URL for each placeName.
-      4. 'link' should be a real booking/ticket website URL (GetYourGuide, Viator, Aviasales) if ticketsRequired is true.
-      
-      5. **REALISM & PRICING (2026 REALITY):**
-         - Prices have risen significantly. Do NOT underestimate.
-         - 'avgTransport' MUST include ROUND TRIP flights + local transport. 
-         - 'avgAccommodation': Real 2026 rates (e.g., Moscow 4* is ~12k₽, Istanbul 3* is ~8k₽).
-         - 'avgFood': Real restaurant prices (e.g., Dinner ~2000-5000₽/person).
-         
-      6. **FLIGHT & TRANSPORT LINKS:**
-         - For flight booking links, TRY to use the correct IATA codes if you know them (e.g. MOW, LED, IST, DXB).
-         - Format: https://www.aviasales.ru/search/{ORIGIN_IATA}{DATE_DDMM}{DEST_IATA}1
-         - If unsure of IATA, use the search format: https://www.aviasales.ru/search?origin_name={CITY}&destination_name={DEST}&depart_date={YYYY-MM-DD}
-      
-      7. **VIRAL / GHOST SPOTS (TIKTOK/INSTAGRAM):**
-         - You MUST generate a 'viralSpots' array in the metadata (or root JSON).
-         - These are "Hidden Gems" or "Photo Spots" that might not be in the main daily plan but are highly popular on socials.
-         - Format: { "name": "...", "description": "Why it's viral (e.g. 'Painted walls', 'Best sunset view')", "coordinates": [lat, lng] (approximate) or "mapLink" }
-         
-      JSON Schema:
-      {
-        "title": "Topic",
-        "description": "Intro",
-        "totalBudget": "150 000 ₽",
-        "budgetAnalysis": {
-          "avgAccommodation": "5 000 ₽/ночь",
-          "avgFood": "3 000 ₽/день",
-          "avgTransport": "10 000 ₽",
-          "avgActivities": "20 000 ₽",
-          "avgMisc": "5 000 ₽"
-        },
-        "visaAdvice": "...",
-        "paymentAdvice": "...",
-        "safetyInfo": { "rating": 9, "tips": "..." },
-        "restrictions": "...",
-        "countries": [{"name": "Russia"}],
-        "tags": ["#tag"],
-        "coverImage": "",
-        "viralSpots": [
-            { "name": "Pink Lake", "desc": "Trending for pink water photos", "mapLink": "..." }
-        ],
-        "itinerary": [ ... ]
-      }
-      
-      LANGUAGE: Respond strictly in RUSSIAN.
-      FORMAT: JSON ONLY.`;
+    }
+  ]
+}
+
+КРИТИЧНО:
+- Ровно 3 активности в день: "Утро", "День", "Вечер"
+- placeName и mapLink ОБЯЗАТЕЛЬНЫ
+- Все строки в двойных кавычках, включая теги
+- Ответ ТОЛЬКО JSON, без markdown
+
+ЯЗЫК: Строго РУССКИЙ.`;
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
 
@@ -448,92 +425,110 @@ CRITICAL:
             return parseJsonResponse(raw, "DeepSeek-Meta");
         }
 
-        // Generate a chunk of days (e.g., days 1-4)
-        async function generateDayChunk(startDay: number, endDay: number, destination: string): Promise<any[]> {
+        // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
+        async function generateDayChunk(
+            startDay: number,
+            endDay: number,
+            destination: string,
+            previousContext?: { lastCity: string; visitedPlaces: string[] }
+        ): Promise<any[]> {
+            const isFirstChunk = startDay === 1
+            const isLastChunk = endDay === durationDays
+            const startLocation = previousContext?.lastCity || departureCity
+            const visitedPlaces = previousContext?.visitedPlaces || []
+
             const chunkPrompt = `
-Generate ONLY days ${startDay} to ${endDay} of a ${durationDays}-day trip itinerary.
+Сгенерируй ДНИ ${startDay}-${endDay} из ${durationDays}-дневного маршрута.
 
-CONTEXT:
-- DESTINATION: ${destination}
-- DEPARTURE CITY: ${departureCity}
-- STYLE: ${travelStyle.join(', ')}
-- PACE: ${preferences.pace || 'moderate'} (STRICT: Follow intensity based on pace)
-- DIETARY: ${preferences.dietaryRestrictions?.join(', ') || 'None'}
-- BUDGET LEVEL: ${budgetDesc}
-- START DATE: ${startDate || 'Flexible'}
-- END DATE: ${endDate || 'Flexible'}
+КОНТЕКСТ МАРШРУТА:
+- Направление: ${destination}
+- Город отправления: ${departureCity}
+- Стиль: ${toArray(travelStyle).join(', ') || 'Не указан'}
+- Темп: ${preferences?.pace || 'moderate'}
+- Диета: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'Без ограничений'}
+- Бюджет: ${budgetDesc}
+- Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 
-STRICT LOGISTICS RULES:
-1. **NO TELEPORTATION:** check where the previous day ended. Start there.
-2. **LAYOVERS:** If flying Russia <-> Europe/USA, you MUST include a layover (Istanbul/Dubai).
-3. **RETURN:** If this is the last chunk, ensure the trip ends with a return to origin or airport transfer.
-4. **TIMING:** Travel time must be realistic. Don't teleport.
+КРИТИЧНО — КОНТИНУИТЕТ МАРШРУТА:
+${isFirstChunk
+    ? `- Это ПЕРВЫЙ сегмент. День 1 начинается в ${departureCity} (вылет/выезд).`
+    : `- День ${startDay} ОБЯЗАТЕЛЬНО начинается в городе: ${startLocation}
+- УЖЕ посещённые места (НЕ ПОВТОРЯТЬ): ${visitedPlaces.join(', ') || 'Нет'}`
+}
+${isLastChunk
+    ? `- Это ПОСЛЕДНИЙ сегмент. День ${endDay} должен завершиться возвращением в ${departureCity}.`
+    : `- В конце дня ${endDay} укажи город, где путешественник останется на ночь.`
+}
 
-For EACH day, provide exactly this JSON structure inside an array:
+ПРАВИЛА ЛОГИСТИКИ:
+1. НЕТ ТЕЛЕПОРТАЦИИ: проверяй, где закончился предыдущий день
+2. Перелёты Россия↔Европа/США = только с пересадкой (Стамбул/Дубай)
+3. Время в пути должно быть реалистичным
+4. Расстояние < 600км = поезд вместо самолёта
+5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО):
+   - Если logistics содержит перелёт → первая активность = "Прибытие и заселение"
+   - Перелёт 2-4ч: активности начинаются с "День", НЕ с "Утро"
+   - Перелёт 5+ч: день посвящён перелёту, активности только вечером
+   - ПЛОХО: logistics "Перелёт 4ч" + Утро: "Прогулка"
+   - ХОРОШО: logistics "Перелёт 4ч" + Утро: "Перелёт" + День: "Заселение" + Вечер: "Прогулка"
+
+РЕАЛЬНОСТЬ 2026:
+- Закрытые аэропорты: ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
+- Ограничения: ${GROUNDING_DATA_2026.globalRestrictions[0]}
+
+Формат ответа — JSON массив:
 [
   {
     "day": ${startDay},
     "title": "Название дня",
     "dayTotal": "X ₽",
+    "endCity": "Город на конец дня",
     "activities": [
-      { 
-        "time": "Утро", 
-        "placeName": "КОНКРЕТНОЕ название места", 
-        "desc": "Описание", 
-        "cost": "X ₽", 
-        "ticketsRequired": false, 
-        "mapLink": "https://www.google.com/maps/search/?api=1&query=PLACE_NAME+CITY",
-        "link": "" 
-      }
+      {
+        "time": "Утро",
+        "placeName": "КОНКРЕТНОЕ название",
+        "desc": "Описание",
+        "cost": "X ₽",
+        "ticketsRequired": false,
+        "mapLink": "https://www.google.com/maps/search/?api=1&query=...",
+        "link": ""
+      },
+      { "time": "День", ... },
+      { "time": "Вечер", ... }
     ],
-    "logistics": { 
-      "mode": "Самолет/Поезд/Такси", 
-      "from": "Откуда", 
-      "to": "Куда", 
-      "distance": "Xkm", 
-      "duration": "Xч", 
+    "logistics": {
+      "mode": "Самолёт/Поезд/Такси",
+      "from": "Откуда",
+      "to": "Куда",
+      "distance": "X км",
+      "duration": "X ч",
       "price": "X ₽",
-      "bookingLink": "URL для бронирования"
+      "bookingLink": "URL"
     }
   }
 ]
 
-CRITICAL LINK FORMATS:
-1. mapLink (ОБЯЗАТЕЛЬНО): https://www.google.com/maps/search/?api=1&query=URL_ENCODED_PLACE_NAME
-   Пример: https://www.google.com/maps/search/?api=1&query=Museo+del+Prado+Madrid
+КРИТИЧНО:
+- Ровно ${endDay - startDay + 1} дней (с ${startDay} по ${endDay})
+- 3 активности в день: Утро, День, Вечер
+- placeName = реальные названия мест
+- endCity = город, где заканчивается день (для следующего сегмента)
+- Ответ ТОЛЬКО JSON массив, без markdown
+- Язык: РУССКИЙ`;
 
-2. Для logistics.bookingLink используй РЕАЛЬНЫЕ ссылки:
-   - АВИАБИЛЕТЫ: https://www.aviasales.ru/search/${departureCity.substring(0, 3).toUpperCase()}${startDate?.replace(/-/g, '')}${destination.substring(0, 3).toUpperCase()}1
-   - ПОЕЗДА РЖД: https://www.rzd.ru/
-   - АВТОБУСЫ: https://www.blablacar.ru/search?fn=${departureCity}&tn=${destination}
-   
-3. Для ticketsRequired=true в link используй:
-   - МУЗЕИ: https://www.google.com/search?q=купить+билеты+НАЗВАНИЕ+МУЗЕЯ+официальный+сайт
-   - ЭКСКУРСИИ: https://www.getyourguide.com/s/?q=DESTINATION+ACTIVITY&searchSource=1
-   - СОБЫТИЯ: https://www.google.com/search?q=tickets+EVENT_NAME+official
-
-RULES:
-- Generate EXACTLY ${endDay - startDay + 1} days (from day ${startDay} to day ${endDay})
-- Each day MUST have exactly 3 activities: Утро, День, Вечер
-- placeName MUST be REAL specific venue names
-- ALL links must be properly URL-encoded
-- Respond in RUSSIAN only
-- Output ONLY the JSON array`;
-
-            console.log(`Parallel: Generating days ${startDay}-${endDay}...`);
+            console.log(`Parallel: Generating days ${startDay}-${endDay} (start: ${startLocation})...`);
             const messages = [
                 { role: "system" as const, content: systemPrompt },
                 { role: "user" as const, content: chunkPrompt }
             ]
 
-            const tokensNeeded = (endDay - startDay + 1) * 1800; // ~1800 tokens per day with links
+            const tokensNeeded = (endDay - startDay + 1) * 1800;
             const raw = await deepseekInference(messages, {
                 maxTokens: Math.min(tokensNeeded, 8000),
                 temperature: 0.6,
                 tripDays: endDay - startDay + 1
             });
 
-            // Parse array response
             let clean = raw.match(/\[[\s\S]*\]/)?.[0] || raw;
             return JSON.parse(clean);
         }
@@ -541,11 +536,11 @@ RULES:
         // Main generation logic
         async function generateParallel(): Promise<any> {
             const CHUNK_SIZE = 4; // Days per chunk
-            const USE_PARALLEL = durationDays > 7;
+            const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
-            if (!USE_PARALLEL) {
+            if (!USE_SEQUENTIAL_CHUNKS) {
                 // Short trip - use original single request
-                console.log(`Short trip(${durationDays} days) - using single request`);
+                console.log(`Short trip (${durationDays} days) - using single request`);
                 const messages = [
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }
@@ -554,8 +549,8 @@ RULES:
                 return parseJsonResponse(raw, "DeepSeek");
             }
 
-            // Long trip - parallel generation
-            console.log(`Long trip(${durationDays} days) - using PARALLEL generation`);
+            // Long trip - sequential chunk generation with context passing
+            console.log(`Long trip (${durationDays} days) - using SEQUENTIAL chunks with context`);
             const startTime = Date.now();
 
             // Create chunk ranges
@@ -573,37 +568,74 @@ RULES:
                 (destinationType === 'russia' ? 'Россия' :
                     destinationType === 'abroad' ? 'Европа/Азия' : 'Международный');
 
-            // Run ALL requests in parallel
-            const [metadata, ...dayChunks] = await Promise.all([
+            // Generate metadata in parallel with first chunk
+            const [metadata, firstChunk] = await Promise.all([
                 generateMetadata(),
-                ...chunks.map(chunk => generateDayChunk(chunk.start, chunk.end, destName))
+                generateDayChunk(chunks[0].start, chunks[0].end, destName, undefined)
             ]);
 
-            // Merge all days into single itinerary
-            const allDays = dayChunks.flat().sort((a, b) => a.day - b.day);
+            // Generate remaining chunks SEQUENTIALLY with context from previous chunk
+            const allDays = [...firstChunk];
+            let previousContext = {
+                lastCity: firstChunk[firstChunk.length - 1]?.endCity ||
+                          firstChunk[firstChunk.length - 1]?.logistics?.to ||
+                          destName,
+                visitedPlaces: firstChunk.flatMap((day: any) =>
+                    (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
+                )
+            };
+
+            for (let i = 1; i < chunks.length; i++) {
+                console.log(`Generating chunk ${i + 1}/${chunks.length} (context: ${previousContext.lastCity})`);
+                const chunkDays = await generateDayChunk(
+                    chunks[i].start,
+                    chunks[i].end,
+                    destName,
+                    previousContext
+                );
+                allDays.push(...chunkDays);
+
+                // Update context for next chunk
+                const lastDay = chunkDays[chunkDays.length - 1];
+                previousContext = {
+                    lastCity: lastDay?.endCity || lastDay?.logistics?.to || previousContext.lastCity,
+                    visitedPlaces: [
+                        ...previousContext.visitedPlaces,
+                        ...chunkDays.flatMap((day: any) =>
+                            (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
+                        )
+                    ]
+                };
+            }
+
+            // Sort and merge
+            allDays.sort((a, b) => a.day - b.day);
 
             const result = {
                 ...metadata,
                 itinerary: allDays,
-                coverImage: "", // Will be enriched below
+                coverImage: "",
                 preferences: {
-                    pace: preferences.pace || 'moderate',
-                    travel_style: travelStyle,
-                    interestsDetailed: preferences.interestsDetailed || [],
-                    dietaryRestrictions: preferences.dietaryRestrictions || [],
+                    pace: preferences?.pace || 'moderate',
+                    travel_style: toArray(travelStyle),
+                    interestsDetailed: toArray(preferences?.interestsDetailed),
+                    dietaryRestrictions: toArray(preferences?.dietaryRestrictions),
                     companions: companions,
-                    paymentMethods: paymentMethods || [],
-                    visitedCountries: preferences.visitedCountries || []
+                    paymentMethods: toArray(paymentMethods),
+                    visitedCountries: toArray(preferences?.visitedCountries)
                 }
             };
 
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            console.log(`Parallel generation completed in ${elapsed}s(${chunks.length + 1} requests)`);
+            console.log(`Sequential generation completed in ${elapsed}s (${chunks.length + 1} requests)`);
 
             return result;
         }
 
         try {
+            // Reset token usage counter at start of generation
+            resetSessionUsage();
+
             // PRIMARY: DeepSeek with parallel generation
             try {
                 console.log("Using DeepSeek as primary provider...");
@@ -619,7 +651,12 @@ RULES:
                     // Cover image is optional
                 }
 
+                // Attach token usage statistics to response
+                const usage = getSessionUsage();
+                routeData.tokenUsage = usage;
+
                 console.log("Success with DeepSeek")
+                console.log(`Total tokens: ${usage.totalTokens}, Cost: $${usage.costUsd.toFixed(4)} (~${usage.costRub.toFixed(2)} ₽)`)
                 return NextResponse.json(routeData)
             } catch (deepseekError: any) {
                 console.error("DeepSeek failed:", deepseekError.message)

@@ -154,25 +154,41 @@ export default function TripDetailPage() {
     return () => window.removeEventListener('sidebar-change', checkSidebar)
   }, [])
 
+  // Safe localStorage helper
+  const safeLocalStorage = {
+    getItem: (key: string): string | null => {
+      try {
+        return typeof window !== 'undefined' ? localStorage.getItem(key) : null
+      } catch {
+        return null
+      }
+    }
+  }
+
   useEffect(() => {
     const fetchTrip = async () => {
       setLoading(true)
       const id = params.id as string
+
+      // Validate ID exists
+      if (!id) {
+        console.error("No trip ID provided")
+        setLoading(false)
+        return
+      }
+
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
       const isLocal = id?.startsWith('local-')
 
       console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal)
 
-      // Auth Check for UUID trips
+      // Single auth check
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       setUser(currentUser)
 
-      if (isUuid) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          router.push(`/auth?next=/trip/${id}`)
-          return
-        }
+      if (isUuid && !currentUser) {
+        router.push(`/auth?next=/trip/${id}`)
+        return
       }
 
       let data = null
@@ -188,7 +204,7 @@ export default function TripDetailPage() {
         error = result.error
       } else if (isLocal || id === "ai-last") {
         const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
-        const stored = localStorage.getItem(key)
+        const stored = safeLocalStorage.getItem(key)
         if (stored) {
           try {
             data = JSON.parse(stored)
@@ -200,8 +216,14 @@ export default function TripDetailPage() {
 
       if (!data) {
         if (error) console.error("Error fetching trip:", error.message)
-        const stored = localStorage.getItem("lastGeneratedRoute")
-        if (stored) setRoute(JSON.parse(stored))
+        const stored = safeLocalStorage.getItem("lastGeneratedRoute")
+        if (stored) {
+          try {
+            setRoute(JSON.parse(stored))
+          } catch (e) {
+            console.error("Failed to parse fallback trip data")
+          }
+        }
       } else {
         console.log("Trip data loaded successfully")
         setRoute({
@@ -237,7 +259,7 @@ export default function TripDetailPage() {
       setLoading(false)
     }
     fetchTrip()
-  }, [params.id])
+  }, [params.id, router])
 
   if (loading) {
     return (
@@ -394,7 +416,7 @@ export default function TripDetailPage() {
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
                     <Shield className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
-                    Безопасность 9/10
+                    Безопасность {route.safetyInfo?.rating || 8}/10
                   </div>
 
 
@@ -490,8 +512,7 @@ export default function TripDetailPage() {
                                 className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
                                   const destination = day.logistics?.to || route.destination || ""
-                                  // Remove /hotel/russia/ restriction to allow worldwide search
-                                  const url = `https://ostrovok.ru/?q=${encodeURIComponent(destination)}`
+                                  const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
                                   window.open(url, '_blank')
                                 }}
                               >
@@ -662,7 +683,7 @@ export default function TripDetailPage() {
                 </div>
               </Card>
 
-              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide?tripId=${params.id}`, { scroll: true })}>
+              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide/${params.id}`)}>
                 <div className="relative h-full p-6 bg-black/20 rounded-[1.2rem] transition-colors group-hover:bg-black/30 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-2">
                     <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">

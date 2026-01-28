@@ -18,6 +18,14 @@ import { MapPin, Search, ExternalLink, Calendar } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
+interface TokenUsage {
+  totalTokens?: number
+  promptTokens?: number
+  completionTokens?: number
+  costUsd?: number
+  costRub?: number
+}
+
 interface Trip {
   id: string
   title: string
@@ -29,6 +37,7 @@ interface Trip {
   status: string
   itinerary: any
   countries: any[]
+  token_usage?: TokenUsage | null
 }
 
 export default function AdminTripsPage() {

@@ -66,12 +66,14 @@ export default function PlanPage() {
   const [customBudget, setCustomBudget] = useState("")
   const [date, setDate] = useState<DateRange | undefined>()
   const [travelStyle, setTravelStyle] = useState<string[]>([])
+  const [companions, setCompanions] = useState("couple")
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
   const [guideLanguage, setGuideLanguage] = useState(false)
   const [loading, setLoading] = useState(false)
   const [customDestination, setCustomDestination] = useState("")
   const [profile, setProfile] = useState<any>(null)
   const [accessMode, setAccessMode] = useState<string>("active")
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
 
   // UI State
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -114,32 +116,114 @@ export default function PlanPage() {
     fetchProfile()
   }, [router])
 
+  // Safe localStorage helper
+  const safeLocalStorage = {
+    getItem: (key: string): string | null => {
+      try {
+        return typeof window !== 'undefined' ? localStorage.getItem(key) : null
+      } catch {
+        return null
+      }
+    },
+    setItem: (key: string, value: string): boolean => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(key, value)
+          return true
+        }
+        return false
+      } catch {
+        console.warn('localStorage not available')
+        return false
+      }
+    }
+  }
+
+  // Sanitize user input to prevent prompt injection
+  const sanitizeInput = (input: string): string => {
+    return input
+      .replace(/[<>]/g, '') // Remove potential HTML
+      .replace(/[\r\n]+/g, ' ') // Remove newlines
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim()
+      .slice(0, 500) // Limit length
+  }
+
+  // Validate form before submission
+  const validateForm = (): string[] => {
+    const errors: string[] = []
+
+    if (!departureCity.trim()) {
+      errors.push("Укажите город отправления")
+    }
+
+    if (!date?.from || !date?.to) {
+      errors.push("Выберите даты поездки")
+    } else {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (date.from < today) {
+        errors.push("Дата начала не может быть в прошлом")
+      }
+
+      const durationDays = Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      if (durationDays < 1) {
+        errors.push("Минимальная длительность — 1 день")
+      }
+      if (durationDays > 30) {
+        errors.push("Максимальная длительность — 30 дней")
+      }
+
+      // Check if duration is realistic for multi-country trips
+      if (countryCount === "more" && durationDays < 7) {
+        errors.push("Для тура по 4+ странам рекомендуется минимум 7 дней")
+      }
+    }
+
+    if (destination === "custom" && !customDestination.trim()) {
+      errors.push("Укажите направление")
+    }
+
+    if (budget === "custom") {
+      const budgetNum = parseInt(customBudget.replace(/\D/g, ''))
+      if (!budgetNum || budgetNum < 10000) {
+        errors.push("Минимальный бюджет — 10 000 ₽")
+      }
+    }
+
+    return errors
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Check access mode
     if (accessMode === 'ai_blocked' || accessMode === 'full_blocked') {
       alert("Генерация маршрутов временно недоступна для вашего аккаунта")
       return
     }
-    
-    if (!date?.from || !date?.to) {
-      alert("Пожалуйста, выберите даты поездки")
+
+    // Validate form
+    const errors = validateForm()
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      alert(errors.join('\n'))
       return
     }
+    setValidationErrors([])
     setLoading(true)
 
     try {
-      const localPrefs = JSON.parse(localStorage.getItem("userPreferences") || "{}")
+      const localPrefs = JSON.parse(safeLocalStorage.getItem("userPreferences") || "{}")
       const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
 
       const response = await fetch("/api/deepseek", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          departureCity,
+          departureCity: sanitizeInput(departureCity),
           destinationType: destination,
-          customDestination: destination === 'custom' ? customDestination : undefined,
+          customDestination: destination === 'custom' ? sanitizeInput(customDestination) : undefined,
           countryCount,
           budget,
           customBudget,
@@ -148,7 +232,7 @@ export default function PlanPage() {
           travelStyle,
           paymentMethods,
           requireRussianGuide: guideLanguage,
-          companions: "couple",
+          companions,
           preferences: finalPreferences
         })
       })
@@ -164,14 +248,12 @@ export default function PlanPage() {
 
       const routeData = await response.json()
 
-      // Save to Supabase for all users (persistence requirement)
-      const { data: { user } } = await supabase.auth.getUser()
-
       // Validate mandatory fields
       if (!routeData.title) {
         throw new Error("AI не смог сгенерировать название маршрута. Попробуйте снова.")
       }
 
+      // Save to Supabase for all users (persistence requirement)
       const { data: { user: authUser } } = await supabase.auth.getUser()
 
       const { data: trip, error: dbError } = await supabase.from('trips').insert({
@@ -194,7 +276,9 @@ export default function PlanPage() {
         countries: routeData.countries || null,
         tags: routeData.tags || null,
         cover_image: routeData.coverImage || null,
-        preferences: routeData.preferences || null // Save preferences
+        preferences: routeData.preferences || null,
+        // AI token usage statistics
+        token_usage: routeData.tokenUsage || null
       }).select().single()
 
       let finalTripId: string | null = null
@@ -202,7 +286,7 @@ export default function PlanPage() {
       if (dbError) {
         // Only log if it's NOT an RLS/permission issue for authenticated users
         // Guests (without user) will naturally fail DB insert, so we skip logging for them
-        if (dbError.code !== '42501' && user) {
+        if (dbError.code !== '42501' && authUser) {
           console.error("--- DATABASE INSERT ERROR ---")
           console.error("Error Object:", dbError)
           console.error("Error Code:", dbError.code)
@@ -210,7 +294,7 @@ export default function PlanPage() {
           console.error("Error Details:", dbError.details)
           console.error("Error Hint:", dbError.hint)
           console.log("Attempted Data:", {
-            user_id: user?.id,
+            user_id: authUser?.id,
             title: routeData.title,
             destination: routeData.countries?.[0]?.name || "Travel",
             itinerary_length: routeData.itinerary?.length,
@@ -221,8 +305,8 @@ export default function PlanPage() {
 
         // Generate a unique ID for the guest even if DB fails
         const tempId = `local-${Math.random().toString(36).substring(2, 11)}`
-        localStorage.setItem(`trip-${tempId}`, JSON.stringify(routeData))
-        localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+        safeLocalStorage.setItem(`trip-${tempId}`, JSON.stringify(routeData))
+        safeLocalStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
 
         // Trigger Browser Notification
         if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "granted") {
@@ -249,7 +333,7 @@ export default function PlanPage() {
       } else {
         // ABSOLUTE FALLBACK
         const randomId = `local-fallback-${Date.now()}`
-        localStorage.setItem(`trip-${randomId}`, JSON.stringify(routeData))
+        safeLocalStorage.setItem(`trip-${randomId}`, JSON.stringify(routeData))
         router.push(`/trip/${randomId}`)
       }
     } catch (error: any) {
@@ -304,7 +388,7 @@ export default function PlanPage() {
                     <Users className="h-4 w-4 text-primary" />
                     Компания
                   </Label>
-                  <Select defaultValue="couple">
+                  <Select value={companions} onValueChange={setCompanions}>
                     <SelectTrigger className="h-14 rounded-2xl text-lg px-4 transition-all focus:scale-[1.01] bg-muted/20 border-border/60">
                       <SelectValue />
                     </SelectTrigger>
@@ -348,7 +432,7 @@ export default function PlanPage() {
                           <>
                             {format(date.from, "dd MMMM yyyy", { locale: ru })} - {format(date.to, "dd MMMM yyyy", { locale: ru })}
                             <span className="ml-auto text-sm text-muted-foreground font-medium bg-background/50 px-3 py-1 rounded-lg border border-border/50 hidden sm:inline-block">
-                              {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} дней
+                              {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24)) + 1} дней
                             </span>
                           </>
                         ) : (

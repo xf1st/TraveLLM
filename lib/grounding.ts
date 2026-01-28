@@ -1,5 +1,11 @@
+// Dynamic date for grounding context
+const getCurrentDateString = () => {
+    const now = new Date()
+    return now.toISOString().split('T')[0]
+}
+
 export const GROUNDING_DATA_2026 = {
-    lastUpdated: "2026-01-24",
+    lastUpdated: getCurrentDateString(),
     globalRestrictions: [
         "США: С 21 января 2026 года приостановлена выдача иммиграционных виз (Green Cards) для граждан РФ. Турвизы (B1/B2) выдаются, но с усиленной проверкой.",
         "Евросоюз: Упрощенный визовый режим полностью отменен. Срок рассмотрения в Шенген — от 15 до 45 дней. Некоторые страны (Польша, Прибалтика, Финляндия) закрыты для туристов из РФ.",
