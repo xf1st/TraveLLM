@@ -117,7 +117,7 @@ export default function LandingPage() {
 
 
           {/* Floating Images (Decorative) */}
-          <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 pointer-events-none z-[15]">
             {floatingImages.map((img, i) => (
               <motion.div
                 key={i}
