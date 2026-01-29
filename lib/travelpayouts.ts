@@ -427,3 +427,294 @@ export function getMarkerInfo(): { hasMarker: boolean; marker: string } {
     marker: TRAVELPAYOUTS_MARKER ? `${TRAVELPAYOUTS_MARKER.substring(0, 4)}...` : ""
   }
 }
+
+// ============================================
+// TRAVELPAYOUTS DATA API (Prices & Flights)
+// ============================================
+
+const TRAVELPAYOUTS_API_TOKEN = process.env.TRAVELPAYOUTS_API_TOKEN || ""
+const API_BASE_URL = "https://api.travelpayouts.com"
+
+/**
+ * Проверка наличия API токена
+ */
+export function hasApiToken(): boolean {
+  return !!TRAVELPAYOUTS_API_TOKEN
+}
+
+interface CheapTicket {
+  price: number
+  airline: string
+  flight_number: number
+  departure_at: string
+  return_at: string
+  expires_at: string
+  transfers: number
+}
+
+interface CheapTicketsResponse {
+  success: boolean
+  data: Record<string, Record<string, CheapTicket>>
+  currency: string
+}
+
+/**
+ * Получить самые дешёвые билеты по маршруту
+ *
+ * @example
+ * const tickets = await getCheapestTickets("MOW", "PAR", "2025-03")
+ */
+export async function getCheapestTickets(
+  origin: string,
+  destination: string,
+  departMonth?: string, // YYYY-MM
+  returnMonth?: string,
+  currency: string = "rub"
+): Promise<CheapTicketsResponse | null> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set")
+    return null
+  }
+
+  const params = new URLSearchParams({
+    origin,
+    destination,
+    currency,
+    token: TRAVELPAYOUTS_API_TOKEN
+  })
+
+  if (departMonth) params.set("depart_date", departMonth)
+  if (returnMonth) params.set("return_date", returnMonth)
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/v1/prices/cheap?${params.toString()}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("getCheapestTickets error:", error)
+    return null
+  }
+}
+
+interface CalendarPrice {
+  origin: string
+  destination: string
+  price: number
+  transfers: number
+  airline: string
+  flight_number: number
+  departure_at: string
+  return_at: string
+  expires_at: string
+}
+
+/**
+ * Получить календарь цен (самые дешёвые дни для перелёта)
+ */
+export async function getPriceCalendar(
+  origin: string,
+  destination: string,
+  departDate: string, // YYYY-MM-DD
+  currency: string = "rub"
+): Promise<CalendarPrice[] | null> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set")
+    return null
+  }
+
+  try {
+    const response = await fetch(
+      `https://min-prices.aviasales.ru/calendar_preload?origin=${origin}&destination=${destination}&depart_date=${departDate}&one_way=false&token=${TRAVELPAYOUTS_API_TOKEN}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.best_prices || []
+  } catch (error) {
+    console.error("getPriceCalendar error:", error)
+    return null
+  }
+}
+
+interface WeekMatrixPrice {
+  show_to_affiliates: boolean
+  trip_class: number
+  origin: string
+  destination: string
+  depart_date: string
+  return_date: string
+  number_of_changes: number
+  value: number
+  found_at: string
+  distance: number
+  actual: boolean
+}
+
+/**
+ * Получить матрицу цен на неделю (±3 дня от выбранной даты)
+ */
+export async function getWeekMatrix(
+  origin: string,
+  destination: string,
+  departDate: string,
+  returnDate: string,
+  currency: string = "rub"
+): Promise<WeekMatrixPrice[] | null> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set")
+    return null
+  }
+
+  const params = new URLSearchParams({
+    origin,
+    destination,
+    depart_date: departDate,
+    return_date: returnDate,
+    currency,
+    show_to_affiliates: "true",
+    token: TRAVELPAYOUTS_API_TOKEN
+  })
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/v2/prices/week-matrix?${params.toString()}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return data.data || []
+  } catch (error) {
+    console.error("getWeekMatrix error:", error)
+    return null
+  }
+}
+
+interface SpecialOffer {
+  title: string
+  origin: string
+  destination: string
+  departure_at: string
+  return_at: string
+  airline: string
+  price: number
+  link: string
+}
+
+/**
+ * Получить спецпредложения (аномально низкие цены)
+ */
+export async function getSpecialOffers(
+  origin?: string, // Если не указан - определяется по IP
+  currency: string = "rub"
+): Promise<SpecialOffer[] | null> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set")
+    return null
+  }
+
+  const params = new URLSearchParams({
+    currency,
+    token: TRAVELPAYOUTS_API_TOKEN
+  })
+
+  if (origin) params.set("origin", origin)
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/aviasales/v3/get_special_offers?${params.toString()}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error("getSpecialOffers error:", error)
+    return null
+  }
+}
+
+interface PopularDestination {
+  origin: string
+  destination: string
+  departure_date: string
+  return_date: string
+  price: number
+  number_of_changes: number
+  airline: string
+  flight_number: number
+  destination_name?: string
+}
+
+/**
+ * Получить популярные направления из города
+ */
+export async function getPopularDestinations(
+  origin: string,
+  currency: string = "rub"
+): Promise<PopularDestination[] | null> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set")
+    return null
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/v1/city-directions?origin=${origin}&currency=${currency}&token=${TRAVELPAYOUTS_API_TOKEN}`
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    // Преобразуем объект в массив
+    if (data.data) {
+      return Object.entries(data.data).map(([dest, info]: [string, any]) => ({
+        origin,
+        destination: dest,
+        ...info
+      }))
+    }
+    return []
+  } catch (error) {
+    console.error("getPopularDestinations error:", error)
+    return null
+  }
+}
+
+/**
+ * Форматирование цены с валютой
+ */
+export function formatPrice(price: number, currency: string = "rub"): string {
+  const symbols: Record<string, string> = {
+    rub: "₽",
+    usd: "$",
+    eur: "€"
+  }
+
+  const formatted = new Intl.NumberFormat("ru-RU").format(price)
+  return `${formatted} ${symbols[currency] || currency.toUpperCase()}`
+}
+
+/**
+ * Получить минимальную цену из данных календаря
+ */
+export function findMinPrice(prices: CalendarPrice[]): CalendarPrice | null {
+  if (!prices.length) return null
+  return prices.reduce((min, p) => p.price < min.price ? p : min, prices[0])
+}
