@@ -49,11 +49,13 @@ export function ItineraryChatWidget({
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
-
     // Auto-scroll to bottom
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
+        }
     }, [messages, isOpen])
 
     // Update embedded open state if prop changes
@@ -183,7 +185,7 @@ export function ItineraryChatWidget({
 
     return (
         <Card className={cn(
-            "overflow-hidden border-primary/20 bg-gradient-to-br from-background to-muted/30 flex flex-col",
+            "border-primary/20 bg-gradient-to-br from-background to-muted/30 flex flex-col relative overflow-visible z-40", // Explicit overflow-visible and z-index
             embedded ? "h-full rounded-none border-0 bg-transparent shadow-none" : "",
             className
         )}>
@@ -191,7 +193,7 @@ export function ItineraryChatWidget({
             {!embedded && (
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    className="w-full flex items-center justify-center relative p-4 hover:bg-muted/50 transition-colors" // justify-center + relative
                 >
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -205,24 +207,25 @@ export function ItineraryChatWidget({
                             <p className="text-xs text-muted-foreground">AI-ассистент</p>
                         </div>
                     </div>
-                    {isOpen ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
+                    {/* Absolute chevron to stay on right */}
+                    <div className="absolute right-4 text-muted-foreground">
+                        {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    </div>
                 </button>
             )}
 
-            {/* Chat body - collapsible if not embedded */}
+            {/* Chat body - floating overlay */}
             <div className={cn(
-                "transition-all duration-300 ease-in-out overflow-hidden flex flex-col",
-                embedded ? "h-full" : (isOpen ? "max-h-[500px]" : "max-h-0")
+                "transition-all duration-300 ease-in-out flex flex-col z-[100] shadow-2xl rounded-b-xl border border-primary/20 bg-background/95 backdrop-blur-xl",
+                embedded ? "h-full" : (isOpen ? "absolute top-full left-0 right-0 mt-2 opacity-100 scale-100 origin-top" : "hidden opacity-0 scale-95 pointer-events-none")
             )}>
                 {/* Messages */}
-                <div className={cn(
-                    "overflow-y-auto p-4 space-y-3",
-                    embedded ? "flex-1" : "h-[280px] border-t border-border/50"
-                )}>
+                <div
+                    ref={scrollContainerRef}
+                    className={cn(
+                        "overflow-y-auto p-4 space-y-3",
+                        embedded ? "flex-1" : "h-[280px] border-t border-border/50"
+                    )}>
                     {messages.map((msg, i) => (
                         <div
                             key={i}
@@ -264,7 +267,6 @@ export function ItineraryChatWidget({
                             <span>Думаю...</span>
                         </div>
                     )}
-                    <div ref={messagesEndRef} />
                 </div>
 
                 {/* Input */}

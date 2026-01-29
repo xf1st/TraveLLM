@@ -71,6 +71,18 @@ export default function PlanPage() {
   const [loading, setLoading] = useState(false)
   const [customDestination, setCustomDestination] = useState("")
   const [profile, setProfile] = useState<any>(null)
+  const [accessMode, setAccessMode] = useState<string>("active")
+
+  // UI State
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -79,6 +91,20 @@ export default function PlanPage() {
         const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         if (data) {
           setProfile(data)
+          setAccessMode(data.access_mode || 'active')
+          
+          // Check if temporary block expired
+          if (data.blocked_until) {
+            const blockedUntil = new Date(data.blocked_until)
+            if (blockedUntil < new Date()) {
+              // Block expired, reset to active
+              await supabase
+                .from('profiles')
+                .update({ access_mode: 'active', block_reason: null, blocked_until: null })
+                .eq('id', user.id)
+              setAccessMode('active')
+            }
+          }
         }
       } else {
         // Redirect if not logged in
@@ -90,6 +116,13 @@ export default function PlanPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check access mode
+    if (accessMode === 'ai_blocked' || accessMode === 'full_blocked') {
+      alert("Генерация маршрутов временно недоступна для вашего аккаунта")
+      return
+    }
+    
     if (!date?.from || !date?.to) {
       alert("Пожалуйста, выберите даты поездки")
       return
@@ -100,7 +133,7 @@ export default function PlanPage() {
       const localPrefs = JSON.parse(localStorage.getItem("userPreferences") || "{}")
       const finalPreferences = profile ? { ...localPrefs, ...profile, ...profile.preferences } : localPrefs
 
-      const response = await fetch("/api/groq", {
+      const response = await fetch("/api/deepseek", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -160,7 +193,8 @@ export default function PlanPage() {
         restrictions: routeData.restrictions || null,
         countries: routeData.countries || null,
         tags: routeData.tags || null,
-        cover_image: routeData.coverImage || null
+        cover_image: routeData.coverImage || null,
+        preferences: routeData.preferences || null // Save preferences
       }).select().single()
 
       let finalTripId: string | null = null
@@ -298,7 +332,7 @@ export default function PlanPage() {
                   <CalendarIcon className="h-4 w-4 text-primary" />
                   Даты поездки
                 </Label>
-                <Popover>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       id="date"
@@ -313,7 +347,7 @@ export default function PlanPage() {
                         date.to ? (
                           <>
                             {format(date.from, "dd MMMM yyyy", { locale: ru })} - {format(date.to, "dd MMMM yyyy", { locale: ru })}
-                            <span className="ml-auto text-sm text-muted-foreground font-medium bg-background/50 px-3 py-1 rounded-lg border border-border/50">
+                            <span className="ml-auto text-sm text-muted-foreground font-medium bg-background/50 px-3 py-1 rounded-lg border border-border/50 hidden sm:inline-block">
                               {Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))} дней
                             </span>
                           </>
@@ -325,17 +359,25 @@ export default function PlanPage() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-auto p-0 bg-card border-border shadow-2xl rounded-2xl mx-auto"
+                    align="center"
+                    sideOffset={8}
+                  >
                     <Calendar
                       initialFocus
                       mode="range"
                       defaultMonth={date?.from}
                       selected={date}
                       onSelect={setDate}
-                      numberOfMonths={2}
+                      numberOfMonths={isMobile ? 1 : 2}
                       locale={ru}
                       disabled={(date) => date < new Date()}
+                      className="rounded-2xl bg-card"
                     />
+                    <div className="p-3 border-t border-border/50 md:hidden bg-card rounded-b-2xl">
+                      <Button className="w-full rounded-xl" onClick={() => setIsCalendarOpen(false)}>Готово</Button>
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -472,7 +514,7 @@ export default function PlanPage() {
                         setCustomBudget(val);
                         if (val) setBudget("custom");
                       }}
-                      className="h-12 text-lg font-bold bg-transparent border-0 border-b-2 border-border/50 rounded-none focus-visible:ring-0 focus-visible:border-primary px-2 text-right placeholder:text-muted-foreground/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="h-12 w-24 md:w-auto min-w-[100px] text-lg font-bold bg-transparent border-0 border-b-2 border-border/50 rounded-none focus-visible:ring-0 focus-visible:border-primary px-2 text-right placeholder:text-muted-foreground/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <span className="text-base font-bold text-muted-foreground">₽</span>
                   </div>
@@ -591,7 +633,7 @@ export default function PlanPage() {
                 type="submit"
                 size="lg"
                 className="w-full h-16 text-xl rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] hover:shadow-2xl font-bold bg-gradient-to-r from-primary to-blue-600 border-0 mt-4"
-                disabled={loading}
+                disabled={loading || accessMode === 'ai_blocked' || accessMode === 'full_blocked'}
               >
                 {loading ? (
                   <>

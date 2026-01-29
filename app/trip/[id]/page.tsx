@@ -17,7 +17,6 @@ import {
   Hotel as HotelIcon,
   Map,
   MapPin,
-  Share2,
   Shield,
   Star,
   Utensils,
@@ -47,16 +46,19 @@ import {
   TreeDeciduous,
   Landmark,
   Palmtree,
-  Printer
+  Printer,
+  PenLine,
+  Navigation,
+  Globe,
+  Layout,
+  Users
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
 import Link from "next/link"
 import { MeshGradient } from "@paper-design/shaders-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TripImage } from "@/components/TripImage"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
-import { TripShareModal } from "@/components/TripShareModal"
 import { PlaceGallery } from "@/components/PlaceGallery"
 import { cn } from "@/lib/utils"
 import {
@@ -130,8 +132,6 @@ export default function TripDetailPage() {
   const [expandedDay, setExpandedDay] = useState<number | null>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [isOwner, setIsOwner] = useState(false)
   const [user, setUser] = useState<any>(null)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -222,7 +222,6 @@ export default function TripDetailPage() {
           budget_range: data.budget_range,
           invite_code: data.invite_code
         })
-        setIsOwner(data.user_id === currentUser?.id)
 
         // Check if member
         if (currentUser && data.id) {
@@ -298,6 +297,9 @@ export default function TripDetailPage() {
   // Prioritize Pexels image from generation, fallback to placeholder
   const heroImage = route.coverImage || route.image || "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
 
+  const tripDurationDays = Array.isArray(route.itinerary) ? route.itinerary.length : 0
+  const tripDestinationLabel = route.destination || route.countries?.[0]?.name || destinationName
+
   const handleOpenMap = (searchQuery: string) => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`, "_blank")
   }
@@ -326,11 +328,11 @@ export default function TripDetailPage() {
       </div>
 
       <div className={`relative z-10 transition-[margin] duration-300 pb-20 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
-        {/* Mobile Header */}
-        <div className="lg:hidden"><Header /></div>
+        {/* Mobile Header - Floating Overlay */}
+        <div className="lg:hidden"><Header floating /></div>
 
         {/* Hero Banner */}
-        <div className="relative h-[50vh] min-h-[500px] w-full overflow-hidden mt-16 lg:mt-0">
+        <div className="relative h-[50vh] min-h-[500px] w-full overflow-hidden lg:mt-0">
           <motion.div style={{ y, scale }} className="absolute inset-0 h-full w-full">
             <TripImage
               src={heroImage}
@@ -378,69 +380,28 @@ export default function TripDetailPage() {
                   {route.title}
                 </h1>
 
-                <div className="flex flex-wrap gap-4 text-white/90 font-medium text-lg">
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                    <Calendar className="h-5 w-5 text-sky-400" />
+                <div className="flex flex-wrap gap-2 text-white/90 font-medium text-sm md:text-lg">
+                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+                    <Calendar className="h-4 w-4 md:h-5 md:w-5 text-sky-400" />
                     {route.itinerary?.length || 0} дней
                   </div>
                   <div
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
+                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
                     onClick={() => setShowBudgetModal(true)}
                   >
-                    <Wallet className="h-5 w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <Wallet className="h-4 w-4 md:h-5 md:w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
                     <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                    <Shield className="h-5 w-5 text-amber-400" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+                    <Shield className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
                     Безопасность 9/10
                   </div>
 
 
-                  {/* Social Actions */}
-                  <div className="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
-                    {!isOwner && !isMember && user && (
-                      <Button
-                        onClick={async () => {
-                          if (!user) return
-                          const { error } = await supabase.from('trip_members').insert({
-                            trip_id: route.id,
-                            user_id: user.id
-                          })
-                          if (!error) {
-                            setIsMember(true)
-                            toast.success("Вы присоединились к поездке!")
-                          } else {
-                            console.error("Join error:", error)
-                            // Use alert for immediate visibility if toast specific import isn't handy or configured
-                            alert(`Ошибка: ${error.message || "Не удалось присоединиться"}`)
-                          }
-                        }}
-                        className="rounded-full bg-primary/20 text-primary hover:bg-primary/30"
-                        size="sm"
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Присоединиться
-                      </Button>
-                    )}
-
-                    {(isOwner || isMember) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full hover:bg-white/10 relative"
-                        onClick={() => setIsChatOpen(!isChatOpen)}
-                      >
-                        <MessageCircle className="h-5 w-5 text-white" />
-                        {/* Optional: Add badge for unread */}
-                      </Button>
-                    )}
-
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" onClick={handlePrint} title="Экспорт в PDF">
-                      <Printer className="h-5 w-5 text-white" />
-                    </Button>
-
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10" onClick={() => setShowShareModal(true)}>
-                      <Share2 className="h-5 w-5 text-white" />
+                  {/* Social Actions - Print & Share Only */}
+                  <div className="flex items-center gap-1 border-l border-white/10 pl-3 ml-2">
+                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={handlePrint} title="Экспорт в PDF">
+                      <Printer className="h-4 w-4 md:h-5 md:w-5 text-white" />
                     </Button>
                   </div>
                 </div>
@@ -587,19 +548,7 @@ export default function TripDetailPage() {
                                       {item.placeName && (
                                         <div className="mt-4 pt-4 border-t border-white/5 space-y-6">
                                           <PlaceGallery query={`${item.placeName} ${route.destination || ""}`} count={5} />
-
-                                          <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary mb-2">
-                                              <Star className="h-3 w-3 fill-primary" />
-                                              AI Резюме отзывов
-                                            </div>
-                                            <p className="text-xs italic text-muted-foreground leading-relaxed">
-                                              "Посетители отмечают потрясающую атмосферу. {item.time === 'Утро' ? 'Утром здесь особенно спокойно.' : item.time === 'Вечер' ? 'Идеальное место для заката.' : 'Днем здесь очень оживленно и красиво.'}"
-                                            </p>
-                                          </div>
-
                                         </div>
-
                                       )}
                                     </div>
                                   </div>
@@ -630,11 +579,39 @@ export default function TripDetailPage() {
                   tripId={params.id as string}
                 />
               </div>
+
+              {/* Viral Spots (Ghost Points) */}
+              {route.viralSpots && route.viralSpots.length > 0 && (
+                <div className="mt-12 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+                  <h2 className="text-2xl font-bold flex items-center gap-3 mb-6">
+                    <Camera className="h-6 w-6 text-pink-500" />
+                    <GradientText className="from-pink-500 to-purple-600">TikTok Trends & Viral Spots</GradientText>
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {route.viralSpots.map((spot: any, idx: number) => (
+                      <Card key={idx} className="p-4 bg-black/40 border border-white/10 backdrop-blur-md hover:border-pink-500/50 transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-bold text-lg leading-tight text-white/90">{spot.name}</h3>
+                          <Badge variant="outline" className="text-[10px] text-pink-400 border-pink-500/30 whitespace-nowrap ml-2">Viral</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{spot.desc || spot.description}</p>
+                        <Button size="sm" variant="secondary" className="w-full text-xs font-bold rounded-lg" onClick={() => window.open(spot.mapLink, '_blank')}>
+                          <MapPin className="h-3 w-3 mr-2 text-pink-500" /> Показать на карте
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-3 italic text-center opacity-60">
+                    * Локации, популярные в социальных сетях в 2025-2026 году. Не входят в основной маршрут.
+                  </p>
+                </div>
+              )}
+
+              {/* --- SOCIAL LAYER REMOVED BY USER REQUEST --- */}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Chat Widget - Desktop Only */}
               <div className="hidden lg:block">
                 <ItineraryChatWidget
                   itinerary={route}
@@ -644,6 +621,7 @@ export default function TripDetailPage() {
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 dark:border-white/5 shadow-xl"
                 />
               </div>
+
               <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
@@ -699,6 +677,7 @@ export default function TripDetailPage() {
             </div>
           </div>
         </main>
+
         {/* Budget Analysis Modal */}
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
           <DialogContent className="max-w-md rounded-3xl p-8">
@@ -748,7 +727,7 @@ export default function TripDetailPage() {
                   <span className="font-bold">{route.totalBudget}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range}"). Реальная стоимость может отличаться.
+                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range || "Комфорт"}"). Реальная стоимость может отличаться.
                 </p>
               </div>
 
@@ -757,31 +736,79 @@ export default function TripDetailPage() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
+        </Dialog >
+
+        <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24 opacity-60 hover:opacity-100 transition-opacity">
+          <div className="p-6 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm text-xs text-muted-foreground flex flex-wrap gap-x-8 gap-y-4 justify-center items-center shadow-inner">
+            <div className="flex items-center gap-2"><MapPin className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDestinationLabel}</span></div>
+            <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDurationDays} дней</span></div>
+            <div className="flex items-center gap-2"><Wallet className="h-3 w-3" /> <span className="text-foreground font-medium">{route.budget_range || route.totalBudget}</span></div>
+
+            {/* Helpers for preferences access */}
+            {(() => {
+              const prefs = route.preferences || {};
+              const tStyle = prefs.travel_style || route.travel_style;
+              const tPace = prefs.pace || route.pace;
+              const tCompanions = prefs.companions || route.companions;
+              const tInterests = prefs.interestsDetailed || route.interestsDetailed;
+              const tDietary = prefs.dietaryRestrictions || route.dietaryRestrictions;
+
+              return (
+                <>
+                  {(tStyle && (tStyle.length > 0 || typeof tStyle === 'string')) && (
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Стиль:</span>
+                      <span className="text-foreground">{Array.isArray(tStyle) ? tStyle.join(', ') : tStyle}</span>
+                    </div>
+                  )}
+
+                  {tPace && (
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Темп:</span>
+                      <span className="text-foreground capitalize">{tPace}</span>
+                    </div>
+                  )}
+
+                  {tCompanions && (
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Компания:</span>
+                      <span className="text-foreground">{tCompanions}</span>
+                    </div>
+                  )}
+
+                  {tInterests && tInterests.length > 0 && (
+                    <div className="w-full flex justify-center gap-2 pt-2 border-t border-white/5">
+                      <span className="uppercase tracking-widest opacity-50 text-[10px] self-center">Интересы:</span>
+                      <span className="text-foreground text-center max-w-md leading-snug">{Array.isArray(tInterests) ? tInterests.join(' • ') : tInterests}</span>
+                    </div>
+                  )}
+
+                  {tDietary && tDietary.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Диета:</span>
+                      <span className="text-foreground">{Array.isArray(tDietary) ? tDietary.join(', ') : tDietary}</span>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+        </div>
+
         <div className="mt-20">
           <Footer />
         </div>
 
         {/* TripShareModal Component */}
-        {
-          route && (
-            <TripShareModal
-              isOpen={showShareModal}
-              onOpenChange={setShowShareModal}
-              tripId={route.id}
-              tripTitle={route.title}
-              inviteCode={route.invite_code}
-              isOwner={isOwner}
-            />
-          )
-        }
+
+
+        <TripChat
+          tripId={params.id as string}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          currentUser={user}
+        />
       </div >
-      <TripChat
-        tripId={params.id as string}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        currentUser={user}
-      />
     </div >
   )
 }

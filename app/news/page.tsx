@@ -11,6 +11,7 @@ import Link from "next/link"
 
 import { supabase } from "@/lib/supabase"
 import { articlesLibrary, getPersonalizedArticles, Article } from "@/lib/articles"
+import { TripImage } from "@/components/TripImage"
 
 // Trending destinations for sidebar
 const trendingDestinations = [
@@ -110,11 +111,11 @@ export default function NewsFeedPage() {
                     <div className="grid md:grid-cols-2 gap-0">
                       {/* Image Section */}
                       <div className="relative h-64 md:h-full overflow-hidden">
-                        <Image
+                        <TripImage
                           src={post.image}
+                          query={post.title}
                           alt={post.title}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         {/* Seamless Gradient */}
                         <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-zinc-900 via-zinc-900/40 to-transparent" />

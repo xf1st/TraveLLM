@@ -13,6 +13,7 @@ import { motion } from "framer-motion"
 import GradientText from "@/components/GradientText"
 import { Footer } from "@/components/footer"
 import { MeshGradient } from "@paper-design/shaders-react"
+import { TripImage } from "@/components/TripImage"
 
 // Dynamic import for WebGL component (client-side only)
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
@@ -57,10 +58,10 @@ export default function LandingPage() {
 
   // Floating cards data
   const floatingImages = [
-    { src: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=400&auto=format&fit=crop", className: "top-20 -left-20 w-48 h-64 -rotate-6 hidden lg:block" },
-    { src: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop", className: "bottom-40 -left-10 w-40 h-40 rotate-3 hidden lg:block" },
-    { src: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop", className: "top-20 -right-20 w-48 h-64 rotate-6 hidden lg:block" },
-    { src: "https://images.unsplash.com/photo-1504609773096-104ff1058705?q=80&w=400&auto=format&fit=crop", className: "bottom-40 -right-10 w-40 h-40 -rotate-3 hidden lg:block" }
+    { src: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=400&auto=format&fit=crop", query: "beautiful nature mountain landscape", className: "top-20 -left-20 w-48 h-64 -rotate-6 hidden lg:block" },
+    { src: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=400&auto=format&fit=crop", query: "scenic road trip view", className: "bottom-40 -left-10 w-40 h-40 rotate-3 hidden lg:block" },
+    { src: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=400&auto=format&fit=crop", query: "paris eiffel tower street", className: "top-20 -right-20 w-48 h-64 rotate-6 hidden lg:block" },
+    { src: "https://images.unsplash.com/photo-1504609773096-104ff1058705?q=80&w=400&auto=format&fit=crop", query: "tropical beach paradise", className: "bottom-40 -right-10 w-40 h-40 -rotate-3 hidden lg:block" }
   ]
 
   return (
@@ -113,6 +114,8 @@ export default function LandingPage() {
             </h1>
           </motion.div>
 
+
+
           {/* Floating Images (Decorative) */}
           <div className="absolute inset-0 pointer-events-none z-0">
             {floatingImages.map((img, i) => (
@@ -127,7 +130,12 @@ export default function LandingPage() {
                 }}
                 className={`absolute ${img.className} rounded-3xl overflow-hidden border border-white/10 shadow-2xl`}
               >
-                <Image src={img.src} alt="Travel" fill className="object-cover opacity-80" />
+                <TripImage
+                  src={img.src}
+                  query={img.query}
+                  alt="Travel"
+                  className="w-full h-full object-cover opacity-80"
+                />
               </motion.div>
             ))}
           </div>
@@ -191,7 +199,12 @@ export default function LandingPage() {
                     className="relative h-24 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/50 transition-colors"
                   >
                     {/* Background Image */}
-                    <Image src={dest.image} alt={dest.title} fill className="object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
+                    <TripImage
+                      src={dest.image}
+                      query={dest.title}
+                      alt={dest.title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent" />
 
                     {/* Content */}
