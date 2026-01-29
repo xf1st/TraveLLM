@@ -9,6 +9,7 @@ import { Loader2, MessageSquare, Map as MapIcon, ChevronLeft, CheckCircle2, Plan
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
+import { generateTripBookingLinks, getInsuranceLink } from "@/lib/travelpayouts"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
@@ -296,7 +297,7 @@ function GuidePageContent() {
         }
     }
 
-    // Helper to generate smart booking links
+    // Helper to generate smart booking links with Travelpayouts partner markers
     const getSmartLinks = () => {
         // Try to get destination from trip metadata or first city in itinerary
         let destination = trip?.destination
@@ -309,16 +310,27 @@ function GuidePageContent() {
             }
         }
 
-        const query = destination ? encodeURIComponent(destination) : ""
+        if (!destination) {
+            return {
+                aviasales: "https://www.aviasales.ru",
+                ostrovok: "https://ostrovok.ru",
+                cherehapa: "https://www.cherehapa.ru"
+            }
+        }
+
+        // Используем Travelpayouts партнёрские ссылки
+        const bookingLinks = generateTripBookingLinks({
+            origin: trip?.origin,
+            destination,
+            startDate: trip?.start_date,
+            endDate: trip?.end_date,
+            travelers: trip?.travelers || 1
+        })
 
         return {
-            aviasales: destination
-                ? `https://www.aviasales.ru/search?origin_iata=&destination=${query}&with_request=true`
-                : "https://www.aviasales.ru",
-            ostrovok: destination
-                ? `https://ostrovok.ru/?q=${query}`
-                : "https://ostrovok.ru",
-            cherehapa: "https://www.cherehapa.ru"
+            aviasales: bookingLinks.flights,
+            ostrovok: bookingLinks.hotels,
+            cherehapa: bookingLinks.insurance
         }
     }
 
