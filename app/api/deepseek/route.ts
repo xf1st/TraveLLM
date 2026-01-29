@@ -3,7 +3,7 @@ import { openrouterInference } from "@/lib/openrouter"
 import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
-import { GROUNDING_DATA_2026 } from "@/lib/grounding"
+import { GROUNDING_DATA_2026, getShuffledDestinations } from "@/lib/grounding"
 import { createClient } from '@supabase/supabase-js'
 
 function sanitizeClosedAirportLogistics(routeData: any) {
@@ -241,6 +241,18 @@ export async function POST(req: Request) {
 - ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
+РАЗНООБРАЗИЕ НАПРАВЛЕНИЙ (ВАЖНО!):
+- НЕ ПРЕДЛАГАЙ ТУРЦИЮ ПО УМОЛЧАНИЮ! Есть множество других интересных направлений
+- Для пользователя выбравшего "2 страны" — предложи комбинации из РАЗНЫХ регионов:
+  * Азия: Япония, Южная Корея, Вьетнам, Таиланд, Индонезия, Индия, Шри-Ланка
+  * Ближний Восток: ОАЭ, Катар, Оман, Иордания
+  * Кавказ: Грузия + Армения, Азербайджан
+  * Центральная Азия: Узбекистан + Казахстан (Великий Шёлковый путь)
+  * Африка: Египет, Марокко, Танзания, ЮАР
+  * Латинская Америка: Мексика, Аргентина, Бразилия, Перу
+  * Европа (с пересадкой): Италия, Испания, Португалия, Греция, Франция
+- Выбирай направления в зависимости от стиля путешественника!
+
 ПРАВИЛА ГЕНЕРАЦИИ:
 
 1. ЛОГИСТИКА: Полная door-to-door логистика от ${departureCity}.
@@ -254,11 +266,13 @@ export async function POST(req: Request) {
 4. КОНТИНУИТЕТ И РЕАЛЬНЫЕ РЕЙСЫ (КРИТИЧНО):
    - День N заканчивается в городе A → День N+1 НАЧИНАЕТСЯ в городе A
    - Перемещение между городами = отдельная запись в logistics
-   - ПРЯМЫЕ РЕЙСЫ ИЗ МОСКВЫ СУЩЕСТВУЮТ ТОЛЬКО В: Турция (Стамбул, Анталья), ОАЭ (Дубай), Сербия (Белград), Китай (Пекин, Шанхай), Таиланд (Бангкок, Пхукет), Грузия (Тбилиси, Батуми), Армения (Ереван), Азербайджан (Баку), Казахстан (Алматы, Астана), Узбекистан (Ташкент), Египет (Хургада, Шарм), Мальдивы, Шри-Ланка
-   - В ЕВРОПУ (кроме Сербии/Турции) И США ПРЯМЫХ РЕЙСОВ НЕТ! Только с пересадкой!
-   - Пересадочные маршруты в Европу: Москва → Стамбул/Белград → Европа
+   - ПРЯМЫЕ РЕЙСЫ: ${getShuffledDestinations()}
+   - ПЕРЕСАДОЧНЫЕ МАРШРУТЫ ДОСТУПНЫ В ЛЮБУЮ СТРАНУ! Можно лететь в Европу, Японию, Австралию, Латинскую Америку — просто с пересадкой
+   - Хабы для пересадок: Стамбул, Дубай, Доха, Абу-Даби, Белград
+   - Пример: Москва → Стамбул → Париж, Москва → Дубай → Токио, Москва → Доха → Сидней
+   - ПРЕДЛАГАЙ РАЗНООБРАЗНЫЕ НАПРАВЛЕНИЯ! Не только Турцию — есть Япония, Южная Корея, Аргентина, Мексика, Марокко, ЮАР и др.
    - Расстояние < 600км = поезд вместо самолёта
-   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2026: Москва-Стамбул ~25000₽, Москва-Дубай ~35000₽, Москва-Пекин ~45000₽, Москва-Бангкок ~50000₽
+   - ЦЕНЫ 2026: прямой рейс ~25-50к₽, с пересадкой ~40-80к₽, дальние (Австралия, Латинская Америка) ~80-150к₽
 
 5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО — НЕТ МГНОВЕННОЙ ТЕЛЕПОРТАЦИИ):
    - Если в logistics указан перелёт/поезд → ПЕРВАЯ активность дня ДОЛЖНА быть "Прибытие и заселение"
@@ -410,9 +424,21 @@ DIETARY: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'None'}
 
 CURRENT REALITY (JAN 2026):
 - Restrictions: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
-- Flights: ${GROUNDING_DATA_2026.flightConnectivity.join(' ')}
+- Flights: Direct flights available to many countries. Connecting flights to Europe, Japan, Americas via Istanbul/Dubai/Doha.
 - Prices are HIGH. Flights are expensive.
 - Include "viralSpots" (Top 5 TikTok/Instagram spots for 2025/2026).
+
+DESTINATION VARIETY (CRITICAL!):
+- DO NOT default to Turkey! Consider diverse destinations based on travel style.
+- For "abroad" / multi-country trips, suggest combinations from DIFFERENT regions:
+  * Asia: Japan, South Korea, Vietnam, Thailand, Indonesia, India, Sri Lanka
+  * Middle East: UAE, Qatar, Oman, Jordan
+  * Caucasus: Georgia + Armenia, Azerbaijan
+  * Central Asia: Uzbekistan + Kazakhstan (Silk Road)
+  * Africa: Egypt, Morocco, Tanzania, South Africa
+  * Latin America: Mexico, Argentina, Brazil, Peru
+  * Europe (via connection): Italy, Spain, Portugal, Greece, France
+- Match destination to traveler's interests and style!
 
 CRITICAL RULES:
 1. Title MUST match the destination countries (if going to Bulgaria, don't call it "Beijing trip")
