@@ -54,6 +54,7 @@ import {
   Users
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
 import Image from "next/image"
 import Link from "next/link"
 import { MeshGradient } from "@paper-design/shaders-react"
@@ -492,7 +493,7 @@ export default function TripDetailPage() {
                               </div>
                             )}
 
-                            {/* Booking Bar (Aviasales/Ostrovok) */}
+                            {/* Booking Bar (Aviasales/Ostrovok) с партнёрскими ссылками */}
                             <div className="mb-6 flex flex-wrap gap-2">
                               <Button
                                 variant="outline"
@@ -500,11 +501,17 @@ export default function TripDetailPage() {
                                 className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
                                   const destination = day.logistics?.to || route.destination || ""
-                                  const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
+                                  const origin = day.logistics?.from || route.origin || ""
+                                  // Используем партнёрскую ссылку Travelpayouts
+                                  const url = day.logistics?.bookingLink || getFlightSearchLink({
+                                    origin,
+                                    destination,
+                                    subId: "trip_day"
+                                  })
                                   window.open(url, '_blank')
                                 }}
                               >
-                                <Plane className="mr-2 h-3.5 w-3.5" /> {day.logistics?.bookingLink?.includes('aviasales') ? 'Билеты' : 'Найти билеты'}
+                                <Plane className="mr-2 h-3.5 w-3.5" /> Билеты
                               </Button>
                               <Button
                                 variant="outline"
@@ -512,11 +519,15 @@ export default function TripDetailPage() {
                                 className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
                                   const destination = day.logistics?.to || route.destination || ""
-                                  const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
+                                  // Используем партнёрскую ссылку Travelpayouts
+                                  const url = getHotelSearchLink({
+                                    destination,
+                                    subId: "trip_day"
+                                  })
                                   window.open(url, '_blank')
                                 }}
                               >
-                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {day.logistics?.to || route.destination || 'Поиск'}
+                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели
                               </Button>
                             </div>
 

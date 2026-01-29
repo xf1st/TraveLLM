@@ -4,6 +4,7 @@ import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/dee
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026, getShuffledDestinations } from "@/lib/grounding"
+import { getPersonalizedRecommendationsText, getRecommendedCombinations } from "@/lib/personalization"
 import { createClient } from '@supabase/supabase-js'
 
 function sanitizeClosedAirportLogistics(routeData: any) {
@@ -210,6 +211,22 @@ export async function POST(req: Request) {
             ? `Specific User Request: ${customDestination}`
             : destinationType === 'mixed' ? 'Mixed (Russia + Abroad)' : destinationType === 'russia' ? 'Inside Russia' : 'Abroad'
 
+        // Получаем персонализированные рекомендации на основе предпочтений пользователя
+        const userPrefs = {
+            interests: toArray(preferences?.interestsDetailed),
+            visitedCountries: toArray(preferences?.visitedCountries),
+            travelStyle: toArray(travelStyle),
+            pace: preferences?.pace || 'moderate',
+            budget: budget,
+            companions: companions,
+            dietaryRestrictions: toArray(preferences?.dietaryRestrictions),
+        }
+        const personalizedRecommendations = getPersonalizedRecommendationsText(userPrefs)
+        const recommendedCombinations = getRecommendedCombinations(userPrefs, parseInt(countryCount) || 2)
+        const combinationsText = recommendedCombinations.length > 0
+            ? `\nРекомендуемые комбинации стран: ${recommendedCombinations.map(c => c.join(" + ")).join(", ")}`
+            : ""
+
         const prompt = `
 Создай детальный профессиональный маршрут путешествия на РУССКОМ языке.
 
@@ -241,17 +258,13 @@ export async function POST(req: Request) {
 - ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
-РАЗНООБРАЗИЕ НАПРАВЛЕНИЙ (ВАЖНО!):
-- НЕ ПРЕДЛАГАЙ ТУРЦИЮ ПО УМОЛЧАНИЮ! Есть множество других интересных направлений
-- Для пользователя выбравшего "2 страны" — предложи комбинации из РАЗНЫХ регионов:
-  * Азия: Япония, Южная Корея, Вьетнам, Таиланд, Индонезия, Индия, Шри-Ланка
-  * Ближний Восток: ОАЭ, Катар, Оман, Иордания
-  * Кавказ: Грузия + Армения, Азербайджан
-  * Центральная Азия: Узбекистан + Казахстан (Великий Шёлковый путь)
-  * Африка: Египет, Марокко, Танзания, ЮАР
-  * Латинская Америка: Мексика, Аргентина, Бразилия, Перу
-  * Европа (с пересадкой): Италия, Испания, Португалия, Греция, Франция
-- Выбирай направления в зависимости от стиля путешественника!
+${personalizedRecommendations}${combinationsText}
+
+ВАЖНО: Это ПЕРСОНАЛИЗИРОВАННЫЕ рекомендации на основе интересов, стиля и истории пользователя!
+- Выбирай из предложенных направлений — они подобраны под этого конкретного путешественника
+- НЕ предлагай страны которые пользователь уже посещал
+- Учитывай бюджет: ${budget} — предлагай соответствующие направления
+- Учитывай стиль: ${toArray(travelStyle).join(', ')} — подбирай активности под него
 
 ПРАВИЛА ГЕНЕРАЦИИ:
 
@@ -428,17 +441,13 @@ CURRENT REALITY (JAN 2026):
 - Prices are HIGH. Flights are expensive.
 - Include "viralSpots" (Top 5 TikTok/Instagram spots for 2025/2026).
 
-DESTINATION VARIETY (CRITICAL!):
-- DO NOT default to Turkey! Consider diverse destinations based on travel style.
-- For "abroad" / multi-country trips, suggest combinations from DIFFERENT regions:
-  * Asia: Japan, South Korea, Vietnam, Thailand, Indonesia, India, Sri Lanka
-  * Middle East: UAE, Qatar, Oman, Jordan
-  * Caucasus: Georgia + Armenia, Azerbaijan
-  * Central Asia: Uzbekistan + Kazakhstan (Silk Road)
-  * Africa: Egypt, Morocco, Tanzania, South Africa
-  * Latin America: Mexico, Argentina, Brazil, Peru
-  * Europe (via connection): Italy, Spain, Portugal, Greece, France
-- Match destination to traveler's interests and style!
+${personalizedRecommendations}${combinationsText}
+
+PERSONALIZATION IS KEY:
+- These recommendations are based on user's specific interests, travel style, and history
+- DO NOT suggest countries user has already visited
+- Match destination to budget level: ${budget}
+- Match activities to travel style: ${toArray(travelStyle).join(', ')}
 
 CRITICAL RULES:
 1. Title MUST match the destination countries (if going to Bulgaria, don't call it "Beijing trip")

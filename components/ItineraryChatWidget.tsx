@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { getFlightSearchLink, getHotelSearchLink } from "@/lib/travelpayouts"
 
 interface Message {
     role: "user" | "assistant"
@@ -255,9 +256,11 @@ export function ItineraryChatWidget({
                                         size="sm"
                                         className="w-full text-[10px] h-8 font-black uppercase tracking-tighter"
                                         onClick={() => {
+                                            const destination = msg.bookingData!.destination || ""
+                                            // Используем партнёрские ссылки Travelpayouts
                                             const url = msg.bookingData!.type === 'flight'
-                                                ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
-                                                : `https://ostrovok.ru/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                                ? getFlightSearchLink({ destination, subId: "chat_widget" })
+                                                : getHotelSearchLink({ destination, subId: "chat_widget" })
                                             window.open(url, '_blank')
                                         }}
                                     >
