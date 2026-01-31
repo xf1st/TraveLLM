@@ -85,27 +85,27 @@ export async function POST(req: Request) {
         }
 
         const supabase = createClient(supabaseUrl, supabaseKey)
-        
+
         const { data: settings } = await supabase
             .from('app_settings')
             .select('maintenance_mode, maintenance_message, maintenance_allow_admin_bypass')
             .single()
-        
+
         if (settings?.maintenance_mode) {
             // Check if user is admin (can bypass)
             const { data: { user } } = await supabase.auth.getUser()
             let canBypass = false
-            
+
             if (user && settings.maintenance_allow_admin_bypass) {
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
                     .eq('id', user.id)
                     .single()
-                
+
                 canBypass = profile?.role === 'admin' || profile?.role === 'super_admin'
             }
-            
+
             if (!canBypass) {
                 return NextResponse.json(
                     { error: 'Техническое обслуживание', message: settings.maintenance_message || 'Сервис временно недоступен' },
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
                 )
             }
         }
-        
+
         // Check user access mode (block AI generation if blocked)
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
@@ -122,7 +122,7 @@ export async function POST(req: Request) {
                 .select('access_mode, block_reason, blocked_until')
                 .eq('id', user.id)
                 .single()
-            
+
             if (profile) {
                 // Check if temporary block expired
                 if (profile.blocked_until) {
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
                 }
             }
         }
-        
+
         const body = await req.json()
         const {
             departureCity,
@@ -216,11 +216,26 @@ export async function POST(req: Request) {
 ИСХОДНЫЕ ДАННЫЕ:
 - Город отправления: ${departureCity}
 - Направление: ${targetDescription}
-- Количество стран/городов: ${countryCount}
+- Количество стран/городов: ${countryCount === "more" ? 4 : parseInt(countryCount as string) || 1}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
 - Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
 - Бюджет: ${budgetDesc}. СТРОГИЙ ЛИМИТ: ${budgetCap} ₽. НЕ ПРЕВЫШАЙ.
+
+ИВЕНТЫ И ПРАЗДНИКИ (КРИТИЧНО):
+${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ивенты" - ОБЯЗАТЕЛЬНО включи в маршрут:
+  - Фестивали, концерты, выставки в даты ${startDate} - ${endDate}
+  - Государственные праздники страны назначения
+  - Карнавалы, местные традиции
+  - Спортивные события (если есть)
+  Для КАЖДОГО крупного события указывай название, дату и где купить билеты.` : 'Ивенты не в приоритете, но если даты попадают на крупный праздник (Новый Год, Рождество, Карнавал, 8 марта, 23 февраля) - упомяни это.'}
+
+ПРОВЕРКА ПРАЗДНИКОВ:
+- Если даты ${startDate} - ${endDate} включают 31 декабря - 7 января: добавь новогодние мероприятия
+- Если даты включают 14 февраля: романтические события
+- Если даты включают февраль-март в Европе: карнавалы (Венеция, Ницца)
+- Если лето: фестивали (Sziget, Tomorrowland, Exit)
+
 - Стиль: ${travelStyle.join(', ')}
 - Компания: ${companions}
 
@@ -330,19 +345,28 @@ JSON СХЕМА (строго следуй):
           "cost": "500 ₽",
           "ticketsRequired": false,
           "mapLink": "https://www.google.com/maps/search/?api=1&query=Название+Места",
-          "link": ""
+          "link": "",
+          "contact": {
+            "phone": "+7 999 123-45-67",
+            "website": "https://example.com",
+            "bookingUrl": "https://example.com/book"
+          }
         },
-        { "time": "День", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": true, "mapLink": "...", "link": "https://..." },
-        { "time": "Вечер", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": false, "mapLink": "...", "link": "" }
+        { "time": "День", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": true, "mapLink": "...", "link": "https://...", "contact": {} },
+        { "time": "Вечер", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": false, "mapLink": "...", "link": "", "contact": {} }
       ],
       "logistics": {
-        "mode": "Такси/Самолёт/Поезд",
-        "from": "Откуда",
-        "to": "Куда",
-        "distance": "10 км",
-        "duration": "30 мин",
-        "price": "1000 ₽",
-        "bookingLink": "https://aviasales.ru или https://ticket.rzd.ru (РЕАЛЬНЫЙ URL)"
+        "mode": "Самолёт",
+        "flightNumber": "SU1234",
+        "departureTime": "08:30",
+        "arrivalTime": "11:00",
+        "from": "Москва (SVO)",
+        "to": "Белград (BEG)",
+        "distance": "1800 км",
+        "duration": "3ч 30мин",
+        "price": "25000 ₽",
+        "bookingLink": "https://aviasales.ru/...",
+        "tips": "Рекомендуем прямой рейс Air Serbia"
       }
     }
   ]
@@ -485,14 +509,14 @@ CRITICAL:
 
 КРИТИЧНО — КОНТИНУИТЕТ МАРШРУТА:
 ${isFirstChunk
-    ? `- Это ПЕРВЫЙ сегмент. День 1 начинается в ${departureCity} (вылет/выезд).`
-    : `- День ${startDay} ОБЯЗАТЕЛЬНО начинается в городе: ${startLocation}
+                    ? `- Это ПЕРВЫЙ сегмент. День 1 начинается в ${departureCity} (вылет/выезд).`
+                    : `- День ${startDay} ОБЯЗАТЕЛЬНО начинается в городе: ${startLocation}
 - УЖЕ посещённые места (НЕ ПОВТОРЯТЬ): ${visitedPlaces.join(', ') || 'Нет'}`
-}
+                }
 ${isLastChunk
-    ? `- Это ПОСЛЕДНИЙ сегмент. День ${endDay} должен завершиться возвращением в ${departureCity}.`
-    : `- В конце дня ${endDay} укажи город, где путешественник останется на ночь.`
-}
+                    ? `- Это ПОСЛЕДНИЙ сегмент. День ${endDay} должен завершиться возвращением в ${departureCity}.`
+                    : `- В конце дня ${endDay} укажи город, где путешественник останется на ночь.`
+                }
 
 ПРАВИЛА ЛОГИСТИКИ:
 1. НЕТ ТЕЛЕПОРТАЦИИ: проверяй, где закончился предыдущий день
@@ -612,8 +636,8 @@ ${isLastChunk
             const allDays = [...firstChunk];
             let previousContext = {
                 lastCity: firstChunk[firstChunk.length - 1]?.endCity ||
-                          firstChunk[firstChunk.length - 1]?.logistics?.to ||
-                          destName,
+                    firstChunk[firstChunk.length - 1]?.logistics?.to ||
+                    destName,
                 visitedPlaces: firstChunk.flatMap((day: any) =>
                     (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
                 )

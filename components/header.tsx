@@ -89,7 +89,7 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
-    { href: "/guide", label: "AI Гид" },
+    // { href: "/guide", label: "AI Гид" }, // Hidden - preserved for future mobile app
     { href: "/results", label: "Маршруты" },
     { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },

@@ -76,6 +76,15 @@ import { TripChat } from "@/components/TripChat"
 
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
+// Dynamic import for TripMap to avoid SSR issues with Leaflet
+const TripMap = dynamic(
+  () => import('@/components/TripMap'),
+  {
+    ssr: false,
+    loading: () => <div className="h-[300px] bg-muted/20 rounded-xl animate-pulse flex items-center justify-center"><MapPin className="h-8 w-8 text-muted-foreground/30 animate-bounce" /></div>
+  }
+)
+
 const transportIcons: Record<string, any> = {
   "Flight": Plane,
   "Plane": Plane,
@@ -683,17 +692,33 @@ export default function TripDetailPage() {
                 </div>
               </Card>
 
-              <Card className="p-1 border border-white/10 bg-gradient-to-br from-white/10 to-transparent shadow-2xl backdrop-blur-xl rounded-[1.5rem] overflow-hidden group hover:border-primary/50 transition-colors cursor-pointer" onClick={() => router.push(`/guide?tripId=${params.id}`)}>
-                <div className="relative h-full p-6 bg-black/20 rounded-[1.2rem] transition-colors group-hover:bg-black/30 flex flex-col justify-center">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">Ваш ИИ-Гид</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-2">Интерактивная карта, чеклисты и помощь ИИ в реальном времени во время поездки.</p>
+              {/* Interactive Map Card - Replaced AI Guide */}
+              <Card className="p-4 border border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] shadow-xl">
+                <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                  <Map className="h-5 w-5 text-primary" />
+                  Карта маршрута
+                </h3>
+                <div className="h-[300px] rounded-xl overflow-hidden">
+                  <TripMap
+                    places={route.itinerary?.flatMap((day: any, dayIdx: number) =>
+                      day.activities?.map((activity: any, actIdx: number) => ({
+                        id: `${dayIdx}-${actIdx}`,
+                        name: activity.placeName || activity.desc?.split('.')[0] || `День ${day.day}`,
+                        description: activity.desc,
+                        status: expandedDay === day.day ? 'active' : dayIdx === 0 ? 'visited' : 'pending',
+                        day: day.day
+                      })) || []
+                    ) || []}
+                    activePlaceId={expandedDay ? `${expandedDay - 1}-0` : undefined}
+                    onPlaceSelect={(placeId: string) => {
+                      const [dayIdx] = placeId.split('-').map(Number);
+                      setExpandedDay(dayIdx + 1);
+                    }}
+                  />
                 </div>
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Нажмите на маркер, чтобы открыть день
+                </p>
               </Card>
             </div>
           </div>
