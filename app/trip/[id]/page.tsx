@@ -73,6 +73,7 @@ import GradientText from "@/components/GradientText"
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
+import { getPopularRoute } from "@/lib/popular-routes"
 
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
@@ -105,6 +106,36 @@ const modeTranslations: Record<string, string> = {
   "Car": "Автомобиль",
   "Walk": "Пешком",
   "None": "Нет"
+}
+
+// Russian translations for travel preferences
+const styleTranslations: Record<string, string> = {
+  "nature": "Природа",
+  "culture": "Культура",
+  "urban": "Городской",
+  "adventure": "Приключения",
+  "relaxation": "Релакс",
+  "luxury": "Люкс",
+  "budget": "Бюджет",
+  "events": "Мероприятия",
+  "culinary": "Гастрономия",
+  "active": "Активный",
+  "romantic": "Романтик",
+  "beach": "Пляжный"
+}
+
+const paceTranslations: Record<string, string> = {
+  "slow": "Спокойный",
+  "moderate": "Умеренный",
+  "fast": "Насыщенный"
+}
+
+const companionsTranslations: Record<string, string> = {
+  "solo": "Один",
+  "couple": "Вдвоём",
+  "family": "Семья",
+  "friends": "С друзьями",
+  "business": "Деловая"
 }
 
 const tagColors: Record<string, string> = {
@@ -188,8 +219,9 @@ export default function TripDetailPage() {
 
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
       const isLocal = id?.startsWith('local-')
+      const isPopular = id?.startsWith('pop-')
 
-      console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal)
+      console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal, "isPopular:", isPopular)
 
       // Single auth check
       const { data: { user: currentUser } } = await supabase.auth.getUser()
@@ -203,7 +235,13 @@ export default function TripDetailPage() {
       let data = null
       let error = null
 
-      if (isUuid) {
+      // Handle popular routes (pop-1, pop-2, etc.)
+      if (isPopular) {
+        data = getPopularRoute(id)
+        if (!data) {
+          console.error("Popular route not found:", id)
+        }
+      } else if (isUuid) {
         const result = await supabase
           .from('trips')
           .select('*')
@@ -784,56 +822,59 @@ export default function TripDetailPage() {
           </DialogContent>
         </Dialog >
 
-        <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24 opacity-60 hover:opacity-100 transition-opacity">
-          <div className="p-6 rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm text-xs text-muted-foreground flex flex-wrap gap-x-8 gap-y-4 justify-center items-center shadow-inner">
-            <div className="flex items-center gap-2"><MapPin className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDestinationLabel}</span></div>
-            <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /> <span className="text-foreground font-medium">{tripDurationDays} дней</span></div>
-            <div className="flex items-center gap-2"><Wallet className="h-3 w-3" /> <span className="text-foreground font-medium">{route.budget_range || route.totalBudget}</span></div>
+        <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24">
+          <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md flex flex-wrap gap-3 justify-center items-center shadow-xl">
+            {/* Main info badges */}
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-white/10 flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-blue-400" />
+              {tripDestinationLabel}
+            </Badge>
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-white border border-white/10 flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-emerald-400" />
+              {tripDurationDays} дней
+            </Badge>
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-white border border-white/10 flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5 text-amber-400" />
+              {route.budget_range || route.totalBudget}
+            </Badge>
 
-            {/* Helpers for preferences access */}
+            {/* Preferences badges with translations */}
             {(() => {
               const prefs = route.preferences || {};
               const tStyle = prefs.travel_style || route.travel_style;
               const tPace = prefs.pace || route.pace;
               const tCompanions = prefs.companions || route.companions;
-              const tInterests = prefs.interestsDetailed || route.interestsDetailed;
-              const tDietary = prefs.dietaryRestrictions || route.dietaryRestrictions;
+
+              // Helper to translate style values
+              const translateStyle = (s: string) => styleTranslations[s.toLowerCase()] || s;
+              const translatePace = (p: string) => paceTranslations[p.toLowerCase()] || p;
+              const translateCompanions = (c: string) => companionsTranslations[c.toLowerCase()] || c;
 
               return (
                 <>
-                  {(tStyle && (tStyle.length > 0 || typeof tStyle === 'string')) && (
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Стиль:</span>
-                      <span className="text-foreground">{Array.isArray(tStyle) ? tStyle.join(', ') : tStyle}</span>
-                    </div>
+                  {tStyle && (Array.isArray(tStyle) ? tStyle.length > 0 : tStyle) && (
+                    <>
+                      {(Array.isArray(tStyle) ? tStyle : [tStyle]).map((style: string, idx: number) => (
+                        <Badge key={idx} className="rounded-full px-3 py-1 text-xs font-bold bg-pink-500/20 text-pink-200 border border-pink-500/20 flex items-center gap-1.5">
+                          <Sparkles className="h-3 w-3" />
+                          {translateStyle(style)}
+                        </Badge>
+                      ))}
+                    </>
                   )}
 
                   {tPace && (
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Темп:</span>
-                      <span className="text-foreground capitalize">{tPace}</span>
-                    </div>
+                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-sky-500/20 text-sky-200 border border-sky-500/20 flex items-center gap-1.5">
+                      <Zap className="h-3 w-3" />
+                      {translatePace(tPace)}
+                    </Badge>
                   )}
 
                   {tCompanions && (
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Компания:</span>
-                      <span className="text-foreground">{tCompanions}</span>
-                    </div>
-                  )}
-
-                  {tInterests && tInterests.length > 0 && (
-                    <div className="w-full flex justify-center gap-2 pt-2 border-t border-white/5">
-                      <span className="uppercase tracking-widest opacity-50 text-[10px] self-center">Интересы:</span>
-                      <span className="text-foreground text-center max-w-md leading-snug">{Array.isArray(tInterests) ? tInterests.join(' • ') : tInterests}</span>
-                    </div>
-                  )}
-
-                  {tDietary && tDietary.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase tracking-widest opacity-50 text-[10px]">Диета:</span>
-                      <span className="text-foreground">{Array.isArray(tDietary) ? tDietary.join(', ') : tDietary}</span>
-                    </div>
+                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-200 border border-purple-500/20 flex items-center gap-1.5">
+                      <Users className="h-3 w-3" />
+                      {translateCompanions(tCompanions)}
+                    </Badge>
                   )}
                 </>
               )

@@ -5,6 +5,11 @@ import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { createClient } from '@supabase/supabase-js'
+// Real-time validation imports
+import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
+import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
+import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
+import { getApplicableRules } from "@/lib/strict-rules"
 
 function sanitizeClosedAirportLogistics(routeData: any) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
@@ -173,6 +178,18 @@ export async function POST(req: Request) {
             return []
         }
 
+        // Helper to extract City (Country) from "City, Region, Country" format
+        // e.g. "Москва, Московская область, Россия" -> "Москва (Россия)"
+        const parseDestination = (dest: string): string => {
+            const parts = dest.split(',').map(s => s.trim()).filter(Boolean)
+            if (parts.length === 0) return dest
+            if (parts.length === 1) return parts[0]
+            // Return "City (Country)" - first and last parts
+            const city = parts[0]
+            const country = parts[parts.length - 1]
+            return `${city} (${country})`
+        }
+
         const durationDays = startDate && endDate
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
             : 7
@@ -206,9 +223,75 @@ export async function POST(req: Request) {
         }
 
 
+        // Parse multiple destinations from semicolon-separated string
+        const destinations = customDestination
+            ? customDestination.split(';').map(s => s.trim()).filter(Boolean)
+            : [] // Will be determined by AI if not specified
+
         const targetDescription = customDestination
-            ? `Specific User Request: ${customDestination}`
+            ? destinations.length > 1
+                ? `Конкретные пункты назначения (${destinations.length}): ${destinations.map(parseDestination).join(', ')}`
+                : `Specific User Request: ${parseDestination(destinations[0])}`
             : destinationType === 'mixed' ? 'Mixed (Russia + Abroad)' : destinationType === 'russia' ? 'Inside Russia' : 'Abroad'
+
+        // =====================================
+        // REAL-TIME VALIDATION & CONTEXT
+        // =====================================
+
+        let validationResult: ValidationResult | null = null
+        let dynamicContextStr = ""
+        let adjustedBudget = budgetCap
+
+        // Only validate if we have explicit destinations
+        if (destinations.length > 0 && startDate && endDate) {
+            try {
+                validationResult = await validateRouteRequest({
+                    departureCity,
+                    destinations,
+                    startDate,
+                    endDate,
+                    budget: budgetCap,
+                    citizenship: preferences?.citizenship || "RU"
+                })
+
+                // Check for blockers
+                if (validationResult.blockers.length > 0) {
+                    const blockerMessages = validationResult.blockers.map(b => b.message).join("; ")
+                    return NextResponse.json({
+                        error: "Невозможно построить маршрут",
+                        blockers: validationResult.blockers,
+                        message: blockerMessages
+                    }, { status: 400 })
+                }
+
+                // Apply budget adjustment if needed
+                if (validationResult.adjustedBudget && validationResult.adjustedBudget > budgetCap) {
+                    adjustedBudget = validationResult.adjustedBudget
+                    console.log(`[Validation] Budget adjusted: ${budgetCap} → ${adjustedBudget}`)
+                }
+
+                // Collect dynamic context
+                const dynamicContext = await collectDynamicContext({
+                    departureCity,
+                    destinations,
+                    startDate,
+                    endDate,
+                    interests: toArray(preferences?.interestsDetailed),
+                    travelStyle: toArray(travelStyle)[0]
+                })
+                dynamicContextStr = formatDynamicContextForPrompt(dynamicContext)
+
+            } catch (validationError) {
+                console.error("[Validation] Error:", validationError)
+                // Continue without validation on error
+            }
+        }
+
+        // Apply travel style to prompt
+        const styleStr = travelStyle ? formatTravelStyleForPrompt(toArray(travelStyle)[0] || "") : ""
+        const rulesStr = getApplicableRules({
+            travelStyle: toArray(travelStyle)[0]
+        })
 
         const prompt = `
 Создай детальный профессиональный маршрут путешествия на РУССКОМ языке.
@@ -216,11 +299,16 @@ export async function POST(req: Request) {
 ИСХОДНЫЕ ДАННЫЕ:
 - Город отправления: ${departureCity}
 - Направление: ${targetDescription}
-- Количество стран/городов: ${countryCount === "more" ? 4 : parseInt(countryCount as string) || 1}
+- Количество стран/городов: ${destinations.length > 0 ? destinations.length : (countryCount === "more" ? 4 : parseInt(countryCount as string) || 1)}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
 - Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
 - Бюджет: ${budgetDesc}. СТРОГИЙ ЛИМИТ: ${budgetCap} ₽. НЕ ПРЕВЫШАЙ.
+
+${destinations.length > 1 ? `КРИТИЧНО — ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
+Маршрут ДОЛЖЕН включать ВСЕ указанные ниже места. НЕ ПРОПУСКАЙ НИ ОДНО!
+${destinations.map((d, i) => `${i + 1}. ${parseDestination(d)}`).join('\n')}
+Распредели время равномерно между всеми пунктами!` : ''}
 
 ИВЕНТЫ И ПРАЗДНИКИ (КРИТИЧНО):
 ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ивенты" - ОБЯЗАТЕЛЬНО включи в маршрут:
@@ -269,11 +357,26 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 4. КОНТИНУИТЕТ И РЕАЛЬНЫЕ РЕЙСЫ (КРИТИЧНО):
    - День N заканчивается в городе A → День N+1 НАЧИНАЕТСЯ в городе A
    - Перемещение между городами = отдельная запись в logistics
-   - ПРЯМЫЕ РЕЙСЫ ИЗ МОСКВЫ СУЩЕСТВУЮТ ТОЛЬКО В: Турция (Стамбул, Анталья), ОАЭ (Дубай), Сербия (Белград), Китай (Пекин, Шанхай), Таиланд (Бангкок, Пхукет), Грузия (Тбилиси, Батуми), Армения (Ереван), Азербайджан (Баку), Казахстан (Алматы, Астана), Узбекистан (Ташкент), Египет (Хургада, Шарм), Мальдивы, Шри-Ланка
-   - В ЕВРОПУ (кроме Сербии/Турции) И США ПРЯМЫХ РЕЙСОВ НЕТ! Только с пересадкой!
-   - Пересадочные маршруты в Европу: Москва → Стамбул/Белград → Европа
+   
+   ПРЯМЫЕ РЕЙСЫ ИЗ МОСКВЫ (ПРИОРИТЕТ!):
+   - Турция: Стамбул, Анталья — прямой рейс ~3ч
+   - ОАЭ: Дубай, Абу-Даби — прямой рейс ~5ч  
+   - ЕГИПЕТ: Хургада, Шарм-эль-Шейх, Каир — ПРЯМОЙ РЕЙС ~4-5ч
+   - Таиланд: Бангкок, Пхукет — прямой рейс ~9ч
+   - Китай: Пекин, Шанхай — прямой рейс ~8ч
+   - Сербия: Белград — прямой рейс ~3ч
+   - Грузия: Тбилиси, Батуми — прямой рейс ~2-3ч
+   - Армения, Казахстан, Узбекистан — прямые рейсы
+   - Мальдивы, Шри-Ланка — прямые рейсы
+   
+   ⚠️ ЕСЛИ ЕСТЬ ПРЯМОЙ РЕЙС — ИСПОЛЬЗУЙ ЕГО! НЕ ЧЕРЕЗ СТАМБУЛ!
+   
+   ТОЛЬКО С ПЕРЕСАДКОЙ (Европа, США):
+   - В ЕВРОПУ (кроме Сербии/Турции) и США прямых рейсов НЕТ
+   - Пересадочные хабы: Стамбул, Белград, Баку, Ереван, Доха
+   
    - Расстояние < 600км = поезд вместо самолёта
-   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2026: Москва-Стамбул ~25000₽, Москва-Дубай ~35000₽, Москва-Пекин ~45000₽, Москва-Бангкок ~50000₽
+   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2026: Москва-Стамбул ~25000₽, Москва-Дубай ~35000₽, Москва-Хургада ~30000₽, Москва-Пекин ~45000₽
 
 5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО — НЕТ МГНОВЕННОЙ ТЕЛЕПОРТАЦИИ):
    - Если в logistics указан перелёт/поезд → ПЕРВАЯ активность дня ДОЛЖНА быть "Прибытие и заселение"
@@ -372,9 +475,12 @@ JSON СХЕМА (строго следуй):
   ]
 }
 
-КРИТИЧНО:
+КРИТИЧНО (ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ):
 - Ровно 3 активности в день: "Утро", "День", "Вечер"
-- placeName и mapLink ОБЯЗАТЕЛЬНЫ
+- placeName ОБЯЗАТЕЛЕН для КАЖДОЙ активности! Это нужно для галереи фото.
+  ПЛОХО: placeName: "" или без placeName
+  ХОРОШО: placeName: "Ресторан Noma", "Парк Гуэль", "Египетский музей"
+- mapLink ОБЯЗАТЕЛЕН — формат: https://www.google.com/maps/search/?api=1&query=Название+Места
 - logistics.distance и logistics.duration ОБЯЗАТЕЛЬНЫ для каждого дня
 - Все строки в двойных кавычках, включая теги
 - Ответ ТОЛЬКО JSON, без markdown
@@ -621,9 +727,10 @@ ${isLastChunk
             }
             console.log(`Splitting into ${chunks.length} day chunks + metadata`);
 
-            // Determine destination for day chunks
-            const destName = customDestination ||
-                (destinationType === 'russia' ? 'Россия' :
+            // Determine destination for day chunks - use parsed destinations
+            const destName = destinations.length > 0
+                ? destinations.map(parseDestination).join(' → ')
+                : (destinationType === 'russia' ? 'Россия' :
                     destinationType === 'abroad' ? 'Европа/Азия' : 'Международный');
 
             // Generate metadata in parallel with first chunk

@@ -51,6 +51,7 @@ import {
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { GeneratingModal } from "@/components/GeneratingModal"
+import { ErrorModal } from "@/components/ErrorModal"
 import { supabase } from "@/lib/supabase"
 import { useEffect } from "react"
 import dynamic from "next/dynamic"
@@ -76,6 +77,16 @@ export default function PlanPage() {
   const [accessMode, setAccessMode] = useState<string>("active")
   const [validationErrors, setValidationErrors] = useState<string[]>([])
 
+  // Error Modal State
+  const [errorModal, setErrorModal] = useState<{
+    open: boolean
+    title?: string
+    message: string
+    blockers?: Array<{ code: string; message: string; suggestion?: string }>
+    warnings?: Array<{ code: string; message: string; suggestion?: string }>
+    details?: string
+  }>({ open: false, message: "" })
+
   // UI State
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -95,7 +106,7 @@ export default function PlanPage() {
         if (data) {
           setProfile(data)
           setAccessMode(data.access_mode || 'active')
-          
+
           // Check if temporary block expired
           if (data.blocked_until) {
             const blockedUntil = new Date(data.blocked_until)
@@ -247,11 +258,20 @@ export default function PlanPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.error || "Failed to generate route"
-        const detailedError = errorData.hfError || errorData.groqError
-          ? `\n\nДетали:\nHF: ${errorData.hfError || "n/a"}\nGroq: ${errorData.groqError || "n/a"}`
-          : ""
-        throw new Error(errorMessage + detailedError)
+
+        // Show beautiful error modal with details
+        setErrorModal({
+          open: true,
+          title: errorData.error || "Не удалось создать маршрут",
+          message: errorData.message || "Произошла ошибка при генерации. Попробуйте изменить параметры.",
+          blockers: errorData.blockers || [],
+          warnings: errorData.warnings || [],
+          details: errorData.hfError || errorData.groqError
+            ? `HF: ${errorData.hfError || "n/a"}\nGroq: ${errorData.groqError || "n/a"}`
+            : undefined
+        })
+        setLoading(false)
+        return
       }
 
       const routeData = await response.json()
@@ -346,11 +366,17 @@ export default function PlanPage() {
       }
     } catch (error: any) {
       console.error("Generation Error:", error)
-      if (error.name === 'AbortError') {
-        toast.error("Генерация заняла слишком много времени. Попробуйте уменьшить количество дней.")
-      } else {
-        toast.error(`Ошибка генерации: ${error.message}`)
-      }
+
+      const isTimeout = error.name === 'AbortError'
+
+      setErrorModal({
+        open: true,
+        title: isTimeout ? "Превышено время ожидания" : "Ошибка генерации",
+        message: isTimeout
+          ? "Генерация заняла слишком много времени. Попробуйте уменьшить количество дней или упростить маршрут."
+          : error.message || "Произошла неизвестная ошибка",
+        details: error.stack
+      })
     } finally {
       setLoading(false)
     }
@@ -377,6 +403,16 @@ export default function PlanPage() {
 
       <div className="relative z-10">
         <GeneratingModal open={loading} destination={customDestination || departureCity} />
+        <ErrorModal
+          open={errorModal.open}
+          onClose={() => setErrorModal({ ...errorModal, open: false })}
+          onRetry={() => handleSubmit({ preventDefault: () => { } } as React.FormEvent)}
+          title={errorModal.title}
+          message={errorModal.message}
+          blockers={errorModal.blockers}
+          warnings={errorModal.warnings}
+          details={errorModal.details}
+        />
         <div className="max-w-4xl mx-auto">
           <Card className="p-6 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 bg-card/60 backdrop-blur-md border-primary/20 shadow-2xl">
             <form onSubmit={handleSubmit} className="space-y-8">

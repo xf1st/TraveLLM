@@ -34,25 +34,25 @@ export default function LandingPage() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Popular destinations data
+  // Popular destinations data - 3 most popular real routes
   const popularDestinations = [
     {
-      title: "Киото 2050",
-      desc: "Футуристические направления в Киото...",
-      image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&q=80&w=800",
-      slug: "kyoto-future"
+      title: "Ялта: 7 дней у моря",
+      desc: "Ласточкино гнездо, пляжи, вино",
+      image: "https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?auto=format&fit=crop&q=80&w=800",
+      slug: "pop-1"
     },
     {
-      title: "Лунные Врата",
-      desc: "Интерес к обнаружению...",
-      image: "https://images.unsplash.com/photo-1599571227567-466d3a017006?auto=format&fit=crop&q=80&w=800",
-      slug: "moon-gate"
+      title: "Анталья: всё включено",
+      desc: "10 дней пляжного отдыха",
+      image: "https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&q=80&w=800",
+      slug: "pop-3"
     },
     {
-      title: "Ретрит Северного Сияния",
-      desc: "Красивый для естественного...",
-      image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?auto=format&fit=crop&q=80&w=800",
-      slug: "northern-lights"
+      title: "Тбилиси: Гастро-тур",
+      desc: "Вино, хинкали, серные бани",
+      image: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
+      slug: "pop-5"
     }
   ]
 
@@ -191,7 +191,7 @@ export default function LandingPage() {
             <h3 className="text-left text-lg font-medium text-muted-foreground mb-4 pl-1">Популярные направления:</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {popularDestinations.map((dest, i) => (
-                <Link href={`/results?q=${dest.title}`} key={i} className="block group">
+                <Link href={`/results?source=popular#${dest.slug}`} key={i} className="block group">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
