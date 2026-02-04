@@ -20,7 +20,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
 
-        const itinerary = tripData.itinerary || []
+        // Handle both array (just itinerary) and object (full trip) formats
+        const itinerary = Array.isArray(tripData) ? tripData : (tripData.itinerary || [])
         const tripTitle = tripData.title || "Путешествие"
         const tripBudget = tripData.totalBudget || "Не указан"
         const destination = tripData.destination || tripData.countries?.[0]?.name || "неизвестно"

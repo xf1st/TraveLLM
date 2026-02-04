@@ -76,7 +76,7 @@ export function ItineraryChatWidget({
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    tripData: itinerary,
+                    tripData: tripDetails || { itinerary }, // Send full trip object or fallback
                     userMessage,
                     tripId
                 })
@@ -105,9 +105,10 @@ export function ItineraryChatWidget({
                 }])
             }
         } catch (error: any) {
+            console.error("Chat widget error:", error)
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: "❌ Произошла ошибка. Попробуйте позже."
+                content: `❌ Произошла ошибка: ${error.message || "Попробуйте позже."}`
             }])
         } finally {
             setIsLoading(false)
@@ -139,32 +140,21 @@ export function ItineraryChatWidget({
     }
 
     const applyModifications = (modifications: any[], metadataUpdates?: any) => {
-        // ... (Logic from previous implementation)
-        // For now, assuming replace_all_days is the main one used by smart backend
-        let updatedItinerary = [...itinerary]
+        // Get itinerary array safely - itinerary prop could be object or array
+        const itineraryArray = Array.isArray(itinerary)
+            ? itinerary
+            : (itinerary?.itinerary || [])
+
+        let updatedItinerary = [...itineraryArray]
 
         for (const mod of modifications) {
             if (mod.type === "replace_all_days") {
                 updatedItinerary = mod.newItinerary
             }
-            // Add other types if needed
-        }
-
-        // Handle metadata updates if present (needs to be passed up)
-        // logic to merge metadataUpdates into tripDetails
-        if (metadataUpdates && tripDetails) {
-            // This is a bit tricky since itinerary prop is just the array
-            // Ideally onItineraryUpdate should accept (newItinerary, newMetadata)
-            // For now, we just update the itinerary array.
-            // In a real app, we'd want to update the full trip object.
-            updatedItinerary = updatedItinerary.map(day => ({
-                ...day,
-                // If the modification didn't include dayTotal updates but metadata did, we might want to merge
-            }))
         }
 
         onItineraryUpdate?.(updatedItinerary)
-        setHasUnsavedChanges(true) // Mark that we have unsaved changes
+        setHasUnsavedChanges(true)
     }
 
     const handleSave = async () => {
