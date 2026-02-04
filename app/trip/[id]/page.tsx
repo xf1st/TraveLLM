@@ -74,6 +74,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
 import { getPopularRoute } from "@/lib/popular-routes"
+import { LottieLoader } from "@/components/ui/LottieLoader"
 
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
@@ -311,11 +312,11 @@ export default function TripDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden">
-        {/* LightRays / Mesh Background for loading */}
+        {/* Purple Mesh Background for loading */}
         <div className="absolute inset-0 z-0">
           <MeshGradient
             className="w-full h-full opacity-20"
-            colors={["#10B981", "#3B82F6", "#8B5CF6", "#10B981"]}
+            colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
             speed={0.1}
           />
         </div>
@@ -325,14 +326,14 @@ export default function TripDetailPage() {
           <div className="lg:hidden"><Header /></div>
           <main className="flex min-h-[80vh] items-center justify-center p-6">
             <div className="text-center space-y-6">
-              <div className="relative mx-auto h-20 w-20 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
-                <div className="absolute inset-0 rounded-full border border-primary/40 animate-pulse" />
-                <Sparkles className="h-10 w-10 text-primary" />
+              {/* Airplane Lottie Animation */}
+              <div className="relative h-48 w-48 mx-auto">
+                <LottieLoader type="plane" className="h-full w-full" />
+                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Загрузка</h3>
-                <p className="text-muted-foreground font-medium animate-pulse tracking-wide italic">Готовим детали вашего приключения...</p>
+                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Загрузка маршрута</h3>
+                <p className="text-muted-foreground font-medium animate-pulse tracking-wide">Готовим детали вашего приключения...</p>
               </div>
             </div>
           </main>
@@ -642,7 +643,8 @@ export default function TripDetailPage() {
               <div className="lg:hidden mt-6">
                 <ItineraryChatWidget
                   itinerary={route}
-                  onItineraryUpdate={setRoute}
+                  tripDetails={route}
+                  onItineraryUpdate={(newItinerary) => setRoute(prev => ({ ...prev, itinerary: newItinerary }))}
                   onModifying={setIsModifying}
                   tripId={params.id as string}
                 />
@@ -683,7 +685,8 @@ export default function TripDetailPage() {
               <div className="hidden lg:block">
                 <ItineraryChatWidget
                   itinerary={route}
-                  onItineraryUpdate={setRoute}
+                  tripDetails={route}
+                  onItineraryUpdate={(newItinerary) => setRoute(prev => ({ ...prev, itinerary: newItinerary }))}
                   onModifying={setIsModifying}
                   tripId={params.id as string}
                   className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 dark:border-white/5 shadow-xl"

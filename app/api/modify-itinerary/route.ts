@@ -171,35 +171,54 @@ export async function POST(req: Request) {
     })
     const vibe = expensiveCount > cheapCount ? "Luxury/Comfort" : "Budget/Economy"
 
-    // Parse user request with fast AI
+    // Parse user request with fast AI - now supports activity-level edits
     const parsePrompt = `Проанализируй запрос пользователя на изменение маршрута.
 
 КОНТЕКСТ ПУТЕШЕСТВИЯ:
 - Название: ${tripTitle}
 - Стиль: ${vibe}
 - Бюджет: ${currentBudget}
-- Описание: ${tripDesc}
 
-ТЕКУЩИЙ МАРШРУТ (города в порядке посещения):
-${cityGroups.map(g => `- ${g.city}: ${g.days.length} дней (дни ${g.startDay}-${g.endDay})`).join("\n")}
-ВСЕГО: ${totalDays} дней
+ТЕКУЩИЙ МАРШРУТ:
+${itinerary.map((day: any) => `День ${day.day}: ${day.title}
+  Активности: ${day.activities?.map((a: any) => `${a.time}: ${a.placeName}`).join(', ') || 'нет'}`).join('\n')}
 
 ЗАПРОС ПОЛЬЗОВАТЕЛЯ: "${userMessage}"
 
-ЗАДАЧА: Определи как нужно ПЕРЕРАСПРЕДЕЛИТЬ дни между городами.
-- Общее количество дней должно остаться ${totalDays}
-- Если сокращаешь один город, добавь дни в другой
-- Учитывай логистику (не прыгай между городами)
+ЗАДАЧА: Определи ТИП изменения и верни соответствующий JSON.
 
-Верни СТРОГО JSON (без markdown):
+ТИП 1 - РЕДАКТИРОВАНИЕ АКТИВНОСТИ (замена/изменение конкретной активности в конкретном дне):
+Примеры: "замени музей на ресторан в день 3", "в день 2 утром хочу кофейню", "убери торговый центр из дня 5"
+{
+  "action": "edit_activity",
+  "dayNumber": 3,
+  "timeSlot": "Утро" | "День" | "Вечер" | null,
+  "currentActivity": "название текущей активности или null",
+  "newActivityRequest": "что хочет пользователь вместо этого",
+  "explanation": "Заменяю музей на ресторан в день 3"
+}
+
+ТИП 2 - ПЕРЕРАСПРЕДЕЛЕНИЕ ДНЕЙ (изменение количества дней в городах):
+Примеры: "сократи пребывание в Анапе", "добавь дней в Токио", "меньше времени на пляж"
 {
   "action": "redistribute",
   "changes": [
     { "city": "Токио", "currentDays": 6, "newDays": 10 },
     { "city": "Анапа", "currentDays": 8, "newDays": 2 }
   ],
-  "explanation": "Сократил Анапу с 8 до 2 дней, добавил 4 дня в Токио"
-}`
+  "explanation": "Сократил Анапу с 8 до 2 дней"
+}
+
+ТИП 3 - ДОБАВЛЕНИЕ АКТИВНОСТИ (добавить что-то в день):
+{
+  "action": "add_activity",
+  "dayNumber": 2,
+  "timeSlot": "Вечер",
+  "newActivityRequest": "добавить вечерний бар",
+  "explanation": "Добавляю вечерний бар в день 2"
+}
+
+Верни СТРОГО JSON без markdown!`
 
     const parseRaw = await deepseekInference([
       { role: "system", content: "Ты анализируешь запросы на изменение маршрутов." },
@@ -212,13 +231,187 @@ ${cityGroups.map(g => `- ${g.city}: ${g.days.length} дней (дни ${g.startD
       parsedRequest = JSON.parse(clean)
     } catch {
       return NextResponse.json({
-        explanation: "Не удалось понять запрос. Попробуйте: 'Сократи Анапу до 2 дней, добавь дни в Токио'",
+        explanation: "Не удалось понять запрос. Попробуйте:\n• 'Замени музей на ресторан в день 3'\n• 'Добавь кофейню в день 2 утром'\n• 'Сократи Анапу до 2 дней'",
         modificationType: "general_advice",
         modifications: []
       })
     }
 
     console.log("Parsed request:", parsedRequest)
+
+    // Handle edit_activity action - replace/modify specific activity in a day
+    if (parsedRequest.action === "edit_activity") {
+      const { dayNumber, timeSlot, currentActivity, newActivityRequest } = parsedRequest
+      const targetDay = itinerary.find((d: any) => d.day === dayNumber)
+
+      if (!targetDay) {
+        return NextResponse.json({
+          explanation: `День ${dayNumber} не найден в маршруте.`,
+          modificationType: "error",
+          modifications: []
+        })
+      }
+
+      // Get city from day title
+      const city = extractCity(targetDay.title)
+
+      // Generate new activity with AI
+      const activityPrompt = `Сгенерируй ОДНУ активность для путешествия.
+
+Город: ${city}
+День: ${dayNumber}
+Время: ${timeSlot || "любое"}
+Запрос пользователя: "${newActivityRequest}"
+Стиль поездки: ${vibe}
+Бюджет: ${currentBudget}
+
+${currentActivity ? `Заменяем активность: ${currentActivity}` : "Новая активность"}
+
+Верни ТОЛЬКО JSON одной активности:
+{
+  "time": "${timeSlot || "День"}",
+  "placeName": "КОНКРЕТНОЕ название места",
+  "desc": "2-3 предложения описания",
+  "cost": "цена ₽",
+  "ticketsRequired": true/false,
+  "mapLink": "https://www.google.com/maps/search/?api=1&query=place+name+${city.replace(/\s/g, "+")}",
+  "link": ""
+}`
+
+      const activityRaw = await deepseekInference([
+        { role: "system", content: "Ты эксперт по путешествиям. Генерируй реальные места." },
+        { role: "user", content: activityPrompt }
+      ], { maxTokens: 500, temperature: 0.7 })
+
+      let newActivity
+      try {
+        const clean = activityRaw.match(/\{[\s\S]*\}/)?.[0] || activityRaw
+        newActivity = JSON.parse(clean)
+      } catch {
+        return NextResponse.json({
+          explanation: "Не удалось сгенерировать новую активность. Попробуйте еще раз.",
+          modificationType: "error",
+          modifications: []
+        })
+      }
+
+      // Create updated itinerary
+      const newItinerary = itinerary.map((day: any) => {
+        if (day.day !== dayNumber) return day
+
+        let updatedActivities = [...(day.activities || [])]
+
+        if (timeSlot) {
+          // Replace activity at specific time slot
+          const activityIndex = updatedActivities.findIndex((a: any) =>
+            a.time?.toLowerCase() === timeSlot.toLowerCase()
+          )
+          if (activityIndex >= 0) {
+            updatedActivities[activityIndex] = { ...newActivity, time: timeSlot }
+          } else {
+            updatedActivities.push({ ...newActivity, time: timeSlot })
+          }
+        } else if (currentActivity) {
+          // Replace activity by name match
+          const activityIndex = updatedActivities.findIndex((a: any) =>
+            a.placeName?.toLowerCase().includes(currentActivity.toLowerCase())
+          )
+          if (activityIndex >= 0) {
+            updatedActivities[activityIndex] = newActivity
+          }
+        } else {
+          // Just add the activity
+          updatedActivities.push(newActivity)
+        }
+
+        // Recalculate day total
+        const dayTotal = updatedActivities.reduce((sum: number, a: any) => {
+          const cost = parseInt(String(a.cost || "0").replace(/[^0-9]/g, "")) || 0
+          return sum + cost
+        }, 0)
+
+        return {
+          ...day,
+          activities: updatedActivities,
+          dayTotal: `${dayTotal.toLocaleString("ru-RU")} ₽`
+        }
+      })
+
+      return NextResponse.json({
+        explanation: parsedRequest.explanation || `Обновил активность в день ${dayNumber}`,
+        modificationType: "activity_edit",
+        modifications: [{ type: "replace_all_days", newItinerary }]
+      })
+    }
+
+    // Handle add_activity action
+    if (parsedRequest.action === "add_activity") {
+      const { dayNumber, timeSlot, newActivityRequest } = parsedRequest
+      const targetDay = itinerary.find((d: any) => d.day === dayNumber)
+
+      if (!targetDay) {
+        return NextResponse.json({
+          explanation: `День ${dayNumber} не найден.`,
+          modificationType: "error",
+          modifications: []
+        })
+      }
+
+      const city = extractCity(targetDay.title)
+
+      const activityPrompt = `Сгенерируй активность: "${newActivityRequest}" в городе ${city}.
+Время: ${timeSlot || "День"}
+Стиль: ${vibe}
+
+Верни JSON:
+{
+  "time": "${timeSlot || "День"}",
+  "placeName": "название",
+  "desc": "описание",
+  "cost": "цена ₽",
+  "ticketsRequired": false,
+  "mapLink": "https://www.google.com/maps/search/?api=1&query=...",
+  "link": ""
+}`
+
+      const activityRaw = await deepseekInference([
+        { role: "system", content: "Генератор активностей для путешествий." },
+        { role: "user", content: activityPrompt }
+      ], { maxTokens: 400, temperature: 0.7 })
+
+      let newActivity
+      try {
+        const clean = activityRaw.match(/\{[\s\S]*\}/)?.[0] || activityRaw
+        newActivity = JSON.parse(clean)
+      } catch {
+        return NextResponse.json({
+          explanation: "Ошибка генерации. Попробуйте еще раз.",
+          modificationType: "error",
+          modifications: []
+        })
+      }
+
+      const newItinerary = itinerary.map((day: any) => {
+        if (day.day !== dayNumber) return day
+
+        const updatedActivities = [...(day.activities || []), newActivity]
+        const dayTotal = updatedActivities.reduce((sum: number, a: any) => {
+          return sum + (parseInt(String(a.cost || "0").replace(/[^0-9]/g, "")) || 0)
+        }, 0)
+
+        return {
+          ...day,
+          activities: updatedActivities,
+          dayTotal: `${dayTotal.toLocaleString("ru-RU")} ₽`
+        }
+      })
+
+      return NextResponse.json({
+        explanation: parsedRequest.explanation || `Добавил активность в день ${dayNumber}`,
+        modificationType: "activity_add",
+        modifications: [{ type: "replace_all_days", newItinerary }]
+      })
+    }
 
     if (parsedRequest.action === "redistribute") {
       // Smart redistribution
@@ -344,7 +537,7 @@ ${cityGroups.map(g => `- ${g.city}: ${g.days.length} дней (дни ${g.startD
 
     // Default: unknown action
     return NextResponse.json({
-      explanation: "Уточните запрос. Примеры: 'Сократи Анапу до 2 дней', 'Добавь 3 дня в Токио'",
+      explanation: "Уточните запрос. Примеры:\n• 'Замени музей на кафе в день 2'\n• 'Добавь вечерний бар в день 3'\n• 'Сократи Сочи до 3 дней'",
       modificationType: "general_advice",
       modifications: []
     })

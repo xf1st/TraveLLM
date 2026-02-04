@@ -51,7 +51,7 @@ export default function LandingPage() {
     {
       title: "Тбилиси: Гастро-тур",
       desc: "Вино, хинкали, серные бани",
-      image: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
+      image: "https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&q=80&w=800",
       slug: "pop-5"
     }
   ]

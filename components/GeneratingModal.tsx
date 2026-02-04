@@ -59,7 +59,7 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
                     <div className="absolute inset-0 z-0">
                         <MeshGradient
                             className="w-full h-full opacity-40"
-                            colors={["#10B981", "#3B82F6", "#8B5CF6", "#10B981"]}
+                            colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
                             speed={0.1}
                         />
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-3xl" />

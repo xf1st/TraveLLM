@@ -803,60 +803,57 @@ function ProfileContent() {
                       </div>
                     )}
 
-                    {activeTab === "history" && (
-                      <Card className="overflow-hidden bg-card/40 border-border">
-                        <div className="p-6 border-b border-border">
-                          <h3 className="font-bold text-xl">История поездок</h3>
-                          <p className="text-muted-foreground text-sm">Ваши прошлые приключения</p>
-                        </div>
-                        <div className="divide-y divide-border/50">
-                          {userRoutes.map((trip: any) => (
-                            <div key={trip.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/trip/${trip.id}`}>
-                              <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden relative">
-                                  <img src={`https://loremflickr.com/100/100/travel,${encodeURIComponent(trip.destination || "nature")}/all`} className="object-cover w-full h-full" alt="" />
-                                </div>
-                                <div>
-                                  <h4 className="font-medium group-hover:text-primary transition-colors">{trip.title}</h4>
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {trip.destination}</span>
-                                    <span>•</span>
-                                    <span>{new Date(trip.created_at).toLocaleDateString()}</span>
+                    {activeTab === "history" && (() => {
+                      // Filter to show only completed trips from database (UUID format)
+                      const completedTrips = userRoutes.filter((trip: any) =>
+                        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trip.id)
+                      )
+                      return (
+                        <Card className="overflow-hidden bg-card/40 border-border">
+                          <div className="p-6 border-b border-border">
+                            <h3 className="font-bold text-xl">История поездок</h3>
+                            <p className="text-muted-foreground text-sm">Маршруты, сохранённые через AI-гида</p>
+                          </div>
+                          <div className="divide-y divide-border/50">
+                            {completedTrips.map((trip: any) => (
+                              <div key={trip.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/trip/${trip.id}`}>
+                                <div className="flex items-center gap-4">
+                                  <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden relative">
+                                    <img src={trip.cover_image || `https://loremflickr.com/100/100/travel,${encodeURIComponent(trip.destination || "nature")}/all`} className="object-cover w-full h-full" alt="" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium group-hover:text-primary transition-colors">{trip.title}</h4>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {trip.destination}</span>
+                                      <span>•</span>
+                                      <span>{new Date(trip.created_at).toLocaleDateString()}</span>
+                                    </div>
                                   </div>
                                 </div>
+                                <Button variant="ghost" size="sm"><ArrowRight className="h-4 w-4" /></Button>
                               </div>
-                              <Button variant="ghost" size="sm"><ArrowRight className="h-4 w-4" /></Button>
-                            </div>
-                          ))}
-                          {userRoutes.length === 0 && (
-                            <div className="p-8 text-center text-muted-foreground">
-                              История пуста
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    )}
+                            ))}
+                            {completedTrips.length === 0 && (
+                              <div className="p-8 text-center text-muted-foreground">
+                                <p>История пуста</p>
+                                <p className="text-sm mt-2">Здесь будут отображаться маршруты, сохранённые через AI-гида</p>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      )
+                    })()}
 
                     {activeTab === "settings" && (
                       <div className="max-w-2xl mx-auto space-y-8 pb-20">
-                        {/* Debug Info (Only for devs/diagnostics) - Hidden in production */}
-                        {process.env.NODE_ENV === 'development' && (
-                        <Card className="p-4 bg-red-500/5 border-red-500/20 text-[10px] font-mono">
-                          <p className="font-bold opacity-50 uppercase mb-2">Diagnostic Data</p>
-                          <p>User ID: {debugInfo.userId || "NONE (GUEST)"}</p>
-                          <p>DB Error: {debugInfo.error || "None"}</p>
-                          <p>Session: {debugInfo.sessionStatus}</p>
-                        </Card>
-                        )}
-
                         <Card className="p-6 bg-card/40 border-border space-y-6">
-                          <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Настройки приложения</h3>
+                          <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Основные настройки</h3>
 
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
                                 <label className="font-medium">Браузерные уведомления</label>
-                                <p className="text-sm text-muted-foreground">Получать пуш-уведомление, когда маршрут готов</p>
+                                <p className="text-sm text-muted-foreground">Уведомлять, когда маршрут готов</p>
                               </div>
                               <Checkbox
                                 checked={editForm.notifications_enabled}
@@ -865,10 +862,11 @@ function ProfileContent() {
                                 }}
                               />
                             </div>
+
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">
                                 <label className="font-medium">Валюта</label>
-                                <p className="text-sm text-muted-foreground">Основная валюта для расчетов</p>
+                                <p className="text-sm text-muted-foreground">Основная валюта для расчётов</p>
                               </div>
                               <Select
                                 value={profile?.preferences?.currency ?? "rub"}
@@ -880,9 +878,51 @@ function ProfileContent() {
                               >
                                 <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="rub">RUB</SelectItem>
-                                  <SelectItem value="usd">USD</SelectItem>
-                                  <SelectItem value="eur">EUR</SelectItem>
+                                  <SelectItem value="rub">₽ RUB</SelectItem>
+                                  <SelectItem value="usd">$ USD</SelectItem>
+                                  <SelectItem value="eur">€ EUR</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <label className="font-medium">Единицы измерения</label>
+                                <p className="text-sm text-muted-foreground">Километры или мили</p>
+                              </div>
+                              <Select
+                                value={profile?.preferences?.units ?? "metric"}
+                                onValueChange={(val) => {
+                                  const newPrefs = { ...profile.preferences, units: val }
+                                  setProfile({ ...profile, preferences: newPrefs })
+                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                }}
+                              >
+                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="metric">Метрика</SelectItem>
+                                  <SelectItem value="imperial">Имперская</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <label className="font-medium">Язык интерфейса</label>
+                                <p className="text-sm text-muted-foreground">Язык приложения</p>
+                              </div>
+                              <Select
+                                value={profile?.preferences?.language ?? "ru"}
+                                onValueChange={(val) => {
+                                  const newPrefs = { ...profile.preferences, language: val }
+                                  setProfile({ ...profile, preferences: newPrefs })
+                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                }}
+                              >
+                                <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ru">🇷🇺 Русский</SelectItem>
+                                  <SelectItem value="en">🇬🇧 English</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>

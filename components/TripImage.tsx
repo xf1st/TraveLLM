@@ -18,9 +18,9 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
     const [error, setError] = useState(false)
 
     // Check if initial src is invalid (blocked domain or empty)
+    // Note: Unsplash direct links are allowed (used for popular routes)
     useEffect(() => {
         const isInvalid = !src ||
-            src.includes('unsplash.com') ||
             src.includes('pexels.com') ||
             src.includes('pollinations.ai') ||
             src.includes('loremflickr.com');

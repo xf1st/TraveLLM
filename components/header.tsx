@@ -128,6 +128,28 @@ export function Header({ floating = false }: HeaderProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Mobile Navigation Menu */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                  <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {navLinks.map((link) => (
+                    <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                      <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <ModeToggle />
             {user ? (
               <DropdownMenu>
@@ -141,7 +163,7 @@ export function Header({ floating = false }: HeaderProps) {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 rounded-xl" align="end" forceMount>
+                <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
@@ -151,30 +173,30 @@ export function Header({ floating = false }: HeaderProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile" className="w-full flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        Мой профиль
+                      <Link href="/profile" className="w-full flex items-center p-2">
+                        <User className="mr-3 h-4 w-4" />
+                        <span>Мой профиль</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=routes" className="w-full flex items-center">
-                        <Map className="mr-2 h-4 w-4" />
-                        Мои маршруты
+                      <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
+                        <Map className="mr-3 h-4 w-4" />
+                        <span>Мои маршруты</span>
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                        <Link href="/admin" className="w-full flex items-center">
-                          <Shield className="mr-2 h-4 w-4" />
-                          Админ-панель
+                        <Link href="/admin" className="w-full flex items-center p-2">
+                          <Shield className="mr-3 h-4 w-4" />
+                          <span>Админ-панель</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Выйти
+                  <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer p-2" onClick={handleLogout}>
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span>Выйти</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -275,7 +297,7 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                    <Link href="/profile?tab=profile" className="w-full flex items-center p-2">
+                    <Link href="/profile" className="w-full flex items-center p-2">
                       <User className="mr-3 h-4 w-4" />
                       <span>Мой профиль</span>
                     </Link>

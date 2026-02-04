@@ -43,7 +43,7 @@ export function ItineraryChatWidget({
     const [isOpen, setIsOpen] = useState(embedded) // If embedded, start open
     const [messages, setMessages] = useState<Message[]>([
         mode === "planning"
-            ? { role: "assistant", content: "Привет! Я помогу изменить маршрут. Например:\n• \"Замени Хельсинки на Рим\"\n• \"В день 3 хочу ресторан вместо музея\"" }
+            ? { role: "assistant", content: "Привет! Я помогу изменить маршрут. Например:\n• \"Замени музей на ресторан в день 3\"\n• \"Добавь кофейню утром в день 2\"\n• \"Сократи Сочи до 3 дней\"" }
             : { role: "assistant", content: "Привет! Я ваш ИИ-гид. Я знаю ваш маршрут и могу подсказать, куда идти, где поесть или как вызвать такси. Спрашивайте!" }
     ])
     const [input, setInput] = useState("")
