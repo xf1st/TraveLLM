@@ -42,9 +42,7 @@ export function ItineraryChatWidget({
 }: ItineraryChatWidgetProps & { className?: string }) {
     const [isOpen, setIsOpen] = useState(embedded) // If embedded, start open
     const [messages, setMessages] = useState<Message[]>([
-        mode === "planning"
-            ? { role: "assistant", content: "Привет! Я помогу изменить маршрут. Например:\n• \"Замени музей на ресторан в день 3\"\n• \"Добавь кофейню утром в день 2\"\n• \"Сократи Сочи до 3 дней\"" }
-            : { role: "assistant", content: "Привет! Я ваш ИИ-гид. Я знаю ваш маршрут и могу подсказать, куда идти, где поесть или как вызвать такси. Спрашивайте!" }
+        { role: "assistant", content: "Привет! Я ваш AI-помощник по маршруту.\n\nЗадайте вопрос или попросите изменить маршрут:\n• \"Какая погода будет?\"​\n• \"Замени музей на кафе в день 2\"​\n• \"Нужна ли виза?\"" }
     ])
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -70,24 +68,18 @@ export function ItineraryChatWidget({
         setInput("")
         setMessages(prev => [...prev, { role: "user", content: userMessage }])
         setIsLoading(true)
-        onModifying?.(true) // Notify parent that modification started
+        onModifying?.(true)
 
         try {
-            const endpoint = mode === "planning" ? "/api/modify-itinerary" : "/api/guide-chat"
-            const body = mode === "planning"
-                ? { currentItinerary: itinerary, userMessage, tripId }
-                : {
-                    tripData: itinerary,
-                    userMessage,
-                    tripId,
-                    completedActivities,
-                    bookings: tripDetails?.bookings
-                }
-
-            const response = await fetch(endpoint, {
+            // Use unified trip-assistant API
+            const response = await fetch("/api/trip-assistant", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body)
+                body: JSON.stringify({
+                    tripData: itinerary,
+                    userMessage,
+                    tripId
+                })
             })
 
             const data = await response.json()
@@ -97,29 +89,20 @@ export function ItineraryChatWidget({
                     role: "assistant",
                     content: `❌ Ошибка: ${data.error}`
                 }])
+            } else if (data.type === "modification" && data.modifications?.length > 0 && onItineraryUpdate) {
+                // Handle modification response
+                applyModifications(data.modifications, data.metadataUpdates)
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: data.reply,
+                    isModification: true
+                }])
             } else {
-                if (mode === "planning") {
-                    // Planning Mode Logic
-                    if (data.modifications && data.modifications.length > 0 && onItineraryUpdate) {
-                        applyModifications(data.modifications, data.metadataUpdates)
-                        setMessages(prev => [...prev, {
-                            role: "assistant",
-                            content: `✅ ${data.explanation}`,
-                            isModification: true
-                        }])
-                    } else {
-                        setMessages(prev => [...prev, {
-                            role: "assistant",
-                            content: data.explanation || "Не удалось понять запрос. Попробуйте уточнить."
-                        }])
-                    }
-                } else {
-                    // Guide Mode Logic (Just chat for now)
-                    setMessages(prev => [...prev, {
-                        role: "assistant",
-                        content: data.reply || "Я не знаю, что ответить."
-                    }])
-                }
+                // Handle regular message/question response
+                setMessages(prev => [...prev, {
+                    role: "assistant",
+                    content: data.reply || "Не удалось обработать запрос."
+                }])
             }
         } catch (error: any) {
             setMessages(prev => [...prev, {
@@ -192,92 +175,145 @@ export function ItineraryChatWidget({
 
     return (
         <Card className={cn(
-            "border-primary/20 bg-gradient-to-br from-background to-muted/30 flex flex-col relative overflow-visible z-40", // Explicit overflow-visible and z-index
-            embedded ? "h-full rounded-none border-0 bg-transparent shadow-none" : "",
+            "border-0 bg-transparent flex flex-col relative overflow-visible z-40",
+            embedded ? "h-full" : "",
             className
         )}>
-            {/* Header - conditional visibility based on 'embedded' */}
+            {/* Floating Header */}
             {!embedded && (
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center justify-center relative p-4 hover:bg-muted/50 transition-colors" // justify-center + relative
+                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-violet-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-violet-500/20 hover:shadow-violet-500/30 transition-all duration-300 group border border-white/20"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <MessageSquare className="h-5 w-5 text-primary" />
+                        <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+                            <Sparkles className="h-5 w-5 text-white" />
                         </div>
                         <div className="text-left">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                {mode === "planning" ? "Изменить маршрут" : "Чат с гидом"}
-                                <Sparkles className="h-4 w-4 text-primary" />
+                            <h3 className="font-bold text-white text-sm tracking-tight">
+                                AI-Помощник
                             </h3>
-                            <p className="text-xs text-muted-foreground">AI-ассистент</p>
+                            <p className="text-[10px] text-white/70 font-medium">Вопросы • Изменения • Советы</p>
                         </div>
                     </div>
-                    {/* Absolute chevron to stay on right */}
-                    <div className="absolute right-4 text-muted-foreground">
-                        {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                        <ChevronDown className={cn(
+                            "h-5 w-5 text-white/80 transition-transform duration-300",
+                            isOpen && "rotate-180"
+                        )} />
                     </div>
                 </button>
             )}
 
-            {/* Chat body - floating overlay */}
+            {/* Chat Panel */}
             <div className={cn(
-                "transition-all duration-300 ease-in-out flex flex-col z-[100] shadow-2xl rounded-b-xl border border-primary/20 bg-background/95 backdrop-blur-xl",
-                embedded ? "h-full" : (isOpen ? "absolute top-full left-0 right-0 mt-2 opacity-100 scale-100 origin-top" : "hidden opacity-0 scale-95 pointer-events-none")
+                "transition-all duration-300 ease-out flex flex-col rounded-2xl overflow-hidden",
+                "bg-gradient-to-b from-neutral-900/95 via-neutral-900/98 to-black/95 backdrop-blur-2xl",
+                "border border-white/10 shadow-2xl shadow-black/50",
+                embedded ? "h-full" : (isOpen ? "mt-3 opacity-100 scale-100" : "hidden opacity-0 scale-95 pointer-events-none")
             )}>
+                {/* Chat Header Bar */}
+                <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Онлайн</span>
+                    </div>
+                    <span className="text-[10px] text-white/40">Powered by DeepSeek</span>
+                </div>
+
                 {/* Messages */}
                 <div
                     ref={scrollContainerRef}
                     className={cn(
-                        "overflow-y-auto p-4 space-y-3",
-                        embedded ? "flex-1" : "h-[280px] border-t border-border/50"
+                        "overflow-y-auto px-4 py-5 space-y-5",
+                        embedded ? "flex-1" : "h-[360px]"
                     )}>
                     {messages.map((msg, i) => (
                         <div
                             key={i}
                             className={cn(
-                                "flex w-max max-w-[85%] flex-col gap-2 rounded-lg px-3 py-2 text-sm",
-                                msg.role === "user"
-                                    ? "ml-auto bg-primary text-primary-foreground"
-                                    : "bg-muted"
+                                "flex gap-3",
+                                msg.role === "user" && "flex-row-reverse"
                             )}
                         >
-                            <div className="whitespace-pre-wrap">{msg.content}</div>
+                            {/* Avatar */}
+                            <div className={cn(
+                                "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+                                msg.role === "user"
+                                    ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white"
+                                    : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
+                            )}>
+                                {msg.role === "user" ? "Я" : "AI"}
+                            </div>
 
-                            {msg.bookingData && (
-                                <div className="mt-3 p-3 rounded-xl bg-background/50 border border-white/10 space-y-3">
-                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
-                                        {msg.bookingData.type === 'flight' ? <Plane className="h-3 w-3 text-sky-400" /> : <HotelIcon className="h-3 w-3 text-emerald-400" />}
-                                        {msg.bookingData.type === 'flight' ? 'Поиск авиабилетов' : 'Подбор отелей'}
+                            {/* Message Bubble */}
+                            <div className={cn(
+                                "max-w-[80%] rounded-2xl px-4 py-3",
+                                msg.role === "user"
+                                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-br-md"
+                                    : "bg-white/[0.06] border border-white/10 text-white/90 rounded-bl-md"
+                            )}>
+                                <div className={cn(
+                                    "text-[13px] leading-relaxed whitespace-pre-wrap",
+                                    msg.role === "assistant" && "font-normal"
+                                )}>{msg.content}</div>
+
+                                {msg.isModification && (
+                                    <div className="mt-2 pt-2 border-t border-white/10">
+                                        <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wide flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                                            Маршрут обновлён
+                                        </span>
                                     </div>
-                                    <Button
-                                        size="sm"
-                                        className="w-full text-[10px] h-8 font-black uppercase tracking-tighter"
-                                        onClick={() => {
-                                            const url = msg.bookingData!.type === 'flight'
-                                                ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
-                                                : `https://ostrovok.ru/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
-                                            window.open(url, '_blank')
-                                        }}
-                                    >
-                                        Открыть {msg.bookingData.type === 'flight' ? 'Aviasales' : 'Ostrovok'}
-                                        <ExternalLink className="ml-2 h-3 w-3" />
-                                    </Button>
-                                </div>
-                            )}
+                                )}
+
+                                {msg.bookingData && (
+                                    <div className="mt-3 p-3 rounded-xl bg-black/30 border border-white/10 space-y-2">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                                            {msg.bookingData.type === 'flight' ? <Plane className="h-3 w-3 text-sky-400" /> : <HotelIcon className="h-3 w-3 text-emerald-400" />}
+                                            {msg.bookingData.type === 'flight' ? 'Авиабилеты' : 'Отели'}
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            className="w-full text-[10px] h-8 font-bold uppercase tracking-wide bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/10"
+                                            onClick={() => {
+                                                const url = msg.bookingData!.type === 'flight'
+                                                    ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                                    : `https://ostrovok.ru/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                                                window.open(url, '_blank')
+                                            }}
+                                        >
+                                            Открыть {msg.bookingData.type === 'flight' ? 'Aviasales' : 'Ostrovok'}
+                                            <ExternalLink className="ml-2 h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     ))}
+
                     {isLoading && (
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs p-2">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            <span>Думаю...</span>
+                        <div className="flex gap-3">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-bold text-white">
+                                AI
+                            </div>
+                            <div className="bg-white/[0.06] border border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex gap-1">
+                                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <span className="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                    <span className="text-xs text-white/50">Думаю...</span>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Input */}
-                <div className="p-3 bg-background/50 border-t border-border/50">
+                {/* Input Area */}
+                <div className="p-4 border-t border-white/5 bg-black/30">
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
@@ -285,18 +321,27 @@ export function ItineraryChatWidget({
                         }}
                         className="flex gap-2"
                     >
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder={mode === "planning" ? "Что изменить?" : "Задай вопрос гиду..."}
-                            className="flex-1 bg-background"
-                            disabled={isLoading}
-                        />
-                        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-                            <Send className="h-4 w-4" />
-                            <span className="sr-only">Отправить</span>
+                        <div className="flex-1 relative">
+                            <Input
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Напишите сообщение..."
+                                className="w-full bg-white/5 border-white/10 rounded-xl h-12 pl-4 pr-12 text-sm text-white placeholder:text-white/30 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50"
+                                disabled={isLoading}
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            disabled={isLoading || !input.trim()}
+                            className="h-12 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-violet-500/25 disabled:opacity-40 disabled:shadow-none transition-all"
+                        >
+                            <Send className="h-4 w-4 mr-2" />
+                            <span className="hidden sm:inline">Отправить</span>
                         </Button>
                     </form>
+                    <p className="text-[10px] text-white/30 text-center mt-2">
+                        Спросите про маршрут или попросите изменить
+                    </p>
                 </div>
             </div>
         </Card>
