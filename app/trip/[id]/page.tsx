@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
@@ -140,16 +140,31 @@ const companionsTranslations: Record<string, string> = {
 }
 
 const tagColors: Record<string, string> = {
-  "пляж": "text-sky-900 bg-sky-200 hover:bg-sky-300",
-  "шопинг": "text-pink-900 bg-pink-200 hover:bg-pink-300",
-  "аквапарк": "text-cyan-900 bg-cyan-200 hover:bg-cyan-300",
-  "горы": "text-emerald-900 bg-emerald-200 hover:bg-emerald-300",
-  "море": "text-blue-900 bg-blue-200 hover:bg-blue-300",
-  "торговые центры": "text-purple-900 bg-purple-200 hover:bg-purple-300",
-  "природа": "text-green-900 bg-green-200 hover:bg-green-300",
-  "культура": "text-amber-900 bg-amber-200 hover:bg-amber-300",
-  "развлечения": "text-rose-900 bg-rose-200 hover:bg-rose-300",
-  "default": "text-slate-900 bg-slate-200 hover:bg-slate-300"
+  "пляж": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
+  "шопинг": "bg-pink-100/80 text-pink-700 border-none dark:bg-pink-500/20 dark:text-pink-300",
+  "аквапарк": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
+  "горы": "bg-emerald-100/80 text-emerald-700 border-none dark:bg-emerald-500/20 dark:text-emerald-300",
+  "море": "bg-blue-100/80 text-blue-700 border-none dark:bg-blue-500/20 dark:text-blue-300",
+  "торговые центры": "bg-purple-100/80 text-purple-700 border-none dark:bg-purple-500/20 dark:text-purple-300",
+  "природа": "bg-green-100/80 text-green-700 border-none dark:bg-green-500/20 dark:text-green-300",
+  "культура": "bg-amber-100/80 text-amber-800 border-none dark:bg-amber-500/20 dark:text-amber-300",
+  "развлечения": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "мероприятия": "bg-fuchsia-100/80 text-fuchsia-700 border-none dark:bg-fuchsia-500/20 dark:text-fuchsia-300",
+  "вино": "bg-violet-100/80 text-violet-700 border-none dark:bg-violet-500/20 dark:text-violet-300",
+  "гастрономия": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
+  "еда": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
+  "релакс": "bg-teal-100/80 text-teal-700 border-none dark:bg-teal-500/20 dark:text-teal-300",
+  "храмы": "bg-stone-100/80 text-stone-700 border-none dark:bg-stone-500/20 dark:text-stone-300",
+  "история": "bg-yellow-100/80 text-yellow-800 border-none dark:bg-yellow-500/20 dark:text-yellow-300",
+  "активный": "bg-lime-100/80 text-lime-700 border-none dark:bg-lime-500/20 dark:text-lime-300",
+  "дайвинг": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
+  "уникальный": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
+  "premium": "bg-amber-100/80 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+  "умеренный": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
+  "вдвоём": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "вдвоем": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "компания": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
+  "default": "bg-muted text-muted-foreground border-none dark:bg-white/10 dark:text-white/80"
 }
 
 const tagIcons: Record<string, any> = {
@@ -184,6 +199,17 @@ export default function TripDetailPage() {
   const y = useTransform(scrollY, [0, 500], [0, 250])
   const opacity = useTransform(scrollY, [0, 400], [1, 0])
   const scale = useTransform(scrollY, [0, 500], [1, 1.1])
+
+  // Memoized places for map
+  const mapPlaces = useMemo(() => route?.itinerary?.flatMap((day: any, dayIdx: number) =>
+    day.activities?.map((activity: any, actIdx: number) => ({
+      id: `${dayIdx}-${actIdx}`,
+      name: activity.placeName || activity.desc?.split('.')[0] || `День ${day.day}`,
+      description: activity.desc,
+      status: expandedDay === day.day ? 'active' : dayIdx === 0 ? 'visited' : 'pending',
+      day: day.day
+    })) || []
+  ) || [], [route, expandedDay])
 
   useEffect(() => {
     const checkSidebar = () => {
@@ -433,9 +459,12 @@ export default function TripDetailPage() {
               >
                 <div className="flex flex-wrap gap-2">
                   {route.tags?.map((tag: string) => {
-                    const tagKey = tag.toLowerCase();
-                    const Icon = tagIcons[tagKey] || tagIcons["default"];
-                    const colorClass = tagColors[tagKey] || tagColors["default"];
+                    const cleanTag = tag.toLowerCase().replace('#', '').trim();
+                    const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key.toLowerCase())) || "default";
+                    const colorKey = Object.keys(tagColors).find(key => cleanTag.includes(key.toLowerCase())) || "default";
+
+                    const Icon = tagIcons[matchKey] || tagIcons["default"];
+                    const colorClass = tagColors[colorKey] || tagColors["default"];
 
                     return (
                       <Badge key={tag} className={`${colorClass} rounded-full px-4 py-1.5 text-sm font-bold flex items-center gap-1.5 border-none shadow-sm transition-colors`}>
@@ -446,32 +475,32 @@ export default function TripDetailPage() {
                   })}
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-2xl">
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground dark:text-white drop-shadow-2xl">
                   {route.title}
                 </h1>
 
-                <div className="flex flex-wrap gap-2 text-white/90 font-medium text-sm md:text-lg">
-                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                    <Calendar className="h-4 w-4 md:h-5 md:w-5 text-sky-400" />
+                <div className="flex flex-wrap gap-2 text-foreground/80 dark:text-white/90 font-medium text-sm md:text-lg">
+                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
+                    <Calendar className="h-4 w-4 md:h-5 md:w-5 text-sky-600 dark:text-sky-400" />
                     {route.itinerary?.length || 0} дней
                   </div>
                   <div
-                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 cursor-pointer hover:bg-white/10 transition-colors group"
+                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10 cursor-pointer hover:bg-muted dark:hover:bg-white/10 transition-colors group"
                     onClick={() => setShowBudgetModal(true)}
                   >
-                    <Wallet className="h-4 w-4 md:h-5 md:w-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <Wallet className="h-4 w-4 md:h-5 md:w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                     <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-                    <Shield className="h-4 w-4 md:h-5 md:w-5 text-amber-400" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
+                    <Shield className="h-4 w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />
                     Безопасность {route.safetyInfo?.rating || 8}/10
                   </div>
 
 
                   {/* Social Actions - Print & Share Only */}
-                  <div className="flex items-center gap-1 border-l border-white/10 pl-3 ml-2">
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={handlePrint} title="Экспорт в PDF">
-                      <Printer className="h-4 w-4 md:h-5 md:w-5 text-white" />
+                  <div className="flex items-center gap-1 border-l border-border/50 dark:border-white/10 pl-3 ml-2">
+                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted dark:hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={handlePrint} title="Экспорт в PDF">
+                      <Printer className="h-4 w-4 md:h-5 md:w-5 text-foreground dark:text-white" />
                     </Button>
                   </div>
                 </div>
@@ -501,19 +530,19 @@ export default function TripDetailPage() {
                       transition={{ delay: idx * 0.1 }}
                       key={idx}
                     >
-                      <Card className={`overflow-hidden border border-white/10 bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
+                      <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
                         <button
                           onClick={() => setExpandedDay(isExpanded ? null : day.day)}
                           className="w-full flex items-center justify-between p-5 text-left group bg-transparent"
                         >
                           <div className="flex items-center gap-6">
-                            <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-white/5 ${isExpanded ? 'bg-white/10' : 'bg-white/5'}`}>
+                            <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
                               {isExpanded ? (
                                 <span className="text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
                                   {day.day}
                                 </span>
                               ) : (
-                                <span className="text-white/60 font-bold">{day.day}</span>
+                                <span className="text-muted-foreground dark:text-white/60 font-bold">{day.day}</span>
                               )}
                             </div>
                             <div>
@@ -521,7 +550,7 @@ export default function TripDetailPage() {
                               <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
                             </div>
                           </div>
-                          <div className={`p-2 rounded-full bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
+                          <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
                             <ChevronRight className="h-6 w-6 text-muted-foreground" />
                           </div>
                         </button>
@@ -545,7 +574,7 @@ export default function TripDetailPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
                                   const destination = day.logistics?.to || route.destination || ""
                                   const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
@@ -557,7 +586,7 @@ export default function TripDetailPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                 onClick={() => {
                                   const destination = day.logistics?.to || route.destination || ""
                                   const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
@@ -644,7 +673,7 @@ export default function TripDetailPage() {
                 <ItineraryChatWidget
                   itinerary={route}
                   tripDetails={route}
-                  onItineraryUpdate={(newItinerary) => setRoute(prev => ({ ...prev, itinerary: newItinerary }))}
+                  onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
                   onModifying={setIsModifying}
                   tripId={params.id as string}
                 />
@@ -686,14 +715,14 @@ export default function TripDetailPage() {
                 <ItineraryChatWidget
                   itinerary={route}
                   tripDetails={route}
-                  onItineraryUpdate={(newItinerary) => setRoute(prev => ({ ...prev, itinerary: newItinerary }))}
+                  onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
                   onModifying={setIsModifying}
                   tripId={params.id as string}
-                  className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-white/10 dark:border-white/5 shadow-xl"
+                  className="bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-border/50 dark:border-white/5 shadow-xl"
                 />
               </div>
 
-              <Card className="p-6 border border-white/10 dark:border-white/5 shadow-xl bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
+              <Card className="p-6 border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
                   Важная информация
@@ -734,22 +763,14 @@ export default function TripDetailPage() {
               </Card>
 
               {/* Interactive Map Card - Replaced AI Guide */}
-              <Card className="p-4 border border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] shadow-xl">
+              <Card className="p-4 border border-border/50 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem] shadow-xl">
                 <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
                   <Map className="h-5 w-5 text-primary" />
                   Карта маршрута
                 </h3>
                 <div className="h-[300px] rounded-xl overflow-hidden">
                   <TripMap
-                    places={route.itinerary?.flatMap((day: any, dayIdx: number) =>
-                      day.activities?.map((activity: any, actIdx: number) => ({
-                        id: `${dayIdx}-${actIdx}`,
-                        name: activity.placeName || activity.desc?.split('.')[0] || `День ${day.day}`,
-                        description: activity.desc,
-                        status: expandedDay === day.day ? 'active' : dayIdx === 0 ? 'visited' : 'pending',
-                        day: day.day
-                      })) || []
-                    ) || []}
+                    places={mapPlaces}
                     activePlaceId={expandedDay ? `${expandedDay - 1}-0` : undefined}
                     onPlaceSelect={(placeId: string) => {
                       const [dayIdx] = placeId.split('-').map(Number);
@@ -826,18 +847,18 @@ export default function TripDetailPage() {
         </Dialog >
 
         <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24">
-          <div className="p-6 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md flex flex-wrap gap-3 justify-center items-center shadow-xl">
+          <div className="p-6 rounded-2xl border border-border/50 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md flex flex-wrap gap-3 justify-center items-center shadow-xl">
             {/* Main info badges */}
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white border border-white/10 flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-blue-400" />
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
               {tripDestinationLabel}
             </Badge>
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-white border border-white/10 flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-emerald-400" />
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
               {tripDurationDays} дней
             </Badge>
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-white border border-white/10 flex items-center gap-2">
-              <Wallet className="h-3.5 w-3.5 text-amber-400" />
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
               {route.budget_range || route.totalBudget}
             </Badge>
 

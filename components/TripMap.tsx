@@ -89,6 +89,12 @@ interface TripMapProps {
 }
 
 export default function TripMap({ places, activePlaceId, onPlaceSelect, userLocation }: TripMapProps) {
+    const [isMounted, setIsMounted] = useState(false)
+
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
+
     // Enrich places with coords if missing (smart mock logic)
     const mappedPlaces = useMemo(() => {
         let lastValidCoord: [number, number] = [55.7558, 37.6173]
@@ -131,7 +137,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
 
     // Helper functions need L context
     const getCustomIcon = (color: string, isActive: boolean) => {
-        if (!L) return undefined
+        if (!isMounted || !L) return undefined // Safer check
         return L.divIcon({
             className: 'custom-marker-wrapper',
             html: `
@@ -147,7 +153,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
     }
 
     const getUserIcon = () => {
-        if (!L) return undefined
+        if (!isMounted || !L) return undefined
         return L.divIcon({
             className: 'user-marker-wrapper',
             html: `
@@ -164,7 +170,7 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect, userLoca
         })
     }
 
-    if (!L) return null // Wait for Leaflet to load
+    if (!isMounted) return <div className="h-full w-full bg-muted/20 animate-pulse rounded-2xl" />
 
     return (
         <div className="h-full w-full rounded-2xl overflow-hidden border border-border/50 shadow-2xl relative z-0 group">

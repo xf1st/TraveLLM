@@ -144,25 +144,31 @@ const mockRecommendations = [
 ]
 
 const tagColors: Record<string, string> = {
-  "пляж": "bg-sky-200 text-sky-900 border-none",
-  "шопинг": "bg-pink-200 text-pink-900 border-none",
-  "аквапарк": "bg-cyan-200 text-cyan-900 border-none",
-  "горы": "bg-emerald-200 text-emerald-900 border-none",
-  "море": "bg-blue-200 text-blue-900 border-none",
-  "торговые центры": "bg-purple-200 text-purple-900 border-none",
-  "природа": "bg-green-200 text-green-900 border-none",
-  "культура": "bg-amber-200 text-amber-900 border-none",
-  "развлечения": "bg-rose-200 text-rose-900 border-none",
-  "вино": "bg-purple-200 text-purple-900 border-none",
-  "гастрономия": "bg-orange-200 text-orange-900 border-none",
-  "еда": "bg-orange-200 text-orange-900 border-none",
-  "релакс": "bg-teal-200 text-teal-900 border-none",
-  "храмы": "bg-stone-200 text-stone-900 border-none",
-  "история": "bg-amber-100 text-amber-900 border-none",
-  "активный": "bg-lime-200 text-lime-900 border-none",
-  "дайвинг": "bg-cyan-200 text-cyan-900 border-none",
-  "уникальный": "bg-violet-200 text-violet-900 border-none",
-  "default": "bg-slate-200 text-slate-900 border-none"
+  "пляж": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
+  "шопинг": "bg-pink-100/80 text-pink-700 border-none dark:bg-pink-500/20 dark:text-pink-300",
+  "аквапарк": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
+  "горы": "bg-emerald-100/80 text-emerald-700 border-none dark:bg-emerald-500/20 dark:text-emerald-300",
+  "море": "bg-blue-100/80 text-blue-700 border-none dark:bg-blue-500/20 dark:text-blue-300",
+  "торговые центры": "bg-purple-100/80 text-purple-700 border-none dark:bg-purple-500/20 dark:text-purple-300",
+  "природа": "bg-green-100/80 text-green-700 border-none dark:bg-green-500/20 dark:text-green-300",
+  "культура": "bg-amber-100/80 text-amber-800 border-none dark:bg-amber-500/20 dark:text-amber-300",
+  "развлечения": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "мероприятия": "bg-fuchsia-100/80 text-fuchsia-700 border-none dark:bg-fuchsia-500/20 dark:text-fuchsia-300",
+  "вино": "bg-violet-100/80 text-violet-700 border-none dark:bg-violet-500/20 dark:text-violet-300",
+  "гастрономия": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
+  "еда": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
+  "релакс": "bg-teal-100/80 text-teal-700 border-none dark:bg-teal-500/20 dark:text-teal-300",
+  "храмы": "bg-stone-100/80 text-stone-700 border-none dark:bg-stone-500/20 dark:text-stone-300",
+  "история": "bg-yellow-100/80 text-yellow-800 border-none dark:bg-yellow-500/20 dark:text-yellow-300",
+  "активный": "bg-lime-100/80 text-lime-700 border-none dark:bg-lime-500/20 dark:text-lime-300",
+  "дайвинг": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
+  "уникальный": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
+  "premium": "bg-amber-100/80 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
+  "умеренный": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
+  "вдвоём": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "вдвоем": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
+  "компания": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
+  "default": "bg-muted text-muted-foreground border-none dark:bg-white/10 dark:text-white/80"
 }
 
 const tagIcons: Record<string, any> = {
@@ -199,8 +205,12 @@ function ResultsContent() {
   // Lazy Loading State
   const [visibleCount, setVisibleCount] = useState(9)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasMoreRoutes, setHasMoreRoutes] = useState(true) // Track if more routes exist
+  const [totalRoutes, setTotalRoutes] = useState(0)
   const observerTarget = useRef(null)
+  const PAGE_SIZE = 9
 
+  // Initial load
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
@@ -208,13 +218,24 @@ function ResultsContent() {
         const { data: { session } } = await supabase.auth.getSession()
         const authUser = session?.user || null
 
-        // Fetch user trips
+        // Fetch user trips with pagination - first page
         if (authUser) {
+          // First get count
+          const { count } = await supabase
+            .from('trips')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', authUser.id)
+
+          setTotalRoutes(count || 0)
+          setHasMoreRoutes((count || 0) > PAGE_SIZE)
+
+          // Then fetch first page
           const { data, error } = await supabase
             .from('trips')
             .select('*')
             .eq('user_id', authUser.id)
             .order('created_at', { ascending: false })
+            .range(0, PAGE_SIZE - 1)
 
           if (error) {
             console.warn("Supabase fetch warning:", error.message)
@@ -264,13 +285,40 @@ function ResultsContent() {
     }
   }, [observerTarget])
 
-  const loadMore = () => {
+  const loadMore = async () => {
+    if (isLoadingMore || !hasMoreRoutes || view !== "my") return
+
     setIsLoadingMore(true)
-    // Simulate network request if needed, or just increase count
-    setTimeout(() => {
-      setVisibleCount(prev => prev + 6)
-      setIsLoadingMore(false)
-    }, 500)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const authUser = session?.user
+
+      if (authUser) {
+        const from = userRoutes.length
+        const to = from + PAGE_SIZE - 1
+
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .order('created_at', { ascending: false })
+          .range(from, to)
+
+        if (error) {
+          console.warn("Load more error:", error.message)
+        }
+
+        if (data && data.length > 0) {
+          setUserRoutes(prev => [...prev, ...data])
+          setHasMoreRoutes(from + data.length < totalRoutes)
+        } else {
+          setHasMoreRoutes(false)
+        }
+      }
+    } catch (err) {
+      console.warn("Load more failed:", err)
+    }
+    setIsLoadingMore(false)
   }
 
   // Combine DB routes with locally stored one as a "Recent" route
@@ -305,8 +353,10 @@ function ResultsContent() {
     ]
     : mockRecommendations
 
-  const displayRoutes = allRoutes.slice(0, visibleCount)
-  const hasMore = visibleCount < allRoutes.length
+  // For "My Routes" - show all loaded from DB (pagination handled by loadMore)
+  // For "Popular" - use visibleCount for frontend pagination
+  const displayRoutes = view === "my" ? allRoutes : allRoutes.slice(0, visibleCount)
+  const hasMore = view === "my" ? hasMoreRoutes : visibleCount < allRoutes.length
 
   const title = view === "my" ? "Ваша коллекция" : "Вдохновение"
   const description = view === "my"
@@ -333,18 +383,18 @@ function ResultsContent() {
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Controls Layout: Search + Toggle */}
         <div className="mb-10 flex flex-col-reverse md:flex-row md:items-center justify-between gap-6">
-          <div className="bg-muted/30 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md inline-flex">
+          <div className="bg-muted/30 p-1.5 rounded-2xl border border-border/30 dark:border-white/5 backdrop-blur-md inline-flex">
             <Button
               variant={view === "all" ? "default" : "ghost"}
               onClick={() => setView("all")}
-              className={`px-8 rounded-xl transition-all ${view === 'all' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-white/5'}`}
+              className={`px-8 rounded-xl transition-all ${view === 'all' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
             >
               Популярные
             </Button>
             <Button
               variant={view === "my" ? "default" : "ghost"}
               onClick={() => setView("my")}
-              className={`px-8 rounded-xl transition-all ${view === 'my' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-white/5'}`}
+              className={`px-8 rounded-xl transition-all ${view === 'my' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
             >
               Мои маршруты
             </Button>
@@ -366,7 +416,7 @@ function ResultsContent() {
                 displayRoutes.map((trip, index) => (
                   <FadeIn key={trip.id} delay={index * 50} className="h-full">
                     <Card
-                      className="group relative flex flex-col h-full overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]"
+                      className="group relative flex flex-col h-full overflow-hidden border border-border/50 dark:border-white/5 bg-card dark:bg-zinc-900 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]"
                     >
                       {/* Image Section - Full bleed with gradient mask */}
                       <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
@@ -377,7 +427,7 @@ function ResultsContent() {
                           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         {/* Gradient that matches the card background exactly */}
-                        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-zinc-900 via-zinc-900/80 to-transparent" />
+                        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-card via-card/80 to-transparent dark:from-zinc-900 dark:via-zinc-900/80" />
 
                         {/* Safety Badge */}
                         <div className="absolute top-4 right-4 relative z-20 scale-90 origin-top-right">
@@ -399,30 +449,30 @@ function ResultsContent() {
                             <MapPin className="h-3.5 w-3.5 text-primary" />
                             {trip.destination}
                           </div>
-                          <div className="h-1 w-1 rounded-full bg-white/20" />
+                          <div className="h-1 w-1 rounded-full bg-border dark:bg-white/20" />
                           <div className="flex items-center gap-1.5">
                             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                             {trip.duration}
                           </div>
                         </div>
 
-                        <h3 className="text-2xl font-bold text-white mb-3 leading-tight group-hover:text-primary transition-colors">
+                        <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3 leading-tight group-hover:text-primary transition-colors">
                           {trip.title}
                         </h3>
 
-                        <p className="mb-6 text-sm leading-relaxed text-zinc-400 line-clamp-3 font-medium">
+                        <p className="mb-6 text-sm leading-relaxed text-muted-foreground dark:text-zinc-400 line-clamp-3 font-medium">
                           {trip.description}
                         </p>
 
                         <div className="mb-8 flex flex-wrap gap-2 mt-auto">
                           {trip.tags?.map((tag: string) => {
                             const cleanTag = tag.toLowerCase().replace('#', '').trim();
-                            // Find matching key for icons/colors
-                            const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key)) || "default";
-                            const colorKey = Object.keys(tagColors).find(key => cleanTag.includes(key)) || "default";
+                            // Find matching key for icons/colors - improved matching
+                            const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key.toLowerCase())) || "default";
+                            const colorKey = Object.keys(tagColors).find(key => cleanTag.includes(key.toLowerCase())) || "default";
 
-                            const TagIcon = tagIcons[matchKey];
-                            const colorClass = tagColors[colorKey];
+                            const TagIcon = tagIcons[matchKey] || tagIcons["default"];
+                            const colorClass = tagColors[colorKey] || tagColors["default"];
 
                             return (
                               <span key={tag} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide shadow-sm transition-transform hover:scale-105 ${colorClass}`}>
@@ -438,12 +488,12 @@ function ResultsContent() {
                             <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
                               <Wallet className="h-5 w-5 text-blue-400" />
                             </div>
-                            <span className="text-xl font-black text-white tracking-tight">
+                            <span className="text-xl font-black text-foreground dark:text-white tracking-tight">
                               {typeof trip.budget === 'number' ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(trip.budget) : trip.budget.replace ? trip.budget.replace('₽', ' ₽') : trip.budget}
                             </span>
                           </div>
 
-                          <Button asChild className="rounded-full bg-white text-black hover:bg-white/90 font-bold px-8 h-12 shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:scale-105 group/btn">
+                          <Button asChild className="rounded-full bg-primary text-primary-foreground dark:bg-white dark:text-black hover:bg-primary/90 dark:hover:bg-white/90 font-bold px-8 h-12 shadow-lg transition-all hover:scale-105 group/btn">
                             <Link href={`/trip/${trip.id}`}>
                               Открыть
                               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
@@ -456,10 +506,10 @@ function ResultsContent() {
                 ))
               ) : (
                 <div className="col-span-full py-20 text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white/5 border border-white/10">
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border/50 dark:border-white/10">
                     <MapPin className="h-10 w-10 text-muted-foreground opacity-50" />
                   </div>
-                  <h3 className="text-xl font-bold text-white">Пока нет маршрутов</h3>
+                  <h3 className="text-xl font-bold text-foreground dark:text-white">Пока нет маршрутов</h3>
                   <p className="mt-2 text-muted-foreground max-w-md mx-auto">
                     {view === "my"
                       ? "Вы еще не создали ни одного маршрута. Самое время начать свое приключение!"

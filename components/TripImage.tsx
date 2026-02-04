@@ -18,7 +18,6 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
     const [error, setError] = useState(false)
 
     // Check if initial src is invalid (blocked domain or empty)
-    // Note: Unsplash direct links are allowed (used for popular routes)
     useEffect(() => {
         const isInvalid = !src ||
             src.includes('pexels.com') ||
@@ -29,7 +28,7 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
             fetchNewImage();
         } else {
             setCurrentSrc(src);
-            setIsLoading(false); // Assume it's reliable if it's not in blacklist, but onError will catch if not
+            setIsLoading(false);
         }
     }, [src]);
 
@@ -53,35 +52,42 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
 
     const handleError = () => {
         if (!error) {
-            // If basic load failed, try fetching a fresh one via proxy
+            // First retry - fetch a new one
+            console.log("Image load failed, fetching new:", currentSrc)
             fetchNewImage();
+        } else {
+            // Already retried or failed fetch -> permanent error
+            setError(true)
         }
     };
 
     if (error || !currentSrc) {
         // Use guaranteed static fallback image
-        const fallbackUrl = "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg";
+        // Updated fallback to a reliable Unsplash ID or internal asset if possible, keeping Wikimedia for now but wrapped nicely
+        const fallbackUrl = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=800"; // Travel placeholder
         return (
-            <div className={`relative overflow-hidden ${className}`}>
+            <div className={`relative overflow-hidden bg-muted flex items-center justify-center ${className}`}>
                 <img
                     src={fallbackUrl}
                     alt={alt}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover opacity-80 mix-blend-overlay"
                 />
-                <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                    {query}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 text-white text-center">
+                    <MapPin className="h-6 w-6 mx-auto mb-2 text-white/80" />
+                    <span className="text-sm font-medium opacity-90 block truncate px-2">{query}</span>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className={`relative overflow-hidden ${className}`}>
-            {isLoading && <Skeleton className="absolute inset-0 z-10" />}
+        <div className={`relative overflow-hidden bg-muted ${className}`}>
+            {isLoading && <Skeleton className="absolute inset-0 z-10 w-full h-full" />}
             <img
                 src={currentSrc}
                 alt={alt}
-                className={`w-full h-full object-cover transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+                className={`w-full h-full object-cover transition-all duration-700 ${isLoading ? 'scale-105 blur-sm' : 'scale-100 blur-0'} ${error ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setIsLoading(false)}
                 onError={handleError}
                 loading={priority ? "eager" : "lazy"}
