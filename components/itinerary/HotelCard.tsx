@@ -1,22 +1,107 @@
 "use client"
 
-import { Star, MapPin, Wifi, Check } from "lucide-react"
+import { useState } from "react"
+import { Star, MapPin, Wifi, Check, Calendar, Users, ExternalLink, ChevronLeft, ChevronRight, UtensilsCrossed, Waves, Dumbbell, Car, Coffee, Sparkles, ShieldCheck, Wind, Tv } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
 
+// Amenity icon mapping
+const AMENITY_ICONS: Record<string, any> = {
+    "wifi": Wifi,
+    "wi-fi": Wifi,
+    "вай-фай": Wifi,
+    "интернет": Wifi,
+    "завтрак": UtensilsCrossed,
+    "еда": UtensilsCrossed,
+    "питание": UtensilsCrossed,
+    "ресторан": UtensilsCrossed,
+    "all inclusive": UtensilsCrossed,
+    "всё включено": UtensilsCrossed,
+    "бассейн": Waves,
+    "pool": Waves,
+    "спа": Sparkles,
+    "spa": Sparkles,
+    "сауна": Sparkles,
+    "фитнес": Dumbbell,
+    "тренажёр": Dumbbell,
+    "тренажер": Dumbbell,
+    "gym": Dumbbell,
+    "парковка": Car,
+    "parking": Car,
+    "кондиционер": Wind,
+    "кофе": Coffee,
+    "тв": Tv,
+    "телевизор": Tv,
+    "страховка": ShieldCheck,
+}
+
+function getAmenityIcon(amenity: string) {
+    const lower = amenity.toLowerCase()
+    for (const [key, Icon] of Object.entries(AMENITY_ICONS)) {
+        if (lower.includes(key)) return Icon
+    }
+    return Check
+}
+
 interface HotelCardProps {
     hotelName: string
     stars: number
     rating: number
     reviewsCount: number
+
+    // Stay details
+    checkIn?: string
+    checkOut?: string
+    nights?: number
+    guests?: number
+    rooms?: number
+
+    // Pricing
     pricePerNight: number
-    amenities: string[]
+    totalPrice?: number
+
+    // Location
     address: string
-    photoQuery: string
+
+    // Media
+    photos?: string[]
+    photoQuery?: string
+
+    // Amenities
+    amenities: string[]
+
+    // Link
+    bookingUrl?: string
+
     className?: string
+}
+
+function formatDate(dateStr: string): string {
+    try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+    } catch {
+        return dateStr
+    }
+}
+
+function getRatingLabel(rating: number): string {
+    if (rating >= 9) return "Превосходно"
+    if (rating >= 8) return "Отлично"
+    if (rating >= 7) return "Хорошо"
+    if (rating >= 6) return "Нормально"
+    return "Средне"
+}
+
+function getRatingColor(rating: number): string {
+    if (rating >= 9) return "bg-emerald-500"
+    if (rating >= 8) return "bg-emerald-600"
+    if (rating >= 7) return "bg-sky-600"
+    if (rating >= 6) return "bg-amber-500"
+    return "bg-orange-500"
 }
 
 export function HotelCard({
@@ -24,68 +109,185 @@ export function HotelCard({
     stars,
     rating,
     reviewsCount,
+    checkIn,
+    checkOut,
+    nights,
+    guests,
+    rooms,
     pricePerNight,
-    amenities,
+    totalPrice,
     address,
+    photos,
     photoQuery,
+    amenities,
+    bookingUrl,
     className
 }: HotelCardProps) {
+    const [currentPhoto, setCurrentPhoto] = useState(0)
+
+    const hasPhotos = photos && photos.length > 0
+    const photoCount = hasPhotos ? photos!.length : 0
+
+    // Calculate total price if not provided
+    const calculatedTotal = totalPrice || (nights ? pricePerNight * nights : pricePerNight)
+
+    // Build booking URL
+    const buyUrl = bookingUrl || "https://ostrovok.ru/"
+
     return (
-        <Card className={cn("group overflow-hidden border-none shadow-md hover:shadow-xl transition-all duration-300", className)}>
-            <div className="grid md:grid-cols-[2fr_3fr] gap-0 h-full min-h-[220px]">
-                {/* Image Section */}
-                <div className="relative h-48 md:h-full overflow-hidden">
-                    <TripImage
-                        query={photoQuery || hotelName}
-                        alt={hotelName}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute top-3 left-3 flex gap-1">
-                        <Badge className="bg-yellow-400/90 text-black hover:bg-yellow-500 border-none shadow-sm backdrop-blur-sm">
+        <Card className={cn(
+            "relative overflow-hidden border-2 border-amber-500/30 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 dark:from-amber-950/20 dark:via-card dark:to-orange-950/10 shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/50 transition-all duration-300",
+            className
+        )}>
+            {/* Amber accent stripe */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500" />
+
+            <div className="grid md:grid-cols-[280px_1fr] gap-0">
+                {/* Photo section */}
+                <div className="relative h-56 md:h-full min-h-[220px] overflow-hidden bg-muted/20">
+                    {hasPhotos ? (
+                        <>
+                            <img
+                                src={photos![currentPhoto]}
+                                alt={hotelName}
+                                className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                            />
+                            {/* Photo navigation */}
+                            {photoCount > 1 && (
+                                <>
+                                    <button
+                                        onClick={() => setCurrentPhoto(prev => prev === 0 ? photoCount - 1 : prev - 1)}
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPhoto(prev => prev === photoCount - 1 ? 0 : prev + 1)}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                    {/* Photo dots */}
+                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                                        {photos!.map((_, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPhoto(i)}
+                                                className={cn(
+                                                    "w-1.5 h-1.5 rounded-full transition-all",
+                                                    i === currentPhoto ? "bg-white w-3" : "bg-white/50"
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        <TripImage
+                            query={photoQuery || `${hotelName} hotel exterior`}
+                            alt={hotelName}
+                            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                        />
+                    )}
+
+                    {/* Star badge */}
+                    <div className="absolute top-3 left-3">
+                        <Badge className="bg-amber-400/90 text-black hover:bg-amber-500 border-none shadow-md backdrop-blur-sm font-bold text-xs px-2.5 py-1">
                             {stars} <Star className="w-3 h-3 ml-1 fill-current" />
                         </Badge>
                     </div>
-                    <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
+
+                    {/* Gradient overlay */}
+                    <div className="absolute bottom-0 inset-x-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent" />
                 </div>
 
-                {/* Content Section */}
-                <div className="p-5 flex flex-col justify-between bg-card">
+                {/* Content section */}
+                <div className="p-5 flex flex-col justify-between gap-4">
+                    {/* Header: Name, Address, Rating */}
                     <div>
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 className="font-bold text-lg leading-tight mb-1">{hotelName}</h3>
+                        <div className="flex justify-between items-start gap-3 mb-3">
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg leading-tight mb-1.5">{hotelName}</h3>
                                 <div className="flex items-center text-muted-foreground text-xs">
-                                    <MapPin className="w-3 h-3 mr-1" />
-                                    {address}
+                                    <MapPin className="w-3 h-3 mr-1 shrink-0 text-amber-500/70" />
+                                    <span className="truncate">{address}</span>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <div className="bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded inline-block mb-1">
-                                    {rating} / 10
+
+                            {/* Rating block */}
+                            <div className="text-right shrink-0">
+                                <div className={cn(
+                                    "text-white text-sm font-black px-2.5 py-1.5 rounded-lg inline-block mb-1",
+                                    getRatingColor(rating)
+                                )}>
+                                    {rating}
                                 </div>
-                                <div className="text-[10px] text-muted-foreground">{reviewsCount} отзывов</div>
+                                <div className="text-[10px] font-medium text-muted-foreground">
+                                    {getRatingLabel(rating)}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground/60">
+                                    {reviewsCount.toLocaleString("ru-RU")} отзывов
+                                </div>
                             </div>
                         </div>
 
                         {/* Amenities */}
-                        <div className="flex flex-wrap gap-2 mt-4">
-                            {amenities?.slice(0, 4).map((amenity, i) => (
-                                <div key={i} className="flex items-center text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
-                                    <Check className="w-3 h-3 mr-1 text-emerald-500" />
-                                    {amenity}
-                                </div>
-                            ))}
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                            {amenities?.map((amenity, i) => {
+                                const Icon = getAmenityIcon(amenity)
+                                return (
+                                    <div key={i} className="flex items-center gap-1 text-xs text-muted-foreground bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 px-2 py-1 rounded-lg">
+                                        <Icon className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                        <span>{amenity}</span>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
+                    {/* Stay details */}
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                        {checkIn && checkOut && (
+                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
+                                <Calendar className="w-3.5 h-3.5 text-amber-500/70" />
+                                <span>{formatDate(checkIn)} — {formatDate(checkOut)}</span>
+                            </div>
+                        )}
+                        {nights && (
+                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
+                                <Star className="w-3.5 h-3.5 text-amber-500/70" />
+                                <span>{nights} {nights === 1 ? "ночь" : nights < 5 ? "ночи" : "ночей"}</span>
+                            </div>
+                        )}
+                        {guests && (
+                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
+                                <Users className="w-3.5 h-3.5 text-amber-500/70" />
+                                <span>{guests} {guests === 1 ? "гость" : guests < 5 ? "гостя" : "гостей"}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Price & Book */}
+                    <div className="flex items-end justify-between pt-3 border-t border-amber-200/30 dark:border-amber-900/20">
                         <div>
-                            <span className="text-2xl font-bold">{pricePerNight.toLocaleString('ru-RU')} ₽</span>
-                            <span className="text-xs text-muted-foreground ml-1">/ за ночь</span>
+                            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                                {pricePerNight.toLocaleString("ru-RU")} ₽
+                                <span className="text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
+                            </div>
+                            {nights && nights > 1 && (
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                    Итого за {nights} {nights < 5 ? "ночи" : "ночей"}: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
+                                </div>
+                            )}
                         </div>
-                        <Button size="sm" className="rounded-full px-6">
+                        <Button
+                            size="sm"
+                            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 h-9 shadow-md shadow-amber-500/20"
+                            onClick={() => window.open(buyUrl, "_blank")}
+                        >
                             Забронировать
+                            <ExternalLink className="w-3 h-3 ml-1.5" />
                         </Button>
                     </div>
                 </div>

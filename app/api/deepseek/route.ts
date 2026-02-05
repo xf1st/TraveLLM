@@ -631,57 +631,99 @@ CRITICAL:
         // Dedicated Logistics Fetcher using Online Model (Perplexity/Sonar via OpenRouter)
         async function fetchLogistics(context: any): Promise<any> {
             console.log("Logistics: Fetching REAL-TIME data via Perplexity/Sonar...");
-            console.log("Logistics Context:", JSON.stringify(context, null, 2)); // Debug context
+            console.log("Logistics Context:", JSON.stringify(context, null, 2));
+
+            // Dynamic IATA codes based on actual departure/destination
+            const { getIataCode, getFlightSearchLink, getHotelSearchLink } = await import("@/lib/travelpayouts")
+            const originIata = getIataCode(context.departureCity) || "???"
+            const destCities = context.targetDescription.replace(/[()]/g, '').split(/[,;]/).map((s: string) => s.trim()).filter(Boolean)
+            const primaryDest = destCities[0] || context.targetDescription
+            const destIata = getIataCode(primaryDest) || "???"
+
+            const flightBookingUrl = getFlightSearchLink({
+                origin: context.departureCity,
+                originIata: originIata !== "???" ? originIata : undefined,
+                destination: primaryDest,
+                destinationIata: destIata !== "???" ? destIata : undefined,
+                departDate: context.startDate,
+                returnDate: context.endDate,
+                adults: parseInt(String(context.travelers).match(/\d+/)?.[0] || "2"),
+                subId: "logistics"
+            })
+
+            const hotelBookingUrl = getHotelSearchLink({
+                destination: primaryDest,
+                checkIn: context.startDate,
+                checkOut: context.endDate,
+                adults: parseInt(String(context.travelers).match(/\d+/)?.[0] || "2"),
+                subId: "logistics"
+            })
+
+            const travelersCount = parseInt(String(context.travelers).match(/\d+/)?.[0] || "2")
 
             const searchPromptFull = `
-You are a Real-Time Travel Logistics Engine.
-TASK: Search the web for ACTUAL available flights and hotels for the following trip.
+You are a Real-Time Travel Search Engine. Search the web NOW for ACTUAL flights and hotels.
 
-TRIP DETAILS:
-- Departure: ${context.departureCity}
-- Destination: ${context.targetDescription}
-- Dates: ${context.startDate} to ${context.endDate}
-- Budget Level: ${budgetDesc}
-- Travelers: ${context.travelers}
+SEARCH THESE EXACT PARAMETERS:
+- FROM: ${context.departureCity} (IATA: ${originIata})
+- TO: ${primaryDest} (IATA: ${destIata})
+- DEPARTURE DATE: ${context.startDate}
+- RETURN DATE: ${context.endDate}
+- PASSENGERS: ${travelersCount}
+- BUDGET: ${budgetDesc}
 
-REQUIREMENTS:
-1. Find 3 SPECIFIC flight options (Best, Cheapest, Fastest) from ${context.departureCity} to the destination.
-   - MUST include: Airline, Flight Number (e.g. SU123), Departure/Arrival Times, Price (RUB), Transfer info.
-2. Find 3 SPECIFIC hotels available for these dates.
-   - MUST include: Real Name, Star Rating, Price/Night (RUB), Key Amenities, Review Score (e.g. 8.5/10), Photo Query.
-3. If multiple cities are involved, find inter-city transport (Train/Flight) with specific details.
+TASK 1 - SEARCH FLIGHTS on aviasales.ru, google flights, skyscanner:
+Find 2-3 REAL flight options from ${context.departureCity} to ${primaryDest}.
+For EACH flight include ALL of these fields:
+- airline: Real airline name (Turkish Airlines, Aeroflot, etc.)
+- flightNumber: Real flight number (TK413, SU2134)
+- departureCity: "${context.departureCity}"
+- departureCode: "${originIata}"
+- departureDate: "${context.startDate}"
+- departureTime: "HH:MM" (real schedule time)
+- arrivalCity: "${primaryDest}"
+- arrivalCode: "${destIata}"
+- arrivalTime: "HH:MM"
+- duration: total flight time
+- price: price per person in RUB (number, not string)
+- passengers: ${travelersCount}
+- totalPrice: total for all passengers
+- transfer: null if direct, or {"city":"Transfer City","duration":"2ч","airport":"XXX"} if with layover
+- baggage: {"handLuggage":"8 кг","checked":"23 кг"}
+- direction: "outbound" for departure flights, "return" for return flights
+- dayNumber: 1 for outbound, last day number for return
+- bookingUrl: "${flightBookingUrl}"
 
-OUTPUT JSON ONLY:
+Also find 1-2 RETURN flights on ${context.endDate} from ${primaryDest} back to ${context.departureCity}.
+
+TASK 2 - SEARCH HOTELS on booking.com, ostrovok.ru:
+Find 3 REAL hotels in ${primaryDest} for dates ${context.startDate} to ${context.endDate}.
+For EACH hotel include ALL of these fields:
+- hotelName: exact real hotel name
+- stars: 1-5
+- rating: guest score out of 10 (e.g. 8.7)
+- reviewsCount: number of reviews
+- address: real address
+- checkIn: "${context.startDate}"
+- checkOut: "${context.endDate}"
+- nights: number of nights
+- guests: ${travelersCount}
+- pricePerNight: price per night in RUB (number)
+- totalPrice: total cost for entire stay
+- amenities: ["WiFi","Завтрак","Бассейн","Спа","Фитнес","Кондиционер","Парковка","Ресторан"]
+- photos: [] (empty array)
+- photoQuery: "Hotel Name ${primaryDest} exterior"
+- dayStart: 1
+- bookingUrl: "${hotelBookingUrl}"
+
+OUTPUT ONLY VALID JSON:
 {
-  "flights": [
-    {
-      "type": "flight",
-      "airline": "Airline Name",
-      "flightNumber": "XX123",
-      "departureTime": "HH:MM",
-      "arrivalTime": "HH:MM",
-      "duration": "4h 30m",
-      "price": 15000,
-      "terminal": "A",
-      "transfer": "Direct"
-    }
-  ],
-  "hotels": [
-    {
-      "type": "hotel",
-      "hotelName": "Hotel Name",
-      "stars": 4,
-      "rating": 8.5,
-      "reviewsCount": 120,
-      "pricePerNight": 8000,
-      "amenities": ["WiFi", "Pool", "Breakfast"],
-      "address": "Street Address",
-      "photoQuery": "Hotel Name External View" 
-    }
-  ],
+  "flights": [...],
+  "hotels": [...],
   "interCity": []
 }
-`;
+
+CRITICAL: Output ONLY valid JSON. No markdown. All prices in RUB (numbers, not strings). Use REAL data from web search.`;
             try {
                 console.log("Logistics: Sending request to OpenRouter...");
                 const raw = await openrouterInference([

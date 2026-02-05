@@ -319,7 +319,10 @@ export default function TripDetailPage() {
           tags: data.tags,
           coverImage: data.cover_image || data.coverImage,
           budget_range: data.budget_range,
-          invite_code: data.invite_code
+          invite_code: data.invite_code,
+          flights: data.flights || [],
+          hotels: data.hotels || [],
+          viralSpots: data.viralSpots || data.viral_spots || []
         })
 
         // Check if member
@@ -522,38 +525,6 @@ export default function TripDetailPage() {
               </h2>
 
               <div className="space-y-8">
-                {/* Real-time Logistics: Flights & Hotels */}
-                {(route.flights?.length > 0 || route.hotels?.length > 0) && (
-                  <div className="space-y-6 animate-in slide-in-from-left duration-500">
-                    {route.flights?.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-muted-foreground">
-                          <Plane className="h-4 w-4" /> Авиабилеты (найдено онлайн)
-                        </h3>
-                        <div className="grid gap-4">
-                          {route.flights.map((flight: any, i: number) => (
-                            <FlightCard key={i} {...flight} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {route.hotels?.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-muted-foreground">
-                          <HotelIcon className="h-4 w-4" /> Проживание (найдено онлайн)
-                        </h3>
-                        <div className="grid gap-4">
-                          {route.hotels.map((hotel: any, i: number) => (
-                            <HotelCard key={i} {...hotel} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <Separator className="bg-border/50" />
-                  </div>
-                )}
-
                 <h3 className="text-xl font-bold flex items-center gap-2 pt-4">
                   <Calendar className="h-5 w-5 text-primary" />
                   Программа по дням
@@ -563,6 +534,33 @@ export default function TripDetailPage() {
                   {route.itinerary?.map((day: any, idx: number) => {
                     const isExpanded = expandedDay === day.day;
                     const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
+                    const isFirstDay = day.day === 1;
+                    const isLastDay = day.day === route.itinerary.length;
+                    const logisticsIsFlightMode = day.logistics?.mode && (day.logistics.mode.toLowerCase().includes('самол') || day.logistics.mode.toLowerCase().includes('flight') || day.logistics.mode.toLowerCase().includes('plane') || day.logistics.mode.toLowerCase().includes('перелёт') || day.logistics.mode.toLowerCase().includes('перелет'));
+
+                    // Find flights associated with this day
+                    const dayFlights = route.flights?.filter((f: any) => {
+                      if (f.dayNumber === day.day) return true;
+                      // For outbound: show on first day or day with flight logistics
+                      if (f.direction === 'outbound' && isFirstDay) return true;
+                      if (f.direction === 'return' && isLastDay) return true;
+                      return false;
+                    }) || [];
+
+                    // Find hotels for this day
+                    const dayHotels = route.hotels?.filter((h: any) => {
+                      if (h.dayStart === day.day) return true;
+                      // If no dayStart, show on first day
+                      if (!h.dayStart && isFirstDay) return true;
+                      return false;
+                    }) || [];
+
+                    // If no explicit day assignments, show all flights on first day and all hotels on first day
+                    const showAllFlights = isFirstDay && route.flights?.length > 0 && !route.flights.some((f: any) => f.dayNumber || f.direction);
+                    const showAllHotels = isFirstDay && route.hotels?.length > 0 && !route.hotels.some((h: any) => h.dayStart);
+
+                    const flightsToShow = showAllFlights ? route.flights : dayFlights;
+                    const hotelsToShow = showAllHotels ? route.hotels : dayHotels;
 
                     return (
                       <motion.div
@@ -571,6 +569,19 @@ export default function TripDetailPage() {
                         transition={{ delay: idx * 0.1 }}
                         key={idx}
                       >
+                        {/* Flight cards BEFORE day card (inline in timeline) */}
+                        {isExpanded && flightsToShow.length > 0 && (
+                          <div className="mb-4 space-y-3 animate-in slide-in-from-top duration-300">
+                            <div className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 ml-1">
+                              <Plane className="h-4 w-4" />
+                              {isFirstDay ? 'Перелёт туда' : isLastDay ? 'Обратный перелёт' : 'Перелёт'}
+                            </div>
+                            {flightsToShow.map((flight: any, i: number) => (
+                              <FlightCard key={`flight-${day.day}-${i}`} {...flight} />
+                            ))}
+                          </div>
+                        )}
+
                         <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
                           <button
                             onClick={() => setExpandedDay(isExpanded ? null : day.day)}
@@ -591,8 +602,21 @@ export default function TripDetailPage() {
                                 <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
                               </div>
                             </div>
-                            <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
-                              <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                            <div className="flex items-center gap-2">
+                              {/* Inline indicators for flights/hotels on this day */}
+                              {flightsToShow.length > 0 && (
+                                <Badge variant="outline" className="rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5">
+                                  <Plane className="h-3 w-3 mr-1" /> Перелёт
+                                </Badge>
+                              )}
+                              {hotelsToShow.length > 0 && (
+                                <Badge variant="outline" className="rounded-full border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
+                                  <HotelIcon className="h-3 w-3 mr-1" /> Отель
+                                </Badge>
+                              )}
+                              <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
+                                <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                              </div>
                             </div>
                           </button>
 
@@ -694,6 +718,19 @@ export default function TripDetailPage() {
                                   );
                                 })}
                               </div>
+
+                              {/* Hotel cards INSIDE day card (after activities) */}
+                              {hotelsToShow.length > 0 && (
+                                <div className="mt-6 space-y-3 animate-in slide-in-from-bottom duration-300">
+                                  <div className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 ml-1">
+                                    <HotelIcon className="h-4 w-4" />
+                                    Проживание
+                                  </div>
+                                  {hotelsToShow.map((hotel: any, i: number) => (
+                                    <HotelCard key={`hotel-${day.day}-${i}`} {...hotel} />
+                                  ))}
+                                </div>
+                              )}
 
                               {day.tips && (
                                 <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
