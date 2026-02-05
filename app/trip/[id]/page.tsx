@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import {
   ArrowLeft,
   Calendar,
@@ -58,6 +59,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { TripImage } from "@/components/TripImage"
+import { FlightCard } from "@/components/itinerary/FlightCard"
+import { HotelCard } from "@/components/itinerary/HotelCard"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
 import { PlaceGallery } from "@/components/PlaceGallery"
 import { cn } from "@/lib/utils"
@@ -518,154 +521,193 @@ export default function TripDetailPage() {
                 План путешествия
               </h2>
 
-              <div className="space-y-4">
-                {route.itinerary?.map((day: any, idx: number) => {
-                  const isExpanded = expandedDay === day.day;
-                  const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
+              <div className="space-y-8">
+                {/* Real-time Logistics: Flights & Hotels */}
+                {(route.flights?.length > 0 || route.hotels?.length > 0) && (
+                  <div className="space-y-6 animate-in slide-in-from-left duration-500">
+                    {route.flights?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-muted-foreground">
+                          <Plane className="h-4 w-4" /> Авиабилеты (найдено онлайн)
+                        </h3>
+                        <div className="grid gap-4">
+                          {route.flights.map((flight: any, i: number) => (
+                            <FlightCard key={i} {...flight} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  return (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      key={idx}
-                    >
-                      <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
-                        <button
-                          onClick={() => setExpandedDay(isExpanded ? null : day.day)}
-                          className="w-full flex items-center justify-between p-5 text-left group bg-transparent"
-                        >
-                          <div className="flex items-center gap-6">
-                            <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
-                              {isExpanded ? (
-                                <span className="text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
-                                  {day.day}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground dark:text-white/60 font-bold">{day.day}</span>
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">День {day.day}</div>
-                              <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
-                            </div>
-                          </div>
-                          <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
-                            <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        </button>
+                    {route.hotels?.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-bold mb-3 flex items-center gap-2 text-muted-foreground">
+                          <HotelIcon className="h-4 w-4" /> Проживание (найдено онлайн)
+                        </h3>
+                        <div className="grid gap-4">
+                          {route.hotels.map((hotel: any, i: number) => (
+                            <HotelCard key={i} {...hotel} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <Separator className="bg-border/50" />
+                  </div>
+                )}
 
-                        {isExpanded && (
-                          <div className="px-5 pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300">
-                            {/* Logistics Bar */}
-                            {day.logistics && (day.logistics.mode !== "None") && (
-                              <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
-                                <TransportIcon className="h-5 w-5 text-primary" />
-                                <span>
-                                  {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
-                                  ({day.logistics.distance}, ~{day.logistics.duration})
-                                </span>
-                                {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
+                <h3 className="text-xl font-bold flex items-center gap-2 pt-4">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Программа по дням
+                </h3>
+
+                <div className="space-y-4">
+                  {route.itinerary?.map((day: any, idx: number) => {
+                    const isExpanded = expandedDay === day.day;
+                    const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
+
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        key={idx}
+                      >
+                        <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
+                          <button
+                            onClick={() => setExpandedDay(isExpanded ? null : day.day)}
+                            className="w-full flex items-center justify-between p-5 text-left group bg-transparent"
+                          >
+                            <div className="flex items-center gap-6">
+                              <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
+                                {isExpanded ? (
+                                  <span className="text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
+                                    {day.day}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground dark:text-white/60 font-bold">{day.day}</span>
+                                )}
                               </div>
-                            )}
-
-                            {/* Booking Bar (Aviasales/Ostrovok) */}
-                            <div className="mb-6 flex flex-wrap gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
-                                onClick={() => {
-                                  const destination = day.logistics?.to || route.destination || ""
-                                  const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
-                                  window.open(url, '_blank')
-                                }}
-                              >
-                                <Plane className="mr-2 h-3.5 w-3.5" /> {day.logistics?.bookingLink?.includes('aviasales') ? 'Билеты' : 'Найти билеты'}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
-                                onClick={() => {
-                                  const destination = day.logistics?.to || route.destination || ""
-                                  const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
-                                  window.open(url, '_blank')
-                                }}
-                              >
-                                <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {day.logistics?.to || route.destination || 'Поиск'}
-                              </Button>
+                              <div>
+                                <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">День {day.day}</div>
+                                <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
+                              </div>
                             </div>
+                            <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
+                              <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          </button>
 
-                            <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
-                              {(day.activities || [
-                                { time: "Утро", desc: day.morning },
-                                { time: "День", desc: day.daytime },
-                                { time: "Вечер", desc: day.night }
-                              ].filter(i => i.desc)).map((item: any, i: number) => {
-                                const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": HotelIcon };
-                                const Icon = iconMap[item.time] || Sparkles;
+                          {isExpanded && (
+                            <div className="px-5 pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300">
+                              {/* Logistics Bar */}
+                              {day.logistics && (day.logistics.mode !== "None") && (
+                                <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
+                                  <TransportIcon className="h-5 w-5 text-primary" />
+                                  <span>
+                                    {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
+                                    ({day.logistics.distance}, ~{day.logistics.duration})
+                                  </span>
+                                  {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
+                                </div>
+                              )}
 
-                                return (
-                                  <div key={i} className="relative">
-                                    <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
-                                    <div className="space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
-                                          <Icon className="h-3 w-3" />
-                                          {item.time}
+                              {/* Booking Bar (Aviasales/Ostrovok) */}
+                              <div className="mb-6 flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                  onClick={() => {
+                                    const destination = day.logistics?.to || route.destination || ""
+                                    const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
+                                    window.open(url, '_blank')
+                                  }}
+                                >
+                                  <Plane className="mr-2 h-3.5 w-3.5" /> {day.logistics?.bookingLink?.includes('aviasales') ? 'Билеты' : 'Найти билеты'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
+                                  onClick={() => {
+                                    const destination = day.logistics?.to || route.destination || ""
+                                    const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
+                                    window.open(url, '_blank')
+                                  }}
+                                >
+                                  <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {day.logistics?.to || route.destination || 'Поиск'}
+                                </Button>
+                              </div>
+
+                              <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
+                                {(day.activities || [
+                                  { time: "Утро", desc: day.morning },
+                                  { time: "День", desc: day.daytime },
+                                  { time: "Вечер", desc: day.night }
+                                ].filter(i => i.desc)).map((item: any, i: number) => {
+                                  const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": HotelIcon };
+                                  const Icon = iconMap[item.time] || Sparkles;
+
+                                  return (
+                                    <div key={i} className="relative">
+                                      <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
+                                      <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
+                                            <Icon className="h-3 w-3" />
+                                            {item.time}
+                                          </div>
+                                          {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
                                         </div>
-                                        {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
-                                      </div>
-                                      {item.placeName && (
-                                        <h4 className="font-semibold text-foreground mb-1">{item.placeName}</h4>
-                                      )}
-                                      <p className="text-sm leading-relaxed text-foreground/80 font-medium">
-                                        {item.desc}
-                                      </p>
-                                      <div className="flex items-center gap-4 mt-2">
-                                        <Button
-                                          variant="link"
-                                          size="sm"
-                                          className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
-                                          onClick={() => {
-                                            const mapUrl = item.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName || item.desc.split('.')[0])}`
-                                            window.open(mapUrl, "_blank")
-                                          }}
-                                        >
-                                          <MapPin className="mr-1 h-3 w-3" /> На карте
-                                        </Button>
-                                        {item.link && item.ticketsRequired && (
-                                          <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
-                                            <ExternalLink className="mr-1 h-3 w-3" /> Купить билеты
-                                          </Link>
+                                        {item.placeName && (
+                                          <h4 className="font-semibold text-foreground mb-1">{item.placeName}</h4>
+                                        )}
+                                        <p className="text-sm leading-relaxed text-foreground/80 font-medium">
+                                          {item.desc}
+                                        </p>
+                                        <div className="flex items-center gap-4 mt-2">
+                                          <Button
+                                            variant="link"
+                                            size="sm"
+                                            className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
+                                            onClick={() => {
+                                              const mapUrl = item.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName || item.desc.split('.')[0])}`
+                                              window.open(mapUrl, "_blank")
+                                            }}
+                                          >
+                                            <MapPin className="mr-1 h-3 w-3" /> На карте
+                                          </Button>
+                                          {item.link && item.ticketsRequired && (
+                                            <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
+                                              <ExternalLink className="mr-1 h-3 w-3" /> Купить билеты
+                                            </Link>
+                                          )}
+                                        </div>
+
+                                        {/* Place Gallery, AI Reviews & Social Proof */}
+                                        {item.placeName && (
+                                          <div className="mt-4 pt-4 border-t border-white/5 space-y-6">
+                                            <PlaceGallery query={`${item.placeName} ${route.destination || ""}`} count={5} />
+                                          </div>
                                         )}
                                       </div>
-
-                                      {/* Place Gallery, AI Reviews & Social Proof */}
-                                      {item.placeName && (
-                                        <div className="mt-4 pt-4 border-t border-white/5 space-y-6">
-                                          <PlaceGallery query={`${item.placeName} ${route.destination || ""}`} count={5} />
-                                        </div>
-                                      )}
                                     </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {day.tips && (
-                              <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
-                                <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                                <p><strong>Совет:</strong> {day.tips}</p>
+                                  );
+                                })}
                               </div>
-                            )}
-                          </div>
-                        )}
-                      </Card>
-                    </motion.div>
-                  );
-                })}
+
+                              {day.tips && (
+                                <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
+                                  <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                                  <p><strong>Совет:</strong> {day.tips}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Chat Widget - Mobile Only */}

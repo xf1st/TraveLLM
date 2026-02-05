@@ -346,6 +346,18 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 
 ПРАВИЛА ГЕНЕРАЦИИ:
 
+0. ВЫБОР НАПРАВЛЕНИЯ (КРИТИЧНО):
+   - Если пользователь выбрал "За границу" (Abroad) без конкретной страны:
+     - НЕ ПРЕДЛАГАЙ ТУРЦИЮ, ЕГИПЕТ или ОАЭ каждый раз! Это банально.
+     - Предлагай РАЗНООБРАЗНЫЕ направления: Таиланд, Вьетнам, Сербия, Китай, Марокко, ЮАР, Латинская Америка, Мальдивы, Шри-Ланка, Узбекистан.
+     - Используй "Internal Random Seed" чтобы каждый раз предлагать что-то новое.
+     - Выбирай направление, идеально подходящее под "${travelStyle.join(', ')}". (Например, "Релакс" -> Мальдивы, "Приключения" -> Вьетнам).
+
+0.1. ТЕГИ (СТРОГО):
+   - Генерируй теги ТОЛЬКО если они соответствуют ВЫБРАННЫМ интересам (${travelStyle.join(', ')}).
+   - НЕ ДОБАВЛЯЙ "Ночная жизнь" или "Шопинг", если пользователь их не выбрал (если только это не ключевая особенность места, которую нельзя избежать).
+   - Теги должны быть на РУССКОМ.
+
 1. ЛОГИСТИКА: Полная door-to-door логистика от ${departureCity}.
 
 2. СТОИМОСТЬ: Для КАЖДОЙ активности указывай реальную цену в рублях. НИКОГДА не пиши "0" или "Бесплатно" — даже прогулка = 500-1000₽ (вода, перекус). Ужин = 1500-5000₽.
@@ -359,24 +371,51 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
    - Перемещение между городами = отдельная запись в logistics
    
    ПРЯМЫЕ РЕЙСЫ ИЗ МОСКВЫ (ПРИОРИТЕТ!):
-   - Турция: Стамбул, Анталья — прямой рейс ~3ч
-   - ОАЭ: Дубай, Абу-Даби — прямой рейс ~5ч  
+   - Турция: Стамбул, Анталья, Бодрум, Мерсин — прямой рейс ~3-4ч
+   - ОАЭ: Дубай, Абу-Даби, Шарджа — прямой рейс ~5-6ч  
    - ЕГИПЕТ: Хургада, Шарм-эль-Шейх, Каир — ПРЯМОЙ РЕЙС ~4-5ч
-   - Таиланд: Бангкок, Пхукет — прямой рейс ~9ч
-   - Китай: Пекин, Шанхай — прямой рейс ~8ч
+   - Таиланд: Бангкок, Пхукет, Паттайя — прямой рейс ~9-10ч
+   - Китай: Пекин, Шанхай, Урумчи, Сиань — прямой рейс ~7-8ч
    - Сербия: Белград — прямой рейс ~3ч
-   - Грузия: Тбилиси, Батуми — прямой рейс ~2-3ч
-   - Армения, Казахстан, Узбекистан — прямые рейсы
-   - Мальдивы, Шри-Ланка — прямые рейсы
+   - Грузия: Тбилиси, Батуми, Кутаиси — прямой рейс ~2-3ч
+   - Армения: Ереван, Гюмри — прямой рейс ~3ч
+   - Казахстан: Алматы, Астана — прямой рейс ~3-4ч
+   - Узбекистан: Ташкент, Самарканд — прямой рейс ~4ч
+   - Мальдивы: Мале — прямой рейс ~9ч
+   - Шри-Ланка: Коломбо, Хамбантота — прямой рейс ~9ч (сезонные)
+   - Вьетнам: Хошимин, Нячанг, Фукуок — прямой рейс ~9-10ч
+   - Индия: Гоа, Дели — прямой рейс ~6-7ч (сезонные)
+   - Индонезия: Бали (Денпасар) — прямой рейс ~11ч
+   - Израиль: Тель-Авив — прямой рейс ~4ч
+   - Иордания: Амман — прямой рейс ~4ч (3 раза в неделю)
+   - Куба: Варадеро, Кайо-Коко, Гавана — прямой рейс ~13-14ч
+   - Венесуэла: Порламар — прямой рейс
+   - Сейшелы: Маэ — прямой рейс (сезонные)
+   - Катар: Доха — прямой рейс ~5ч
+   - Оман: Маскат — прямой рейс ~5ч (4 раза в неделю)
+   - Марокко: Касабланка — прямой рейс
+   - Эфиопия: Аддис-Абеба — прямой рейс
+   - Азербайджан: Баку — прямой рейс ~3ч
+   - Кыргызстан: Бишкек — прямой рейс ~4ч
+   - Таджикистан: Душанбе — прямой рейс ~4ч
+   - Филиппины: Манила — прямой рейс (с октября 2025)
+   - Мьянма — прямой рейс (с октября 2025)
    
-   ⚠️ ЕСЛИ ЕСТЬ ПРЯМОЙ РЕЙС — ИСПОЛЬЗУЙ ЕГО! НЕ ЧЕРЕЗ СТАМБУЛ!
+   ⚠️ ЕСЛИ ЕСТЬ ПРЯМОЙ РЕЙС — ИСПОЛЬЗУЙ ЕГО! НЕ ЧЕРЕЗ ПЕРЕСАДКУ!
    
    ТОЛЬКО С ПЕРЕСАДКОЙ (Европа, США):
    - В ЕВРОПУ (кроме Сербии/Турции) и США прямых рейсов НЕТ
-   - Пересадочные хабы: Стамбул, Белград, Баку, Ереван, Доха
+   - Пересадочные хабы: Стамбул, Белград, Баку, Ереван, Доха, Дубай
    
    - Расстояние < 600км = поезд вместо самолёта
-   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2026: Москва-Стамбул ~25000₽, Москва-Дубай ~35000₽, Москва-Хургада ~30000₽, Москва-Пекин ~45000₽
+   
+   - ЦЕНЫ НА ПЕРЕЛЁТЫ 2025-2026 (в одну сторону, ориентировочно):
+     • Москва-Стамбул: от 4 000₽ (лоукост) до 15 000₽ (средняя)
+     • Москва-Дубай: от 5 000₽ (лоукост) до 25 000₽ (средняя)
+     • Москва-Хургада: от 10 000₽ до 25 000₽
+     • Москва-Пекин: от 15 000₽ до 35 000₽
+     • Москва-Пхукет: от 25 000₽ до 50 000₽
+     • Москва-Мальдивы: от 30 000₽ до 60 000₽
 
 5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО — НЕТ МГНОВЕННОЙ ТЕЛЕПОРТАЦИИ):
    - Если в logistics указан перелёт/поезд → ПЕРВАЯ активность дня ДОЛЖНА быть "Прибытие и заселение"
@@ -589,6 +628,80 @@ CRITICAL:
             return parseJsonResponse(raw, "DeepSeek-Meta");
         }
 
+        // Dedicated Logistics Fetcher using Online Model (Perplexity/Sonar via OpenRouter)
+        async function fetchLogistics(context: any): Promise<any> {
+            console.log("Logistics: Fetching REAL-TIME data via Perplexity/Sonar...");
+            console.log("Logistics Context:", JSON.stringify(context, null, 2)); // Debug context
+
+            const searchPromptFull = `
+You are a Real-Time Travel Logistics Engine.
+TASK: Search the web for ACTUAL available flights and hotels for the following trip.
+
+TRIP DETAILS:
+- Departure: ${context.departureCity}
+- Destination: ${context.targetDescription}
+- Dates: ${context.startDate} to ${context.endDate}
+- Budget Level: ${budgetDesc}
+- Travelers: ${context.travelers}
+
+REQUIREMENTS:
+1. Find 3 SPECIFIC flight options (Best, Cheapest, Fastest) from ${context.departureCity} to the destination.
+   - MUST include: Airline, Flight Number (e.g. SU123), Departure/Arrival Times, Price (RUB), Transfer info.
+2. Find 3 SPECIFIC hotels available for these dates.
+   - MUST include: Real Name, Star Rating, Price/Night (RUB), Key Amenities, Review Score (e.g. 8.5/10), Photo Query.
+3. If multiple cities are involved, find inter-city transport (Train/Flight) with specific details.
+
+OUTPUT JSON ONLY:
+{
+  "flights": [
+    {
+      "type": "flight",
+      "airline": "Airline Name",
+      "flightNumber": "XX123",
+      "departureTime": "HH:MM",
+      "arrivalTime": "HH:MM",
+      "duration": "4h 30m",
+      "price": 15000,
+      "terminal": "A",
+      "transfer": "Direct"
+    }
+  ],
+  "hotels": [
+    {
+      "type": "hotel",
+      "hotelName": "Hotel Name",
+      "stars": 4,
+      "rating": 8.5,
+      "reviewsCount": 120,
+      "pricePerNight": 8000,
+      "amenities": ["WiFi", "Pool", "Breakfast"],
+      "address": "Street Address",
+      "photoQuery": "Hotel Name External View" 
+    }
+  ],
+  "interCity": []
+}
+`;
+            try {
+                console.log("Logistics: Sending request to OpenRouter...");
+                const raw = await openrouterInference([
+                    { role: "system", content: "You are a real-time travel search engine. Output JSON only." },
+                    { role: "user", content: searchPromptFull }
+                ], {
+                    maxTokens: 4000,
+                    temperature: 0.1,
+                    model: "perplexity/sonar-reasoning-pro"
+                });
+                console.log("Logistics: Received raw response:", raw.slice(0, 200) + "...");
+                const parsed = parseJsonResponse(raw, "Perplexity-Logistics");
+                console.log("Logistics: Parsed data:", JSON.stringify(parsed, null, 2));
+                return parsed;
+            } catch (e) {
+                console.warn("Logistics fetch failed:", e);
+                return null;
+            }
+        }
+
         // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
         async function generateDayChunk(
             startDay: number,
@@ -702,6 +815,17 @@ ${isLastChunk
             const CHUNK_SIZE = 4; // Days per chunk
             const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
+            // Start Logistics fetch in parallel
+            const logisticsPromise = fetchLogistics({
+                departureCity,
+                targetDescription,
+                startDate,
+                endDate,
+                travelers: companions || "2 adults",
+            });
+
+            let routeData: any = {};
+
             if (!USE_SEQUENTIAL_CHUNKS) {
                 // Short trip - use original single request
                 console.log(`Short trip (${durationDays} days) - using single request`);
@@ -710,91 +834,92 @@ ${isLastChunk
                     { role: "user" as const, content: prompt }
                 ]
                 const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
-                return parseJsonResponse(raw, "DeepSeek");
-            }
+                routeData = parseJsonResponse(raw, "DeepSeek");
+            } else {
+                // Long trip - split into chunks + metadata
+                console.log(`Long trip (${durationDays} days) - using sequential chunks`);
+                const startTime = Date.now();
 
-            // Long trip - sequential chunk generation with context passing
-            console.log(`Long trip (${durationDays} days) - using SEQUENTIAL chunks with context`);
-            const startTime = Date.now();
+                // 1. Metadata (Parallel)
+                const metadata = await generateMetadata();
 
-            // Create chunk ranges
-            const chunks: { start: number; end: number }[] = [];
-            for (let i = 1; i <= durationDays; i += CHUNK_SIZE) {
-                chunks.push({
-                    start: i,
-                    end: Math.min(i + CHUNK_SIZE - 1, durationDays)
-                });
-            }
-            console.log(`Splitting into ${chunks.length} day chunks + metadata`);
-
-            // Determine destination for day chunks - use parsed destinations
-            const destName = destinations.length > 0
-                ? destinations.map(parseDestination).join(' → ')
-                : (destinationType === 'russia' ? 'Россия' :
-                    destinationType === 'abroad' ? 'Европа/Азия' : 'Международный');
-
-            // Generate metadata in parallel with first chunk
-            const [metadata, firstChunk] = await Promise.all([
-                generateMetadata(),
-                generateDayChunk(chunks[0].start, chunks[0].end, destName, undefined)
-            ]);
-
-            // Generate remaining chunks SEQUENTIALLY with context from previous chunk
-            const allDays = [...firstChunk];
-            let previousContext = {
-                lastCity: firstChunk[firstChunk.length - 1]?.endCity ||
-                    firstChunk[firstChunk.length - 1]?.logistics?.to ||
-                    destName,
-                visitedPlaces: firstChunk.flatMap((day: any) =>
-                    (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
-                )
-            };
-
-            for (let i = 1; i < chunks.length; i++) {
-                console.log(`Generating chunk ${i + 1}/${chunks.length} (context: ${previousContext.lastCity})`);
-                const chunkDays = await generateDayChunk(
-                    chunks[i].start,
-                    chunks[i].end,
-                    destName,
-                    previousContext
-                );
-                allDays.push(...chunkDays);
-
-                // Update context for next chunk
-                const lastDay = chunkDays[chunkDays.length - 1];
-                previousContext = {
-                    lastCity: lastDay?.endCity || lastDay?.logistics?.to || previousContext.lastCity,
-                    visitedPlaces: [
-                        ...previousContext.visitedPlaces,
-                        ...chunkDays.flatMap((day: any) =>
-                            (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
-                        )
-                    ]
-                };
-            }
-
-            // Sort and merge
-            allDays.sort((a, b) => a.day - b.day);
-
-            const result = {
-                ...metadata,
-                itinerary: allDays,
-                coverImage: "",
-                preferences: {
-                    pace: preferences?.pace || 'moderate',
-                    travel_style: toArray(travelStyle),
-                    interestsDetailed: toArray(preferences?.interestsDetailed),
-                    dietaryRestrictions: toArray(preferences?.dietaryRestrictions),
-                    companions: companions,
-                    paymentMethods: toArray(paymentMethods),
-                    visitedCountries: toArray(preferences?.visitedCountries)
+                // 2. Chunks (Sequential)
+                const chunks = [];
+                for (let i = 1; i <= durationDays; i += CHUNK_SIZE) {
+                    chunks.push({
+                        start: i,
+                        end: Math.min(i + CHUNK_SIZE - 1, durationDays)
+                    });
                 }
-            };
 
-            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            console.log(`Sequential generation completed in ${elapsed}s (${chunks.length + 1} requests)`);
+                // Initial context
+                let previousContext = {
+                    lastCity: departureCity,
+                    visitedPlaces: [] as string[]
+                };
 
-            return result;
+                const allDays: any[] = [];
+
+                // Generate chunks sequentially
+                for (let i = 0; i < chunks.length; i++) {
+                    console.log(`Generating chunk ${i + 1}/${chunks.length}...`);
+                    const chunkDays = await generateDayChunk(
+                        chunks[i].start,
+                        chunks[i].end,
+                        targetDescription,
+                        previousContext
+                    );
+                    allDays.push(...chunkDays);
+
+                    // Update context for next chunk
+                    const lastDay = chunkDays[chunkDays.length - 1];
+                    previousContext = {
+                        lastCity: lastDay?.endCity || lastDay?.logistics?.to || targetDescription,
+                        visitedPlaces: [
+                            ...previousContext.visitedPlaces,
+                            ...chunkDays.flatMap((day: any) =>
+                                (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
+                            )
+                        ]
+                    };
+                }
+
+                allDays.sort((a, b) => a.day - b.day);
+
+                routeData = {
+                    ...metadata,
+                    itinerary: allDays,
+                    coverImage: "",
+                    preferences: {
+                        pace: preferences?.pace || 'moderate',
+                        travel_style: toArray(travelStyle),
+                        interestsDetailed: toArray(preferences?.interestsDetailed),
+                        dietaryRestrictions: toArray(preferences?.dietaryRestrictions),
+                        companions: companions,
+                        paymentMethods: toArray(paymentMethods),
+                        visitedCountries: toArray(preferences?.visitedCountries)
+                    }
+                };
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                console.log(`Sequential generation completed in ${elapsed}s (${chunks.length + 1} requests)`);
+            }
+
+            // Await logistics and merge
+            try {
+                const realLogistics = await logisticsPromise;
+                if (realLogistics) {
+                    console.log("Merging real-time logistics data...");
+                    // Attach global flight/hotel data
+                    routeData.flights = realLogistics.flights || [];
+                    routeData.hotels = realLogistics.hotels || [];
+                    routeData.interCity = realLogistics.interCity || [];
+                }
+            } catch (mergeError) {
+                console.error("Failed to merge logistics:", mergeError);
+            }
+
+            return routeData;
         }
 
         try {
@@ -804,13 +929,13 @@ ${isLastChunk
             // PRIMARY: DeepSeek with parallel generation
             try {
                 console.log("Using DeepSeek as primary provider...");
-                const routeData = sanitizeClosedAirportLogistics(await generateParallel());
+                const generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
 
                 // Enrich with cover image
                 try {
-                    if (routeData.countries && routeData.countries.length > 0) {
-                        const cover = await getDestinationImage(routeData.countries[0].name + " travel");
-                        if (cover) routeData.coverImage = cover;
+                    if (generatedRouteData.countries && generatedRouteData.countries.length > 0) {
+                        const cover = await getDestinationImage(generatedRouteData.countries[0].name + " travel");
+                        if (cover) generatedRouteData.coverImage = cover;
                     }
                 } catch (imgError) {
                     // Cover image is optional
@@ -818,11 +943,11 @@ ${isLastChunk
 
                 // Attach token usage statistics to response
                 const usage = getSessionUsage();
-                routeData.tokenUsage = usage;
+                generatedRouteData.tokenUsage = usage;
 
                 console.log("Success with DeepSeek")
-                console.log(`Total tokens: ${usage.totalTokens}, Cost: $${usage.costUsd.toFixed(4)} (~${usage.costRub.toFixed(2)} ₽)`)
-                return NextResponse.json(routeData)
+                console.log(`DeepSeek Session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                return NextResponse.json(generatedRouteData)
             } catch (deepseekError: any) {
                 console.error("DeepSeek failed:", deepseekError.message)
 
@@ -833,18 +958,18 @@ ${isLastChunk
                     { role: "user" as const, content: prompt }
                 ]
                 const raw = await openrouterInference(messages, { maxTokens: 30000, temperature: 0.6 });
-                const routeData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "OpenRouter"));
+                const fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "OpenRouter"));
 
                 // Enrich cover image
                 try {
-                    if (routeData.countries && routeData.countries.length > 0) {
-                        const cover = await getDestinationImage(routeData.countries[0].name + " travel");
-                        if (cover) routeData.coverImage = cover;
+                    if (fallbackRouteData.countries && fallbackRouteData.countries.length > 0) {
+                        const cover = await getDestinationImage(fallbackRouteData.countries[0].name + " travel");
+                        if (cover) fallbackRouteData.coverImage = cover;
                     }
                 } catch { }
 
                 console.log("Success with OpenRouter fallback")
-                return NextResponse.json(routeData)
+                return NextResponse.json(fallbackRouteData)
             }
         } catch (finalError: any) {
             console.error("All providers failed:", finalError.message)
@@ -853,7 +978,6 @@ ${isLastChunk
                 details: finalError.message
             }, { status: 500 })
         }
-
     } catch (error: any) {
         console.error("Fatal API Error:", error)
         return NextResponse.json({

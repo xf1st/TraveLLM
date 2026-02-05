@@ -12,15 +12,16 @@ interface OpenRouterMessage {
 interface OpenRouterOptions {
     maxTokens?: number;
     temperature?: number;
+    model?: string; // Allow overriding model per request
 }
 
 export async function openrouterInference(
     messages: OpenRouterMessage[],
     options: OpenRouterOptions = {}
 ): Promise<string> {
-    const { maxTokens = 30000, temperature = 0.6 } = options;
+    const { maxTokens = 30000, temperature = 0.6, model = OPENROUTER_MODEL } = options;
 
-    console.log("OpenRouter: Starting inference with model:", OPENROUTER_MODEL);
+    console.log("OpenRouter: Starting inference with model:", model);
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -29,7 +30,7 @@ export async function openrouterInference(
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         },
         body: JSON.stringify({
-            model: OPENROUTER_MODEL,
+            model: model,
             messages,
             max_tokens: maxTokens,
             temperature,
