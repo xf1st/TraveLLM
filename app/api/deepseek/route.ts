@@ -650,129 +650,246 @@ CRITICAL:
             return parseJsonResponse(raw, "DeepSeek-Meta");
         }
 
-        // Dedicated Logistics Fetcher using Online Model (Perplexity/Sonar via OpenRouter)
-        async function fetchLogistics(context: any): Promise<any> {
-            console.log("Logistics: Fetching REAL-TIME data via Perplexity/Sonar...");
-            console.log("Logistics Context:", JSON.stringify(context, null, 2));
-
-            // Dynamic IATA codes based on actual departure/destination
+        // =============================================
+        // Logistics Fetcher — real cities, multi-leg, per-city hotels
+        // =============================================
+        async function fetchLogistics(context: {
+            departureCity: string
+            cities: string[]          // clean city names: ["Белград", "София"]
+            startDate: string
+            endDate: string
+            travelers: number
+            durationDays: number
+        }): Promise<any> {
             const { getIataCode, getFlightSearchLink, getHotelSearchLink } = await import("@/lib/travelpayouts")
-            const originIata = getIataCode(context.departureCity) || "???"
-            const destCities = context.targetDescription.replace(/[()]/g, '').split(/[,;]/).map((s: string) => s.trim()).filter(Boolean)
-            const primaryDest = destCities[0] || context.targetDescription
-            const destIata = getIataCode(primaryDest) || "???"
 
-            const flightBookingUrl = getFlightSearchLink({
-                origin: context.departureCity,
-                originIata: originIata !== "???" ? originIata : undefined,
-                destination: primaryDest,
-                destinationIata: destIata !== "???" ? destIata : undefined,
-                departDate: context.startDate,
-                returnDate: context.endDate,
-                adults: parseInt(String(context.travelers).match(/\d+/)?.[0] || "2"),
-                subId: "logistics"
+            const { departureCity: origin, cities, startDate, endDate, travelers, durationDays: totalDays } = context
+
+            if (cities.length === 0) {
+                console.warn("Logistics: no destination cities, skipping")
+                return null
+            }
+
+            console.log(`Logistics: ${origin} → [${cities.join(", ")}], ${startDate}–${endDate}, ${travelers} pax`)
+
+            const originIata = getIataCode(origin) || "???"
+            const firstCity = cities[0]
+            const lastCity = cities[cities.length - 1]
+            const firstIata = getIataCode(firstCity) || "???"
+            const lastIata = getIataCode(lastCity) || "???"
+
+            // --- Build flight legs ---
+            // Leg 1: origin → first city (outbound)
+            // Leg N: last city → origin (return)
+            // Inter-city legs if >1 city
+            interface FlightLeg {
+                from: string
+                fromIata: string
+                to: string
+                toIata: string
+                date: string
+                direction: string
+                dayNumber: number
+                bookingUrl: string
+            }
+
+            const legs: FlightLeg[] = []
+
+            // Outbound
+            legs.push({
+                from: origin,
+                fromIata: originIata,
+                to: firstCity,
+                toIata: firstIata,
+                date: startDate,
+                direction: "outbound",
+                dayNumber: 1,
+                bookingUrl: getFlightSearchLink({
+                    origin, destination: firstCity,
+                    departDate: startDate, returnDate: endDate,
+                    adults: travelers, subId: "leg_out"
+                })
             })
 
-            const hotelBookingUrl = getHotelSearchLink({
-                destination: primaryDest,
-                checkIn: context.startDate,
-                checkOut: context.endDate,
-                adults: parseInt(String(context.travelers).match(/\d+/)?.[0] || "2"),
-                subId: "logistics"
+            // Inter-city legs
+            if (cities.length > 1) {
+                const daysPerCity = Math.max(1, Math.floor(totalDays / cities.length))
+                for (let i = 0; i < cities.length - 1; i++) {
+                    const fromCity = cities[i]
+                    const toCity = cities[i + 1]
+                    // Approximate date for inter-city transfer
+                    const transferDay = 1 + daysPerCity * (i + 1)
+                    const transferDate = new Date(startDate)
+                    transferDate.setDate(transferDate.getDate() + daysPerCity * (i + 1) - 1)
+                    const transferDateStr = transferDate.toISOString().split("T")[0]
+
+                    legs.push({
+                        from: fromCity,
+                        fromIata: getIataCode(fromCity) || "???",
+                        to: toCity,
+                        toIata: getIataCode(toCity) || "???",
+                        date: transferDateStr,
+                        direction: "intercity",
+                        dayNumber: transferDay,
+                        bookingUrl: getFlightSearchLink({
+                            origin: fromCity, destination: toCity,
+                            departDate: transferDateStr,
+                            adults: travelers, subId: `leg_${i}`
+                        })
+                    })
+                }
+            }
+
+            // Return
+            legs.push({
+                from: lastCity,
+                fromIata: lastIata,
+                to: origin,
+                toIata: originIata,
+                date: endDate,
+                direction: "return",
+                dayNumber: totalDays,
+                bookingUrl: getFlightSearchLink({
+                    origin: lastCity, destination: origin,
+                    departDate: endDate,
+                    adults: travelers, subId: "leg_ret"
+                })
             })
 
-            const travelersCount = parseInt(String(context.travelers).match(/\d+/)?.[0] || "2")
+            // --- Build per-city hotel list ---
+            interface HotelSearch {
+                city: string
+                checkIn: string
+                checkOut: string
+                nights: number
+                dayStart: number
+                bookingUrl: string
+            }
 
-            const searchPromptFull = `
-You are a Real-Time Travel Search Engine. Search the web NOW for ACTUAL flights and hotels.
+            const hotelSearches: HotelSearch[] = []
+            const daysPerCity = Math.max(1, Math.floor(totalDays / cities.length))
 
-SEARCH THESE EXACT PARAMETERS:
-- FROM: ${context.departureCity} (IATA: ${originIata})
-- TO: ${primaryDest} (IATA: ${destIata})
-- DEPARTURE DATE: ${context.startDate}
-- RETURN DATE: ${context.endDate}
-- PASSENGERS: ${travelersCount}
-- BUDGET: ${budgetDesc}
+            for (let i = 0; i < cities.length; i++) {
+                const city = cities[i]
+                const cityStartDate = new Date(startDate)
+                cityStartDate.setDate(cityStartDate.getDate() + daysPerCity * i)
+                const cityEndDate = new Date(startDate)
+                cityEndDate.setDate(cityEndDate.getDate() + daysPerCity * (i + 1))
+                if (i === cities.length - 1) {
+                    // Last city — extend to end date
+                    cityEndDate.setTime(new Date(endDate).getTime())
+                }
+                const ciStr = cityStartDate.toISOString().split("T")[0]
+                const coStr = cityEndDate.toISOString().split("T")[0]
+                const nights = Math.max(1, Math.round((cityEndDate.getTime() - cityStartDate.getTime()) / (1000 * 60 * 60 * 24)))
 
-TASK 1 - SEARCH FLIGHTS on aviasales.ru, google flights, skyscanner:
-Find 2-3 REAL flight options from ${context.departureCity} to ${primaryDest}.
-For EACH flight include ALL of these fields:
-- airline: Real airline name (Turkish Airlines, Aeroflot, etc.)
-- flightNumber: Real flight number (TK413, SU2134)
-- departureCity: "${context.departureCity}"
-- departureCode: "${originIata}"
-- departureDate: "${context.startDate}"
-- departureTime: "HH:MM" (real schedule time)
-- arrivalCity: "${primaryDest}"
-- arrivalCode: "${destIata}"
-- arrivalTime: "HH:MM"
-- duration: total flight time
-- price: price per person in RUB (number, not string)
-- passengers: ${travelersCount}
-- totalPrice: total for all passengers
-- transfer: null if direct, or {"city":"Transfer City","duration":"2ч","airport":"XXX"} if with layover
-- baggage: {"handLuggage":"8 кг","checked":"23 кг"}
-- direction: "outbound" for departure flights, "return" for return flights
-- dayNumber: 1 for outbound, last day number for return
-- bookingUrl: "${flightBookingUrl}"
+                hotelSearches.push({
+                    city,
+                    checkIn: ciStr,
+                    checkOut: coStr,
+                    nights,
+                    dayStart: 1 + daysPerCity * i,
+                    bookingUrl: getHotelSearchLink({
+                        destination: city,
+                        checkIn: ciStr, checkOut: coStr,
+                        adults: travelers, subId: `hotel_${i}`
+                    })
+                })
+            }
 
-Also find 1-2 RETURN flights on ${context.endDate} from ${primaryDest} back to ${context.departureCity}.
+            // --- Build prompt for Perplexity ---
+            const flightLegsPrompt = legs.map((l, i) => `
+LEG ${i + 1} (${l.direction}): ${l.from} (${l.fromIata}) → ${l.to} (${l.toIata}) on ${l.date}
+  Find 1-2 real flight options. For each:
+  - airline, flightNumber, departureCity:"${l.from}", departureCode:"${l.fromIata}",
+    departureDate:"${l.date}", departureTime:"HH:MM",
+    arrivalCity:"${l.to}", arrivalCode:"${l.toIata}", arrivalTime:"HH:MM",
+    duration, price (RUB number), passengers:${travelers},
+    totalPrice (price*${travelers}),
+    transfer: null or {"city":"...","duration":"...","airport":"..."},
+    baggage:{"handLuggage":"8 кг","checked":"23 кг"},
+    direction:"${l.direction}", dayNumber:${l.dayNumber},
+    bookingUrl:"${l.bookingUrl}"`).join("\n")
 
-TASK 2 - SEARCH HOTELS on booking.com, ostrovok.ru:
-Find 3 REAL hotels in ${primaryDest} for dates ${context.startDate} to ${context.endDate}.
-For EACH hotel include ALL of these fields:
-- hotelName: exact real hotel name
-- stars: 1-5
-- rating: guest score out of 10 (e.g. 8.7)
-- reviewsCount: number of reviews
-- address: real address
-- checkIn: "${context.startDate}"
-- checkOut: "${context.endDate}"
-- nights: number of nights
-- guests: ${travelersCount}
-- pricePerNight: price per night in RUB (number)
-- totalPrice: total cost for entire stay
-- amenities: ["WiFi","Завтрак","Бассейн","Спа","Фитнес","Кондиционер","Парковка","Ресторан"]
-- photos: [] (empty array)
-- photoQuery: "Hotel Name ${primaryDest} exterior"
-- dayStart: 1
-- bookingUrl: "${hotelBookingUrl}"
+            const hotelBlocksPrompt = hotelSearches.map((h, i) => `
+HOTEL SEARCH ${i + 1}: ${h.city}, check-in ${h.checkIn}, check-out ${h.checkOut} (${h.nights} nights)
+  Find 2 real hotels (mid-range + premium). For each:
+  - hotelName (real name), stars, rating (out of 10), reviewsCount,
+    address, checkIn:"${h.checkIn}", checkOut:"${h.checkOut}",
+    nights:${h.nights}, guests:${travelers},
+    pricePerNight (RUB number), totalPrice,
+    amenities:["WiFi","Завтрак",...], photos:[], photoQuery:"HotelName ${h.city} exterior",
+    dayStart:${h.dayStart}, bookingUrl:"${h.bookingUrl}"`).join("\n")
 
-OUTPUT ONLY VALID JSON:
+            const searchPrompt = `
+You are a Real-Time Travel Search Engine. Search the web for ACTUAL flights and hotels.
+
+PASSENGERS: ${travelers}
+BUDGET: ${budgetDesc}
+
+=== FLIGHTS ===
+${flightLegsPrompt}
+
+=== HOTELS ===
+${hotelBlocksPrompt}
+
+OUTPUT ONLY VALID JSON (no markdown):
 {
-  "flights": [...],
-  "hotels": [...],
+  "flights": [ ... all flight objects for all legs ... ],
+  "hotels": [ ... all hotel objects for all cities ... ],
   "interCity": []
 }
+All prices in RUB (numbers). Use REAL airline names, flight numbers, hotel names from web search.
+DO NOT explain anything. DO NOT add commentary. Start your response with { and end with }`
 
-
-CRITICAL: Output ONLY valid JSON. No markdown. All prices in RUB (numbers, not strings). Use REAL data from web search.
-DO NOT explain anything. DO NOT add commentary. Start your response with { and end with }`;
             try {
-                console.log("Logistics: Sending request to OpenRouter...");
+                console.log("Logistics: Sending request to OpenRouter...")
                 const raw = await openrouterInference([
                     { role: "system", content: "You are a JSON API. You ONLY output valid JSON. Never explain, never add text. Start with { end with }. No markdown code blocks." },
-                    { role: "user", content: searchPromptFull }
+                    { role: "user", content: searchPrompt }
                 ], {
-                    maxTokens: 4000,
+                    maxTokens: 6000,
                     temperature: 0.1,
                     model: "perplexity/sonar"
-                });
-                console.log("Logistics: Received raw response:", raw.slice(0, 200) + "...");
+                })
+                console.log("Logistics: Received response:", raw.slice(0, 200) + "...")
 
                 // Check if response is text instead of JSON
-                const trimmed = raw.trim();
+                const trimmed = raw.trim()
                 if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-                    console.warn("Logistics: Model returned text instead of JSON, skipping...");
-                    return null;
+                    console.warn("Logistics: Model returned text instead of JSON, skipping...")
+                    return null
                 }
 
-                const parsed = parseJsonResponse(raw, "Perplexity-Logistics");
-                console.log("Logistics: Parsed data:", JSON.stringify(parsed, null, 2));
-                return parsed;
+                const parsed = parseJsonResponse(raw, "Perplexity-Logistics")
+
+                // Ensure booking URLs are filled from our pre-computed links
+                if (parsed.flights) {
+                    for (let i = 0; i < parsed.flights.length; i++) {
+                        const f = parsed.flights[i]
+                        if (!f.bookingUrl && legs[i]) f.bookingUrl = legs[i].bookingUrl
+                        if (!f.passengers) f.passengers = travelers
+                    }
+                }
+                if (parsed.hotels) {
+                    for (let i = 0; i < parsed.hotels.length; i++) {
+                        const h = parsed.hotels[i]
+                        if (!h.bookingUrl) {
+                            const match = hotelSearches.find(hs =>
+                                h.hotelName?.toLowerCase().includes(hs.city.toLowerCase()) ||
+                                hs.city.toLowerCase().includes((h.address || "").toLowerCase().split(",")[0])
+                            )
+                            h.bookingUrl = match?.bookingUrl || hotelSearches[0]?.bookingUrl || "https://ostrovok.ru/"
+                        }
+                        if (!h.guests) h.guests = travelers
+                    }
+                }
+
+                console.log("Logistics: Parsed OK:", parsed.flights?.length, "flights,", parsed.hotels?.length, "hotels")
+                return parsed
             } catch (e) {
-                console.warn("Logistics fetch failed:", e);
-                return null;
+                console.warn("Logistics fetch failed:", e)
+                return null
             }
         }
 
@@ -890,13 +1007,25 @@ ${isLastChunk
             const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
             // Start Logistics fetch in parallel
-            const logisticsPromise = fetchLogistics({
-                departureCity,
-                targetDescription,
-                startDate,
-                endDate,
-                travelers: companions || "2 adults",
-            });
+            // Extract clean city names from destinations array
+            // destinations can be ["Белград, Сербия", "София, Болгария"] or ["Белград"] etc.
+            const cleanCities = destinations.map(d => {
+                const parts = d.split(',').map(s => s.trim()).filter(Boolean)
+                return parts[0] // Take first part = city name
+            }).filter(Boolean)
+
+            const travelersCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
+
+            const logisticsPromise = cleanCities.length > 0 && startDate && endDate
+                ? fetchLogistics({
+                    departureCity,
+                    cities: cleanCities,
+                    startDate,
+                    endDate,
+                    travelers: travelersCount,
+                    durationDays,
+                })
+                : Promise.resolve(null);
 
             let routeData: any = {};
 
@@ -981,10 +1110,29 @@ ${isLastChunk
 
             // Await logistics and merge
             try {
-                const realLogistics = await logisticsPromise;
+                let realLogistics = await logisticsPromise;
+
+                // If we had no cities upfront (AI picked destinations), extract them now and fetch logistics
+                if (!realLogistics && routeData.countries?.length > 0 && startDate && endDate) {
+                    const aiCities = routeData.countries
+                        .map((c: any) => c.name || c)
+                        .filter(Boolean)
+                    if (aiCities.length > 0) {
+                        console.log("Logistics: AI-picked destinations detected, fetching now for:", aiCities)
+                        const tCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
+                        realLogistics = await fetchLogistics({
+                            departureCity,
+                            cities: aiCities,
+                            startDate,
+                            endDate,
+                            travelers: tCount,
+                            durationDays,
+                        })
+                    }
+                }
+
                 if (realLogistics) {
                     console.log("Merging real-time logistics data...");
-                    // Attach global flight/hotel data
                     routeData.flights = realLogistics.flights || [];
                     routeData.hotels = realLogistics.hotels || [];
                     routeData.interCity = realLogistics.interCity || [];
