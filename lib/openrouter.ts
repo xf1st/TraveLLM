@@ -2,7 +2,7 @@
 // https://openrouter.ai/api/v1
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "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";
-export const OPENROUTER_MODEL = "google/gemini-flash-1.5";
+export const OPENROUTER_MODEL = "google/gemini-2.0-flash-001";
 
 interface OpenRouterMessage {
     role: "system" | "user" | "assistant";

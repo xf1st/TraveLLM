@@ -306,7 +306,11 @@ export default function PlanPage() {
         cover_image: routeData.coverImage || null,
         preferences: routeData.preferences || null,
         // AI token usage statistics
-        token_usage: routeData.tokenUsage || null
+        token_usage: routeData.tokenUsage || null,
+        // Logistics: flights and hotels from real-time search
+        flights: routeData.flights || null,
+        hotels: routeData.hotels || null,
+        viral_spots: routeData.viralSpots || null
       }).select().single()
 
       let finalTripId: string | null = null

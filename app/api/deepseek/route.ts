@@ -528,36 +528,58 @@ JSON СХЕМА (строго следуй):
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
 
+
         // Helper to parse JSON from AI response
         function parseJsonResponse(raw: string, source: string): any {
             if (!raw) throw new Error(`Empty response from ${source}`)
 
             let clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
 
+            // Remove markdown code blocks if present
+            clean = clean.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
             // Basic repair for unquoted hashtags which DeepSeek sometimes outputs
             clean = clean.replace(/:\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ': "#$1"'); // keys or values starting with #
             clean = clean.replace(/,\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ', "#$1"'); // array items starting with #
             clean = clean.replace(/\[\s*#([a-zA-Zа-яА-Я0-9_]+)/g, '["#$1"'); // first array item
 
+            // Fix missing colons after property names (common DeepSeek error)
+            // Pattern: "propertyName" "value" -> "propertyName": "value"
+            clean = clean.replace(/"([^"]+)"\s+"([^"]+)"/g, '"$1": "$2"');
+            // Pattern: "propertyName" { -> "propertyName": {
+            clean = clean.replace(/"([^"]+)"\s+\{/g, '"$1": {');
+            // Pattern: "propertyName" [ -> "propertyName": [
+            clean = clean.replace(/"([^"]+)"\s+\[/g, '"$1": [');
+            // Pattern: "propertyName" number -> "propertyName": number
+            clean = clean.replace(/"([^"]+)"\s+(\d+)/g, '"$1": $2');
+
+            // Fix trailing commas before closing brackets
+            clean = clean.replace(/,\s*}/g, '}');
+            clean = clean.replace(/,\s*]/g, ']');
+
             if (!clean.trim().endsWith('}')) {
                 console.warn(`${source} JSON appears truncated, attempting basic repair...`);
                 let openBraces = (clean.match(/\{/g) || []).length;
                 let closeBraces = (clean.match(/\}/g) || []).length;
+                let openBrackets = (clean.match(/\[/g) || []).length;
+                let closeBrackets = (clean.match(/\]/g) || []).length;
+                while (openBrackets > closeBrackets) { clean += ']'; closeBrackets++; }
                 while (openBraces > closeBraces) { clean += '}'; closeBraces++; }
-            }
-
-            // Also fix truncated arrays
-            if (!clean.trim().endsWith('}')) {
-                clean = clean.replace(/,\s*$/, '') + ']}'
             }
 
             try {
                 return JSON.parse(clean);
             } catch (e) {
                 // Last ditch: try to just regex out the whole tags array if it's the culprit
-                console.warn("JSON repair failed, trying to strip tags...", e);
+                console.warn("JSON repair failed, trying to strip problematic fields...", e);
                 clean = clean.replace(/"tags":\s*\[[^\]]*\]/g, '"tags": []');
-                return JSON.parse(clean);
+                clean = clean.replace(/"viralSpots":\s*\[[^\]]*\]/g, '"viralSpots": []');
+                try {
+                    return JSON.parse(clean);
+                } catch (e2) {
+                    console.error("Final JSON parse failed:", e2);
+                    throw e2;
+                }
             }
         }
 
@@ -723,18 +745,28 @@ OUTPUT ONLY VALID JSON:
   "interCity": []
 }
 
-CRITICAL: Output ONLY valid JSON. No markdown. All prices in RUB (numbers, not strings). Use REAL data from web search.`;
+
+CRITICAL: Output ONLY valid JSON. No markdown. All prices in RUB (numbers, not strings). Use REAL data from web search.
+DO NOT explain anything. DO NOT add commentary. Start your response with { and end with }`;
             try {
                 console.log("Logistics: Sending request to OpenRouter...");
                 const raw = await openrouterInference([
-                    { role: "system", content: "You are a real-time travel search engine. Output JSON only." },
+                    { role: "system", content: "You are a JSON API. You ONLY output valid JSON. Never explain, never add text. Start with { end with }. No markdown code blocks." },
                     { role: "user", content: searchPromptFull }
                 ], {
                     maxTokens: 4000,
                     temperature: 0.1,
-                    model: "perplexity/sonar-reasoning-pro"
+                    model: "perplexity/sonar"
                 });
                 console.log("Logistics: Received raw response:", raw.slice(0, 200) + "...");
+
+                // Check if response is text instead of JSON
+                const trimmed = raw.trim();
+                if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+                    console.warn("Logistics: Model returned text instead of JSON, skipping...");
+                    return null;
+                }
+
                 const parsed = parseJsonResponse(raw, "Perplexity-Logistics");
                 console.log("Logistics: Parsed data:", JSON.stringify(parsed, null, 2));
                 return parsed;

@@ -183,13 +183,13 @@ CRITICAL RULES:
 
         const raw = await openrouterInference(
             [
-                { role: "system", content: "You are a real-time travel search engine. Search the web for actual available flights and hotels. Output valid JSON only. All prices in RUB." },
+                { role: "system", content: "You are a JSON API. You ONLY output valid JSON. Never explain, never add text. Start with { end with }. No markdown code blocks." },
                 { role: "user", content: searchPrompt }
             ],
             {
                 maxTokens: 6000,
                 temperature: 0.1,
-                model: "perplexity/sonar-reasoning-pro"
+                model: "perplexity/sonar"
             }
         )
 
