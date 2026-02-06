@@ -1110,10 +1110,34 @@ ${isLastChunk
                 let realLogistics = await logisticsPromise;
 
                 // If we had no cities upfront (AI picked destinations), extract them now and fetch logistics
-                if (!realLogistics && routeData.countries?.length > 0 && startDate && endDate) {
-                    const aiCities = routeData.countries
-                        .map((c: any) => c.name || c)
-                        .filter(Boolean)
+                if (!realLogistics && startDate && endDate) {
+                    const { countryToCity } = await import("@/lib/travelpayouts")
+
+                    // Try to extract real city names from itinerary day titles
+                    // e.g., "Вылет из Москвы в Амстердам" → "Амстердам"
+                    const citiesFromItinerary: string[] = []
+                    if (routeData.itinerary?.length > 0) {
+                        for (const day of routeData.itinerary) {
+                            const title = day.title || ""
+                            // Match patterns like "в Амстердам", "в Софии", "прибытие в Будапешт"
+                            const match = title.match(/(?:в|прибытие в|прилёт в|перелёт в)\s+([А-ЯЁA-Z][а-яёa-z-]+)/i)
+                            if (match && match[1]) {
+                                const city = match[1]
+                                if (city.toLowerCase() !== departureCity.toLowerCase() && !citiesFromItinerary.includes(city)) {
+                                    citiesFromItinerary.push(city)
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback: use country names → capital cities
+                    let aiCities = citiesFromItinerary
+                    if (aiCities.length === 0 && routeData.countries?.length > 0) {
+                        aiCities = routeData.countries
+                            .map((c: any) => countryToCity(c.name || c))
+                            .filter(Boolean)
+                    }
+
                     if (aiCities.length > 0) {
                         console.log("Logistics: AI-picked destinations detected, fetching now for:", aiCities)
                         const tCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
