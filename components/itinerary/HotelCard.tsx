@@ -76,6 +76,9 @@ interface HotelCardProps {
     // Link
     bookingUrl?: string
 
+    // Fallback flag (no real data, just booking link)
+    isFallback?: boolean
+
     className?: string
 }
 
@@ -121,6 +124,7 @@ export function HotelCard({
     photoQuery,
     amenities,
     bookingUrl,
+    isFallback,
     className
 }: HotelCardProps) {
     const [currentPhoto, setCurrentPhoto] = useState(0)
@@ -133,6 +137,10 @@ export function HotelCard({
 
     // Build booking URL
     const buyUrl = bookingUrl || "https://ostrovok.ru/"
+
+    // Detect if we have real price/rating data
+    const hasPriceData = pricePerNight > 0
+    const hasRatingData = rating > 0
 
     return (
         <Card className={cn(
@@ -216,20 +224,24 @@ export function HotelCard({
                             </div>
 
                             {/* Rating block */}
-                            <div className="text-right shrink-0">
-                                <div className={cn(
-                                    "text-white text-sm font-black px-2.5 py-1.5 rounded-lg inline-block mb-1",
-                                    getRatingColor(rating)
-                                )}>
-                                    {rating}
+                            {hasRatingData && (
+                                <div className="text-right shrink-0">
+                                    <div className={cn(
+                                        "text-white text-sm font-black px-2.5 py-1.5 rounded-lg inline-block mb-1",
+                                        getRatingColor(rating)
+                                    )}>
+                                        {rating}
+                                    </div>
+                                    <div className="text-[10px] font-medium text-muted-foreground">
+                                        {getRatingLabel(rating)}
+                                    </div>
+                                    {reviewsCount > 0 && (
+                                        <div className="text-[10px] text-muted-foreground/60">
+                                            {reviewsCount.toLocaleString("ru-RU")} отзывов
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-[10px] font-medium text-muted-foreground">
-                                    {getRatingLabel(rating)}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground/60">
-                                    {reviewsCount.toLocaleString("ru-RU")} отзывов
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Amenities */}
@@ -271,13 +283,21 @@ export function HotelCard({
                     {/* Price & Book */}
                     <div className="flex items-end justify-between pt-3 border-t border-amber-200/30 dark:border-amber-900/20">
                         <div>
-                            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                                {pricePerNight.toLocaleString("ru-RU")} ₽
-                                <span className="text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
-                            </div>
-                            {nights && nights > 1 && (
-                                <div className="text-xs text-muted-foreground mt-0.5">
-                                    Итого за {nights} {nights < 5 ? "ночи" : "ночей"}: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
+                            {hasPriceData ? (
+                                <>
+                                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                                        {pricePerNight.toLocaleString("ru-RU")} ₽
+                                        <span className="text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
+                                    </div>
+                                    {nights && nights > 1 && (
+                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                            Итого за {nights} {nights < 5 ? "ночи" : "ночей"}: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="text-sm font-medium text-muted-foreground">
+                                    Смотреть цены на отели
                                 </div>
                             )}
                         </div>
@@ -286,7 +306,7 @@ export function HotelCard({
                             className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 h-9 shadow-md shadow-amber-500/20"
                             onClick={() => window.open(buyUrl, "_blank")}
                         >
-                            Забронировать
+                            {hasPriceData ? "Забронировать" : "Найти отели"}
                             <ExternalLink className="w-3 h-3 ml-1.5" />
                         </Button>
                     </div>

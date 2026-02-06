@@ -718,3 +718,346 @@ export function findMinPrice(prices: CalendarPrice[]): CalendarPrice | null {
   if (!prices.length) return null
   return prices.reduce((min, p) => p.price < min.price ? p : min, prices[0])
 }
+
+// ============================================
+// REAL FLIGHT SEARCH (for FlightCard)
+// ============================================
+
+export interface RealFlight {
+  // Core data from API
+  origin: string
+  destination: string
+  originIata: string
+  destinationIata: string
+  departureAt: string      // ISO datetime
+  returnAt?: string        // ISO datetime (if round-trip)
+  airline: string          // Airline name (e.g., "Аэрофлот")
+  flightNumber: string     // e.g., "SU 1234"
+  price: number            // Total price in RUB
+  pricePerPerson: number
+  transfers: number
+  duration: string         // Formatted: "4 ч 15 мин" or "—"
+
+  // For FlightCard component
+  departureDate: string    // Date only YYYY-MM-DD
+  departureTime: string    // Time only HH:MM
+  arrivalDate?: string
+  arrivalTime?: string
+  departureCity: string
+  departureCode: string
+  arrivalCity: string
+  arrivalCode: string
+  passengers: number
+  direction: "outbound" | "return"
+  dayNumber: number
+  transfer: { city: string; duration: string } | null
+  baggage: { handLuggage: string; checked: string }
+  bookingUrl: string
+  isFallback?: boolean
+}
+
+// Airline IATA codes to names mapping
+const AIRLINE_NAMES: Record<string, string> = {
+  "SU": "Аэрофлот",
+  "S7": "S7 Airlines",
+  "UT": "UTair",
+  "U6": "Уральские авиалинии",
+  "DP": "Победа",
+  "N4": "Nordwind",
+  "5N": "Smartavia",
+  "A4": "Azimuth",
+  "I8": "Ижавиа",
+  "6R": "Alrosa",
+  "TK": "Turkish Airlines",
+  "PC": "Pegasus",
+  "EK": "Emirates",
+  "QR": "Qatar Airways",
+  "EY": "Etihad",
+  "FZ": "flydubai",
+  "LH": "Lufthansa",
+  "AF": "Air France",
+  "BA": "British Airways",
+  "AZ": "ITA Airways",
+  "KL": "KLM",
+  "OS": "Austrian",
+  "LX": "Swiss",
+  "SN": "Brussels Airlines",
+  "LO": "LOT Polish",
+  "OK": "Czech Airlines",
+  "FB": "Bulgaria Air",
+  "RO": "TAROM",
+  "JU": "Air Serbia",
+  "BT": "airBaltic",
+  "A3": "Aegean Airlines",
+  "W6": "Wizz Air",
+  "FR": "Ryanair",
+  "U2": "easyJet",
+  "VY": "Vueling",
+  "HY": "Uzbekistan Airways",
+  "KC": "Air Astana",
+  "B2": "Belavia",
+  "J2": "AZAL",
+  "FV": "Россия"
+}
+
+function getAirlineName(iataCode: string): string {
+  return AIRLINE_NAMES[iataCode] || iataCode
+}
+
+function parseDateTime(isoString: string): { date: string; time: string } {
+  const d = new Date(isoString)
+  const date = d.toISOString().split("T")[0]
+  const time = d.toTimeString().slice(0, 5)
+  return { date, time }
+}
+
+// City names from IATA codes (reverse lookup)
+const IATA_TO_CITY: Record<string, string> = {}
+for (const [city, code] of Object.entries(IATA_CODES)) {
+  // Prefer Russian names
+  if (!IATA_TO_CITY[code] || city.match(/[а-яё]/i)) {
+    IATA_TO_CITY[code] = city.charAt(0).toUpperCase() + city.slice(1)
+  }
+}
+
+function getCityName(iata: string): string {
+  return IATA_TO_CITY[iata] || iata
+}
+
+function formatDuration(minutes?: number): string {
+  if (!minutes || minutes <= 0) return "—"
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} мин`
+  if (m === 0) return `${h} ч`
+  return `${h} ч ${m} мин`
+}
+
+interface LatestPriceItem {
+  origin: string
+  destination: string
+  price: number
+  airline: string
+  flight_number: number
+  departure_at: string
+  return_at?: string
+  expires_at: string
+  transfers: number
+  duration?: number
+}
+
+/**
+ * Search for real flights on specific dates using Travelpayouts /v2/prices/latest
+ * 
+ * @param originIata - Origin airport IATA code (e.g., "MOW")
+ * @param destinationIata - Destination airport IATA code (e.g., "IST")
+ * @param departDate - Departure date YYYY-MM-DD
+ * @param returnDate - Optional return date YYYY-MM-DD
+ * @param passengers - Number of passengers
+ * @param limit - Max number of results (default 3)
+ */
+export async function searchFlightsForDates(
+  originIata: string,
+  destinationIata: string,
+  departDate: string,
+  returnDate?: string,
+  passengers: number = 1,
+  limit: number = 3
+): Promise<RealFlight[]> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("TRAVELPAYOUTS_API_TOKEN not set, falling back to booking links")
+    return []
+  }
+
+  const params = new URLSearchParams({
+    origin: originIata,
+    destination: destinationIata,
+    currency: "rub",
+    token: TRAVELPAYOUTS_API_TOKEN,
+    limit: (limit * 2).toString(), // Request more to filter
+    show_to_affiliates: "true",
+    sorting: "price"
+  })
+
+  // Add departure date (month for broader results)
+  const departMonth = departDate.slice(0, 7) // YYYY-MM
+  params.set("beginning_of_period", departMonth)
+  params.set("period_type", "month")
+
+  try {
+    console.log(`Travelpayouts: Searching flights ${originIata} -> ${destinationIata} for ${departMonth}`)
+
+    const response = await fetch(
+      `https://api.travelpayouts.com/v2/prices/latest?${params.toString()}`
+    )
+
+    if (!response.ok) {
+      console.error(`Travelpayouts API error: ${response.status}`)
+      return []
+    }
+
+    const data = await response.json()
+
+    if (!data.success || !data.data || !Array.isArray(data.data)) {
+      console.warn("Travelpayouts: No flight data in response")
+      return []
+    }
+
+    const flights: RealFlight[] = []
+    const targetDate = new Date(departDate).getTime()
+
+    // Process outbound flights
+    for (const item of data.data as LatestPriceItem[]) {
+      // Check if departure is close to requested date (within 3 days)
+      const itemDate = new Date(item.departure_at).getTime()
+      const daysDiff = Math.abs(itemDate - targetDate) / (1000 * 60 * 60 * 24)
+
+      if (daysDiff > 3) continue // Skip if too far from requested date
+
+      const dep = parseDateTime(item.departure_at)
+      const ret = item.return_at ? parseDateTime(item.return_at) : null
+
+      const bookingUrl = getFlightSearchLink({
+        originIata,
+        destination: getCityName(destinationIata),
+        destinationIata,
+        departDate: dep.date,
+        returnDate: ret?.date,
+        adults: passengers,
+        subId: "flightcard"
+      })
+
+      const outbound: RealFlight = {
+        origin: getCityName(originIata),
+        destination: getCityName(destinationIata),
+        originIata,
+        destinationIata,
+        departureAt: item.departure_at,
+        returnAt: item.return_at,
+        airline: getAirlineName(item.airline),
+        flightNumber: item.flight_number ? `${item.airline} ${item.flight_number}` : "",
+        price: item.price,
+        pricePerPerson: Math.round(item.price / passengers),
+        transfers: item.transfers,
+        duration: formatDuration(item.duration),
+
+        departureDate: dep.date,
+        departureTime: dep.time,
+        arrivalDate: dep.date, // Approximate
+        arrivalTime: "", // Not available in cache API
+        departureCity: getCityName(originIata),
+        departureCode: originIata,
+        arrivalCity: getCityName(destinationIata),
+        arrivalCode: destinationIata,
+        passengers,
+        direction: "outbound",
+        dayNumber: 1,
+        transfer: item.transfers > 0 ? { city: "Пересадка", duration: "~2ч" } : null,
+        baggage: { handLuggage: "8 кг", checked: "23 кг" },
+        bookingUrl
+      }
+
+      flights.push(outbound)
+
+      // If round-trip, add return flight
+      if (ret) {
+        const returnBookingUrl = getFlightSearchLink({
+          originIata: destinationIata,
+          destination: getCityName(originIata),
+          destinationIata: originIata,
+          departDate: ret.date,
+          adults: passengers,
+          subId: "flightcard_return"
+        })
+
+        const returnFlight: RealFlight = {
+          ...outbound,
+          origin: getCityName(destinationIata),
+          destination: getCityName(originIata),
+          originIata: destinationIata,
+          destinationIata: originIata,
+          departureAt: item.return_at!,
+          departureDate: ret.date,
+          departureTime: ret.time,
+          arrivalDate: ret.date,
+          departureCity: getCityName(destinationIata),
+          departureCode: destinationIata,
+          arrivalCity: getCityName(originIata),
+          arrivalCode: originIata,
+          direction: "return",
+          dayNumber: 0, // Will be set later based on trip duration
+          price: item.price, // Show same price (round-trip total)
+          pricePerPerson: Math.round(item.price / passengers),
+          bookingUrl: returnBookingUrl
+        }
+        flights.push(returnFlight)
+      }
+
+      if (flights.length >= limit * 2) break
+    }
+
+    console.log(`Travelpayouts: Found ${flights.length} flights`)
+    return flights.slice(0, limit * 2) // Return outbound + return pairs
+
+  } catch (error) {
+    console.error("searchFlightsForDates error:", error)
+    return []
+  }
+}
+
+/**
+ * Generate fallback flight data with booking link when no real data available
+ */
+export function createFallbackFlight(
+  originCity: string,
+  originIata: string,
+  destCity: string,
+  destIata: string,
+  departDate: string,
+  returnDate: string | undefined,
+  passengers: number,
+  direction: "outbound" | "return",
+  dayNumber: number
+): RealFlight {
+  const bookingUrl = getFlightSearchLink({
+    origin: originCity,
+    originIata,
+    destination: destCity,
+    destinationIata: destIata,
+    departDate,
+    returnDate,
+    adults: passengers,
+    subId: "fallback"
+  })
+
+  return {
+    origin: originCity,
+    destination: destCity,
+    originIata,
+    destinationIata: destIata,
+    departureAt: departDate,
+    returnAt: returnDate,
+    airline: "Поиск авиабилетов",
+    flightNumber: "",
+    price: 0,
+    pricePerPerson: 0,
+    transfers: 0,
+    duration: "—",
+
+    departureDate: departDate,
+    departureTime: "",
+    arrivalDate: departDate,
+    arrivalTime: "",
+    departureCity: originCity,
+    departureCode: originIata,
+    arrivalCity: destCity,
+    arrivalCode: destIata,
+    passengers,
+    direction,
+    dayNumber,
+    transfer: null,
+    baggage: { handLuggage: "8 кг", checked: "23 кг" },
+    bookingUrl,
+    isFallback: true
+  }
+}

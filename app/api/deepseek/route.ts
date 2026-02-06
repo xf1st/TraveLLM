@@ -797,99 +797,96 @@ CRITICAL:
                 })
             }
 
-            // --- Build prompt for Perplexity ---
-            const flightLegsPrompt = legs.map((l, i) => `
-LEG ${i + 1} (${l.direction}): ${l.from} (${l.fromIata}) → ${l.to} (${l.toIata}) on ${l.date}
-  Find 1-2 real flight options. For each:
-  - airline, flightNumber, departureCity:"${l.from}", departureCode:"${l.fromIata}",
-    departureDate:"${l.date}", departureTime:"HH:MM",
-    arrivalCity:"${l.to}", arrivalCode:"${l.toIata}", arrivalTime:"HH:MM",
-    duration, price (RUB number), passengers:${travelers},
-    totalPrice (price*${travelers}),
-    transfer: null or {"city":"...","duration":"...","airport":"..."},
-    baggage:{"handLuggage":"8 кг","checked":"23 кг"},
-    direction:"${l.direction}", dayNumber:${l.dayNumber},
-    bookingUrl:"${l.bookingUrl}"`).join("\n")
+            // --- Fetch REAL flights from Travelpayouts API ---
+            const { searchFlightsForDates, createFallbackFlight } = await import("@/lib/travelpayouts")
 
-            const hotelBlocksPrompt = hotelSearches.map((h, i) => `
-HOTEL SEARCH ${i + 1}: ${h.city}, check-in ${h.checkIn}, check-out ${h.checkOut} (${h.nights} nights)
-  Find 2 real hotels (mid-range + premium). For each:
-  - hotelName (real name), stars, rating (out of 10), reviewsCount,
-    address, checkIn:"${h.checkIn}", checkOut:"${h.checkOut}",
-    nights:${h.nights}, guests:${travelers},
-    pricePerNight (RUB number), totalPrice,
-    amenities:["WiFi","Завтрак",...], photos:[], photoQuery:"HotelName ${h.city} exterior",
-    dayStart:${h.dayStart}, bookingUrl:"${h.bookingUrl}"`).join("\n")
+            const allFlights: any[] = []
 
-            const searchPrompt = `
-You are a Real-Time Travel Search Engine. Search the web for ACTUAL flights and hotels.
-
-PASSENGERS: ${travelers}
-BUDGET: ${budgetDesc}
-
-=== FLIGHTS ===
-${flightLegsPrompt}
-
-=== HOTELS ===
-${hotelBlocksPrompt}
-
-OUTPUT ONLY VALID JSON (no markdown):
-{
-  "flights": [ ... all flight objects for all legs ... ],
-  "hotels": [ ... all hotel objects for all cities ... ],
-  "interCity": []
-}
-All prices in RUB (numbers). Use REAL airline names, flight numbers, hotel names from web search.
-DO NOT explain anything. DO NOT add commentary. Start your response with { and end with }`
-
-            try {
-                console.log("Logistics: Sending request to OpenRouter...")
-                const raw = await openrouterInference([
-                    { role: "system", content: "You are a JSON API. You ONLY output valid JSON. Never explain, never add text. Start with { end with }. No markdown code blocks." },
-                    { role: "user", content: searchPrompt }
-                ], {
-                    maxTokens: 6000,
-                    temperature: 0.1,
-                    model: "perplexity/sonar"
-                })
-                console.log("Logistics: Received response:", raw.slice(0, 200) + "...")
-
-                // Check if response is text instead of JSON
-                const trimmed = raw.trim()
-                if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-                    console.warn("Logistics: Model returned text instead of JSON, skipping...")
-                    return null
+            // Fetch real flights for each leg
+            for (const leg of legs) {
+                if (leg.fromIata === "???" || leg.toIata === "???") {
+                    console.log(`Logistics: Skipping leg ${leg.from} -> ${leg.to} (unknown IATA codes)`)
+                    // Add fallback with booking link
+                    allFlights.push(createFallbackFlight(
+                        leg.from, leg.fromIata,
+                        leg.to, leg.toIata,
+                        leg.date, undefined,
+                        travelers,
+                        leg.direction as "outbound" | "return",
+                        leg.dayNumber
+                    ))
+                    continue
                 }
 
-                const parsed = parseJsonResponse(raw, "Perplexity-Logistics")
+                console.log(`Logistics: Searching flights ${leg.fromIata} -> ${leg.toIata} on ${leg.date}`)
 
-                // Ensure booking URLs are filled from our pre-computed links
-                if (parsed.flights) {
-                    for (let i = 0; i < parsed.flights.length; i++) {
-                        const f = parsed.flights[i]
-                        if (!f.bookingUrl && legs[i]) f.bookingUrl = legs[i].bookingUrl
-                        if (!f.passengers) f.passengers = travelers
-                    }
-                }
-                if (parsed.hotels) {
-                    for (let i = 0; i < parsed.hotels.length; i++) {
-                        const h = parsed.hotels[i]
-                        if (!h.bookingUrl) {
-                            const match = hotelSearches.find(hs =>
-                                h.hotelName?.toLowerCase().includes(hs.city.toLowerCase()) ||
-                                hs.city.toLowerCase().includes((h.address || "").toLowerCase().split(",")[0])
-                            )
-                            h.bookingUrl = match?.bookingUrl || hotelSearches[0]?.bookingUrl || "https://ostrovok.ru/"
+                const returnDate = leg.direction === "outbound" ? endDate : undefined
+                const realFlights = await searchFlightsForDates(
+                    leg.fromIata,
+                    leg.toIata,
+                    leg.date,
+                    returnDate,
+                    travelers,
+                    2 // Max 2 options per leg
+                )
+
+                if (realFlights.length > 0) {
+                    // Use real flights from API
+                    for (const rf of realFlights) {
+                        // Set correct day number based on leg
+                        if (rf.direction === "outbound") {
+                            rf.dayNumber = leg.dayNumber
+                        } else if (rf.direction === "return") {
+                            rf.dayNumber = totalDays
                         }
-                        if (!h.guests) h.guests = travelers
+                        allFlights.push(rf)
                     }
+                } else {
+                    // No real data — add fallback with booking link
+                    console.log(`Logistics: No real flights found for ${leg.fromIata} -> ${leg.toIata}, using fallback`)
+                    allFlights.push(createFallbackFlight(
+                        leg.from, leg.fromIata,
+                        leg.to, leg.toIata,
+                        leg.date, leg.direction === "outbound" ? endDate : undefined,
+                        travelers,
+                        leg.direction as "outbound" | "return",
+                        leg.dayNumber
+                    ))
                 }
+            }
 
-                console.log("Logistics: Parsed OK:", parsed.flights?.length, "flights,", parsed.hotels?.length, "hotels")
-                return parsed
-            } catch (e) {
-                console.warn("Logistics fetch failed:", e)
-                return null
+            // --- Build hotel data with booking links (no real API for hotels yet) ---
+            const allHotels: any[] = []
+
+            for (const hs of hotelSearches) {
+                // For now, just provide search links (no real hotel data API)
+                allHotels.push({
+                    hotelName: `Отели в ${hs.city}`,
+                    stars: 4,
+                    rating: 0,
+                    reviewsCount: 0,
+                    address: hs.city,
+                    checkIn: hs.checkIn,
+                    checkOut: hs.checkOut,
+                    nights: hs.nights,
+                    guests: travelers,
+                    pricePerNight: 0,
+                    totalPrice: 0,
+                    amenities: ["WiFi", "Завтрак"],
+                    photos: [],
+                    photoQuery: `${hs.city} hotel`,
+                    dayStart: hs.dayStart,
+                    bookingUrl: hs.bookingUrl,
+                    isFallback: true
+                })
+            }
+
+            console.log(`Logistics: Returning ${allFlights.length} flights, ${allHotels.length} hotels`)
+
+            return {
+                flights: allFlights,
+                hotels: allHotels,
+                interCity: []
             }
         }
 

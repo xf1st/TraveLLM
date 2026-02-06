@@ -21,14 +21,14 @@ interface FlightCardProps {
 
     // Times
     departureDate?: string
-    departureTime: string
+    departureTime?: string
     arrivalDate?: string
-    arrivalTime: string
+    arrivalTime?: string
 
     // Flight info
     airline: string
     flightNumber?: string
-    duration: string
+    duration?: string
 
     // Transfer - supports both string ("Direct"/"1 stop") and object
     transfer?: FlightTransfer | string | null
@@ -49,6 +49,9 @@ interface FlightCardProps {
 
     // Link
     bookingUrl?: string
+
+    // Fallback flag (no real data, just booking link)
+    isFallback?: boolean
 
     className?: string
 }
@@ -93,6 +96,7 @@ export function FlightCard({
     baggage,
     terminal,
     bookingUrl,
+    isFallback,
     className
 }: FlightCardProps) {
     const transferInfo = getTransferInfo(transfer)
@@ -102,6 +106,10 @@ export function FlightCard({
 
     // Build booking URL if not provided
     const buyUrl = bookingUrl || "https://www.aviasales.ru/"
+
+    // Detect if we have real time data
+    const hasTimeData = !!(departureTime && departureTime.trim())
+    const hasPriceData = price > 0
 
     return (
         <Card className={cn(
@@ -145,7 +153,42 @@ export function FlightCard({
 
                 {/* Route visualization */}
                 <div className="bg-white/60 dark:bg-white/5 rounded-2xl p-4 border border-blue-100/50 dark:border-blue-900/30">
-                    {transferInfo.isDirect ? (
+                    {!hasTimeData ? (
+                        /* Fallback: no time data, show simplified route */
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="text-center min-w-[80px]">
+                                {departureCode && (
+                                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{departureCode}</div>
+                                )}
+                                {departureCity && (
+                                    <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[100px]">{departureCity}</div>
+                                )}
+                            </div>
+                            <div className="flex-1 flex flex-col items-center gap-1.5 px-2">
+                                {duration && duration !== "—" && (
+                                    <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {duration}
+                                    </div>
+                                )}
+                                <div className="w-full flex items-center gap-1">
+                                    <Circle className="w-2 h-2 text-blue-400 fill-blue-400 shrink-0" />
+                                    <div className="flex-1 h-[2px] bg-gradient-to-r from-blue-400 to-sky-400 relative">
+                                        <Plane className="w-4 h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-500 rotate-90" />
+                                    </div>
+                                    <Circle className="w-2 h-2 text-sky-400 fill-sky-400 shrink-0" />
+                                </div>
+                            </div>
+                            <div className="text-center min-w-[80px]">
+                                {arrivalCode && (
+                                    <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{arrivalCode}</div>
+                                )}
+                                {arrivalCity && (
+                                    <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[100px]">{arrivalCity}</div>
+                                )}
+                            </div>
+                        </div>
+                    ) : transferInfo.isDirect ? (
                         /* Direct flight */
                         <div className="flex items-center justify-between gap-4">
                             {/* Departure */}
@@ -162,10 +205,12 @@ export function FlightCard({
 
                             {/* Route line */}
                             <div className="flex-1 flex flex-col items-center gap-1.5 px-2">
-                                <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {duration}
-                                </div>
+                                {duration && duration !== "—" && (
+                                    <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {duration}
+                                    </div>
+                                )}
                                 <div className="w-full flex items-center gap-1">
                                     <Circle className="w-2 h-2 text-blue-400 fill-blue-400 shrink-0" />
                                     <div className="flex-1 h-[2px] bg-gradient-to-r from-blue-400 to-sky-400 relative">
@@ -177,7 +222,7 @@ export function FlightCard({
 
                             {/* Arrival */}
                             <div className="text-center min-w-[80px]">
-                                <div className="text-2xl font-black tracking-tight">{arrivalTime}</div>
+                                <div className="text-2xl font-black tracking-tight">{arrivalTime || "—"}</div>
                                 {arrivalCode && (
                                     <div className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5">{arrivalCode}</div>
                                 )}
@@ -226,18 +271,20 @@ export function FlightCard({
 
                                 {/* Arrival */}
                                 <div className="text-center min-w-[70px]">
-                                    <div className="text-xl font-black tracking-tight">{arrivalTime}</div>
+                                    <div className="text-xl font-black tracking-tight">{arrivalTime || "—"}</div>
                                     {arrivalCode && <div className="text-xs font-bold text-blue-600 dark:text-blue-400">{arrivalCode}</div>}
                                     {arrivalCity && <div className="text-[10px] text-muted-foreground truncate max-w-[80px]">{arrivalCity}</div>}
                                 </div>
                             </div>
 
-                            <div className="text-center">
-                                <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    Общее время: {duration}
-                                </span>
-                            </div>
+                            {duration && duration !== "—" && (
+                                <div className="text-center">
+                                    <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        Общее время: {duration}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -278,22 +325,30 @@ export function FlightCard({
 
                     {/* Price & Buy */}
                     <div className="flex flex-col items-end gap-2">
-                        <div className="text-right">
-                            <div className="text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                                {price.toLocaleString("ru-RU")} ₽
-                            </div>
-                            {perPerson && (
-                                <div className="text-[10px] text-muted-foreground/70">
-                                    {perPerson.toLocaleString("ru-RU")} ₽ за чел.
+                        {hasPriceData ? (
+                            <div className="text-right">
+                                <div className="text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                                    {price.toLocaleString("ru-RU")} ₽
                                 </div>
-                            )}
-                        </div>
+                                {perPerson && perPerson > 0 && (
+                                    <div className="text-[10px] text-muted-foreground/70">
+                                        {perPerson.toLocaleString("ru-RU")} ₽ за чел.
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-right">
+                                <div className="text-sm font-medium text-muted-foreground">
+                                    Смотреть цены
+                                </div>
+                            </div>
+                        )}
                         <Button
                             size="sm"
                             className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 h-9 shadow-md shadow-blue-500/20"
                             onClick={() => window.open(buyUrl, "_blank")}
                         >
-                            Купить билеты
+                            {hasPriceData ? "Купить билеты" : "Найти билеты"}
                             <ExternalLink className="w-3 h-3 ml-1.5" />
                         </Button>
                     </div>
