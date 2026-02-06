@@ -374,35 +374,49 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
   const destIata = destinationIata || getIataCode(destination) || ""
   const origIata = originIata || (origin ? getIataCode(origin) : null) || ""
 
-  // Формируем базовый URL
-  // Формат: https://www.aviasales.ru/search/ORIGDDMMDESDDMM1?marker=...
-  // Или через параметры: https://search.aviasales.com/flights/
-
+  // Формат Aviasales path: /search/{ORIG}{DDMM}{DEST}{DDMM_return}{passengers}
+  // Пример: /search/MOW0702DXB13022 = MOW→DXB, вылет 07.02, обратно 13.02, 2 чел
   const baseUrl = "https://www.aviasales.ru/search"
 
-  const searchParams = new URLSearchParams()
+  if (origIata && destIata && departDate) {
+    const dStr = formatDate(departDate)
+    const dDate = new Date(dStr)
+    const dd = String(dDate.getUTCDate()).padStart(2, "0")
+    const dm = String(dDate.getUTCMonth() + 1).padStart(2, "0")
 
-  // Добавляем маркер если есть
-  if (TRAVELPAYOUTS_MARKER) {
-    searchParams.set("marker", TRAVELPAYOUTS_MARKER)
-    if (subId) {
-      searchParams.set("marker", `${TRAVELPAYOUTS_MARKER}.${subId}`)
+    let path = `${origIata}${dd}${dm}${destIata}`
+
+    if (returnDate) {
+      const rStr = formatDate(returnDate)
+      const rDate = new Date(rStr)
+      const rd = String(rDate.getUTCDate()).padStart(2, "0")
+      const rm = String(rDate.getUTCMonth() + 1).padStart(2, "0")
+      path += `${rd}${rm}`
     }
+
+    path += adults.toString()
+
+    const searchParams = new URLSearchParams()
+    if (TRAVELPAYOUTS_MARKER) {
+      const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
+      searchParams.set("marker", marker)
+    }
+
+    const qs = searchParams.toString()
+    return qs ? `${baseUrl}/${path}?${qs}` : `${baseUrl}/${path}`
   }
 
-  // Основные параметры поиска
+  // Fallback: query params если нет IATA/даты
+  const searchParams = new URLSearchParams()
+  if (TRAVELPAYOUTS_MARKER) {
+    const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
+    searchParams.set("marker", marker)
+  }
   if (origIata) searchParams.set("origin_iata", origIata)
   if (destIata) searchParams.set("destination_iata", destIata)
-
-  if (departDate) {
-    searchParams.set("depart_date", formatDate(departDate))
-  }
-  if (returnDate) {
-    searchParams.set("return_date", formatDate(returnDate))
-  }
-
+  if (departDate) searchParams.set("depart_date", formatDate(departDate))
+  if (returnDate) searchParams.set("return_date", formatDate(returnDate))
   searchParams.set("adults", adults.toString())
-  searchParams.set("trip_class", tripClass === "business" ? "1" : "0")
   searchParams.set("with_request", "true")
 
   return `${baseUrl}?${searchParams.toString()}`
@@ -1095,6 +1109,9 @@ export async function searchFlightsForDates(
         subId: "flightcard"
       })
 
+      // Travelpayouts /v2/prices/latest returns price PER PERSON
+      const totalPrice = item.price * passengers
+
       const outbound: RealFlight = {
         origin: getCityName(originIata),
         destination: getCityName(destinationIata),
@@ -1104,8 +1121,8 @@ export async function searchFlightsForDates(
         returnAt: item.return_at,
         airline: getAirlineName(item.airline),
         flightNumber: item.flight_number ? `${item.airline} ${item.flight_number}` : "",
-        price: item.price,
-        pricePerPerson: Math.round(item.price / passengers),
+        price: totalPrice,
+        pricePerPerson: item.price,
         transfers: item.transfers,
         duration: formatDuration(item.duration),
 
@@ -1154,8 +1171,8 @@ export async function searchFlightsForDates(
           arrivalCode: originIata,
           direction: "return",
           dayNumber: 0, // Will be set later based on trip duration
-          price: item.price, // Show same price (round-trip total)
-          pricePerPerson: Math.round(item.price / passengers),
+          price: totalPrice,
+          pricePerPerson: item.price,
           bookingUrl: returnBookingUrl
         }
         flights.push(returnFlight)
@@ -1285,14 +1302,133 @@ interface HotelStay {
   isFallback: boolean
 }
 
+// ============================================
+// HOTELLOOK HOTEL SEARCH (Real hotel data)
+// ============================================
+
+interface HotellookCacheItem {
+  hotelName: string
+  hotelId: number
+  stars: number
+  priceFrom: number
+  priceAvg: number
+  locationId: number
+  location: {
+    name: string
+    country: string
+    geo?: { lat: number; lon: number }
+  }
+}
+
+/**
+ * Search real hotels via Hotellook Cache API
+ * Returns hotel data with names, stars, prices, and photo URLs
+ */
+async function searchHotelsForCity(
+  city: string,
+  checkIn: string,
+  checkOut: string,
+  guests: number,
+  limit: number = 10
+): Promise<HotelStay[]> {
+  if (!TRAVELPAYOUTS_API_TOKEN) {
+    console.warn("searchHotelsForCity: TRAVELPAYOUTS_API_TOKEN not set")
+    return []
+  }
+
+  const params = new URLSearchParams({
+    location: city,
+    checkIn,
+    checkOut,
+    currency: "rub",
+    limit: limit.toString(),
+    token: TRAVELPAYOUTS_API_TOKEN
+  })
+
+  try {
+    console.log(`searchHotelsForCity: searching hotels in ${city} (${checkIn} — ${checkOut})`)
+
+    const response = await fetch(
+      `http://engine.hotellook.com/api/v2/cache.json?${params.toString()}`
+    )
+
+    if (!response.ok) {
+      console.error(`searchHotelsForCity: API error ${response.status}`)
+      return []
+    }
+
+    const data: HotellookCacheItem[] = await response.json()
+
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log(`searchHotelsForCity: no hotels found for ${city}`)
+      return []
+    }
+
+    // Sort by priceFrom ascending
+    data.sort((a, b) => (a.priceFrom || Infinity) - (b.priceFrom || Infinity))
+
+    // Calculate nights
+    const ciDate = new Date(checkIn)
+    const coDate = new Date(checkOut)
+    const nights = Math.max(1, Math.round((coDate.getTime() - ciDate.getTime()) / (1000 * 60 * 60 * 24)))
+
+    const hotels: HotelStay[] = data.map((item) => {
+      // Generate photo URLs (up to 3 photos per hotel)
+      const photos = [1, 2, 3].map(
+        n => `https://photo.hotellook.com/image_v2/crop/h${item.hotelId}_${n}/800/520.auto`
+      )
+
+      const bookingUrl = getHotelSearchLink({
+        destination: city,
+        checkIn,
+        checkOut,
+        adults: guests,
+        subId: `hotel_real_${item.hotelId}`
+      })
+
+      const pricePerNight = item.priceFrom > 0
+        ? Math.round(item.priceFrom / nights)
+        : 0
+
+      return {
+        city,
+        checkIn,
+        checkOut,
+        nights,
+        dayStart: 0, // will be set by caller
+        bookingUrl,
+        hotelName: item.hotelName || `Отель в ${city}`,
+        stars: item.stars || 3,
+        rating: 0,
+        reviewsCount: 0,
+        address: item.location?.name || city,
+        guests,
+        pricePerNight,
+        totalPrice: item.priceFrom || 0,
+        amenities: ["WiFi", "Завтрак"],
+        photos,
+        photoQuery: `${item.hotelName || city} hotel`,
+        isFallback: false
+      }
+    })
+
+    console.log(`searchHotelsForCity: found ${hotels.length} real hotels in ${city}`)
+    return hotels
+
+  } catch (error) {
+    console.error("searchHotelsForCity error:", error)
+    return []
+  }
+}
+
 /**
  * Walk itinerary days and group consecutive same-city days into hotel stays
  */
-export function groupHotelStays(
+export async function groupHotelStays(
   itinerary: any[],
   startDate: string,
   travelers: number
-): HotelStay[] {
+): Promise<HotelStay[]> {
   if (!itinerary || itinerary.length === 0) return []
 
   const stays: HotelStay[] = []
@@ -1405,7 +1541,33 @@ export function groupHotelStays(
     })
   }
 
-  return stays
+  // Fetch real hotel data for each stay from Hotellook
+  const enrichedStays: HotelStay[] = []
+
+  const hotelFetches = stays.map(stay =>
+    searchHotelsForCity(stay.city, stay.checkIn, stay.checkOut, stay.guests, 10)
+      .then(realHotels => ({ stay, realHotels }))
+      .catch(() => ({ stay, realHotels: [] as HotelStay[] }))
+  )
+
+  const results = await Promise.all(hotelFetches)
+
+  for (const { stay, realHotels } of results) {
+    if (realHotels.length > 0) {
+      // Pick 1 best hotel per city stay (cheapest with real price, or first)
+      const best = realHotels.find(h => h.pricePerNight > 0) || realHotels[0]
+      best.dayStart = stay.dayStart
+      best.nights = stay.nights
+      best.checkIn = stay.checkIn
+      best.checkOut = stay.checkOut
+      enrichedStays.push(best)
+    } else {
+      // Keep fallback
+      enrichedStays.push(stay)
+    }
+  }
+
+  return enrichedStays
 }
 
 /**
@@ -1425,10 +1587,7 @@ export function createAiFallbackFlight(
 ): RealFlight {
   const ai = leg.aiData || {}
 
-  // Parse price from AI (e.g., "25000 ₽" → 25000)
-  const priceStr = String(ai.price || "0").replace(/[^\d]/g, "")
-  const price = parseInt(priceStr) || 0
-
+  // AI prices are unreliable — don't show them, let user check real prices on Aviasales
   const bookingUrl = getFlightSearchLink({
     origin: leg.from.city,
     originIata: leg.from.iata,
@@ -1446,17 +1605,17 @@ export function createAiFallbackFlight(
     destinationIata: leg.to.iata,
     departureAt: leg.date,
     returnAt: undefined,
-    airline: ai.flightNumber ? getAirlineName(String(ai.flightNumber).slice(0, 2)) : "Поиск авиабилетов",
-    flightNumber: ai.flightNumber || "",
-    price,
-    pricePerPerson: travelers > 0 ? Math.round(price / travelers) : price,
+    airline: "Поиск авиабилетов",
+    flightNumber: "",
+    price: 0,
+    pricePerPerson: 0,
     transfers: 0,
     duration: ai.duration || "—",
 
     departureDate: leg.date,
-    departureTime: ai.departureTime || "",
+    departureTime: "",
     arrivalDate: leg.date,
-    arrivalTime: ai.arrivalTime || "",
+    arrivalTime: "",
     departureCity: leg.from.city,
     departureCode: leg.from.iata,
     arrivalCity: leg.to.city,
@@ -1583,7 +1742,7 @@ export async function extractLogisticsFromItinerary(
   }
 
   // 3. Group hotel stays from itinerary
-  const hotels = groupHotelStays(itinerary, startDate, travelers)
+  const hotels = await groupHotelStays(itinerary, startDate, travelers)
 
   console.log(`extractLogistics: returning ${allFlights.length} flights, ${hotels.length} hotels`)
 

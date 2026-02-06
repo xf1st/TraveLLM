@@ -328,11 +328,11 @@ export function FlightCard({
                         {hasPriceData ? (
                             <div className="text-right">
                                 <div className="text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                                    {price.toLocaleString("ru-RU")} ₽
+                                    <span className="text-base font-bold">от </span>{price.toLocaleString("ru-RU")} ₽
                                 </div>
-                                {perPerson && perPerson > 0 && (
+                                {perPerson && perPerson > 0 && passengers && passengers > 1 && (
                                     <div className="text-[10px] text-muted-foreground/70">
-                                        {perPerson.toLocaleString("ru-RU")} ₽ за чел.
+                                        от {perPerson.toLocaleString("ru-RU")} ₽ за чел.
                                     </div>
                                 )}
                             </div>
