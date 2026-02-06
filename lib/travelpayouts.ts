@@ -1229,3 +1229,363 @@ export function createFallbackFlight(
     isFallback: true
   }
 }
+
+// ============================================
+// POST-GENERATION LOGISTICS EXTRACTION
+// ============================================
+
+/**
+ * Parse AI logistics format "Москва (SVO)" → { city: "Москва", iata: "SVO" }
+ * Falls back to IATA lookup + country→city mapping
+ */
+export function parseCityIata(text: string): { city: string; iata: string } {
+  if (!text) return { city: "", iata: "" }
+
+  // Match "CityName (CODE)" pattern
+  const match = text.match(/^(.+?)\s*\(([A-Z]{3})\)/)
+  if (match) {
+    return { city: match[1].trim(), iata: match[2] }
+  }
+
+  // No parenthesized IATA — try lookup
+  const cleaned = text.replace(/\(.*?\)/g, "").trim()
+  const resolved = countryToCity(cleaned)
+  const iata = getIataCode(resolved) || ""
+  return { city: resolved, iata }
+}
+
+/**
+ * Check if a logistics mode string represents a flight
+ */
+export function isFlightMode(mode: string): boolean {
+  if (!mode) return false
+  const m = mode.toLowerCase()
+  return m.includes("самолёт") || m.includes("самолет") || m.includes("перелёт") ||
+    m.includes("перелет") || m.includes("flight") || m.includes("авиа")
+}
+
+interface HotelStay {
+  city: string
+  checkIn: string
+  checkOut: string
+  nights: number
+  dayStart: number
+  bookingUrl: string
+  hotelName: string
+  stars: number
+  rating: number
+  reviewsCount: number
+  address: string
+  guests: number
+  pricePerNight: number
+  totalPrice: number
+  amenities: string[]
+  photos: string[]
+  photoQuery: string
+  isFallback: boolean
+}
+
+/**
+ * Walk itinerary days and group consecutive same-city days into hotel stays
+ */
+export function groupHotelStays(
+  itinerary: any[],
+  startDate: string,
+  travelers: number
+): HotelStay[] {
+  if (!itinerary || itinerary.length === 0) return []
+
+  const stays: HotelStay[] = []
+  let currentCity = ""
+  let stayStartDay = 1
+  const baseDate = new Date(startDate)
+
+  for (let i = 0; i < itinerary.length; i++) {
+    const day = itinerary[i]
+    const logistics = day?.logistics
+
+    // Determine city for this day: use logistics.to if moving, else endCity, else previous city
+    let dayCity = ""
+    if (logistics?.to) {
+      const parsed = parseCityIata(logistics.to)
+      dayCity = parsed.city
+    }
+    if (!dayCity && day?.endCity) {
+      dayCity = day.endCity
+    }
+    if (!dayCity && logistics?.from) {
+      const parsed = parseCityIata(logistics.from)
+      dayCity = parsed.city
+    }
+    if (!dayCity) dayCity = currentCity // same city as before
+
+    if (dayCity && dayCity !== currentCity) {
+      // Close previous stay
+      if (currentCity && stayStartDay <= i) {
+        const checkIn = new Date(baseDate)
+        checkIn.setDate(checkIn.getDate() + stayStartDay - 1)
+        const checkOut = new Date(baseDate)
+        checkOut.setDate(checkOut.getDate() + i) // day i is 0-indexed from itinerary, but day numbers are 1-indexed
+        const nights = Math.max(1, i - stayStartDay + 1)
+
+        const ciStr = checkIn.toISOString().split("T")[0]
+        const coStr = checkOut.toISOString().split("T")[0]
+
+        stays.push({
+          city: currentCity,
+          checkIn: ciStr,
+          checkOut: coStr,
+          nights,
+          dayStart: stayStartDay,
+          bookingUrl: getHotelSearchLink({
+            destination: currentCity,
+            checkIn: ciStr,
+            checkOut: coStr,
+            adults: travelers,
+            subId: `hotel_${stays.length}`
+          }),
+          hotelName: `Отели в ${currentCity}`,
+          stars: 4,
+          rating: 0,
+          reviewsCount: 0,
+          address: currentCity,
+          guests: travelers,
+          pricePerNight: 0,
+          totalPrice: 0,
+          amenities: ["WiFi", "Завтрак"],
+          photos: [],
+          photoQuery: `${currentCity} hotel`,
+          isFallback: true
+        })
+      }
+      currentCity = dayCity
+      stayStartDay = i + 1 // 1-indexed day number
+    } else if (!currentCity && dayCity) {
+      currentCity = dayCity
+      stayStartDay = i + 1
+    }
+  }
+
+  // Close last stay
+  if (currentCity) {
+    const checkIn = new Date(baseDate)
+    checkIn.setDate(checkIn.getDate() + stayStartDay - 1)
+    const checkOut = new Date(baseDate)
+    checkOut.setDate(checkOut.getDate() + itinerary.length - 1) // last night
+    const nights = Math.max(1, itinerary.length - stayStartDay)
+
+    const ciStr = checkIn.toISOString().split("T")[0]
+    const coStr = checkOut.toISOString().split("T")[0]
+
+    stays.push({
+      city: currentCity,
+      checkIn: ciStr,
+      checkOut: coStr,
+      nights: Math.max(1, nights),
+      dayStart: stayStartDay,
+      bookingUrl: getHotelSearchLink({
+        destination: currentCity,
+        checkIn: ciStr,
+        checkOut: coStr,
+        adults: travelers,
+        subId: `hotel_${stays.length}`
+      }),
+      hotelName: `Отели в ${currentCity}`,
+      stars: 4,
+      rating: 0,
+      reviewsCount: 0,
+      address: currentCity,
+      guests: travelers,
+      pricePerNight: 0,
+      totalPrice: 0,
+      amenities: ["WiFi", "Завтрак"],
+      photos: [],
+      photoQuery: `${currentCity} hotel`,
+      isFallback: true
+    })
+  }
+
+  return stays
+}
+
+/**
+ * Build FlightCard data from AI's logistics when Travelpayouts has no results.
+ * Preserves AI's estimated price/duration/times.
+ */
+export function createAiFallbackFlight(
+  leg: {
+    from: { city: string; iata: string }
+    to: { city: string; iata: string }
+    date: string
+    dayNumber: number
+    direction: "outbound" | "return" | "intercity"
+    aiData: any // raw logistics object from AI
+  },
+  travelers: number
+): RealFlight {
+  const ai = leg.aiData || {}
+
+  // Parse price from AI (e.g., "25000 ₽" → 25000)
+  const priceStr = String(ai.price || "0").replace(/[^\d]/g, "")
+  const price = parseInt(priceStr) || 0
+
+  const bookingUrl = getFlightSearchLink({
+    origin: leg.from.city,
+    originIata: leg.from.iata,
+    destination: leg.to.city,
+    destinationIata: leg.to.iata,
+    departDate: leg.date,
+    adults: travelers,
+    subId: "ai_fallback"
+  })
+
+  return {
+    origin: leg.from.city,
+    destination: leg.to.city,
+    originIata: leg.from.iata,
+    destinationIata: leg.to.iata,
+    departureAt: leg.date,
+    returnAt: undefined,
+    airline: ai.flightNumber ? getAirlineName(String(ai.flightNumber).slice(0, 2)) : "Поиск авиабилетов",
+    flightNumber: ai.flightNumber || "",
+    price,
+    pricePerPerson: travelers > 0 ? Math.round(price / travelers) : price,
+    transfers: 0,
+    duration: ai.duration || "—",
+
+    departureDate: leg.date,
+    departureTime: ai.departureTime || "",
+    arrivalDate: leg.date,
+    arrivalTime: ai.arrivalTime || "",
+    departureCity: leg.from.city,
+    departureCode: leg.from.iata,
+    arrivalCity: leg.to.city,
+    arrivalCode: leg.to.iata,
+    passengers: travelers,
+    direction: leg.direction === "intercity" ? "outbound" : leg.direction,
+    dayNumber: leg.dayNumber,
+    transfer: null,
+    baggage: { handLuggage: "8 кг", checked: "23 кг" },
+    bookingUrl,
+    isFallback: true
+  }
+}
+
+/**
+ * Main post-generation logistics extractor.
+ * Parses the AI-generated itinerary for flight/hotel data,
+ * then fetches real prices from Travelpayouts where possible.
+ */
+export async function extractLogisticsFromItinerary(
+  routeData: any,
+  departureCity: string,
+  startDate: string,
+  endDate: string,
+  travelers: number
+): Promise<{ flights: RealFlight[]; hotels: HotelStay[]; interCity: any[] }> {
+  const itinerary: any[] = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
+
+  if (itinerary.length === 0) {
+    console.log("extractLogistics: no itinerary days, skipping")
+    return { flights: [], hotels: [], interCity: [] }
+  }
+
+  // 1. Scan days for flight legs
+  interface FlightLeg {
+    from: { city: string; iata: string }
+    to: { city: string; iata: string }
+    date: string
+    dayNumber: number
+    direction: "outbound" | "return" | "intercity"
+    aiData: any
+  }
+
+  const legs: FlightLeg[] = []
+  const originParsed = parseCityIata(departureCity)
+  if (!originParsed.iata) {
+    originParsed.iata = getIataCode(departureCity) || ""
+  }
+  originParsed.city = departureCity
+
+  const baseDate = new Date(startDate)
+
+  for (let i = 0; i < itinerary.length; i++) {
+    const day = itinerary[i]
+    const lg = day?.logistics
+    if (!lg || !lg.mode) continue
+
+    if (!isFlightMode(lg.mode)) continue
+
+    const from = parseCityIata(lg.from || "")
+    const to = parseCityIata(lg.to || "")
+
+    // Calculate date for this day
+    const dayDate = new Date(baseDate)
+    dayDate.setDate(dayDate.getDate() + i)
+    const dateStr = dayDate.toISOString().split("T")[0]
+
+    const dayNum = day.day || (i + 1)
+
+    // Determine direction
+    let direction: "outbound" | "return" | "intercity" = "intercity"
+    if (i === 0 || (from.city.toLowerCase() === departureCity.toLowerCase())) {
+      direction = "outbound"
+    } else if (to.city.toLowerCase() === departureCity.toLowerCase()) {
+      direction = "return"
+    }
+
+    legs.push({
+      from,
+      to,
+      date: dateStr,
+      dayNumber: dayNum,
+      direction,
+      aiData: lg
+    })
+  }
+
+  console.log(`extractLogistics: found ${legs.length} flight legs in itinerary`)
+
+  // 2. Fetch real flights from Travelpayouts for each leg
+  const allFlights: RealFlight[] = []
+
+  for (const leg of legs) {
+    if (!leg.from.iata || !leg.to.iata) {
+      console.log(`extractLogistics: no IATA for ${leg.from.city} → ${leg.to.city}, using AI fallback`)
+      allFlights.push(createAiFallbackFlight(leg, travelers))
+      continue
+    }
+
+    try {
+      const returnDate = leg.direction === "outbound" ? endDate : undefined
+      const realFlights = await searchFlightsForDates(
+        leg.from.iata,
+        leg.to.iata,
+        leg.date,
+        returnDate,
+        travelers,
+        2
+      )
+
+      if (realFlights.length > 0) {
+        for (const rf of realFlights) {
+          rf.dayNumber = leg.dayNumber
+          allFlights.push(rf)
+        }
+      } else {
+        console.log(`extractLogistics: no Travelpayouts results for ${leg.from.iata} → ${leg.to.iata}, using AI fallback`)
+        allFlights.push(createAiFallbackFlight(leg, travelers))
+      }
+    } catch (err) {
+      console.error(`extractLogistics: error searching ${leg.from.iata} → ${leg.to.iata}:`, err)
+      allFlights.push(createAiFallbackFlight(leg, travelers))
+    }
+  }
+
+  // 3. Group hotel stays from itinerary
+  const hotels = groupHotelStays(itinerary, startDate, travelers)
+
+  console.log(`extractLogistics: returning ${allFlights.length} flights, ${hotels.length} hotels`)
+
+  return { flights: allFlights, hotels, interCity: [] }
+}

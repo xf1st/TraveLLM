@@ -478,6 +478,7 @@ JSON СХЕМА (строго следуй):
     {
       "day": 1,
       "title": "Прибытие в город",
+      "endCity": "Белград",
       "dayTotal": "15 000 ₽",
       "activities": [
         {
@@ -650,246 +651,6 @@ CRITICAL:
             return parseJsonResponse(raw, "DeepSeek-Meta");
         }
 
-        // =============================================
-        // Logistics Fetcher — real cities, multi-leg, per-city hotels
-        // =============================================
-        async function fetchLogistics(context: {
-            departureCity: string
-            cities: string[]          // clean city names: ["Белград", "София"]
-            startDate: string
-            endDate: string
-            travelers: number
-            durationDays: number
-        }): Promise<any> {
-            const { getIataCode, getFlightSearchLink, getHotelSearchLink } = await import("@/lib/travelpayouts")
-
-            const { departureCity: origin, cities, startDate, endDate, travelers, durationDays: totalDays } = context
-
-            if (cities.length === 0) {
-                console.warn("Logistics: no destination cities, skipping")
-                return null
-            }
-
-            console.log(`Logistics: ${origin} → [${cities.join(", ")}], ${startDate}–${endDate}, ${travelers} pax`)
-
-            const originIata = getIataCode(origin) || "???"
-            const firstCity = cities[0]
-            const lastCity = cities[cities.length - 1]
-            const firstIata = getIataCode(firstCity) || "???"
-            const lastIata = getIataCode(lastCity) || "???"
-
-            // --- Build flight legs ---
-            // Leg 1: origin → first city (outbound)
-            // Leg N: last city → origin (return)
-            // Inter-city legs if >1 city
-            interface FlightLeg {
-                from: string
-                fromIata: string
-                to: string
-                toIata: string
-                date: string
-                direction: string
-                dayNumber: number
-                bookingUrl: string
-            }
-
-            const legs: FlightLeg[] = []
-
-            // Outbound
-            legs.push({
-                from: origin,
-                fromIata: originIata,
-                to: firstCity,
-                toIata: firstIata,
-                date: startDate,
-                direction: "outbound",
-                dayNumber: 1,
-                bookingUrl: getFlightSearchLink({
-                    origin, destination: firstCity,
-                    departDate: startDate, returnDate: endDate,
-                    adults: travelers, subId: "leg_out"
-                })
-            })
-
-            // Inter-city legs
-            if (cities.length > 1) {
-                const daysPerCity = Math.max(1, Math.floor(totalDays / cities.length))
-                for (let i = 0; i < cities.length - 1; i++) {
-                    const fromCity = cities[i]
-                    const toCity = cities[i + 1]
-                    // Approximate date for inter-city transfer
-                    const transferDay = 1 + daysPerCity * (i + 1)
-                    const transferDate = new Date(startDate)
-                    transferDate.setDate(transferDate.getDate() + daysPerCity * (i + 1) - 1)
-                    const transferDateStr = transferDate.toISOString().split("T")[0]
-
-                    legs.push({
-                        from: fromCity,
-                        fromIata: getIataCode(fromCity) || "???",
-                        to: toCity,
-                        toIata: getIataCode(toCity) || "???",
-                        date: transferDateStr,
-                        direction: "intercity",
-                        dayNumber: transferDay,
-                        bookingUrl: getFlightSearchLink({
-                            origin: fromCity, destination: toCity,
-                            departDate: transferDateStr,
-                            adults: travelers, subId: `leg_${i}`
-                        })
-                    })
-                }
-            }
-
-            // Return
-            legs.push({
-                from: lastCity,
-                fromIata: lastIata,
-                to: origin,
-                toIata: originIata,
-                date: endDate,
-                direction: "return",
-                dayNumber: totalDays,
-                bookingUrl: getFlightSearchLink({
-                    origin: lastCity, destination: origin,
-                    departDate: endDate,
-                    adults: travelers, subId: "leg_ret"
-                })
-            })
-
-            // --- Build per-city hotel list ---
-            interface HotelSearch {
-                city: string
-                checkIn: string
-                checkOut: string
-                nights: number
-                dayStart: number
-                bookingUrl: string
-            }
-
-            const hotelSearches: HotelSearch[] = []
-            const daysPerCity = Math.max(1, Math.floor(totalDays / cities.length))
-
-            for (let i = 0; i < cities.length; i++) {
-                const city = cities[i]
-                const cityStartDate = new Date(startDate)
-                cityStartDate.setDate(cityStartDate.getDate() + daysPerCity * i)
-                const cityEndDate = new Date(startDate)
-                cityEndDate.setDate(cityEndDate.getDate() + daysPerCity * (i + 1))
-                if (i === cities.length - 1) {
-                    // Last city — extend to end date
-                    cityEndDate.setTime(new Date(endDate).getTime())
-                }
-                const ciStr = cityStartDate.toISOString().split("T")[0]
-                const coStr = cityEndDate.toISOString().split("T")[0]
-                const nights = Math.max(1, Math.round((cityEndDate.getTime() - cityStartDate.getTime()) / (1000 * 60 * 60 * 24)))
-
-                hotelSearches.push({
-                    city,
-                    checkIn: ciStr,
-                    checkOut: coStr,
-                    nights,
-                    dayStart: 1 + daysPerCity * i,
-                    bookingUrl: getHotelSearchLink({
-                        destination: city,
-                        checkIn: ciStr, checkOut: coStr,
-                        adults: travelers, subId: `hotel_${i}`
-                    })
-                })
-            }
-
-            // --- Fetch REAL flights from Travelpayouts API ---
-            const { searchFlightsForDates, createFallbackFlight } = await import("@/lib/travelpayouts")
-
-            const allFlights: any[] = []
-
-            // Fetch real flights for each leg
-            for (const leg of legs) {
-                if (leg.fromIata === "???" || leg.toIata === "???") {
-                    console.log(`Logistics: Skipping leg ${leg.from} -> ${leg.to} (unknown IATA codes)`)
-                    // Add fallback with booking link
-                    allFlights.push(createFallbackFlight(
-                        leg.from, leg.fromIata,
-                        leg.to, leg.toIata,
-                        leg.date, undefined,
-                        travelers,
-                        leg.direction as "outbound" | "return",
-                        leg.dayNumber
-                    ))
-                    continue
-                }
-
-                console.log(`Logistics: Searching flights ${leg.fromIata} -> ${leg.toIata} on ${leg.date}`)
-
-                const returnDate = leg.direction === "outbound" ? endDate : undefined
-                const realFlights = await searchFlightsForDates(
-                    leg.fromIata,
-                    leg.toIata,
-                    leg.date,
-                    returnDate,
-                    travelers,
-                    2 // Max 2 options per leg
-                )
-
-                if (realFlights.length > 0) {
-                    // Use real flights from API
-                    for (const rf of realFlights) {
-                        // Set correct day number based on leg
-                        if (rf.direction === "outbound") {
-                            rf.dayNumber = leg.dayNumber
-                        } else if (rf.direction === "return") {
-                            rf.dayNumber = totalDays
-                        }
-                        allFlights.push(rf)
-                    }
-                } else {
-                    // No real data — add fallback with booking link
-                    console.log(`Logistics: No real flights found for ${leg.fromIata} -> ${leg.toIata}, using fallback`)
-                    allFlights.push(createFallbackFlight(
-                        leg.from, leg.fromIata,
-                        leg.to, leg.toIata,
-                        leg.date, leg.direction === "outbound" ? endDate : undefined,
-                        travelers,
-                        leg.direction as "outbound" | "return",
-                        leg.dayNumber
-                    ))
-                }
-            }
-
-            // --- Build hotel data with booking links (no real API for hotels yet) ---
-            const allHotels: any[] = []
-
-            for (const hs of hotelSearches) {
-                // For now, just provide search links (no real hotel data API)
-                allHotels.push({
-                    hotelName: `Отели в ${hs.city}`,
-                    stars: 4,
-                    rating: 0,
-                    reviewsCount: 0,
-                    address: hs.city,
-                    checkIn: hs.checkIn,
-                    checkOut: hs.checkOut,
-                    nights: hs.nights,
-                    guests: travelers,
-                    pricePerNight: 0,
-                    totalPrice: 0,
-                    amenities: ["WiFi", "Завтрак"],
-                    photos: [],
-                    photoQuery: `${hs.city} hotel`,
-                    dayStart: hs.dayStart,
-                    bookingUrl: hs.bookingUrl,
-                    isFallback: true
-                })
-            }
-
-            console.log(`Logistics: Returning ${allFlights.length} flights, ${allHotels.length} hotels`)
-
-            return {
-                flights: allFlights,
-                hotels: allHotels,
-                interCity: []
-            }
-        }
-
         // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
         async function generateDayChunk(
             startDay: number,
@@ -1003,26 +764,7 @@ ${isLastChunk
             const CHUNK_SIZE = 4; // Days per chunk
             const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
-            // Start Logistics fetch in parallel
-            // Extract clean city names from destinations array
-            // destinations can be ["Белград, Сербия", "София, Болгария"] or ["Белград"] etc.
-            const cleanCities = destinations.map(d => {
-                const parts = d.split(',').map(s => s.trim()).filter(Boolean)
-                return parts[0] // Take first part = city name
-            }).filter(Boolean)
-
             const travelersCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
-
-            const logisticsPromise = cleanCities.length > 0 && startDate && endDate
-                ? fetchLogistics({
-                    departureCity,
-                    cities: cleanCities,
-                    startDate,
-                    endDate,
-                    travelers: travelersCount,
-                    durationDays,
-                })
-                : Promise.resolve(null);
 
             let routeData: any = {};
 
@@ -1105,61 +847,19 @@ ${isLastChunk
                 console.log(`Sequential generation completed in ${elapsed}s (${chunks.length + 1} requests)`);
             }
 
-            // Await logistics and merge
-            try {
-                let realLogistics = await logisticsPromise;
-
-                // If we had no cities upfront (AI picked destinations), extract them now and fetch logistics
-                if (!realLogistics && startDate && endDate) {
-                    const { countryToCity } = await import("@/lib/travelpayouts")
-
-                    // Try to extract real city names from itinerary day titles
-                    // e.g., "Вылет из Москвы в Амстердам" → "Амстердам"
-                    const citiesFromItinerary: string[] = []
-                    if (routeData.itinerary?.length > 0) {
-                        for (const day of routeData.itinerary) {
-                            const title = day.title || ""
-                            // Match patterns like "в Амстердам", "в Софии", "прибытие в Будапешт"
-                            const match = title.match(/(?:в|прибытие в|прилёт в|перелёт в)\s+([А-ЯЁA-Z][а-яёa-z-]+)/i)
-                            if (match && match[1]) {
-                                const city = match[1]
-                                if (city.toLowerCase() !== departureCity.toLowerCase() && !citiesFromItinerary.includes(city)) {
-                                    citiesFromItinerary.push(city)
-                                }
-                            }
-                        }
-                    }
-
-                    // Fallback: use country names → capital cities
-                    let aiCities = citiesFromItinerary
-                    if (aiCities.length === 0 && routeData.countries?.length > 0) {
-                        aiCities = routeData.countries
-                            .map((c: any) => countryToCity(c.name || c))
-                            .filter(Boolean)
-                    }
-
-                    if (aiCities.length > 0) {
-                        console.log("Logistics: AI-picked destinations detected, fetching now for:", aiCities)
-                        const tCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
-                        realLogistics = await fetchLogistics({
-                            departureCity,
-                            cities: aiCities,
-                            startDate,
-                            endDate,
-                            travelers: tCount,
-                            durationDays,
-                        })
-                    }
+            // Post-generation: extract logistics from AI-generated itinerary
+            if (startDate && endDate) {
+                try {
+                    const { extractLogisticsFromItinerary } = await import("@/lib/travelpayouts")
+                    const logistics = await extractLogisticsFromItinerary(
+                        routeData, departureCity, startDate, endDate, travelersCount
+                    )
+                    routeData.flights = logistics.flights
+                    routeData.hotels = logistics.hotels
+                    routeData.interCity = logistics.interCity
+                } catch (logisticsError) {
+                    console.error("Failed to extract logistics:", logisticsError)
                 }
-
-                if (realLogistics) {
-                    console.log("Merging real-time logistics data...");
-                    routeData.flights = realLogistics.flights || [];
-                    routeData.hotels = realLogistics.hotels || [];
-                    routeData.interCity = realLogistics.interCity || [];
-                }
-            } catch (mergeError) {
-                console.error("Failed to merge logistics:", mergeError);
             }
 
             return routeData;
