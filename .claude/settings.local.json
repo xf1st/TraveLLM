@@ -11,7 +11,11 @@
       "Bash(git commit:*)",
       "WebSearch",
       "WebFetch(domain:travelpayouts.github.io)",
-      "WebFetch(domain:support.travelpayouts.com)"
+      "WebFetch(domain:support.travelpayouts.com)",
+      "Bash(timeout:*)",
+      "Bash(findstr:*)",
+      "Bash(ping:*)",
+      "Bash(npx next dev:*)"
     ]
   }
 }

@@ -52,7 +52,8 @@ import {
   Navigation,
   Globe,
   Layout,
-  Users
+  Users,
+  X
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -195,6 +196,8 @@ export default function TripDetailPage() {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isMapOpen, setIsMapOpen] = useState(false)
+  const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
 
   // Parallax hook
@@ -411,7 +414,7 @@ export default function TripDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent overflow-x-hidden">
       <AppSidebar />
 
       {/* LightRays Background */}
@@ -434,7 +437,7 @@ export default function TripDetailPage() {
         <div className="lg:hidden"><Header floating /></div>
 
         {/* Hero Banner */}
-        <div className="relative h-[50vh] min-h-[500px] w-full overflow-hidden lg:mt-0">
+        <div className="relative h-[50vh] min-h-[400px] sm:min-h-[500px] w-full overflow-hidden lg:mt-0">
           <motion.div style={{ y, scale }} className="absolute inset-0 h-full w-full">
             <TripImage
               src={heroImage}
@@ -446,13 +449,13 @@ export default function TripDetailPage() {
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-background/20 to-background" />
 
-          <div className="absolute inset-x-0 bottom-0 p-8 pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
-            <div className="container max-w-7xl px-4">
+          <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8 sm:pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
+            <div className="container max-w-7xl px-4 text-center sm:text-left">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => router.back()}
-                className="mb-6 rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
+                className="mb-3 sm:mb-6 rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Назад
               </Button>
@@ -461,9 +464,9 @@ export default function TripDetailPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="space-y-6"
+                className="space-y-3 sm:space-y-6"
               >
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start">
                   {route.tags?.map((tag: string) => {
                     const cleanTag = tag.toLowerCase().replace('#', '').trim();
                     const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key.toLowerCase())) || "default";
@@ -473,52 +476,45 @@ export default function TripDetailPage() {
                     const colorClass = tagColors[colorKey] || tagColors["default"];
 
                     return (
-                      <Badge key={tag} className={`${colorClass} rounded-full px-4 py-1.5 text-sm font-bold flex items-center gap-1.5 border-none shadow-sm transition-colors`}>
-                        <Icon className="w-3.5 h-3.5" />
+                      <Badge key={tag} className={`${colorClass} rounded-full px-2.5 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 border-none shadow-sm transition-colors`}>
+                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                         {tag}
                       </Badge>
                     )
                   })}
                 </div>
 
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground dark:text-white drop-shadow-2xl">
+                <h1 className="text-2xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-foreground dark:text-white drop-shadow-2xl">
                   {route.title}
                 </h1>
 
-                <div className="flex flex-wrap gap-2 text-foreground/80 dark:text-white/90 font-medium text-sm md:text-lg">
-                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
-                    <Calendar className="h-4 w-4 md:h-5 md:w-5 text-sky-600 dark:text-sky-400" />
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start text-foreground/80 dark:text-white/90 font-medium text-xs sm:text-sm md:text-lg">
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
+                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-sky-600 dark:text-sky-400" />
                     {route.itinerary?.length || 0} дней
                   </div>
                   <div
-                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10 cursor-pointer hover:bg-muted dark:hover:bg-white/10 transition-colors group"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10 cursor-pointer hover:bg-muted dark:hover:bg-white/10 transition-colors group"
                     onClick={() => setShowBudgetModal(true)}
                   >
-                    <Wallet className="h-4 w-4 md:h-5 md:w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                    <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
                     <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
                   </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
-                    <Shield className="h-4 w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />
+                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
+                    <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />
                     Безопасность {route.safetyInfo?.rating || 8}/10
                   </div>
 
-
-                  {/* Social Actions - Print & Share Only */}
-                  <div className="flex items-center gap-1 border-l border-border/50 dark:border-white/10 pl-3 ml-2">
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-muted dark:hover:bg-white/10 h-8 w-8 md:h-10 md:w-10" onClick={handlePrint} title="Экспорт в PDF">
-                      <Printer className="h-4 w-4 md:h-5 md:w-5 text-foreground dark:text-white" />
-                    </Button>
-                  </div>
                 </div>
               </motion.div>
             </div>
           </div>
         </div>
 
-        <main className="container max-w-7xl px-4 mt-8">
+        <main className="container max-w-7xl px-3 sm:px-4 mt-8 overflow-hidden">
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
             {/* Main Itinerary */}
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0 overflow-hidden">
               <h2 className="text-2xl font-bold flex items-center gap-3">
                 <Map className="h-6 w-6 text-primary" />
                 План путешествия
@@ -547,20 +543,26 @@ export default function TripDetailPage() {
                       return false;
                     }) || [];
 
-                    // Find hotels for this day
+                    // Find hotels for this day — strictly by check-in day only
+                    // Show hotel badge only if:
+                    // 1. Hotel check-in (dayStart) matches this day
+                    // 2. This is an arrival day (first day OR day with flight/transfer arrival to new city)
+                    const isArrivalDay = isFirstDay ||
+                      (day.logistics?.mode && ['Flight', 'Plane', 'Перелёт', 'Перелет', 'Train', 'Поезд'].some(m =>
+                        day.logistics.mode.toLowerCase().includes(m.toLowerCase())
+                      ));
+
                     const dayHotels = route.hotels?.filter((h: any) => {
-                      if (h.dayStart === day.day) return true;
-                      // If no dayStart, show on first day
-                      if (!h.dayStart && isFirstDay) return true;
-                      return false;
+                      // Only show if this is the check-in day for this hotel
+                      return Number(h.dayStart) === Number(day.day);
                     }) || [];
 
-                    // If no explicit day assignments, show all flights on first day and all hotels on first day
+                    // If no explicit day assignments, show all flights on first day
                     const showAllFlights = isFirstDay && route.flights?.length > 0 && !route.flights.some((f: any) => f.dayNumber || f.direction);
-                    const showAllHotels = isFirstDay && route.hotels?.length > 0 && !route.hotels.some((h: any) => h.dayStart);
 
                     const flightsToShow = showAllFlights ? route.flights : dayFlights;
-                    const hotelsToShow = showAllHotels ? route.hotels : dayHotels;
+                    // Only show hotels if this is an actual arrival day (has hotel check-in AND is arrival day)
+                    const hotelsToShow = isArrivalDay ? dayHotels : [];
 
                     return (
                       <motion.div
@@ -568,10 +570,11 @@ export default function TripDetailPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
                         key={idx}
+                        className="w-full max-w-full overflow-hidden"
                       >
                         {/* Flight cards BEFORE day card (inline in timeline) */}
                         {isExpanded && flightsToShow.length > 0 && (
-                          <div className="mb-4 space-y-3 animate-in slide-in-from-top duration-300">
+                          <div className="mb-4 space-y-3 animate-in slide-in-from-top duration-300 w-full max-w-full overflow-hidden">
                             <div className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 ml-1">
                               <Plane className="h-4 w-4" />
                               {isFirstDay ? 'Перелёт туда' : isLastDay ? 'Обратный перелёт' : 'Перелёт'}
@@ -582,46 +585,46 @@ export default function TripDetailPage() {
                           </div>
                         )}
 
-                        <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
+                        <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 max-w-full ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
                           <button
                             onClick={() => setExpandedDay(isExpanded ? null : day.day)}
-                            className="w-full flex items-center justify-between p-5 text-left group bg-transparent"
+                            className="w-full flex items-center justify-between p-3 sm:p-5 text-left group bg-transparent gap-2"
                           >
-                            <div className="flex items-center gap-6">
-                              <div className={`flex flex-col h-14 w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
+                            <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+                              <div className={`flex flex-col h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
                                 {isExpanded ? (
-                                  <span className="text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
+                                  <span className="text-base sm:text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
                                     {day.day}
                                   </span>
                                 ) : (
-                                  <span className="text-muted-foreground dark:text-white/60 font-bold">{day.day}</span>
+                                  <span className="text-muted-foreground dark:text-white/60 font-bold text-sm sm:text-base">{day.day}</span>
                                 )}
                               </div>
-                              <div>
-                                <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-1">День {day.day}</div>
-                                <div className="font-bold text-xl md:text-2xl group-hover:text-primary transition-colors">{day.title || "Продолжение приключения"}</div>
+                              <div className="min-w-0">
+                                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-0.5 sm:mb-1">День {day.day}</div>
+                                <div className="font-bold text-base sm:text-xl md:text-2xl group-hover:text-primary transition-colors truncate">{day.title || "Продолжение приключения"}</div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                               {/* Inline indicators for flights/hotels on this day */}
                               {flightsToShow.length > 0 && (
-                                <Badge variant="outline" className="rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5">
+                                <Badge variant="outline" className="hidden sm:flex rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5">
                                   <Plane className="h-3 w-3 mr-1" /> Перелёт
                                 </Badge>
                               )}
                               {hotelsToShow.length > 0 && (
-                                <Badge variant="outline" className="rounded-full border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
+                                <Badge variant="outline" className="hidden sm:flex rounded-full border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
                                   <HotelIcon className="h-3 w-3 mr-1" /> Отель
                                 </Badge>
                               )}
-                              <div className={`p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
-                                <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                              <div className={`p-1.5 sm:p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
+                                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
                               </div>
                             </div>
                           </button>
 
                           {isExpanded && (
-                            <div className="px-5 pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300">
+                            <div className="px-3 sm:px-5 pb-4 sm:pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300 overflow-hidden">
                               {/* Logistics Bar */}
                               {day.logistics && (day.logistics.mode !== "None") && (
                                 <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
@@ -662,7 +665,7 @@ export default function TripDetailPage() {
                                 </Button>
                               </div>
 
-                              <div className="space-y-6 pl-2 border-l-2 border-border ml-6">
+                              <div className="space-y-6 pl-2 border-l-2 border-border ml-4 sm:ml-6">
                                 {(day.activities || [
                                   { time: "Утро", desc: day.morning },
                                   { time: "День", desc: day.daytime },
@@ -747,16 +750,7 @@ export default function TripDetailPage() {
                 </div>
               </div>
 
-              {/* Chat Widget - Mobile Only */}
-              <div className="lg:hidden mt-6">
-                <ItineraryChatWidget
-                  itinerary={route}
-                  tripDetails={route}
-                  onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
-                  onModifying={setIsModifying}
-                  tripId={params.id as string}
-                />
-              </div>
+              {/* Chat Widget moved to FAB bottom sheet on mobile */}
 
               {/* Viral Spots (Ghost Points) */}
               {route.viralSpots && route.viralSpots.length > 0 && (
@@ -801,6 +795,34 @@ export default function TripDetailPage() {
                 />
               </div>
 
+              {/* Route Map Widget */}
+              <Card className="overflow-hidden border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
+                <div className="p-4 border-b border-border/30 dark:border-white/5 flex items-center justify-between">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Карта маршрута
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsMapOpen(true)}
+                    className="text-xs h-7 px-2 hover:bg-primary/10"
+                  >
+                    <ArrowRight className="h-3 w-3 mr-1" />
+                    Развернуть
+                  </Button>
+                </div>
+                <div className="h-[200px] relative">
+                  {mapPlaces?.length > 0 ? (
+                    <TripMap places={mapPlaces} />
+                  ) : (
+                    <div className="h-full flex items-center justify-center bg-muted/20">
+                      <MapPin className="h-6 w-6 text-muted-foreground/30" />
+                    </div>
+                  )}
+                </div>
+              </Card>
+
               <Card className="p-6 border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
@@ -839,27 +861,6 @@ export default function TripDetailPage() {
                     </div>
                   )}
                 </div>
-              </Card>
-
-              {/* Interactive Map Card - Replaced AI Guide */}
-              <Card className="p-4 border border-border/50 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem] shadow-xl">
-                <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-                  <Map className="h-5 w-5 text-primary" />
-                  Карта маршрута
-                </h3>
-                <div className="h-[300px] rounded-xl overflow-hidden">
-                  <TripMap
-                    places={mapPlaces}
-                    activePlaceId={expandedDay ? `${expandedDay - 1}-0` : undefined}
-                    onPlaceSelect={(placeId: string) => {
-                      const [dayIdx] = placeId.split('-').map(Number);
-                      setExpandedDay(dayIdx + 1);
-                    }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground mt-3 text-center">
-                  Нажмите на маркер, чтобы открыть день
-                </p>
               </Card>
             </div>
           </div>
@@ -998,6 +999,187 @@ export default function TripDetailPage() {
           onClose={() => setIsChatOpen(false)}
           currentUser={user}
         />
+
+        {/* ===== MOBILE FAB BUTTONS ===== */}
+        <div className="lg:hidden fixed bottom-6 left-4 right-4 z-50 flex justify-between pointer-events-none">
+          {/* Map FAB */}
+          <button
+            onClick={() => { setIsMapOpen(true); setIsMobileAIChatOpen(false) }}
+            className="pointer-events-auto w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
+          >
+            <Map className="w-6 h-6" />
+          </button>
+
+          {/* Chat FAB */}
+          <button
+            onClick={() => { setIsMobileAIChatOpen(true); setIsMapOpen(false) }}
+            className="pointer-events-auto w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* ===== MOBILE MAP BOTTOM SHEET ===== */}
+        <AnimatePresence>
+          {isMapOpen && (
+            <motion.div
+              className="lg:hidden fixed inset-0 z-[60]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMapOpen(false)} />
+
+              {/* Sheet */}
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
+                style={{ maxHeight: '75vh' }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              >
+                {/* Handle bar */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <Map className="h-5 w-5 text-primary" />
+                    Карта маршрута
+                  </h3>
+                  <button
+                    onClick={() => setIsMapOpen(false)}
+                    className="p-2 rounded-full hover:bg-muted transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="h-[60vh]">
+                  <TripMap
+                    places={mapPlaces}
+                    activePlaceId={expandedDay ? `${expandedDay - 1}-0` : undefined}
+                    onPlaceSelect={(placeId: string) => {
+                      const [dayIdx] = placeId.split('-').map(Number);
+                      setExpandedDay(dayIdx + 1);
+                      setIsMapOpen(false);
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ===== MOBILE AI CHAT BOTTOM SHEET ===== */}
+        <AnimatePresence>
+          {isMobileAIChatOpen && (
+            <motion.div
+              className="lg:hidden fixed inset-0 z-[60]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileAIChatOpen(false)} />
+
+              {/* Sheet */}
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
+                style={{ maxHeight: '80vh' }}
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              >
+                {/* Handle bar */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-blue-500" />
+                    AI Ассистент
+                  </h3>
+                  <button
+                    onClick={() => setIsMobileAIChatOpen(false)}
+                    className="p-2 rounded-full hover:bg-muted transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="h-[70vh] overflow-y-auto">
+                  <ItineraryChatWidget
+                    itinerary={route}
+                    tripDetails={route}
+                    onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
+                    onModifying={setIsModifying}
+                    tripId={params.id as string}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Expandable Map Modal */}
+        <AnimatePresence>
+          {isMapOpen && (
+            <motion.div
+              className="hidden lg:flex fixed inset-0 z-50 items-center justify-center p-4 sm:p-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {/* Backdrop with blur */}
+              <motion.div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setIsMapOpen(false)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+
+              {/* Map Container */}
+              <motion.div
+                className="relative w-full max-w-4xl h-[50vh] sm:h-[60vh] lg:h-[70vh] bg-card rounded-3xl overflow-hidden shadow-2xl border border-border/50 dark:border-white/10"
+                initial={{ scale: 0.9, y: 50 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 50 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              >
+                {/* Header */}
+                <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-card via-card/95 to-transparent">
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Карта маршрута
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMapOpen(false)}
+                    className="rounded-full hover:bg-muted h-9 w-9"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Map */}
+                <div className="h-full w-full">
+                  {mapPlaces?.length > 0 ? (
+                    <TripMap places={mapPlaces} />
+                  ) : (
+                    <div className="h-full flex items-center justify-center bg-muted/20">
+                      <div className="text-center">
+                        <MapPin className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Нет данных о локациях</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div >
     </div >
   )

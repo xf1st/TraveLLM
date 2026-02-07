@@ -169,27 +169,27 @@ export function ItineraryChatWidget({
             embedded ? "h-full" : "",
             className
         )}>
-            {/* Floating Header */}
+            {/* Floating Header - Desktop: expands panel, Mobile: opens chat directly */}
             {!embedded && (
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-violet-600/90 via-indigo-600/90 to-purple-600/90 backdrop-blur-xl rounded-2xl shadow-xl shadow-violet-500/20 hover:shadow-violet-500/30 transition-all duration-300 group border border-white/20"
+                    className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-card/90 dark:bg-white/5 backdrop-blur-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border border-border/50 dark:border-white/10"
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-                            <Sparkles className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-md">
+                            <Sparkles className="h-4 w-4 text-white" />
                         </div>
                         <div className="text-left">
-                            <h3 className="font-bold text-white text-sm tracking-tight">
+                            <h3 className="font-bold text-foreground dark:text-white text-xs sm:text-sm tracking-tight">
                                 AI-Помощник
                             </h3>
-                            <p className="text-[10px] text-white/70 font-medium">Вопросы • Изменения • Советы</p>
+                            <p className="text-[9px] sm:text-[10px] text-muted-foreground dark:text-white/60">Вопросы • Изменения</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                    <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                         <ChevronDown className={cn(
-                            "h-5 w-5 text-white/80 transition-transform duration-300",
+                            "h-4 w-4 text-muted-foreground dark:text-white/60 transition-transform duration-300",
                             isOpen && "rotate-180"
                         )} />
                     </div>
@@ -204,20 +204,20 @@ export function ItineraryChatWidget({
                 embedded ? "h-full" : (isOpen ? "mt-3 opacity-100 scale-100" : "hidden opacity-0 scale-95 pointer-events-none")
             )}>
                 {/* Chat Header Bar */}
-                <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Онлайн</span>
+                <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Онлайн</span>
                     </div>
-                    <span className="text-[10px] text-white/40">Powered by DeepSeek</span>
+                    <span className="text-[9px] text-white/30">DeepSeek</span>
                 </div>
 
-                {/* Messages */}
+                {/* Messages - More compact */}
                 <div
                     ref={scrollContainerRef}
                     className={cn(
-                        "overflow-y-auto px-4 py-5 space-y-5",
-                        embedded ? "flex-1" : "h-[360px]"
+                        "overflow-y-auto px-3 py-3 space-y-3",
+                        embedded ? "flex-1" : "h-[280px] sm:h-[320px]"
                     )}>
                     {messages.map((msg, i) => (
                         <div
@@ -227,9 +227,9 @@ export function ItineraryChatWidget({
                                 msg.role === "user" && "flex-row-reverse"
                             )}
                         >
-                            {/* Avatar */}
+                            {/* Avatar - smaller */}
                             <div className={cn(
-                                "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
+                                "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
                                 msg.role === "user"
                                     ? "bg-gradient-to-br from-violet-500 to-indigo-600 text-white"
                                     : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
@@ -237,15 +237,15 @@ export function ItineraryChatWidget({
                                 {msg.role === "user" ? "Я" : "AI"}
                             </div>
 
-                            {/* Message Bubble */}
+                            {/* Message Bubble - more compact */}
                             <div className={cn(
-                                "max-w-[80%] rounded-2xl px-4 py-3",
+                                "max-w-[85%] rounded-xl px-3 py-2",
                                 msg.role === "user"
-                                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-br-md"
-                                    : "bg-white/[0.06] border border-white/10 text-white/90 rounded-bl-md"
+                                    ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-br-sm"
+                                    : "bg-white/[0.06] border border-white/10 text-white/90 rounded-bl-sm"
                             )}>
                                 <div className={cn(
-                                    "text-[13px] leading-relaxed whitespace-pre-wrap",
+                                    "text-[12px] leading-relaxed whitespace-pre-wrap",
                                     msg.role === "assistant" && "font-normal"
                                 )}>{msg.content}</div>
 
@@ -302,8 +302,8 @@ export function ItineraryChatWidget({
                     )}
                 </div>
 
-                {/* Input Area */}
-                <div className="p-4 border-t border-white/5 bg-black/30">
+                {/* Input Area - more compact */}
+                <div className="p-3 border-t border-white/5 bg-black/30">
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
@@ -315,23 +315,20 @@ export function ItineraryChatWidget({
                             <Input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="Напишите сообщение..."
-                                className="w-full bg-white/5 border-white/10 rounded-xl h-12 pl-4 pr-12 text-sm text-white placeholder:text-white/30 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50"
+                                placeholder="Спросите что-нибудь..."
+                                className="w-full bg-white/5 border-white/10 rounded-lg h-9 sm:h-10 pl-3 pr-10 text-xs sm:text-sm text-white placeholder:text-white/30 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/50"
                                 disabled={isLoading}
                             />
                         </div>
                         <Button
                             type="submit"
                             disabled={isLoading || !input.trim()}
-                            className="h-12 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-violet-500/25 disabled:opacity-40 disabled:shadow-none transition-all"
+                            size="sm"
+                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-md disabled:opacity-40 transition-all"
                         >
-                            <Send className="h-4 w-4 mr-2" />
-                            <span className="hidden sm:inline">Отправить</span>
+                            <Send className="h-3.5 w-3.5" />
                         </Button>
                     </form>
-                    <p className="text-[10px] text-white/30 text-center mt-2">
-                        Спросите про маршрут или попросите изменить
-                    </p>
                 </div>
             </div>
         </Card>

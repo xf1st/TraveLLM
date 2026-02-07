@@ -433,7 +433,7 @@ interface HotelSearchParams {
 }
 
 /**
- * Генерация партнёрской ссылки на поиск отелей (Hotellook/Ostrovok)
+ * Генерация партнёрской ссылки на поиск отелей (Hotellook)
  */
 export function getHotelSearchLink(params: HotelSearchParams): string {
   const {
@@ -441,24 +441,20 @@ export function getHotelSearchLink(params: HotelSearchParams): string {
     checkIn,
     checkOut,
     adults = 2,
-    rooms = 1,
     subId
   } = params
 
-  // Используем Ostrovok (работает для РФ лучше)
-  const baseUrl = "https://ostrovok.ru/hotel/search"
+  const baseUrl = "https://search.hotellook.com"
 
   const searchParams = new URLSearchParams()
 
-  // Добавляем маркер
   if (TRAVELPAYOUTS_MARKER) {
     const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
     searchParams.set("marker", marker)
   }
 
-  searchParams.set("q", destination)
-  searchParams.set("guests", adults.toString())
-  searchParams.set("rooms", rooms.toString())
+  searchParams.set("destination", destination)
+  searchParams.set("adults", adults.toString())
 
   if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
   if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
@@ -1002,8 +998,29 @@ for (const [city, code] of Object.entries(IATA_CODES)) {
   }
 }
 
+// Airport codes → city names (for airports not in IATA_CODES which uses city codes)
+const AIRPORT_TO_CITY: Record<string, string> = {
+  "SVO": "Москва", "DME": "Москва", "VKO": "Москва", "ZIA": "Москва",
+  "LED": "Санкт-Петербург", "AER": "Сочи",
+  "DXB": "Дубай", "DWC": "Дубай",
+  "IST": "Стамбул", "SAW": "Стамбул",
+  "CDG": "Париж", "ORY": "Париж",
+  "LHR": "Лондон", "LGW": "Лондон", "STN": "Лондон",
+  "FCO": "Рим", "CIA": "Рим",
+  "JFK": "Нью-Йорк", "EWR": "Нью-Йорк", "LGA": "Нью-Йорк",
+  "NRT": "Токио", "HND": "Токио",
+  "PEK": "Пекин", "PKX": "Пекин",
+  "PVG": "Шанхай", "SHA": "Шанхай",
+  "GMP": "Сеул", "ICN": "Сеул",
+  "BKK": "Бангкок", "DMK": "Бангкок",
+  "HKG": "Гонконг",
+  "SIN": "Сингапур",
+  "DPS": "Бали",
+  "BEG": "Белград",
+}
+
 function getCityName(iata: string): string {
-  return IATA_TO_CITY[iata] || iata
+  return IATA_TO_CITY[iata] || AIRPORT_TO_CITY[iata] || iata
 }
 
 function formatDuration(minutes?: number): string {
@@ -1051,50 +1068,94 @@ export async function searchFlightsForDates(
     return []
   }
 
-  const params = new URLSearchParams({
-    origin: originIata,
-    destination: destinationIata,
-    currency: "rub",
-    token: TRAVELPAYOUTS_API_TOKEN,
-    limit: (limit * 2).toString(), // Request more to filter
-    show_to_affiliates: "true",
-    sorting: "price"
-  })
-
-  // Add departure date (month for broader results)
-  const departMonth = departDate.slice(0, 7) // YYYY-MM
-  params.set("beginning_of_period", departMonth)
-  params.set("period_type", "month")
-
   try {
-    console.log(`Travelpayouts: Searching flights ${originIata} -> ${destinationIata} for ${departMonth}`)
+    console.log(`Travelpayouts: Searching flights ${originIata} -> ${destinationIata} (${departDate})`)
 
-    const response = await fetch(
-      `https://api.travelpayouts.com/v2/prices/latest?${params.toString()}`
+    // Try multiple API endpoints for best results
+    let items: LatestPriceItem[] = []
+
+    // 1) /v2/prices/latest — broad month search
+    const latestParams = new URLSearchParams({
+      origin: originIata,
+      destination: destinationIata,
+      currency: "rub",
+      token: TRAVELPAYOUTS_API_TOKEN,
+      limit: "30",
+      show_to_affiliates: "true",
+      sorting: "price",
+      beginning_of_period: departDate.slice(0, 7),
+      period_type: "month"
+    })
+
+    const latestRes = await fetch(
+      `https://api.travelpayouts.com/v2/prices/latest?${latestParams.toString()}`
     )
 
-    if (!response.ok) {
-      console.error(`Travelpayouts API error: ${response.status}`)
+    if (latestRes.ok) {
+      const latestData = await latestRes.json()
+      if (latestData.success && Array.isArray(latestData.data)) {
+        items = latestData.data
+      }
+    }
+
+    // 2) If /latest returned nothing, try /v1/prices/cheap
+    if (items.length === 0) {
+      console.log(`Travelpayouts: /latest empty, trying /v1/prices/cheap`)
+      const cheapParams = new URLSearchParams({
+        origin: originIata,
+        destination: destinationIata,
+        depart_date: departDate.slice(0, 7),
+        currency: "rub",
+        token: TRAVELPAYOUTS_API_TOKEN
+      })
+      if (returnDate) cheapParams.set("return_date", returnDate.slice(0, 7))
+
+      const cheapRes = await fetch(
+        `https://api.travelpayouts.com/v1/prices/cheap?${cheapParams.toString()}`
+      )
+
+      if (cheapRes.ok) {
+        const cheapData = await cheapRes.json()
+        if (cheapData.success && cheapData.data?.[destinationIata]) {
+          const destFlights = cheapData.data[destinationIata]
+          for (const key of Object.keys(destFlights)) {
+            const f = destFlights[key]
+            items.push({
+              origin: originIata,
+              destination: destinationIata,
+              price: f.price,
+              airline: f.airline,
+              flight_number: f.flight_number,
+              departure_at: f.departure_at,
+              return_at: f.return_at,
+              expires_at: f.expires_at,
+              transfers: f.number_of_changes ?? f.transfers ?? 0,
+              duration: undefined
+            })
+          }
+        }
+      }
+    }
+
+    if (items.length === 0) {
+      console.log(`Travelpayouts: No flight data found for ${originIata} -> ${destinationIata}`)
       return []
     }
 
-    const data = await response.json()
-
-    if (!data.success || !data.data || !Array.isArray(data.data)) {
-      console.warn("Travelpayouts: No flight data in response")
-      return []
-    }
+    // Sort by proximity to requested date, then by price
+    const targetTime = new Date(departDate).getTime()
+    items.sort((a, b) => {
+      const aDiff = Math.abs(new Date(a.departure_at).getTime() - targetTime)
+      const bDiff = Math.abs(new Date(b.departure_at).getTime() - targetTime)
+      // Prefer closer dates; within 2 days prefer cheaper
+      if (aDiff <= 2 * 86400000 && bDiff <= 2 * 86400000) return a.price - b.price
+      return aDiff - bDiff
+    })
 
     const flights: RealFlight[] = []
-    const targetDate = new Date(departDate).getTime()
 
-    // Process outbound flights
-    for (const item of data.data as LatestPriceItem[]) {
-      // Check if departure is close to requested date (within 3 days)
-      const itemDate = new Date(item.departure_at).getTime()
-      const daysDiff = Math.abs(itemDate - targetDate) / (1000 * 60 * 60 * 24)
-
-      if (daysDiff > 3) continue // Skip if too far from requested date
+    for (const item of items) {
+      if (flights.length >= limit) break
 
       const dep = parseDateTime(item.departure_at)
       const ret = item.return_at ? parseDateTime(item.return_at) : null
@@ -1109,8 +1170,18 @@ export async function searchFlightsForDates(
         subId: "flightcard"
       })
 
-      // Travelpayouts /v2/prices/latest returns price PER PERSON
+      // Travelpayouts returns price PER PERSON
       const totalPrice = item.price * passengers
+
+      // Calculate arrival time from departure + duration
+      let arrivalTime = ""
+      let arrivalDate = dep.date
+      if (item.duration && item.duration > 0) {
+        const depDate = new Date(item.departure_at)
+        const arrDate = new Date(depDate.getTime() + item.duration * 60 * 1000)
+        arrivalTime = arrDate.toTimeString().slice(0, 5)
+        arrivalDate = arrDate.toISOString().split("T")[0]
+      }
 
       const outbound: RealFlight = {
         origin: getCityName(originIata),
@@ -1128,8 +1199,8 @@ export async function searchFlightsForDates(
 
         departureDate: dep.date,
         departureTime: dep.time,
-        arrivalDate: dep.date, // Approximate
-        arrivalTime: "", // Not available in cache API
+        arrivalDate,
+        arrivalTime,
         departureCity: getCityName(originIata),
         departureCode: originIata,
         arrivalCity: getCityName(destinationIata),
@@ -1139,50 +1210,52 @@ export async function searchFlightsForDates(
         dayNumber: 1,
         transfer: item.transfers > 0 ? { city: "Пересадка", duration: "~2ч" } : null,
         baggage: { handLuggage: "8 кг", checked: "23 кг" },
-        bookingUrl
+        bookingUrl,
+        isFallback: false
       }
 
       flights.push(outbound)
-
-      // If round-trip, add return flight
-      if (ret) {
-        const returnBookingUrl = getFlightSearchLink({
-          originIata: destinationIata,
-          destination: getCityName(originIata),
-          destinationIata: originIata,
-          departDate: ret.date,
-          adults: passengers,
-          subId: "flightcard_return"
-        })
-
-        const returnFlight: RealFlight = {
-          ...outbound,
-          origin: getCityName(destinationIata),
-          destination: getCityName(originIata),
-          originIata: destinationIata,
-          destinationIata: originIata,
-          departureAt: item.return_at!,
-          departureDate: ret.date,
-          departureTime: ret.time,
-          arrivalDate: ret.date,
-          departureCity: getCityName(destinationIata),
-          departureCode: destinationIata,
-          arrivalCity: getCityName(originIata),
-          arrivalCode: originIata,
-          direction: "return",
-          dayNumber: 0, // Will be set later based on trip duration
-          price: totalPrice,
-          pricePerPerson: item.price,
-          bookingUrl: returnBookingUrl
-        }
-        flights.push(returnFlight)
-      }
-
-      if (flights.length >= limit * 2) break
     }
 
-    console.log(`Travelpayouts: Found ${flights.length} flights`)
-    return flights.slice(0, limit * 2) // Return outbound + return pairs
+    // Add return flight separately if we have returnDate
+    if (returnDate && flights.length > 0) {
+      const best = flights[0]
+      const returnBookingUrl = getFlightSearchLink({
+        originIata: destinationIata,
+        destination: getCityName(originIata),
+        destinationIata: originIata,
+        departDate: returnDate,
+        adults: passengers,
+        subId: "flightcard_return"
+      })
+
+      const returnFlight: RealFlight = {
+        ...best,
+        origin: getCityName(destinationIata),
+        destination: getCityName(originIata),
+        originIata: destinationIata,
+        destinationIata: originIata,
+        departureAt: returnDate,
+        departureDate: returnDate,
+        departureTime: "",
+        arrivalDate: returnDate,
+        arrivalTime: "",
+        departureCity: getCityName(destinationIata),
+        departureCode: destinationIata,
+        arrivalCity: getCityName(originIata),
+        arrivalCode: originIata,
+        direction: "return",
+        dayNumber: 0,
+        airline: "Поиск авиабилетов",
+        flightNumber: "",
+        bookingUrl: returnBookingUrl,
+        isFallback: true
+      }
+      flights.push(returnFlight)
+    }
+
+    console.log(`Travelpayouts: Found ${flights.length} flights for ${originIata} -> ${destinationIata}`)
+    return flights
 
   } catch (error) {
     console.error("searchFlightsForDates error:", error)
@@ -1321,8 +1394,36 @@ interface HotellookCacheItem {
 }
 
 /**
+ * Lookup city → locationId via Hotellook Lookup API
+ * Accepts Russian/English city names, returns locationId for Cache API
+ */
+async function lookupHotellookLocationId(city: string): Promise<number | null> {
+  try {
+    const params = new URLSearchParams({
+      query: city,
+      lang: "ru",
+      lookFor: "city",
+      limit: "1",
+      token: TRAVELPAYOUTS_API_TOKEN
+    })
+    const res = await fetch(`https://engine.hotellook.com/api/v2/lookup.json?${params.toString()}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    const loc = data?.results?.locations?.[0]
+    if (loc?.id) {
+      console.log(`lookupHotellookLocationId: "${city}" → locationId=${loc.id} (${loc.cityName || loc.fullName})`)
+      return loc.id
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Search real hotels via Hotellook Cache API
- * Returns hotel data with names, stars, prices, and photo URLs
+ * Step 1: Lookup city → locationId (handles Russian names)
+ * Step 2: Fetch hotels from Cache API by locationId
  */
 async function searchHotelsForCity(
   city: string,
@@ -1336,20 +1437,28 @@ async function searchHotelsForCity(
     return []
   }
 
-  const params = new URLSearchParams({
-    location: city,
-    checkIn,
-    checkOut,
-    currency: "rub",
-    limit: limit.toString(),
-    token: TRAVELPAYOUTS_API_TOKEN
-  })
-
   try {
-    console.log(`searchHotelsForCity: searching hotels in ${city} (${checkIn} — ${checkOut})`)
+    console.log(`searchHotelsForCity: searching hotels in "${city}" (${checkIn} — ${checkOut})`)
+
+    // Step 1: Resolve city name → locationId
+    const locationId = await lookupHotellookLocationId(city)
+
+    // Step 2: Fetch from Cache API (use locationId if found, else city name)
+    const params = new URLSearchParams({
+      checkIn,
+      checkOut,
+      currency: "rub",
+      limit: limit.toString(),
+      token: TRAVELPAYOUTS_API_TOKEN
+    })
+    if (locationId) {
+      params.set("locationId", locationId.toString())
+    } else {
+      params.set("location", city)
+    }
 
     const response = await fetch(
-      `http://engine.hotellook.com/api/v2/cache.json?${params.toString()}`
+      `https://engine.hotellook.com/api/v2/cache.json?${params.toString()}`
     )
 
     if (!response.ok) {
@@ -1360,7 +1469,7 @@ async function searchHotelsForCity(
     const data: HotellookCacheItem[] = await response.json()
 
     if (!Array.isArray(data) || data.length === 0) {
-      console.log(`searchHotelsForCity: no hotels found for ${city}`)
+      console.log(`searchHotelsForCity: no hotels found for "${city}"`)
       return []
     }
 
@@ -1378,13 +1487,14 @@ async function searchHotelsForCity(
         n => `https://photo.hotellook.com/image_v2/crop/h${item.hotelId}_${n}/800/520.auto`
       )
 
-      const bookingUrl = getHotelSearchLink({
-        destination: city,
+      // Direct link to this hotel on Hotellook
+      const hlParams = new URLSearchParams({
+        adults: guests.toString(),
         checkIn,
         checkOut,
-        adults: guests,
-        subId: `hotel_real_${item.hotelId}`
       })
+      if (TRAVELPAYOUTS_MARKER) hlParams.set("marker", TRAVELPAYOUTS_MARKER)
+      const bookingUrl = `https://search.hotellook.com/hotels?hotelId=${item.hotelId}&${hlParams.toString()}`
 
       const pricePerNight = item.priceFrom > 0
         ? Math.round(item.priceFrom / nights)
@@ -1412,7 +1522,7 @@ async function searchHotelsForCity(
       }
     })
 
-    console.log(`searchHotelsForCity: found ${hotels.length} real hotels in ${city}`)
+    console.log(`searchHotelsForCity: found ${hotels.length} real hotels in "${city}"`)
     return hotels
 
   } catch (error) {
@@ -1422,7 +1532,25 @@ async function searchHotelsForCity(
 }
 
 /**
- * Walk itinerary days and group consecutive same-city days into hotel stays
+ * Normalize city text to a canonical key for grouping.
+ * Uses IATA code if found, otherwise lowercased trimmed name.
+ * This prevents "Дубай", "Дубай Марина", "Dubai" from being treated as different cities.
+ */
+function normalizeCityKey(text: string): string {
+  if (!text) return ""
+  const parsed = parseCityIata(text)
+  // If we found IATA, use it as the canonical key
+  if (parsed.iata) return parsed.iata
+  // Otherwise use the resolved city name, lowercased
+  const resolved = countryToCity(parsed.city || text)
+  const iata = getIataCode(resolved)
+  if (iata) return iata
+  return resolved.toLowerCase().trim()
+}
+
+/**
+ * Walk itinerary days and group consecutive same-city days into hotel stays.
+ * Uses IATA codes to compare cities (prevents "Дубай" vs "Дубай Марина" duplication).
  */
 export async function groupHotelStays(
   itinerary: any[],
@@ -1432,114 +1560,87 @@ export async function groupHotelStays(
   if (!itinerary || itinerary.length === 0) return []
 
   const stays: HotelStay[] = []
-  let currentCity = ""
+  let currentCityKey = ""   // IATA or normalized name (for comparison)
+  let currentCityName = ""  // Display name
   let stayStartDay = 1
   const baseDate = new Date(startDate)
 
-  for (let i = 0; i < itinerary.length; i++) {
-    const day = itinerary[i]
-    const logistics = day?.logistics
-
-    // Determine city for this day: use logistics.to if moving, else endCity, else previous city
-    let dayCity = ""
-    if (logistics?.to) {
-      const parsed = parseCityIata(logistics.to)
-      dayCity = parsed.city
-    }
-    if (!dayCity && day?.endCity) {
-      dayCity = day.endCity
-    }
-    if (!dayCity && logistics?.from) {
-      const parsed = parseCityIata(logistics.from)
-      dayCity = parsed.city
-    }
-    if (!dayCity) dayCity = currentCity // same city as before
-
-    if (dayCity && dayCity !== currentCity) {
-      // Close previous stay
-      if (currentCity && stayStartDay <= i) {
-        const checkIn = new Date(baseDate)
-        checkIn.setDate(checkIn.getDate() + stayStartDay - 1)
-        const checkOut = new Date(baseDate)
-        checkOut.setDate(checkOut.getDate() + i) // day i is 0-indexed from itinerary, but day numbers are 1-indexed
-        const nights = Math.max(1, i - stayStartDay + 1)
-
-        const ciStr = checkIn.toISOString().split("T")[0]
-        const coStr = checkOut.toISOString().split("T")[0]
-
-        stays.push({
-          city: currentCity,
-          checkIn: ciStr,
-          checkOut: coStr,
-          nights,
-          dayStart: stayStartDay,
-          bookingUrl: getHotelSearchLink({
-            destination: currentCity,
-            checkIn: ciStr,
-            checkOut: coStr,
-            adults: travelers,
-            subId: `hotel_${stays.length}`
-          }),
-          hotelName: `Отели в ${currentCity}`,
-          stars: 4,
-          rating: 0,
-          reviewsCount: 0,
-          address: currentCity,
-          guests: travelers,
-          pricePerNight: 0,
-          totalPrice: 0,
-          amenities: ["WiFi", "Завтрак"],
-          photos: [],
-          photoQuery: `${currentCity} hotel`,
-          isFallback: true
-        })
-      }
-      currentCity = dayCity
-      stayStartDay = i + 1 // 1-indexed day number
-    } else if (!currentCity && dayCity) {
-      currentCity = dayCity
-      stayStartDay = i + 1
-    }
-  }
-
-  // Close last stay
-  if (currentCity) {
+  function pushStay(cityName: string, startDay: number, endDayExclusive: number) {
     const checkIn = new Date(baseDate)
-    checkIn.setDate(checkIn.getDate() + stayStartDay - 1)
+    checkIn.setDate(checkIn.getDate() + startDay - 1)
     const checkOut = new Date(baseDate)
-    checkOut.setDate(checkOut.getDate() + itinerary.length - 1) // last night
-    const nights = Math.max(1, itinerary.length - stayStartDay)
-
+    checkOut.setDate(checkOut.getDate() + endDayExclusive - 1)
+    const nights = Math.max(1, endDayExclusive - startDay)
     const ciStr = checkIn.toISOString().split("T")[0]
     const coStr = checkOut.toISOString().split("T")[0]
 
     stays.push({
-      city: currentCity,
+      city: cityName,
       checkIn: ciStr,
       checkOut: coStr,
-      nights: Math.max(1, nights),
-      dayStart: stayStartDay,
+      nights,
+      dayStart: startDay,
       bookingUrl: getHotelSearchLink({
-        destination: currentCity,
+        destination: cityName,
         checkIn: ciStr,
         checkOut: coStr,
         adults: travelers,
         subId: `hotel_${stays.length}`
       }),
-      hotelName: `Отели в ${currentCity}`,
+      hotelName: `Отели в ${cityName}`,
       stars: 4,
       rating: 0,
       reviewsCount: 0,
-      address: currentCity,
+      address: cityName,
       guests: travelers,
       pricePerNight: 0,
       totalPrice: 0,
       amenities: ["WiFi", "Завтрак"],
       photos: [],
-      photoQuery: `${currentCity} hotel`,
+      photoQuery: `${cityName} hotel`,
       isFallback: true
     })
   }
+
+  for (let i = 0; i < itinerary.length; i++) {
+    const day = itinerary[i]
+    const logistics = day?.logistics
+
+    // Extract city candidates (prefer logistics.to for travel days)
+    let rawCity = ""
+    if (logistics?.to) rawCity = logistics.to
+    if (!rawCity && day?.endCity) rawCity = day.endCity
+    if (!rawCity && logistics?.from) rawCity = logistics.from
+
+    const dayKey = rawCity ? normalizeCityKey(rawCity) : currentCityKey
+    const dayName = rawCity ? parseCityIata(rawCity).city || rawCity : currentCityName
+
+    if (!dayKey) {
+      // No city info at all — keep current
+      continue
+    }
+
+    if (dayKey !== currentCityKey) {
+      // City changed — close previous stay
+      if (currentCityKey && currentCityName && stayStartDay <= i) {
+        pushStay(currentCityName, stayStartDay, i + 1)
+      }
+      currentCityKey = dayKey
+      currentCityName = dayName
+      stayStartDay = i + 1 // 1-indexed day number
+    } else if (!currentCityKey) {
+      currentCityKey = dayKey
+      currentCityName = dayName
+      stayStartDay = i + 1
+    }
+  }
+
+  // Close last stay
+  if (currentCityKey && currentCityName) {
+    pushStay(currentCityName, stayStartDay, itinerary.length + 1)
+  }
+
+  console.log(`groupHotelStays: ${stays.length} stays: ${stays.map(s => `${s.city} day${s.dayStart}`).join(", ")}`)
 
   // Fetch real hotel data for each stay from Hotellook
   const enrichedStays: HotelStay[] = []
@@ -1716,21 +1817,22 @@ export async function extractLogisticsFromItinerary(
     }
 
     try {
-      const returnDate = leg.direction === "outbound" ? endDate : undefined
+      // Don't pass returnDate — we search each leg separately
       const realFlights = await searchFlightsForDates(
         leg.from.iata,
         leg.to.iata,
         leg.date,
-        returnDate,
+        undefined,
         travelers,
-        2
+        1 // 1 best flight per direction
       )
 
       if (realFlights.length > 0) {
-        for (const rf of realFlights) {
-          rf.dayNumber = leg.dayNumber
-          allFlights.push(rf)
-        }
+        // Take the first (best) real flight, set correct dayNumber
+        const best = realFlights[0]
+        best.dayNumber = leg.dayNumber
+        best.direction = leg.direction === "intercity" ? "outbound" : leg.direction
+        allFlights.push(best)
       } else {
         console.log(`extractLogistics: no Travelpayouts results for ${leg.from.iata} → ${leg.to.iata}, using AI fallback`)
         allFlights.push(createAiFallbackFlight(leg, travelers))

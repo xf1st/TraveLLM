@@ -152,7 +152,7 @@ export function HotelCard({
 
             <div className="grid md:grid-cols-[280px_1fr] gap-0">
                 {/* Photo section */}
-                <div className="relative h-56 md:h-full min-h-[220px] overflow-hidden bg-muted/20">
+                <div className="relative h-44 sm:h-56 md:h-full min-h-[180px] sm:min-h-[220px] overflow-hidden bg-muted/20">
                     {hasPhotos ? (
                         <>
                             <img
@@ -211,13 +211,13 @@ export function HotelCard({
                 </div>
 
                 {/* Content section */}
-                <div className="p-5 flex flex-col justify-between gap-4">
+                <div className="p-3 sm:p-5 flex flex-col justify-between gap-3 sm:gap-4">
                     {/* Header: Name, Address, Rating */}
                     <div>
-                        <div className="flex justify-between items-start gap-3 mb-3">
-                            <div className="flex-1">
-                                <h3 className="font-bold text-lg leading-tight mb-1.5">{hotelName}</h3>
-                                <div className="flex items-center text-muted-foreground text-xs">
+                        <div className="flex justify-between items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                            <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-base sm:text-lg leading-tight mb-1 sm:mb-1.5 truncate">{hotelName}</h3>
+                                <div className="flex items-center text-muted-foreground text-[10px] sm:text-xs">
                                     <MapPin className="w-3 h-3 mr-1 shrink-0 text-amber-500/70" />
                                     <span className="truncate">{address}</span>
                                 </div>
@@ -259,55 +259,55 @@ export function HotelCard({
                     </div>
 
                     {/* Stay details */}
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground">
                         {checkIn && checkOut && (
-                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
-                                <Calendar className="w-3.5 h-3.5 text-amber-500/70" />
+                            <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
+                                <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
                                 <span>{formatDate(checkIn)} — {formatDate(checkOut)}</span>
                             </div>
                         )}
                         {nights && (
-                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
-                                <Star className="w-3.5 h-3.5 text-amber-500/70" />
+                            <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
+                                <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
                                 <span>{nights} {nights === 1 ? "ночь" : nights < 5 ? "ночи" : "ночей"}</span>
                             </div>
                         )}
                         {guests && (
-                            <div className="flex items-center gap-1.5 bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
-                                <Users className="w-3.5 h-3.5 text-amber-500/70" />
+                            <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
+                                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
                                 <span>{guests} {guests === 1 ? "гость" : guests < 5 ? "гостя" : "гостей"}</span>
                             </div>
                         )}
                     </div>
 
                     {/* Price & Book */}
-                    <div className="flex items-end justify-between pt-3 border-t border-amber-200/30 dark:border-amber-900/20">
-                        <div>
+                    <div className="flex items-end justify-between gap-2 pt-3 border-t border-amber-200/30 dark:border-amber-900/20">
+                        <div className="min-w-0">
                             {hasPriceData ? (
                                 <>
-                                    <div className="text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                                        {pricePerNight.toLocaleString("ru-RU")} ₽
-                                        <span className="text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
+                                    <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
+                                        <span className="text-sm font-bold">от </span>{pricePerNight.toLocaleString("ru-RU")} ₽
+                                        <span className="text-xs sm:text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
                                     </div>
                                     {nights && nights > 1 && (
-                                        <div className="text-xs text-muted-foreground mt-0.5">
-                                            Итого за {nights} {nights < 5 ? "ночи" : "ночей"}: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
+                                        <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                                            Итого: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
                                         </div>
                                     )}
                                 </>
                             ) : (
-                                <div className="text-sm font-medium text-muted-foreground">
-                                    Смотреть цены на отели
+                                <div className="text-xs sm:text-sm font-medium text-muted-foreground">
+                                    Смотреть цены
                                 </div>
                             )}
                         </div>
                         <Button
                             size="sm"
-                            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 h-9 shadow-md shadow-amber-500/20"
+                            className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] sm:text-xs px-3 sm:px-5 h-8 sm:h-9 shadow-md shadow-amber-500/20 shrink-0"
                             onClick={() => window.open(buyUrl, "_blank")}
                         >
                             {hasPriceData ? "Забронировать" : "Найти отели"}
-                            <ExternalLink className="w-3 h-3 ml-1.5" />
+                            <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                     </div>
                 </div>

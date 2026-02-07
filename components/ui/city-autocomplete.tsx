@@ -134,7 +134,7 @@ export function CityAutocomplete({
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className={cn("w-full justify-between text-left font-normal h-auto min-h-[56px] py-3", !value && "text-muted-foreground")}
+                        className={cn("w-full justify-between text-left font-normal h-auto min-h-[48px] py-3 text-base", !value && "text-muted-foreground")}
                         disabled={disabled}
                     >
                         <div className="flex flex-wrap gap-2 items-center">
@@ -165,7 +165,7 @@ export function CityAutocomplete({
                         <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="p-0" align="start">
+                <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
                     <Command shouldFilter={false}>
                         <CommandInput
                             placeholder="Поиск..."
