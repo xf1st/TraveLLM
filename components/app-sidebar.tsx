@@ -96,7 +96,6 @@ export function AppSidebar() {
                     .select('role')
                     .eq('id', session.user.id)
                     .single()
-                console.log('[Sidebar] Initial profile role check:', profile?.role, 'User ID:', session.user.id)
                 setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
             }
         })
@@ -111,7 +110,6 @@ export function AppSidebar() {
                     .select('role')
                     .eq('id', session.user.id)
                     .single()
-                console.log('[Sidebar] Profile role check:', profile?.role)
                 setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
             } else {
                 setIsAdmin(false)

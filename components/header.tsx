@@ -45,7 +45,6 @@ export function Header({ floating = false }: HeaderProps) {
           .select('role')
           .eq('id', session.user.id)
           .single()
-        console.log('[Header] Initial profile role check:', profile?.role, 'User ID:', session.user.id)
         setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
       }
     })
@@ -58,7 +57,6 @@ export function Header({ floating = false }: HeaderProps) {
           .select('role')
           .eq('id', session.user.id)
           .single()
-        console.log('[Header] Profile role check:', profile?.role)
         setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
       } else {
         setIsAdmin(false)
