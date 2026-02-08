@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { connectTelegram } from "@/app/actions/telegram"
 
 interface AIStats {
   summary: {
@@ -198,10 +199,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex justify-end mb-6">
-          <form action={async () => {
-            const { connectTelegram } = await import("@/app/actions/telegram")
-            await connectTelegram()
-          }}>
+          <form action={connectTelegram}>
             <Button type="submit" variant="outline" className="gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
               Подключить Telegram Bot
