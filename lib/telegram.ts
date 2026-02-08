@@ -39,13 +39,19 @@ export async function sendTelegramMessage(chatId: string | number, text: string,
 /**
  * Generate a secure signature for connecting a user
  * This prevents users from connecting someone else's telegram by guessing the ID
+ * Returns Base64URL encoded string safe for Telegram start param
  */
 export function generateConnectToken(userId: string): string {
     const hmac = crypto.createHmac('sha256', BOT_SECRET)
     hmac.update(userId)
     const signature = hmac.digest('hex')
     // Token format: userId:signature
-    return `${userId}:${signature}`
+    const rawToken = `${userId}:${signature}`
+    // Encode to Base64URL (A-Za-z0-9_-)
+    return Buffer.from(rawToken).toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
 }
 
 /**
@@ -53,18 +59,32 @@ export function generateConnectToken(userId: string): string {
  */
 export function verifyConnectToken(token: string): string | null {
     try {
-        const [userId, signature] = token.split(':')
+        // Decode Base64URL
+        let base64 = token.replace(/-/g, '+').replace(/_/g, '/')
+        // Add padding if needed
+        while (base64.length % 4) {
+            base64 += '='
+        }
+
+        const decoded = Buffer.from(base64, 'base64').toString('utf-8')
+        const [userId, signature] = decoded.split(':')
+
         if (!userId || !signature) return null
 
         const hmac = crypto.createHmac('sha256', BOT_SECRET)
         hmac.update(userId)
         const expectedSignature = hmac.digest('hex')
 
+        // Simple string comparison usually enough here, but timingSafeEqual is better
+        // However, invalid signature length might throw in timingSafeEqual
+        if (signature.length !== expectedSignature.length) return null
+
         if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
             return userId
         }
         return null
     } catch (e) {
+        console.error("Token verification error:", e)
         return null
     }
 }
