@@ -15,6 +15,33 @@ import { MeshGradient } from "@paper-design/shaders-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
 
+// Interest categories with Russian labels and unique colors
+const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  nature: { label: "Природа", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800" },
+  history: { label: "История", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800" },
+  local: { label: "Местная культура", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800" },
+  photo: { label: "Фотография", color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-100 dark:bg-pink-900/30 border-pink-200 dark:border-pink-800" },
+  tech: { label: "Технологии", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800" },
+  nightlife: { label: "Ночная жизнь", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800" },
+  shopping: { label: "Шоппинг", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800" },
+  spiritual: { label: "Духовное", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800" },
+  food: { label: "Гастрономия", color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800" },
+  museums: { label: "Музеи", color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800" },
+}
+
+// Profile background presets
+const PROFILE_BACKGROUNDS = [
+  { id: "avatar", label: "Аватар", gradient: "" }, // Special: uses blurred avatar
+  { id: "aurora", label: "Северное сияние", gradient: "from-emerald-500/30 via-cyan-500/20 to-purple-500/30" },
+  { id: "sunset", label: "Закат", gradient: "from-orange-500/30 via-rose-500/20 to-pink-500/30" },
+  { id: "ocean", label: "Океан", gradient: "from-blue-500/30 via-cyan-500/20 to-teal-500/30" },
+  { id: "forest", label: "Лес", gradient: "from-green-500/30 via-emerald-500/20 to-lime-500/30" },
+  { id: "galaxy", label: "Космос", gradient: "from-purple-600/30 via-indigo-500/20 to-blue-600/30" },
+  { id: "mountains", label: "Горы", gradient: "from-slate-500/30 via-zinc-500/20 to-gray-500/30" },
+  { id: "desert", label: "Пустыня", gradient: "from-amber-500/30 via-orange-500/20 to-yellow-500/30" },
+  { id: "abstract", label: "Абстракция", gradient: "from-fuchsia-500/30 via-violet-500/20 to-indigo-500/30" },
+]
+
 function ProfileContent() {
   const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
@@ -37,8 +64,13 @@ function ProfileContent() {
     interests: [] as string[],
     interestsCustom: "",
     notifications_enabled: true,
-    budgetTier: "balanced",
     accommodation: "hotel",
+    profileBackground: "ocean", // Default background
+    departureCity: "",
+    aiCreativity: "balanced",
+    autoFavorites: false,
+    publicProfile: false,
+    defaultTripDuration: "7",
   })
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -49,7 +81,7 @@ function ProfileContent() {
       const { data: { session } } = await supabase.auth.getSession()
       const authUser = session?.user || null
       setUser(authUser)
-      setDebugInfo(prev => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
+      setDebugInfo((prev: any) => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
 
       if (authUser) {
         const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single()
@@ -70,8 +102,20 @@ function ProfileContent() {
             interests: prefs.interestsDetailed || [],
             interestsCustom: prefs.interestsCustom || "",
             notifications_enabled: data.notifications_enabled ?? true,
-            budgetTier: prefs.budgetTier || "balanced",
-            accommodation: prefs.accommodation || "hotel",
+            // accommodation normalization
+            accommodation: (() => {
+              const val = (prefs.accommodation || "").toLowerCase();
+              if (val.includes("хостел") || val === "hostel") return "hostel";
+              if (val.includes("апартамент") || val.includes("airbnb") || val === "airbnb") return "airbnb";
+              if (val.includes("курорт") || val === "resort") return "resort";
+              return "hotel";
+            })(),
+            profileBackground: prefs.profileBackground || "ocean",
+            departureCity: prefs.departureCity || "",
+            aiCreativity: prefs.aiCreativity || "balanced",
+            autoFavorites: prefs.autoFavorites || false,
+            publicProfile: data.public_profile || false,
+            defaultTripDuration: prefs.defaultTripDuration || "7",
           })
         }
 
@@ -84,10 +128,10 @@ function ProfileContent() {
 
         if (dbError) {
           console.error("Profile load error (DB):", dbError.message, "Code:", dbError.code, "Details:", dbError.details)
-          setDebugInfo(prev => ({ ...prev, error: dbError.message }))
+          setDebugInfo((prev: any) => ({ ...prev, error: dbError.message }))
         }
 
-        setDebugInfo(prev => ({ ...prev, userId: authUser.id }))
+        setDebugInfo((prev: any) => ({ ...prev, userId: authUser.id }))
         // 2. Fetch from LocalStorage (Guest trips)
         const localTrips: any[] = []
         for (let i = 0; i < localStorage.length; i++) {
@@ -161,8 +205,11 @@ function ProfileContent() {
       dietaryCustom: editForm.dietaryCustom,
       interestsDetailed: editForm.interests,
       interestsCustom: editForm.interestsCustom,
-      budgetTier: editForm.budgetTier,
       accommodation: editForm.accommodation,
+      profileBackground: editForm.profileBackground,
+      departureCity: editForm.departureCity,
+      aiCreativity: editForm.aiCreativity,
+      autoFavorites: editForm.autoFavorites,
     }
 
     const { error } = await supabase.from('profiles').update({
@@ -175,9 +222,14 @@ function ProfileContent() {
       updated_at: new Date().toISOString(),
     }).eq('id', user.id)
 
-    if (!error) {
+    if (error) {
+      console.error("Error updating profile:", error)
+      alert(`Ошибка при сохранении профиля: ${error.message}`)
+    } else {
       setProfile({ ...profile, full_name: editForm.full_name, citizenship: editForm.citizenship, nationality: editForm.nationality, languages: editForm.languages, preferences: updatedPreferences })
       setIsEditing(false)
+      // Notify other components (sidebar) about the update
+      window.dispatchEvent(new Event('profile_updated'))
     }
     setLoading(false)
   }
@@ -229,18 +281,29 @@ function ProfileContent() {
 
   const tabs = [
     { id: "overview", label: "Обзор" },
-    { id: "routes", label: "Мои маршруты" },
     { id: "preferences", label: "Предпочтения" },
-    { id: "history", label: "История" },
+    { id: "history", label: "История генераций" },
     { id: "settings", label: "Настройки" }
   ]
 
   return (
     <AppLayout>
       <div className="relative min-h-screen pb-20 bg-background text-foreground transition-colors duration-300">
-        {/* LightRays Background - Adjusted for Light Mode */}
+        {/* Dynamic Profile Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[80vw] h-[60vh] bg-blue-500/10 dark:bg-blue-500/10 blur-[100px] rounded-full" />
+          {editForm.profileBackground === "avatar" && avatarUrl ? (
+            <>
+              <img
+                src={avatarUrl}
+                alt=""
+                className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[100vw] h-[80vh] object-cover blur-[80px] opacity-30 dark:opacity-40 scale-150"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+            </>
+          ) : (
+            <div className={`absolute top-[-10%] left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] bg-gradient-to-br ${PROFILE_BACKGROUNDS.find(b => b.id === editForm.profileBackground)?.gradient || "from-blue-500/20 via-cyan-500/15 to-purple-500/20"
+              } blur-[80px] rounded-full`} />
+          )}
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 pt-12">
@@ -301,6 +364,47 @@ function ProfileContent() {
           {isEditing ? (
             <Card className="p-8 bg-card/50 backdrop-blur-xl border border-border animate-in zoom-in-95 duration-300">
               <div className="grid gap-6 sm:grid-cols-2">
+
+                {/* Background Picker - Full Width */}
+                <div className="col-span-2 space-y-3">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                    <Camera className="h-4 w-4" /> Фон профиля
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    {PROFILE_BACKGROUNDS.map((bg) => (
+                      <button
+                        key={bg.id}
+                        type="button"
+                        onClick={() => setEditForm({ ...editForm, profileBackground: bg.id })}
+                        className={`relative aspect-[4/3] rounded-xl overflow-hidden transition-all hover:scale-105 ${editForm.profileBackground === bg.id
+                          ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                          : "ring-1 ring-border hover:ring-primary/50"
+                          }`}
+                      >
+                        {bg.id === "avatar" ? (
+                          <div className="absolute inset-0 bg-muted flex items-center justify-center">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt="" className="w-full h-full object-cover blur-sm opacity-60" />
+                            ) : (
+                              <User className="h-6 w-6 text-muted-foreground" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className={`absolute inset-0 bg-gradient-to-br ${bg.gradient}`} />
+                        )}
+                        <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-1 text-center font-medium">
+                          {bg.label}
+                        </span>
+                        {editForm.profileBackground === bg.id && (
+                          <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                            <Check className="h-3 w-3" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="col-span-2 sm:col-span-1 space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /> Полное имя</label>
                   <Input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="bg-background/50 border-input" />
@@ -464,18 +568,7 @@ function ProfileContent() {
                   </div>
                 </div>
 
-                {/* Budget Tier */}
-                <div className="col-span-2 sm:col-span-1 space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><Wallet className="h-4 w-4" /> Бюджет поездок</label>
-                  <Select value={editForm.budgetTier} onValueChange={(v) => setEditForm({ ...editForm, budgetTier: v })}>
-                    <SelectTrigger className="bg-background/50 border-input"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="economy">Эконом</SelectItem>
-                      <SelectItem value="balanced">Сбалансированный</SelectItem>
-                      <SelectItem value="luxury">Премиум</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
 
                 {/* Accommodation Preference */}
                 <div className="col-span-2 sm:col-span-1 space-y-2">
@@ -690,57 +783,32 @@ function ProfileContent() {
                                 Ваши интересы
                               </h3>
                               <div className="flex flex-wrap gap-3 justify-center content-center h-full mt-4">
-                                {profile?.preferences?.interestsDetailed?.map((i: string) => (
-                                  <Badge key={i} variant="outline" className="border-border text-foreground px-3 py-1.5 rounded-full hover:bg-muted transition-all cursor-default">
-                                    {i}
-                                  </Badge>
-                                )) || <p className="text-muted-foreground">Интересы не выбраны</p>}
+                                {profile?.preferences?.interestsDetailed?.length > 0 ? (
+                                  profile.preferences.interestsDetailed.map((i: string) => {
+                                    const key = i.toLowerCase()
+                                    const config = INTEREST_CONFIG[key]
+                                    return (
+                                      <Badge
+                                        key={i}
+                                        variant="outline"
+                                        className={`px-3 py-1.5 rounded-full transition-all cursor-default border ${config
+                                          ? `${config.bg} ${config.color}`
+                                          : "border-border text-foreground hover:bg-muted"
+                                          }`}
+                                      >
+                                        {config?.label || i}
+                                      </Badge>
+                                    )
+                                  })
+                                ) : (
+                                  <p className="text-muted-foreground">Интересы не выбраны</p>
+                                )}
                               </div>
                             </Card>
                           </motion.div>
                         </div>
                       </div>
                     )}
-
-                    {activeTab === "routes" && (
-                      <div className="relative min-h-[400px] rounded-3xl overflow-hidden p-6 border border-border bg-card/40">
-                        {/* Gradient Background - Only visible in Dark Mode effectively, or adjusted opacity for light */}
-                        <div className="absolute inset-0 z-0 opacity-10 dark:opacity-40 pointer-events-none">
-                          <MeshGradient
-                            className="w-full h-full"
-                            colors={["#000000", "#1E1E1E", "#0F172A", "#000000"]}
-                            speed={0.2}
-                          />
-                        </div>
-
-                        <div className="relative z-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                          {userRoutes.map((trip: any) => (
-                            <div key={trip.id} onClick={() => window.location.href = `/trip/${trip.id}`} className="aspect-[4/3] relative rounded-3xl overflow-hidden cursor-pointer group shadow-lg border border-border/50">
-                              <img
-                                src={`https://loremflickr.com/400/300/travel,${encodeURIComponent(trip.destination || "nature")}/all`}
-                                alt={trip.title}
-                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end">
-                                <h3 className="text-xl font-bold text-white mb-1 group-hover:text-primary transition-colors">{trip.title}</h3>
-                                <div className="flex items-center gap-2 text-white/60 text-sm">
-                                  <MapPin className="h-3 w-3" />
-                                  {trip.destination}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                          {/* Add New Card */}
-                          <div onClick={() => window.location.href = '/plan'} className="aspect-[4/3] rounded-3xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-4 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer text-muted-foreground hover:text-primary backdrop-blur-sm">
-                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                              <Edit2 className="h-5 w-5" />
-                            </div>
-                            <span className="font-medium">Создать новый</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
                     {activeTab === "preferences" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <Card className="p-6 bg-card/40 border-border backdrop-blur-sm space-y-4">
@@ -811,32 +879,41 @@ function ProfileContent() {
                       return (
                         <Card className="overflow-hidden bg-card/40 border-border">
                           <div className="p-6 border-b border-border">
-                            <h3 className="font-bold text-xl">История поездок</h3>
-                            <p className="text-muted-foreground text-sm">Маршруты, сохранённые через AI-гида</p>
+                            <h3 className="font-bold text-xl flex items-center gap-2">
+                              <Zap className="h-5 w-5 text-primary" />
+                              История генераций
+                            </h3>
+                            <p className="text-muted-foreground text-sm">Все маршруты, созданные AI-помощником</p>
                           </div>
                           <div className="divide-y divide-border/50">
                             {completedTrips.map((trip: any) => (
                               <div key={trip.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer" onClick={() => window.location.href = `/trip/${trip.id}`}>
                                 <div className="flex items-center gap-4">
-                                  <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden relative">
-                                    <img src={trip.cover_image || `https://loremflickr.com/100/100/travel,${encodeURIComponent(trip.destination || "nature")}/all`} className="object-cover w-full h-full" alt="" />
+                                  <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary border border-primary/20">
+                                    <MapPin className="h-6 w-6" />
                                   </div>
-                                  <div>
+                                  <div className="space-y-1">
                                     <h4 className="font-medium group-hover:text-primary transition-colors">{trip.title}</h4>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {trip.destination}</span>
-                                      <span>•</span>
-                                      <span>{new Date(trip.created_at).toLocaleDateString()}</span>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                      <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{trip.destination}</Badge>
+                                      {trip.duration_days && <Badge variant="outline" className="text-[10px] px-2 py-0.5">{trip.duration_days} дней</Badge>}
+                                      <span className="text-muted-foreground/60">{new Date(trip.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                     </div>
                                   </div>
                                 </div>
-                                <Button variant="ghost" size="sm"><ArrowRight className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity"><ArrowRight className="h-4 w-4" /></Button>
                               </div>
                             ))}
                             {completedTrips.length === 0 && (
-                              <div className="p-8 text-center text-muted-foreground">
-                                <p>История пуста</p>
-                                <p className="text-sm mt-2">Здесь будут отображаться маршруты, сохранённые через AI-гида</p>
+                              <div className="p-12 text-center">
+                                <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                                  <Zap className="h-8 w-8 text-muted-foreground/30" />
+                                </div>
+                                <p className="font-medium text-muted-foreground">История пуста</p>
+                                <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs mx-auto">Здесь будут отображаться все маршруты, сгенерированные AI-помощником</p>
+                                <Button variant="outline" className="mt-4" onClick={() => window.location.href = '/plan'}>
+                                  Создать первый маршрут
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -859,8 +936,74 @@ function ProfileContent() {
                                 checked={editForm.notifications_enabled}
                                 onCheckedChange={(checked) => {
                                   setEditForm({ ...editForm, notifications_enabled: !!checked })
+                                  // Auto-save logic for standalone settings (optional, but consistent with others)
+                                  supabase.from('profiles').update({ notifications_enabled: !!checked }).eq('id', user.id).then()
                                 }}
                               />
+                            </div>
+
+
+
+
+
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <label className="font-medium">Авто-избранное</label>
+                                <p className="text-sm text-muted-foreground">Автоматически сохранять созданные маршруты</p>
+                              </div>
+                              <Checkbox
+                                checked={editForm.autoFavorites}
+                                onCheckedChange={(checked) => {
+                                  const newVal = !!checked
+                                  setEditForm({ ...editForm, autoFavorites: newVal })
+                                  const newPrefs = { ...profile.preferences, autoFavorites: newVal }
+                                  setProfile({ ...profile, preferences: newPrefs })
+                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <label className="font-medium">Креативность AI</label>
+                                <p className="text-sm text-muted-foreground">Степень необычности маршрутов</p>
+                              </div>
+                              <Select
+                                value={profile?.preferences?.aiCreativity ?? "balanced"}
+                                onValueChange={(val) => {
+                                  const newPrefs = { ...profile.preferences, aiCreativity: val }
+                                  setProfile({ ...profile, preferences: newPrefs })
+                                  setEditForm((prev: any) => ({ ...prev, aiCreativity: val }))
+                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                }}
+                              >
+                                <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="conservative">Консервативный</SelectItem>
+                                  <SelectItem value="balanced">Сбалансированный</SelectItem>
+                                  <SelectItem value="creative">Креативный</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+
+
+                            <div className="space-y-2 pt-2">
+                              <label className="font-medium">Город вылета (по умолчанию)</label>
+                              <Input
+                                placeholder="Например: Москва"
+                                value={editForm.departureCity}
+                                onChange={(e) => {
+                                  setEditForm({ ...editForm, departureCity: e.target.value })
+                                }}
+                                onBlur={() => {
+                                  const newPrefs = { ...profile.preferences, departureCity: editForm.departureCity }
+                                  setProfile({ ...profile, preferences: newPrefs })
+                                  supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                }}
+                                className="bg-background/50"
+                              />
+                              <p className="text-sm text-muted-foreground">Откуда вы обычно начинаете путешествие</p>
                             </div>
 
                             <div className="flex items-center justify-between">

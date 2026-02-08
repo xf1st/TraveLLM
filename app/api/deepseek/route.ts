@@ -170,6 +170,42 @@ export async function POST(req: Request) {
             customBudget
         } = body
 
+        // Apply profile preferences if fields are missing
+        if (!departureCity && preferences?.departureCity) {
+            // Re-assign logic (workaround since it's const destructured above, actually better to just rely on scoped usage or change let)
+            // Wait, I can't reassign const. I should change the destructuring to let or handle it differently.
+            // Actually, I can just use a new variable `effectiveDepartureCity` or modify the logic below.
+        }
+
+        const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
+
+        // Calculate AI Temperature based on creativity setting
+        // Calculate AI Temperature based on creativity setting
+        const creativity = body.aiCreativity || preferences?.aiCreativity || "balanced"
+        const aiTemperature = creativity === "creative" ? 1.0 : creativity === "conservative" ? 0.3 : 0.6
+
+        let creativityInstruction = "";
+        if (creativity === "creative") {
+            creativityInstruction = `
+УРОВЕНЬ КРЕАТИВНОСТИ: МАКСИМАЛЬНЫЙ (CREATIVE)
+- Ищи скрытые жемчужины, локальные места, необычные активности.
+- Предлагай альтернативные точки обзора для популярных мест.
+- Будь смелее в выборе мест, избегай банальных "топ-10" списков, если это возможно.
+`;
+        } else if (creativity === "conservative") {
+            creativityInstruction = `
+УРОВЕНЬ КРЕАТИВНОСТИ: КОНСЕРВАТИВНЫЙ (CONSERVATIVE)
+- Строго придерживайся проверенных, надежных и популярных маршрутов.
+- Главный приоритет — комфорт, безопасность и предсказуемость.
+- Избегай сомнительных или малоизвестных мест.
+`;
+        } else {
+            creativityInstruction = `
+УРОВЕНЬ КРЕАТИВНОСТИ: СБАЛАНСИРОВАННЫЙ
+- Сочетай главные достопримечательности с интересными локальными местами.
+`;
+        }
+
         // Helper to safely convert value to array (handles strings, arrays, null/undefined)
         const toArray = (val: any): string[] => {
             if (!val) return []
@@ -192,7 +228,7 @@ export async function POST(req: Request) {
 
         const durationDays = startDate && endDate
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-            : 7
+            : (parseInt(preferences?.defaultTripDuration) || 7)
 
         // Define strict budget caps (updated to match new UI ranges)
         let budgetCap = 0;
@@ -246,7 +282,7 @@ export async function POST(req: Request) {
         if (destinations.length > 0 && startDate && endDate) {
             try {
                 validationResult = await validateRouteRequest({
-                    departureCity,
+                    departureCity: effectiveDepartureCity,
                     destinations,
                     startDate,
                     endDate,
@@ -272,7 +308,7 @@ export async function POST(req: Request) {
 
                 // Collect dynamic context
                 const dynamicContext = await collectDynamicContext({
-                    departureCity,
+                    departureCity: effectiveDepartureCity,
                     destinations,
                     startDate,
                     endDate,
@@ -345,6 +381,8 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
 ПРАВИЛА ГЕНЕРАЦИИ:
+
+${creativityInstruction}
 
 0. ВЫБОР НАПРАВЛЕНИЯ (КРИТИЧНО):
    - Если пользователь выбрал "За границу" (Abroad) без конкретной страны:
@@ -647,7 +685,7 @@ CRITICAL:
                 { role: "user" as const, content: metaPrompt }
             ]
 
-            const raw = await deepseekInference(messages, { maxTokens: 2000, temperature: 0.6, tripDays: 3 });
+            const raw = await deepseekInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3 });
             return parseJsonResponse(raw, "DeepSeek-Meta");
         }
 
@@ -660,7 +698,7 @@ CRITICAL:
         ): Promise<any[]> {
             const isFirstChunk = startDay === 1
             const isLastChunk = endDay === durationDays
-            const startLocation = previousContext?.lastCity || departureCity
+            const startLocation = previousContext?.lastCity || effectiveDepartureCity
             const visitedPlaces = previousContext?.visitedPlaces || []
 
             const chunkPrompt = `
@@ -751,7 +789,7 @@ ${isLastChunk
             const tokensNeeded = (endDay - startDay + 1) * 1800;
             const raw = await deepseekInference(messages, {
                 maxTokens: Math.min(tokensNeeded, 8000),
-                temperature: 0.6,
+                temperature: aiTemperature,
                 tripDays: endDay - startDay + 1
             });
 
@@ -775,7 +813,7 @@ ${isLastChunk
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }
                 ]
-                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
+                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: aiTemperature, tripDays: durationDays });
                 routeData = parseJsonResponse(raw, "DeepSeek");
             } else {
                 // Long trip - split into chunks + metadata
@@ -796,7 +834,7 @@ ${isLastChunk
 
                 // Initial context
                 let previousContext = {
-                    lastCity: departureCity,
+                    lastCity: effectiveDepartureCity,
                     visitedPlaces: [] as string[]
                 };
 

@@ -68,6 +68,8 @@ export default function PlanPage() {
   const [accessMode, setAccessMode] = useState<string>("active")
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [currentStep, setCurrentStep] = useState(1)
+  const [aiCreativity, setAiCreativity] = useState("balanced")
+  const [autoFavorites, setAutoFavorites] = useState(false)
 
   // Error Modal State
   const [errorModal, setErrorModal] = useState<{
@@ -103,6 +105,11 @@ export default function PlanPage() {
 
           if (profileData) {
             setProfile(profileData)
+            const prefs = profileData.preferences || {}
+            if (prefs.departureCity && !departureCity) setDepartureCity(prefs.departureCity)
+            if (prefs.aiCreativity) setAiCreativity(prefs.aiCreativity)
+            if (prefs.autoFavorites !== undefined) setAutoFavorites(prefs.autoFavorites)
+
             setAccessMode(profileData.access_mode || "active")
             if (profileData.access_mode === "full_blocked") {
               router.push("/blocked")
@@ -241,7 +248,8 @@ export default function PlanPage() {
         guideLanguage,
         startDate: date?.from?.toISOString().split("T")[0],
         endDate: date?.to?.toISOString().split("T")[0],
-        travelersCount
+        travelersCount,
+        aiCreativity
       }
 
 
@@ -296,6 +304,10 @@ export default function PlanPage() {
           .insert(tripRecord)
           .select()
           .single()
+
+        if (!error && insertedTrip && autoFavorites) {
+          await supabase.from('favorites').insert({ user_id: user.id, trip_id: insertedTrip.id })
+        }
 
         if (error) {
           console.error("Failed to save trip to database:", error)

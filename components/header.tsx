@@ -31,6 +31,7 @@ export function Header({ floating = false }: HeaderProps) {
   const pathname = usePathname()
   const { user } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
+  const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
@@ -40,20 +41,42 @@ export function Header({ floating = false }: HeaderProps) {
   useEffect(() => {
     setIsMounted(true)
 
-    const checkAdminRole = async () => {
+    const loadUserData = async () => {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name, avatar_url')
           .eq('id', user.id)
           .maybeSingle()
-        setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+
+        if (profile) {
+          // console.log("Header: Profile loaded", profile)
+          setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
+          setUserData({
+            full_name: profile.full_name || user.user_metadata?.full_name,
+            avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
+          })
+        } else {
+          console.log("Header: No profile found for user")
+          // Fallback to metadata if no profile row
+          setUserData({
+            full_name: user.user_metadata?.full_name,
+            avatar_url: user.user_metadata?.avatar_url
+          })
+        }
       } else {
         setIsAdmin(false)
+        setUserData(null)
       }
     }
 
-    checkAdminRole()
+    loadUserData()
+
+    // Listen for profile updates
+    const handleProfileUpdate = () => {
+      loadUserData()
+    }
+    window.addEventListener('profile_updated', handleProfileUpdate)
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
@@ -62,6 +85,7 @@ export function Header({ floating = false }: HeaderProps) {
 
     return () => {
       window.removeEventListener("scroll", handleScroll)
+      window.removeEventListener('profile_updated', handleProfileUpdate)
     }
   }, [user])
 
@@ -157,7 +181,7 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
                     <Avatar className="h-7 w-7">
-                      <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                      <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                       <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
                         {user.email?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -167,7 +191,7 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
+                      <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>

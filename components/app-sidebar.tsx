@@ -77,6 +77,7 @@ export function AppSidebar() {
     const [tripMembers, setTripMembers] = useState<any[]>([])
     const { theme, setTheme } = useTheme()
     const [isAdmin, setIsAdmin] = useState(false)
+    const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
@@ -96,17 +97,37 @@ export function AppSidebar() {
                 // Check if user is admin
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role')
+                    .select('role, full_name, avatar_url')
                     .eq('id', user.id)
                     .maybeSingle()
-                setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+
+                if (profile) {
+                    setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
+                    setUserData({
+                        full_name: profile.full_name || user.user_metadata?.full_name,
+                        avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
+                    })
+                } else {
+                    setUserData({
+                        full_name: user.user_metadata?.full_name,
+                        avatar_url: user.user_metadata?.avatar_url
+                    })
+                }
             } else {
                 setRecentTrips([])
                 setIsAdmin(false)
+                setUserData(null)
             }
         }
 
         loadUserData()
+
+        // Listen for profile updates
+        const handleProfileUpdate = () => {
+            loadUserData()
+        }
+        window.addEventListener('profile_updated', handleProfileUpdate)
+        return () => window.removeEventListener('profile_updated', handleProfileUpdate)
     }, [user])
 
     const loadRecentTrips = async (userId: string) => {
@@ -386,7 +407,7 @@ export function AppSidebar() {
                                     isCollapsed && "justify-center"
                                 )}>
                                     <Avatar className="h-9 w-9 rounded-xl shrink-0">
-                                        <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                                        <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                                         <AvatarFallback className="rounded-xl bg-primary/10 text-primary text-sm font-medium">
                                             {user.email?.substring(0, 2).toUpperCase()}
                                         </AvatarFallback>
@@ -394,7 +415,7 @@ export function AppSidebar() {
                                     {!isCollapsed && (
                                         <div className="flex-1 min-w-0 text-left">
                                             <p className="text-sm font-medium truncate">
-                                                {user.user_metadata?.full_name || "Путешественник"}
+                                                {userData?.full_name || user.user_metadata?.full_name || "Путешественник"}
                                             </p>
                                             <p className="text-xs text-muted-foreground truncate">
                                                 {user.email}
@@ -406,7 +427,7 @@ export function AppSidebar() {
                             <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
                                 <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-semibold text-primary">{user.user_metadata?.full_name || "Путешественник"}</p>
+                                        <p className="text-sm font-semibold text-primary">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
                                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                     </div>
                                 </DropdownMenuLabel>
