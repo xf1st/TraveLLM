@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu, Shield } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,6 +29,7 @@ interface HeaderProps {
 export function Header({ floating = false }: HeaderProps) {
   const pathname = usePathname()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
@@ -36,8 +37,16 @@ export function Header({ floating = false }: HeaderProps) {
 
   useEffect(() => {
     setIsMounted(true)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setUser(session?.user || null)
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -80,7 +89,7 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
-    { href: "/guide", label: "AI Гид" },
+    // { href: "/guide", label: "AI Гид" }, // Hidden - preserved for future mobile app
     { href: "/results", label: "Маршруты" },
     { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
@@ -119,6 +128,28 @@ export function Header({ floating = false }: HeaderProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Mobile Navigation Menu */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                  <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {navLinks.map((link) => (
+                    <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                      <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
+                        {link.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <ModeToggle />
             {user ? (
               <DropdownMenu>
@@ -132,7 +163,7 @@ export function Header({ floating = false }: HeaderProps) {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 rounded-xl" align="end" forceMount>
+                <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
@@ -142,22 +173,30 @@ export function Header({ floating = false }: HeaderProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile" className="w-full flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        Мой профиль
+                      <Link href="/profile" className="w-full flex items-center p-2">
+                        <User className="mr-3 h-4 w-4" />
+                        <span>Мой профиль</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=routes" className="w-full flex items-center">
-                        <Map className="mr-2 h-4 w-4" />
-                        Мои маршруты
+                      <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
+                        <Map className="mr-3 h-4 w-4" />
+                        <span>Мои маршруты</span>
                       </Link>
                     </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                        <Link href="/admin" className="w-full flex items-center p-2">
+                          <Shield className="mr-3 h-4 w-4" />
+                          <span>Админ-панель</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Выйти
+                  <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer p-2" onClick={handleLogout}>
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span>Выйти</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -187,9 +226,9 @@ export function Header({ floating = false }: HeaderProps) {
     <div className="sticky top-0 z-50 w-full p-3 md:p-4">
       <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-          <Logo size={28} />
-          <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
+        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
+          <Logo size={24} />
+          <span className="text-sm font-semibold tracking-tight">TraveLM</span>
         </Link>
 
         {/* Navigation - Desktop */}
@@ -210,30 +249,30 @@ export function Header({ floating = false }: HeaderProps) {
           ))}
         </nav>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden flex items-center">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-2">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 p-2 rounded-xl">
-              <DropdownMenuLabel>Меню</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {navLinks.map((link) => (
-                <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                  <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
-                    {link.label}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Actions */}
+        {/* Actions & Mobile Menu */}
         <div className="flex items-center gap-2">
+          {/* Mobile Navigation Trigger */}
+          <div className="md:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="mr-1">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+                <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {navLinks.map((link) => (
+                  <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                    <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
+                      {link.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <ModeToggle />
 
           {user ? (
@@ -258,7 +297,7 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                    <Link href="/profile?tab=profile" className="w-full flex items-center p-2">
+                    <Link href="/profile" className="w-full flex items-center p-2">
                       <User className="mr-3 h-4 w-4" />
                       <span>Мой профиль</span>
                     </Link>
@@ -275,6 +314,14 @@ export function Header({ floating = false }: HeaderProps) {
                       <span>Настройки</span>
                     </Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                      <Link href="/admin" className="w-full flex items-center p-2">
+                        <Shield className="mr-3 h-4 w-4" />
+                        <span>Админ-панель</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

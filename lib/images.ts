@@ -2,55 +2,90 @@
 // 1. Wikimedia Commons (Primary - Works in Russia, high quality)
 // 2. Static Fallback (Reliable known images for popular destinations)
 
+// --- In-memory cache for image URLs ---
+const imageCache = new Map<string, { url: string; timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 // --- Wikimedia Logic (Strict Photo Filter) ---
 
 async function searchWikimedia(query: string) {
     try {
+        // Clean up query first
+        // 1. Split by comma/slash and take first part (e.g. "Paris, France" -> "Paris")
+        let cleanQuery = query.split(/,| \/ /)[0].trim();
+
+        // 2. Remove "travel" or "trip" if present to avoid duplication
+        cleanQuery = cleanQuery.replace(/\s+(travel|trip|journey|vacation)$/i, "").trim();
+
+        // 3. Construct intelligent queries
         const queries = [
-            query + " travel",
-            query + " landmark",
-            query + " city",
-            query.split(' ').slice(0, 2).join(' '),
-            query.split(' ')[0]
+            cleanQuery + " landmark",   // "Paris landmark" - good for iconic shots
+            cleanQuery + " tourism",    // "Paris tourism"
+            cleanQuery + " travel",     // "Paris travel" 
+            cleanQuery,                 // "Paris" - broad
+            "Tourism in " + cleanQuery  // "Tourism in Paris" - common Wiki category style
         ];
+
+        // If query seems to be a country (no city), boost "landscape" or "nature"
+        if (!cleanQuery.includes(" ")) {
+            queries.push(cleanQuery + " landscape");
+            queries.push(cleanQuery + " nature");
+        }
 
         for (const q of queries) {
             if (!q || q.length < 2) continue;
 
-            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=15`;
-            const res = await fetch(url, {
-                headers: { 'Accept': 'application/json' }
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s timeout
 
-            if (!res.ok) continue;
-            const data = await res.json();
-
-            if (data.query && data.query.pages) {
-                const pages = Object.values(data.query.pages) as any[];
-
-                // Strict Filter: Photos only (JPG), no maps/flags/icons
-                const validImage = pages.find(p => {
-                    const imgUrl = p.imageinfo?.[0]?.url?.toLowerCase();
-                    const title = p.title?.toLowerCase() || "";
-
-                    if (!imgUrl) return false;
-
-                    // Must be JPG
-                    if (!imgUrl.endsWith('.jpg') && !imgUrl.endsWith('.jpeg')) return false;
-
-                    // Content blacklist
-                    const blacklist = ['map', 'chart', 'diagram', 'coat of arms', 'flag', 'icon', 'logo', 'stamp', 'seal', 'location'];
-                    if (blacklist.some(word => title.includes(word))) return false;
-
-                    return true;
+            try {
+                // Use 'generator=search' to find pages, then get imageinfo
+                const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=15`;
+                const res = await fetch(url, {
+                    headers: { 'Accept': 'application/json' },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
-                if (validImage) {
-                    return validImage.imageinfo[0].url;
+                if (!res.ok) continue;
+                const data = await res.json();
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages) as any[];
+
+                    // Efficient shuffle to not satisfy with just the first result always? 
+                    // No, relevance is usually best first. But Wiki search can be weird.
+
+                    // Strict Filter: Photos only (JPG), no maps/flags/icons
+                    const validImage = pages.find(p => {
+                        const imgUrl = p.imageinfo?.[0]?.url?.toLowerCase();
+                        const title = p.title?.toLowerCase() || "";
+
+                        if (!imgUrl) return false;
+
+                        // Strict format check
+                        if (!imgUrl.endsWith('.jpg') && !imgUrl.endsWith('.jpeg')) return false;
+
+                        // Content blacklist
+                        const blacklist = ['map', 'chart', 'diagram', 'coat of arms', 'flag', 'icon', 'logo', 'stamp', 'seal', 'location', 'stub', 'currency', 'coa'];
+                        if (blacklist.some(word => title.includes(word))) return false;
+
+                        // Size check (if available in metadata? Wiki doesn't always return dimensions easily in this query, but we assume file size is okay)
+
+                        return true;
+                    });
+
+                    if (validImage) {
+                        return validImage.imageinfo[0].url;
+                    }
                 }
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                // Timeout or network error, try next query
+                continue;
             }
         }
-        return null;
+        return null; // No image found after all attempts
     } catch (e) {
         return null;
     }
@@ -85,6 +120,24 @@ const FALLBACK_IMAGES: Record<string, string> = {
     "амстердам": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
     "netherlands": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
     "нидерланды": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
+    "turkey": "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
+    "турция": "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
+    "egypt": "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
+    "египет": "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
+    "thailand": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
+    "таиланд": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
+    "japan": "https://upload.wikimedia.org/wikipedia/commons/6/67/Chureito_Pagoda_and_Mount_Fuji.jpg",
+    "япония": "https://upload.wikimedia.org/wikipedia/commons/6/67/Chureito_Pagoda_and_Mount_Fuji.jpg",
+    "china": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Great_Wall_of_China_July_2006.jpg",
+    "китай": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Great_Wall_of_China_July_2006.jpg",
+    "usa": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Empire_State_Building_from_the_Top_of_the_Rock.jpg",
+    "сша": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Empire_State_Building_from_the_Top_of_the_Rock.jpg",
+    "asia": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
+    "азия": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
+    "africa": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lion_d%27Afrique.jpg",
+    "африка": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lion_d%27Afrique.jpg",
+    "europe": "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
+    "европа": "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
     "travel": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
 };
 
@@ -101,12 +154,31 @@ function getStaticFallback(query: string): string {
 // --- Main Export ---
 
 export async function getDestinationImage(query: string) {
-    // 1. Try Wikimedia (Primary - Works in Russia)
-    const wikiImage = await searchWikimedia(query);
-    if (wikiImage) return wikiImage;
+    const cacheKey = query.toLowerCase().trim();
 
-    // 2. Fallback: Known static images for popular destinations
-    return getStaticFallback(query);
+    // Check cache first
+    const cached = imageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.url;
+    }
+
+    // Check static fallback first (instant)
+    const staticImage = getStaticFallback(query);
+    if (staticImage !== FALLBACK_IMAGES["travel"]) {
+        imageCache.set(cacheKey, { url: staticImage, timestamp: Date.now() });
+        return staticImage;
+    }
+
+    // Try Wikimedia (slower, with timeout)
+    const wikiImage = await searchWikimedia(query);
+    if (wikiImage) {
+        imageCache.set(cacheKey, { url: wikiImage, timestamp: Date.now() });
+        return wikiImage;
+    }
+
+    // Fallback to generic travel image
+    imageCache.set(cacheKey, { url: staticImage, timestamp: Date.now() });
+    return staticImage;
 }
 
 export async function getGalleryImages(query: string, count: number = 4) {

@@ -58,11 +58,12 @@ const navItems = [
         href: "/news",
         icon: Newspaper,
     },
-    {
-        title: "ИИ-гид",
-        href: "/guide",
-        icon: Sparkles,
-    },
+    // Hidden - preserved for future mobile app
+    // {
+    //     title: "ИИ-гид",
+    //     href: "/guide",
+    //     icon: Sparkles,
+    // },
 ]
 
 export function AppSidebar() {

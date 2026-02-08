@@ -13,7 +13,7 @@ export default function NotFound() {
             <div className="absolute inset-0 z-0">
                 <MeshGradient
                     className="w-full h-full opacity-40"
-                    colors={["#10B981", "#3B82F6", "#8B5CF6", "#10B981"]}
+                    colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
                     speed={0.1}
                 />
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-3xl" />
@@ -98,7 +98,7 @@ export default function NotFound() {
 
             {/* Subtle Scanning Line Animation */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10">
-                <div className="w-full h-[1px] bg-primary shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-[scanning_4s_linear_infinite]" />
+                <div className="w-full h-[1px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.5)] animate-[scanning_4s_linear_infinite]" />
             </div>
 
             <style jsx global>{`

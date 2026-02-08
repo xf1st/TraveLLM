@@ -19,7 +19,7 @@
 ```
 
 > ⚠️ **Cerebras модели отключены** для экономии бесплатного тарифа HuggingFace.
-> Чтобы включить — раскомментируй код в [/app/api/groq/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/groq/route.ts) (строки 198-217).
+> Чтобы включить — раскомментируй код в [/app/api/deepseek/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/deepseek/route.ts) (строки 198-217).
 
 ---
 
@@ -27,8 +27,7 @@
 
 ```
 app/
-  api/
-    groq/route.ts      ← Главный API для генерации маршрутов
+  api/deepseek/route.ts      ← Главный API для генерации маршрутов
     image/route.ts     ← Прокси API для изображений (Wikimedia)
 lib/
   cerebras.ts          ← GLM-4.7 + Llama-3.3-70B через HF Router (DISABLED)
@@ -103,11 +102,11 @@ export async function llamaInference(messages, options) { ... }
 │    ↓                                                                 │
 │  Пользователь заполняет форму                                        │
 │    ↓                                                                 │
-│  POST /api/groq с данными формы                                      │
+│  POST /api/deepseek с данными формы                                      │
 └─────────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────────┐
-│  BACKEND — /api/groq/route.ts                                        │
+│  BACKEND — /api/deepseek/route.ts                                        │
 │    ↓                                                                 │
 │  1. Формируем промпт с данными пользователя                          │
 │    ↓                                                                 │
@@ -150,7 +149,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 ## 🚀 Как включить мощные модели
 
-Если нужно лучшее качество генерации, раскомментируй в файле [app/api/groq/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/groq/route.ts):
+Если нужно лучшее качество генерации, раскомментируй в файле [app/api/deepseek/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/deepseek/route.ts):
 
 ```typescript
 // Строки 198-217 — убери /* и */ вокруг этого блока:
@@ -194,7 +193,7 @@ export async function getDestinationImage(query: string) {
 
 ## 📋 Промпт (без изменений)
 
-Полный промпт находится в [app/api/groq/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/groq/route.ts) (строки 46-140).
+Полный промпт находится в [app/api/deepseek/route.ts](file:///d:/sites/travelmind-ai-guide/app/api/deepseek/route.ts) (строки 46-140).
 
 Ключевые инструкции:
 - Строгая длительность: `STRICT: Generate exactly N days`
