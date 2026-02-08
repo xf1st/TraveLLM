@@ -518,12 +518,12 @@ export default function PlanPage() {
                 <p className="text-sm text-muted-foreground mt-1">Выберите уровень комфорта и стиль</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-lg mx-auto w-full">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
                   <CreditCard className="h-4 w-4 text-amber-400" />
                   Бюджет
                 </Label>
-                <RadioGroup value={budget} onValueChange={setBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-lg mx-auto">
+                <RadioGroup value={budget} onValueChange={setBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   {[
                     { id: "economy", title: "Эконом", range: "₽5-10k", icon: ShoppingBag },
                     { id: "comfort", title: "Комфорт", range: "₽15-30k", icon: CreditCard },
@@ -553,7 +553,7 @@ export default function PlanPage() {
 
                 {/* Custom budget */}
                 <div className={cn(
-                  "flex items-center gap-3 p-4 rounded-2xl transition-all max-w-lg mx-auto",
+                  "flex items-center gap-3 p-4 rounded-2xl transition-all",
                   budget === 'custom' ? "bg-primary/10 border border-primary/30" : "bg-white/5 border border-white/10"
                 )}>
                   <Sparkles className={cn("h-5 w-5", budget === 'custom' ? 'text-primary' : 'text-muted-foreground')} />
@@ -568,18 +568,18 @@ export default function PlanPage() {
                       setCustomBudget(rawValue)
                       if (rawValue) setBudget("custom")
                     }}
-                    className="h-12 w-32 text-center font-bold bg-transparent border-0 border-b-2 border-white/20 focus:border-primary rounded-none px-2 text-lg"
+                    className="h-12 flex-1 text-center font-bold bg-transparent border-0 border-b-2 border-white/20 focus:border-primary rounded-none px-2 text-lg"
                   />
                   <span className="font-bold">₽</span>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-w-lg mx-auto w-full">
                 <Label className="text-sm font-semibold flex items-center gap-2">
                   <Palette className="h-4 w-4 text-primary" />
                   Интересы
                 </Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-lg mx-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { id: "culture", label: "Культура", icon: Compass },
                     { id: "nature", label: "Природа", icon: Mountain },
@@ -631,12 +631,12 @@ export default function PlanPage() {
                 <p className="text-sm text-muted-foreground mt-1">С кем едете и способ оплаты</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-lg mx-auto w-full">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
                   <Users className="h-4 w-4 text-pink-400" />
                   Компания
                 </Label>
-                <RadioGroup value={companions} onValueChange={setCompanions} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-lg mx-auto">
+                <RadioGroup value={companions} onValueChange={setCompanions} className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {[
                     { id: "solo", label: "Один", icon: "👤" },
                     { id: "couple", label: "Вдвоем", icon: "💑" },
@@ -661,7 +661,7 @@ export default function PlanPage() {
                 </RadioGroup>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 max-w-lg mx-auto w-full">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
                   <CreditCard className="h-4 w-4 text-pink-400" />
                   Способ оплаты
@@ -669,7 +669,7 @@ export default function PlanPage() {
                 <RadioGroup
                   value={paymentMethods[0] || ""}
                   onValueChange={(v) => setPaymentMethods([v])}
-                  className="grid grid-cols-4 gap-2"
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2"
                 >
                   {[
                     { id: "mir", label: "МИР", icon: <Image src="/Mir.png" alt="MIR" width={40} height={16} className="h-5 w-auto object-contain" unoptimized /> },
