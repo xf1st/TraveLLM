@@ -9,7 +9,7 @@ import { getStatsForPeriod, getTopSpenders } from '@/lib/admin-stats'
 const MAIN_MENU = {
     keyboard: [
         [{ text: "📊 Статистика" }, { text: "👥 Пользователи" }],
-        [{ text: "🔙 Главное меню" }] // Or just rely on "Start"
+        [{ text: "🔙 Главное меню" }]
     ],
     resize_keyboard: true
 }
@@ -52,19 +52,16 @@ async function handlePeriodStats(chatId: number, period: 'today' | 'yesterday' |
             start.setHours(0, 0, 0, 0)
             break
         case 'month':
-            start.setDate(1) // 1st of current month? Or last 30 days? User said "Month".
-            // Morning report "for month" usually means "current month".
             start.setDate(1)
             start.setHours(0, 0, 0, 0)
             break
         case 'all':
-            start = new Date(0) // Epoch
+            start = new Date(0)
             break
     }
 
     const stats = await getStatsForPeriod(start, end)
 
-    // Title mapping
     const titles: Record<string, string> = {
         today: 'Сегодня',
         yesterday: 'Вчера',
@@ -87,8 +84,6 @@ async function handlePeriodStats(chatId: number, period: 'today' | 'yesterday' |
 
 async function handleTopSpenders(chatId: number) {
     await sendTelegramMessage(chatId, "🔍 Ищем транжир...", USERS_MENU)
-
-    // Top 10 users last 30 days
     const spenders = await getTopSpenders(10, 30)
 
     if (!spenders.length) {
@@ -97,11 +92,9 @@ async function handleTopSpenders(chatId: number) {
     }
 
     let msg = "<b>🏆 Топ-10 по расходам (30 дней):</b>\n\n"
-
     spenders.forEach((u, i) => {
         const name = u.name || 'Без имени'
         const email = u.email || 'Нет email'
-        // Escape HTML in name/email if needed (omitted for brevity, be careful)
         msg += `${i + 1}. <b>${name}</b> (${email})\n`
         msg += `   💸 <b>${u.costRub.toFixed(1)} ₽</b> | 🪙 ${(u.tokens / 1000).toFixed(1)}k\n\n`
     })
@@ -112,6 +105,7 @@ async function handleTopSpenders(chatId: number) {
 // --- Webhook ---
 
 export async function POST(req: Request) {
+    let chatId = 0;
     try {
         const update = await req.json()
 
@@ -119,22 +113,45 @@ export async function POST(req: Request) {
             return NextResponse.json({ ok: true })
         }
 
-        const chatId = update.message.chat.id
+        chatId = update.message.chat.id
         const text = (update.message.text as string).trim()
 
-        // 1. Connection (Raw Token)
-        if (!text.startsWith('/') && text.length > 20 && text.includes('-')) {
-            const userId = verifyConnectToken(text)
+        console.log(`[Telegram] Msg from ${chatId}: ${text}`)
+
+        // 1. Check for Token (Deep Link OR Raw Message)
+        let potentialToken: string | null = null
+
+        if (text.startsWith('/start ') && text.split(' ').length > 1) {
+            potentialToken = text.split(' ')[1]
+        } else if (!text.startsWith('/') && text.length > 20) {
+            // Assume raw token
+            potentialToken = text
+        }
+
+        // 2. Try to Connect if Token Present
+        if (potentialToken) {
+            const userId = verifyConnectToken(potentialToken)
             if (userId) {
                 // Connect Logic
                 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-                await supabase.from('profiles').update({ telegram_chat_id: chatId.toString() }).eq('id', userId)
-                await sendTelegramMessage(chatId, '✅ <b>Успешно!</b> Вы администратор.', MAIN_MENU)
+
+                // Unlink old if exists? No, just update.
+                const { error } = await supabase.from('profiles').update({ telegram_chat_id: chatId.toString() }).eq('id', userId)
+
+                if (error) {
+                    await sendTelegramMessage(chatId, '❌ Ошибка базы данных при подключении.')
+                } else {
+                    await sendTelegramMessage(chatId, '✅ <b>Успешно!</b> Вы подключены как администратор.', MAIN_MENU)
+                }
                 return NextResponse.json({ ok: true })
+            } else {
+                // Invalid token
+                await sendTelegramMessage(chatId, '⚠️ Неверный или устаревший код подключения.')
+                // Don't return, users might be trying commands
             }
         }
 
-        // 2. Admin Check
+        // 3. Admin Check
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
         const { data: profile } = await supabase
             .from('profiles')
@@ -142,17 +159,22 @@ export async function POST(req: Request) {
             .eq('telegram_chat_id', chatId.toString())
             .single()
 
-        if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
-            // Not admin logic here
+        const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+
+        if (!isAdmin) {
+            // Avoid spamming if it was a failed token attempt above, but otherwise say hello
+            if (!potentialToken) {
+                await sendTelegramMessage(chatId, '🔒 Доступ запрещен. Подключите аккаунт через админ-панель сайта.')
+            }
             return NextResponse.json({ ok: true })
         }
 
-        // 3. Command Routing
+        // 4. Command Routing (Admins Only)
         switch (text) {
             case '/start':
             case '🔙 Главное меню':
-            case '🔙 Назад': // Simple back logic
-                await sendTelegramMessage(chatId, '🤖 <b>Меню</b>', MAIN_MENU)
+            case '🔙 Назад':
+                await sendTelegramMessage(chatId, '🤖 <b>Меню администратора</b>', MAIN_MENU)
                 break
 
             // Stats
@@ -174,13 +196,17 @@ export async function POST(req: Request) {
                 break
 
             default:
-                // Silent fail or help?
+                // Don't respond to unknown text to allow other bot uses if any, or say "Unknown"
+                // await sendTelegramMessage(chatId, 'Неизвестная команда', MAIN_MENU)
                 break
         }
 
         return NextResponse.json({ ok: true })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Webhook Error:', error)
-        return NextResponse.json({ ok: true })
+        if (chatId) {
+            await sendTelegramMessage(chatId, `❌ Произошла ошибка: ${error.message || 'Unknown error'}`)
+        }
+        return NextResponse.json({ ok: true }) // Always 200 to Telegram
     }
 }
