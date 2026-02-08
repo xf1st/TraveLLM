@@ -8,21 +8,32 @@ export const TG_API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`
 /**
  * Send a message to a Telegram chat
  */
-export async function sendTelegramMessage(chatId: string | number, text: string, parseMode: 'Markdown' | 'HTML' = 'HTML') {
+export async function sendTelegramMessage(
+    chatId: string | number,
+    text: string,
+    parseMode: 'Markdown' | 'HTML' = 'HTML',
+    replyMarkup?: object
+) {
     if (!BOT_TOKEN) {
         console.warn('TELEGRAM_BOT_TOKEN is not set')
         return null
     }
 
     try {
+        const body: any = {
+            chat_id: chatId,
+            text,
+            parse_mode: parseMode
+        }
+
+        if (replyMarkup) {
+            body.reply_markup = replyMarkup
+        }
+
         const res = await fetch(`${TG_API_URL}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: chatId,
-                text,
-                parse_mode: parseMode
-            })
+            body: JSON.stringify(body)
         })
 
         const data = await res.json()

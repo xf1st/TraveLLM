@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendTelegramMessage } from '@/lib/telegram'
+import { getStatsForPeriod } from '@/lib/admin-stats'
 
 export async function GET(req: Request) {
     // 1. Verify Secret
@@ -17,59 +18,51 @@ export async function GET(req: Request) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // 2. Get Statistics (Last 24h)
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
+        // 2. Calculate Dates
+        const now = new Date()
 
-        const { data: trips, error: tripsError } = await supabase
-            .from('trips')
-            .select('token_usage, created_at')
-            .gte('created_at', yesterday.toISOString())
+        // Yesterday (00:00 - 23:59)
+        const yesterdayStart = new Date(now)
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+        yesterdayStart.setHours(0, 0, 0, 0)
 
-        if (tripsError) throw tripsError
+        const yesterdayEnd = new Date(yesterdayStart)
+        yesterdayEnd.setHours(23, 59, 59, 999)
 
-        let totalTokens = 0
-        let totalCostRub = 0
-        let tripCount = trips?.length || 0
-        let tripsWithUsage = 0
+        // Current Month (1st - Now)
+        const monthStart = new Date(now)
+        monthStart.setDate(1)
+        monthStart.setHours(0, 0, 0, 0)
 
-        trips?.forEach(trip => {
-            if (trip.token_usage) {
-                tripsWithUsage++
-                totalTokens += trip.token_usage.totalTokens || 0
-                totalCostRub += trip.token_usage.costRub || 0
-            }
-        })
+        // 3. Fetch Stats
+        const [dayStats, monthStats] = await Promise.all([
+            getStatsForPeriod(yesterdayStart, yesterdayEnd),
+            getStatsForPeriod(monthStart, now)
+        ])
 
-        if (tripCount === 0) {
-            // Optional: Don't send report if no activity? Or send "No activity".
-            // Let's send "No activity" so admin knows bot is alive.
-        }
-
+        // 4. Format Message
         const message = `
-📊 <b>Daily AI Report</b> (${new Date().toLocaleDateString('ru-RU')})
+🔔 <b>Ежедневный отчет (${yesterdayStart.toLocaleDateString('ru-RU')})</b>
 
-<b>Activity:</b>
-• New Trips: ${tripCount}
-• AI Usage: ${tripsWithUsage} trips
+📅 <b>За вчера:</b>
+👤 Новых пользователей: <b>${dayStats.users}</b>
+🪙 Расход токенов: <b>${dayStats.tokens.toLocaleString()}</b>
+💵 Стоимость: <b>${dayStats.costRub.toFixed(2)} ₽</b> ($${dayStats.costUsd.toFixed(2)})
+🗺 Создано маршрутов: <b>${dayStats.trips}</b>
 
-<b>Resources:</b>
-• Tokens: ${totalTokens.toLocaleString('ru-RU')}
-• Cost: ${totalCostRub.toFixed(2)} ₽
+🗓 <b>В этом месяце:</b>
+👤 Пользователей: <b>${monthStats.users}</b>
+🪙 Токенов: <b>${monthStats.tokens.toLocaleString()}</b>
+💵 Стоимость: <b>${monthStats.costRub.toFixed(2)} ₽</b>
+`.trim()
 
-<i>Report generated automatically.</i>
-`
-
-        // 3. Get Admins with Telegram
-        const { data: admins, error: adminsError } = await supabase
+        // 5. Send to Admins
+        const { data: admins } = await supabase
             .from('profiles')
             .select('telegram_chat_id')
-            .in('role', ['admin', 'super_admin'])
+            .eq('role', 'admin') // Or check logic for admins
             .not('telegram_chat_id', 'is', null)
 
-        if (adminsError) throw adminsError
-
-        // 4. Send Messages
         let sentCount = 0
         if (admins) {
             for (const admin of admins) {
