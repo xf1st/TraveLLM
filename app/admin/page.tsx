@@ -199,7 +199,18 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex justify-end mb-6">
-          <form action={connectTelegram}>
+          <form action={async () => {
+            try {
+              const result = await connectTelegram()
+              // @ts-ignore
+              if (result?.error) {
+                // @ts-ignore
+                toast.error(result.error)
+              }
+            } catch (e) {
+              // Redirects might throw errors in some Next.js versions, but usually handled by server action
+            }
+          }}>
             <Button type="submit" variant="outline" className="gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
               Подключить Telegram Bot

@@ -6,43 +6,61 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 export async function connectTelegram() {
-    const cookieStore = await cookies()
+    try {
+        const cookieStore = await cookies()
 
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value
-                },
-                set(name: string, value: string, options: CookieOptions) {
-                    // No-op for read-only actions
-                },
-                remove(name: string, options: CookieOptions) {
-                    // No-op
-                },
-            },
+        // Check if we can even access cookies (sometimes missing in build/static generation)
+        if (!cookieStore) {
+            return { error: 'Cookie store unavailable' }
         }
-    )
 
-    const { data: { user } } = await supabase.auth.getUser()
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value
+                    },
+                    set(name: string, value: string, options: CookieOptions) {
+                    },
+                    remove(name: string, options: CookieOptions) {
+                    },
+                },
+            }
+        )
 
-    if (!user) {
-        throw new Error('Not authenticated')
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (error || !user) {
+            console.error("Connect Telegram Auth Error:", error)
+            return { error: 'Not authenticated. Please log in.' }
+        }
+
+        const token = generateConnectToken(user.id)
+
+        const botToken = process.env.TELEGRAM_BOT_TOKEN
+        if (!botToken) return { error: 'Bot configuration missing' }
+
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`)
+        const data = await res.json()
+
+        if (!data.ok) return { error: 'Failed to contact Telegram API' }
+
+        const botUsername = data.result.username
+
+        // Redirect throws an error, so we must do it outside the try-catch or rethrow
+        // But since we are inside a try block, we'll return the URL and redirect on client 
+        // OR just redirect here and let it bubble if we catch properly.
+        // Standard pattern: redirect() should handle itself.
+
+        redirect(`https://t.me/${botUsername}?start=${token}`)
+
+    } catch (e: any) {
+        if (e.message === 'NEXT_REDIRECT') throw e; // Let redirect pass
+        if (e.digest?.startsWith('NEXT_REDIRECT')) throw e; // Next.js 14/15 redirect
+
+        console.error("Connect Telegram Action Error:", e)
+        return { error: e.message || 'Unknown error' }
     }
-
-    const token = generateConnectToken(user.id)
-
-    const botToken = process.env.TELEGRAM_BOT_TOKEN
-    if (!botToken) throw new Error('Bot token not set')
-
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`)
-    const data = await res.json()
-
-    if (!data.ok) throw new Error('Failed to get bot info')
-
-    const botUsername = data.result.username
-
-    redirect(`https://t.me/${botUsername}?start=${token}`)
 }
