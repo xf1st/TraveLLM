@@ -83,7 +83,7 @@ async function handlePeriodStats(chatId: number, period: 'today' | 'yesterday' |
 }
 
 async function handleTopSpenders(chatId: number) {
-    await sendTelegramMessage(chatId, "🔍 Ищем транжир...", USERS_MENU)
+    await sendTelegramMessage(chatId, "🔍 Ищем транжир...", 'HTML', USERS_MENU)
     const spenders = await getTopSpenders(10, 30)
 
     if (!spenders.length) {
@@ -141,7 +141,7 @@ export async function POST(req: Request) {
                 if (error) {
                     await sendTelegramMessage(chatId, '❌ Ошибка базы данных при подключении.')
                 } else {
-                    await sendTelegramMessage(chatId, '✅ <b>Успешно!</b> Вы подключены как администратор.', MAIN_MENU)
+                    await sendTelegramMessage(chatId, '✅ <b>Успешно!</b> Вы подключены как администратор.', 'HTML', MAIN_MENU)
                 }
                 return NextResponse.json({ ok: true })
             } else {
@@ -174,12 +174,12 @@ export async function POST(req: Request) {
             case '/start':
             case '🔙 Главное меню':
             case '🔙 Назад':
-                await sendTelegramMessage(chatId, '🤖 <b>Меню администратора</b>', MAIN_MENU)
+                await sendTelegramMessage(chatId, '🤖 <b>Меню администратора</b>', 'HTML', MAIN_MENU)
                 break
 
             // Stats
             case '📊 Статистика':
-                await sendTelegramMessage(chatId, 'Выберите период:', STATS_MENU)
+                await sendTelegramMessage(chatId, 'Выберите период:', 'HTML', STATS_MENU)
                 break
             case '📅 Сегодня': await handlePeriodStats(chatId, 'today'); break
             case '🗓 Вчера': await handlePeriodStats(chatId, 'yesterday'); break
@@ -189,7 +189,7 @@ export async function POST(req: Request) {
 
             // Users
             case '👥 Пользователи':
-                await sendTelegramMessage(chatId, 'Управление пользователями:', USERS_MENU)
+                await sendTelegramMessage(chatId, 'Управление пользователями:', 'HTML', USERS_MENU)
                 break
             case '🏆 Топ транжир':
                 await handleTopSpenders(chatId)
@@ -197,7 +197,7 @@ export async function POST(req: Request) {
 
             default:
                 // Don't respond to unknown text to allow other bot uses if any, or say "Unknown"
-                // await sendTelegramMessage(chatId, 'Неизвестная команда', MAIN_MENU)
+                // await sendTelegramMessage(chatId, 'Неизвестная команда', 'HTML', MAIN_MENU)
                 break
         }
 
@@ -209,4 +209,22 @@ export async function POST(req: Request) {
         }
         return NextResponse.json({ ok: true }) // Always 200 to Telegram
     }
+}
+
+export async function GET(req: Request) {
+    const hasToken = !!process.env.TELEGRAM_BOT_TOKEN
+    const hasSecret = !!process.env.TELEGRAM_BOT_SECRET
+    const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    return NextResponse.json({
+        status: 'active',
+        env_check: {
+            TELEGRAM_BOT_TOKEN: hasToken,
+            TELEGRAM_BOT_SECRET: hasSecret,
+            NEXT_PUBLIC_SUPABASE_URL: hasSupabase,
+            SUPABASE_SERVICE_ROLE_KEY: hasServiceKey
+        },
+        timestamp: new Date().toISOString()
+    })
 }
