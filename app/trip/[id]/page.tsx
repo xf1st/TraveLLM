@@ -64,6 +64,7 @@ import { FlightCard } from "@/components/itinerary/FlightCard"
 import { HotelCard } from "@/components/itinerary/HotelCard"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
 import { PlaceGallery } from "@/components/PlaceGallery"
+import { ViralSpotCard } from "@/components/ViralSpotCard"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -761,16 +762,7 @@ export default function TripDetailPage() {
                   </h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     {route.viralSpots.map((spot: any, idx: number) => (
-                      <Card key={idx} className="p-4 bg-black/40 border border-white/10 backdrop-blur-md hover:border-pink-500/50 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-lg leading-tight text-white/90">{spot.name}</h3>
-                          <Badge variant="outline" className="text-[10px] text-pink-400 border-pink-500/30 whitespace-nowrap ml-2">Viral</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{spot.desc || spot.description}</p>
-                        <Button size="sm" variant="secondary" className="w-full text-xs font-bold rounded-lg" onClick={() => window.open(spot.mapLink, '_blank')}>
-                          <MapPin className="h-3 w-3 mr-2 text-pink-500" /> Показать на карте
-                        </Button>
-                      </Card>
+                      <ViralSpotCard key={idx} {...spot} />
                     ))}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-3 italic text-center opacity-60">
@@ -778,6 +770,7 @@ export default function TripDetailPage() {
                   </p>
                 </div>
               )}
+
 
               {/* --- SOCIAL LAYER REMOVED BY USER REQUEST --- */}
             </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Plane, Clock, Luggage, Package, Users, Calendar, ArrowRight, ExternalLink, Circle } from "lucide-react"
+import { Plane, Clock, Luggage, Package, Users, Calendar, ArrowRight, ExternalLink, Circle, AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -53,6 +53,10 @@ interface FlightCardProps {
     // Fallback flag (no real data, just booking link)
     isFallback?: boolean
 
+    // Approximate price (no exact date flights available)
+    isApproximate?: boolean
+    approximateNote?: string
+
     className?: string
 }
 
@@ -97,6 +101,8 @@ export function FlightCard({
     terminal,
     bookingUrl,
     isFallback,
+    isApproximate,
+    approximateNote,
     className
 }: FlightCardProps) {
     const transferInfo = getTransferInfo(transfer)
@@ -206,11 +212,20 @@ export function FlightCard({
                     <div className="min-w-0">
                         {hasPriceData ? (
                             <>
-                                <span className="text-sm font-black text-blue-600 dark:text-blue-400 leading-none">
-                                    <span className="text-[9px] font-bold">от </span>
+                                <span className={cn(
+                                    "text-sm font-black leading-none",
+                                    isApproximate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
+                                )}>
+                                    <span className="text-[9px] font-bold">{isApproximate ? "~" : "от"} </span>
                                     {price.toLocaleString("ru-RU")} ₽
                                 </span>
-                                {perPerson && passengers && passengers > 1 && (
+                                {isApproximate && (
+                                    <div className="flex items-center gap-0.5 text-[8px] text-amber-600 dark:text-amber-400">
+                                        <AlertTriangle className="w-2 h-2" />
+                                        <span>нет на эту дату</span>
+                                    </div>
+                                )}
+                                {!isApproximate && perPerson && passengers && passengers > 1 && (
                                     <div className="text-[8px] text-muted-foreground">
                                         от {perPerson.toLocaleString("ru-RU")} ₽/чел.
                                     </div>
@@ -230,6 +245,7 @@ export function FlightCard({
                     </Button>
                 </div>
             </div>
+
 
             {/* ===== DESKTOP LAYOUT ===== */}
             <div className="hidden sm:block p-3 sm:p-5 space-y-3 sm:space-y-4 overflow-hidden max-w-full">
@@ -440,14 +456,22 @@ export function FlightCard({
                     <div className="flex flex-col items-end gap-2">
                         {hasPriceData ? (
                             <div className="text-right">
-                                <div className="text-2xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
-                                    <span className="text-base font-bold">от </span>{price.toLocaleString("ru-RU")} ₽
+                                <div className={cn(
+                                    "text-2xl font-black tracking-tight",
+                                    isApproximate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
+                                )}>
+                                    <span className="text-base font-bold">{isApproximate ? "~" : "от"} </span>{price.toLocaleString("ru-RU")} ₽
                                 </div>
-                                {perPerson && perPerson > 0 && passengers && passengers > 1 && (
+                                {isApproximate ? (
+                                    <div className="flex items-center justify-end gap-1 text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        <span>Нет рейсов на эту дату</span>
+                                    </div>
+                                ) : perPerson && perPerson > 0 && passengers && passengers > 1 ? (
                                     <div className="text-[10px] text-muted-foreground/70">
                                         от {perPerson.toLocaleString("ru-RU")} ₽ за чел.
                                     </div>
-                                )}
+                                ) : null}
                             </div>
                         ) : (
                             <div className="text-right">
@@ -465,6 +489,7 @@ export function FlightCard({
                             <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                     </div>
+
                 </div>
             </div>
         </Card>

@@ -229,6 +229,7 @@ export default function PlanPage() {
       const requestPayload = {
         destination: destinationValue,
         destinationType,
+        customDestination: destination === "custom" ? sanitizeInput(customDestination) : undefined,
         days: tripDays,
         budget: effectiveBudget,
         customBudget: budget === "custom" ? customBudget : undefined,
@@ -242,6 +243,7 @@ export default function PlanPage() {
         endDate: date?.to?.toISOString().split("T")[0],
         travelersCount
       }
+
 
       console.log("Submitting request:", requestPayload)
 
@@ -263,14 +265,58 @@ export default function PlanPage() {
         throw new Error("Invalid response format")
       }
 
-      const routeId = `trip_${Date.now()}`
-      const storageSuccess = setItem(routeId, JSON.stringify(routeData))
+      // Get current user session
+      const { data: { user } } = await supabase.auth.getUser()
 
-      if (!storageSuccess) {
-        console.warn("localStorage unavailable, using URL params")
+      if (user) {
+        // Authenticated user: Save to Supabase
+        const tripRecord = {
+          user_id: user.id,
+          title: routeData.title || "Новый маршрут",
+          destination: routeData.countries?.[0]?.name || customDestination || "Путешествие",
+          description: routeData.description || "",
+          itinerary: routeData.itinerary || [],
+          total_cost: routeData.totalBudget || "",
+          tags: routeData.tags || [],
+          cover_image: routeData.coverImage || "",
+          countries: routeData.countries || [],
+          budget_analysis: routeData.budgetAnalysis || null,
+          visa_advice: routeData.visaAdvice || "",
+          payment_advice: routeData.paymentAdvice || "",
+          safety_info: routeData.safetyInfo || null,
+          restrictions: routeData.restrictions || null,
+          viral_spots: routeData.viralSpots || [],
+          flights: routeData.flights || [],
+          hotels: routeData.hotels || [],
+          token_usage: routeData.tokenUsage || null
+        }
+
+        const { data: insertedTrip, error } = await supabase
+          .from('trips')
+          .insert(tripRecord)
+          .select()
+          .single()
+
+        if (error) {
+          console.error("Failed to save trip to database:", error)
+          // Fallback to localStorage on DB error
+          const localId = `local-${Date.now()}`
+          localStorage.setItem(`trip-${localId}`, JSON.stringify(routeData))
+          router.push(`/trip/${localId}`)
+          return
+        }
+
+        // Redirect using the database-generated UUID
+        router.push(`/trip/${insertedTrip.id}`)
+      } else {
+        // Guest user: Save to localStorage with 'local-' prefix
+        const localId = `${Date.now()}`
+        localStorage.setItem(`trip-local-${localId}`, JSON.stringify(routeData))
+        // Also save as lastGeneratedRoute for /results page compatibility
+        localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+        router.push(`/trip/local-${localId}`)
       }
 
-      router.push(`/trip/${routeId}`)
     } catch (error: any) {
       console.error("Generation error:", error)
       setErrorModal({

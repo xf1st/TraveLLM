@@ -932,6 +932,8 @@ export interface RealFlight {
   baggage: { handLuggage: string; checked: string }
   bookingUrl: string
   isFallback?: boolean
+  isApproximate?: boolean  // True when price is estimated (no flights on exact date)
+  approximateNote?: string // Warning message for user
 }
 
 // Airline IATA codes to names mapping
@@ -1183,6 +1185,10 @@ export async function searchFlightsForDates(
         arrivalDate = arrDate.toISOString().split("T")[0]
       }
 
+      // Check if found flight matches the requested date
+      const isExactDate = dep.date === departDate
+      const daysDiff = Math.abs(new Date(dep.date).getTime() - targetTime) / 86400000
+
       const outbound: RealFlight = {
         origin: getCityName(originIata),
         destination: getCityName(destinationIata),
@@ -1197,10 +1203,11 @@ export async function searchFlightsForDates(
         transfers: item.transfers,
         duration: formatDuration(item.duration),
 
-        departureDate: dep.date,
-        departureTime: dep.time,
-        arrivalDate,
-        arrivalTime,
+        // For approximate prices, use requested date for display but indicate it's estimated
+        departureDate: isExactDate ? dep.date : departDate,
+        departureTime: isExactDate ? dep.time : "",
+        arrivalDate: isExactDate ? arrivalDate : departDate,
+        arrivalTime: isExactDate ? arrivalTime : "",
         departureCity: getCityName(originIata),
         departureCode: originIata,
         arrivalCity: getCityName(destinationIata),
@@ -1211,11 +1218,16 @@ export async function searchFlightsForDates(
         transfer: item.transfers > 0 ? { city: "Пересадка", duration: "~2ч" } : null,
         baggage: { handLuggage: "8 кг", checked: "23 кг" },
         bookingUrl,
-        isFallback: false
+        isFallback: false,
+        isApproximate: !isExactDate,
+        approximateNote: !isExactDate
+          ? `Нет рейсов на ${departDate}. Цена ~${Math.round(daysDiff)} дн. рядом`
+          : undefined
       }
 
       flights.push(outbound)
     }
+
 
     // Add return flight separately if we have returnDate
     if (returnDate && flights.length > 0) {
