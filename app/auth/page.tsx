@@ -24,13 +24,17 @@ function AuthContent() {
   const [name, setName] = useState("")
   const defaultTab = searchParams.get('tab') || 'login'
 
+  // Check if on admin subdomain
+  const isAdminSubdomain = typeof window !== 'undefined' && window.location.host.startsWith('admin.')
+  const defaultRedirect = isAdminSubdomain ? '/admin' : '/plan'
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        router.push("/plan")
+        router.push(defaultRedirect)
       }
     })
-  }, [router])
+  }, [router, defaultRedirect])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +58,7 @@ function AuthContent() {
           .single()
 
         if (profile?.preferences) {
-          router.push("/plan")
+          router.push(defaultRedirect)
         } else {
           router.push("/onboarding")
         }

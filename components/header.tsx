@@ -45,12 +45,24 @@ export function Header({ floating = false }: HeaderProps) {
           .select('role')
           .eq('id', session.user.id)
           .single()
+        console.log('[Header] Initial profile role check:', profile?.role, 'User ID:', session.user.id)
         setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user || null)
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        console.log('[Header] Profile role check:', profile?.role)
+        setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+      } else {
+        setIsAdmin(false)
+      }
     })
 
     const handleScroll = () => {

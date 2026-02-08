@@ -1,5 +1,6 @@
 import { AdminGuard } from "@/components/admin/admin-guard"
 import { AdminHeader } from "@/components/admin/AdminHeader"
+import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -15,10 +16,13 @@ export default function AdminLayout({
   return (
     <AdminGuard>
       <div className="min-h-screen bg-black text-white">
-        <AdminHeader />
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
+        <AdminSidebar />
+        <div className="ml-60 min-h-screen flex flex-col">
+          <AdminHeader />
+          <main className="flex-1 p-6 overflow-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </AdminGuard>
   )

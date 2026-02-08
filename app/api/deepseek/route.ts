@@ -911,7 +911,24 @@ ${isLastChunk
                     }
                 } catch { }
 
+                // Add estimated token usage for OpenRouter (for admin stats tracking)
+                // OpenRouter uses different models, estimate based on response length
+                const estimatedOutputTokens = Math.round(raw.length / 4); // ~4 chars per token
+                const estimatedInputTokens = Math.round((systemPrompt.length + prompt.length) / 4);
+                const estimatedCostUsd = (estimatedInputTokens * 0.0000014) + (estimatedOutputTokens * 0.0000028); // DeepSeek-equivalent pricing
+
+                fallbackRouteData.tokenUsage = {
+                    promptTokens: estimatedInputTokens,
+                    completionTokens: estimatedOutputTokens,
+                    totalTokens: estimatedInputTokens + estimatedOutputTokens,
+                    promptCacheHitTokens: 0,
+                    model: 'openrouter-fallback',
+                    costUsd: estimatedCostUsd,
+                    costRub: estimatedCostUsd * 80
+                };
+
                 console.log("Success with OpenRouter fallback")
+                console.log(`OpenRouter estimated: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
                 return NextResponse.json(fallbackRouteData)
             }
         } catch (finalError: any) {

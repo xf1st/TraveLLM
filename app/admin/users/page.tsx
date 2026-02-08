@@ -159,8 +159,8 @@ export default function AdminUsersPage() {
         blockMode === "active"
           ? "Доступ восстановлен"
           : blockMode === "ai_blocked"
-          ? "Генерация заблокирована"
-          : "Пользователь заблокирован"
+            ? "Генерация заблокирована"
+            : "Пользователь заблокирован"
       )
 
       setBlockDialogOpen(false)
@@ -238,8 +238,8 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
+      <div>
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
@@ -274,8 +274,8 @@ export default function AdminUsersPage() {
           <div className="text-center py-8">Загрузка...</div>
         ) : (
           <Card>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table className="min-w-[1100px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
@@ -306,8 +306,8 @@ export default function AdminUsersPage() {
                           {user.role === "super_admin"
                             ? "Супер-админ"
                             : user.role === "admin"
-                            ? "Админ"
-                            : "Пользователь"}
+                              ? "Админ"
+                              : "Пользователь"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -316,15 +316,15 @@ export default function AdminUsersPage() {
                             user.access_mode === "active"
                               ? "default"
                               : user.access_mode === "ai_blocked"
-                              ? "secondary"
-                              : "destructive"
+                                ? "secondary"
+                                : "destructive"
                           }
                         >
                           {user.access_mode === "active"
                             ? "Активен"
                             : user.access_mode === "ai_blocked"
-                            ? "AI заблокирован"
-                            : "Заблокирован"}
+                              ? "AI заблокирован"
+                              : "Заблокирован"}
                         </Badge>
                         {user.block_reason && (
                           <div className="text-xs text-muted-foreground mt-1">
@@ -390,8 +390,8 @@ export default function AdminUsersPage() {
                 {blockMode === "active"
                   ? "Восстановить доступ"
                   : blockMode === "ai_blocked"
-                  ? "Заблокировать генерацию AI"
-                  : "Заблокировать пользователя"}
+                    ? "Заблокировать генерацию AI"
+                    : "Заблокировать пользователя"}
               </DialogTitle>
               <DialogDescription>
                 {selectedUser && `Пользователь: ${selectedUser.email}`}

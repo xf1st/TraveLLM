@@ -18,7 +18,8 @@ import {
     ChevronDown,
     MapPin,
     Sparkles,
-    Users
+    Users,
+    Shield
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -74,6 +75,7 @@ export function AppSidebar() {
     const [tripsOpen, setTripsOpen] = useState(true)
     const [tripMembers, setTripMembers] = useState<any[]>([])
     const { theme, setTheme } = useTheme()
+    const [isAdmin, setIsAdmin] = useState(false)
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
@@ -84,17 +86,35 @@ export function AppSidebar() {
             setIsCollapsed(savedCollapsed === 'true')
         }
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setUser(session?.user || null)
             if (session?.user) {
                 loadRecentTrips(session.user.id)
+                // Check if user is admin
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single()
+                console.log('[Sidebar] Initial profile role check:', profile?.role, 'User ID:', session.user.id)
+                setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
             }
         })
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user || null)
             if (session?.user) {
                 loadRecentTrips(session.user.id)
+                // Check if user is admin
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single()
+                console.log('[Sidebar] Profile role check:', profile?.role)
+                setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
+            } else {
+                setIsAdmin(false)
             }
         })
 
@@ -234,6 +254,24 @@ export function AppSidebar() {
                         </Link>
                     )
                 })}
+
+                {/* Admin Panel Link - Always visible for admins */}
+                {isAdmin && (
+                    <Link
+                        href="/admin"
+                        title={isCollapsed ? "Админ-панель" : undefined}
+                        className={cn(
+                            "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 mt-2",
+                            isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3",
+                            pathname.startsWith('/admin')
+                                ? "bg-orange-500 text-white shadow-sm"
+                                : "text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 border border-orange-500/30"
+                        )}
+                    >
+                        <Shield className="h-5 w-5 shrink-0" />
+                        {!isCollapsed && "Админ-панель"}
+                    </Link>
+                )}
 
                 {/* Recent Trips Section */}
                 {!isCollapsed && recentTrips.length > 0 && (
@@ -397,6 +435,14 @@ export function AppSidebar() {
                                             Настройки
                                         </Link>
                                     </DropdownMenuItem>
+                                    {isAdmin && (
+                                        <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
+                                            <Link href="/admin" className="w-full flex items-center py-2.5 px-3">
+                                                <Shield className="mr-3 h-4 w-4" />
+                                                Админ-панель
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator className="bg-border/50 my-1" />
                                 <DropdownMenuItem className="rounded-xl text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer py-2.5 px-3" onClick={handleLogout}>

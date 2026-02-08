@@ -116,7 +116,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Загрузка админ-панели</h2>
@@ -127,8 +127,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
+      <div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Админ-панель</h1>
           <p className="text-muted-foreground">Управление пользователями и маршрутами</p>
@@ -223,67 +223,67 @@ export default function AdminDashboard() {
               <span className="text-muted-foreground">Загрузка статистики AI...</span>
             </div>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Запросов к AI</CardTitle>
-                <Zap className="h-4 w-4 text-blue-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-400">
-                  {aiStats?.summary.totalRequests || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  ~{aiStats?.summary.avgTokensPerRequest?.toLocaleString() || 0} токенов/запрос
-                </p>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Запросов к AI</CardTitle>
+                  <Zap className="h-4 w-4 text-blue-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {aiStats?.summary.totalRequests || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ~{aiStats?.summary.avgTokensPerRequest?.toLocaleString() || 0} токенов/запрос
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Токенов использовано</CardTitle>
-                <TrendingUp className="h-4 w-4 text-purple-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-400">
-                  {(aiStats?.summary.totalTokens || 0).toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Кэш: {aiStats?.summary.cacheHitRate || "0%"}
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Токенов использовано</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-purple-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {(aiStats?.summary.totalTokens || 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Кэш: {aiStats?.summary.cacheHitRate || "0%"}
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Стоимость (USD)</CardTitle>
-                <DollarSign className="h-4 w-4 text-emerald-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-400">
-                  ${aiStats?.summary.totalCostUsd?.toFixed(2) || "0.00"}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  ~${aiStats?.summary.avgCostPerRequest?.toFixed(4) || "0"}/запрос
-                </p>
-              </CardContent>
-            </Card>
+              <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Стоимость (USD)</CardTitle>
+                  <DollarSign className="h-4 w-4 text-emerald-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-emerald-400">
+                    ${aiStats?.summary.totalCostUsd?.toFixed(2) || "0.00"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ~${aiStats?.summary.avgCostPerRequest?.toFixed(4) || "0"}/запрос
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Стоимость (RUB)</CardTitle>
-                <span className="text-amber-400 font-bold">₽</span>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-amber-400">
-                  {aiStats?.summary.totalCostRub?.toFixed(0) || "0"} ₽
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Курс ~80 ₽/$
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+              <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Стоимость (RUB)</CardTitle>
+                  <span className="text-amber-400 font-bold">₽</span>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-amber-400">
+                    {aiStats?.summary.totalCostRub?.toFixed(0) || "0"} ₽
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Курс ~80 ₽/$
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Daily chart */}

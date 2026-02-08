@@ -204,8 +204,8 @@ export default function AdminHealthPage() {
   const errorCount = checks.filter((c) => c.status === "error").length
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="space-y-6">
+      <div>
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
@@ -275,15 +275,15 @@ export default function AdminHealthPage() {
                           check.status === "success"
                             ? "default"
                             : check.status === "error"
-                            ? "destructive"
-                            : "secondary"
+                              ? "destructive"
+                              : "secondary"
                         }
                       >
                         {check.status === "pending"
                           ? "Проверка..."
                           : check.status === "success"
-                          ? "OK"
-                          : "Ошибка"}
+                            ? "OK"
+                            : "Ошибка"}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground ml-8">{check.message}</p>

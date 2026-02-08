@@ -122,8 +122,8 @@ export default function AdminTripsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
+      <div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <MapPin className="h-8 w-8" />
@@ -184,8 +184,8 @@ export default function AdminTripsPage() {
           <div className="text-center py-8">Загрузка...</div>
         ) : (
           <Card>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table className="min-w-[1000px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Название</TableHead>
@@ -229,15 +229,15 @@ export default function AdminTripsPage() {
                               trip.status === "active"
                                 ? "default"
                                 : trip.status === "completed"
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                           >
                             {trip.status === "active"
                               ? "Активен"
                               : trip.status === "completed"
-                              ? "Завершён"
-                              : "Черновик"}
+                                ? "Завершён"
+                                : "Черновик"}
                           </Badge>
                         </TableCell>
                         <TableCell>

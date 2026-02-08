@@ -10,6 +10,10 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
         }
 
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.warn("[AI Stats] WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Using ANON key. RLS policies may block access to trip data.")
+        }
+
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         // Get URL params for date filtering
@@ -34,21 +38,48 @@ export async function GET(req: Request) {
             dateFilter = monthAgo.toISOString()
         }
 
-        // Build query
+        // Build query - get ALL trips and filter in JS instead of using Supabase filter
+        // This matches how the admin/trips page successfully retrieves data
         let query = supabase
             .from("trips")
-            .select("token_usage, created_at")
-            .not("token_usage", "is", null)
+            .select("id, token_usage, created_at")
+            .order("created_at", { ascending: false })
 
         if (dateFilter) {
             query = query.gte("created_at", dateFilter)
         }
 
-        const { data: trips, error } = await query
+        // Also get total trip count (regardless of token_usage)
+        let countQuery = supabase
+            .from("trips")
+            .select("*", { count: "exact", head: true })
+
+        if (dateFilter) {
+            countQuery = countQuery.gte("created_at", dateFilter)
+        }
+
+        const [{ data: trips, error }, { count: totalTripCount }] = await Promise.all([
+            query,
+            countQuery
+        ])
 
         if (error) {
             console.error("Failed to fetch AI stats:", error)
             return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+
+        // Find first trip with token usage for debugging
+        const firstTripWithUsage = trips?.find(t => t.token_usage && Object.keys(t.token_usage).length > 0)
+
+        // Debug logging
+        console.log("[AI Stats] Total trips in DB:", totalTripCount)
+        console.log("[AI Stats] Trips fetched:", trips?.length || 0)
+        console.log("[AI Stats] Trips with non-null token_usage:", trips?.filter(t => t.token_usage).length || 0)
+
+        if (firstTripWithUsage) {
+            console.log("[AI Stats] Sample token_usage structure:", JSON.stringify(firstTripWithUsage.token_usage, null, 2))
+        } else {
+            console.log("[AI Stats] WARNING: No trips with token_usage found in the fetched batch")
         }
 
         // Aggregate statistics
@@ -119,6 +150,8 @@ export async function GET(req: Request) {
             period,
             summary: {
                 totalRequests: requestCount,
+                totalTrips: totalTripCount || 0,
+                tripsWithTokenData: trips?.length || 0,
                 totalTokens,
                 totalPromptTokens,
                 totalCompletionTokens,

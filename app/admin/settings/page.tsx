@@ -97,8 +97,8 @@ export default function AdminSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="space-y-6">
+        <div>
           <div className="text-center py-8">Загрузка...</div>
         </div>
       </div>
@@ -106,8 +106,8 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="space-y-6">
+      <div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <Settings className="h-8 w-8" />

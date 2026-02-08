@@ -9,6 +9,10 @@ function AuthCallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
+    // Check if on admin subdomain
+    const isAdminSubdomain = typeof window !== 'undefined' && window.location.host.startsWith('admin.')
+    const defaultRedirect = isAdminSubdomain ? '/admin' : '/plan'
+
     useEffect(() => {
         const handleAuthCallback = async () => {
             const { data: { session }, error } = await supabase.auth.getSession()
@@ -28,9 +32,9 @@ function AuthCallbackContent() {
                     .single()
 
                 toast.success("Email успешно подтвержден!")
-                
+
                 if (profile?.preferences) {
-                    router.push("/plan")
+                    router.push(defaultRedirect)
                 } else {
                     router.push("/onboarding")
                 }
@@ -45,7 +49,7 @@ function AuthCallbackContent() {
         }
 
         handleAuthCallback()
-    }, [router, searchParams])
+    }, [router, searchParams, defaultRedirect])
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background">
