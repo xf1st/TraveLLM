@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { connectTelegram } from "@/app/actions/telegram"
@@ -199,23 +200,33 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex justify-end mb-6">
-          <form action={async () => {
-            try {
-              const result = await connectTelegram()
-              // @ts-ignore
-              if (result?.error) {
+          <Button
+            onClick={async () => {
+              const toastId = toast.loading("Подключение...")
+              console.log("Starting connection...")
+              try {
+                const result = await connectTelegram()
+                console.log("Connection result:", result)
+
                 // @ts-ignore
-                toast.error(result.error)
+                if (result?.error) {
+                  // @ts-ignore
+                  toast.error(result.error, { id: toastId })
+                } else {
+                  // Redirect handles success, but if we get here without error/redirect:
+                  toast.dismiss(toastId)
+                }
+              } catch (e) {
+                console.error("Client caught error:", e)
+                toast.dismiss(toastId)
               }
-            } catch (e) {
-              // Redirects might throw errors in some Next.js versions, but usually handled by server action
-            }
-          }}>
-            <Button type="submit" variant="outline" className="gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-              Подключить Telegram Bot
-            </Button>
-          </form>
+            }}
+            variant="outline"
+            className="gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+            Подключить Telegram Bot
+          </Button>
         </div>
 
         {/* AI Usage Statistics */}
