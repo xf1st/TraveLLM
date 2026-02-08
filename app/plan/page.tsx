@@ -270,7 +270,7 @@ export default function PlanPage() {
         console.warn("localStorage unavailable, using URL params")
       }
 
-      router.push(`/results?id=${routeId}`)
+      router.push(`/trip/${routeId}`)
     } catch (error: any) {
       console.error("Generation error:", error)
       setErrorModal({
