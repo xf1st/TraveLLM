@@ -49,12 +49,11 @@ export async function connectTelegram() {
 
         const botUsername = data.result.username
 
-        // Redirect throws an error, so we must do it outside the try-catch or rethrow
-        // But since we are inside a try block, we'll return the URL and redirect on client 
-        // OR just redirect here and let it bubble if we catch properly.
-        // Standard pattern: redirect() should handle itself.
-
-        redirect(`https://t.me/${botUsername}?start=${token}`)
+        return {
+            success: true,
+            token,
+            botUsername
+        }
 
     } catch (e: any) {
         if (e.message === 'NEXT_REDIRECT') throw e; // Let redirect pass
