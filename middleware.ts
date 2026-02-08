@@ -22,12 +22,12 @@ export async function middleware(request: NextRequest) {
 
     // Get auth token from cookie
     const authCookie = request.cookies.get('sb-access-token')?.value ||
-                       request.cookies.get('supabase-auth-token')?.value
+      request.cookies.get('supabase-auth-token')?.value
 
     if (!authCookie) {
       // Not logged in - redirect to main domain
       const mainDomain = host.replace('admin.', '')
-      return NextResponse.redirect(`https://${mainDomain}/login`)
+      return NextResponse.redirect(`https://${mainDomain}/auth`)
     }
 
     try {
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
 
       if (!user) {
         const mainDomain = host.replace('admin.', '')
-        return NextResponse.redirect(`https://${mainDomain}/login`)
+        return NextResponse.redirect(`https://${mainDomain}/auth`)
       }
 
       // Check if user is admin
