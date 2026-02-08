@@ -20,6 +20,7 @@ import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/auth-provider"
 
 interface HeaderProps {
   /** Floating pill-shaped header style for landing pages */
@@ -28,40 +29,31 @@ interface HeaderProps {
 
 export function Header({ floating = false }: HeaderProps) {
   const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
+  const { user } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
+  // Check admin role when user changes
   useEffect(() => {
     setIsMounted(true)
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user || null)
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-        setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
-      }
-    })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user || null)
-      if (session?.user) {
+    const checkAdminRole = async () => {
+      if (user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
-          .single()
+          .eq('id', user.id)
+          .maybeSingle()
         setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
       } else {
         setIsAdmin(false)
       }
-    })
+    }
+
+    checkAdminRole()
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10)
@@ -69,10 +61,9 @@ export function Header({ floating = false }: HeaderProps) {
     window.addEventListener("scroll", handleScroll)
 
     return () => {
-      subscription.unsubscribe()
       window.removeEventListener("scroll", handleScroll)
     }
-  }, [])
+  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -84,7 +75,7 @@ export function Header({ floating = false }: HeaderProps) {
       }
 
       localStorage.removeItem("user")
-      setUser(null)
+      // Auth state will be updated by AuthProvider via onAuthStateChange
       await supabase.auth.signOut({ scope: 'local' })
 
       toast.success("Вы успешно вышли из аккаунта")

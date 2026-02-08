@@ -42,6 +42,7 @@ import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/auth-provider"
 
 const navItems = [
     {
@@ -69,7 +70,7 @@ const navItems = [
 
 export function AppSidebar() {
     const pathname = usePathname()
-    const [user, setUser] = useState<any>(null)
+    const { user } = useAuth()
     const [recentTrips, setRecentTrips] = useState<any[]>([])
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [tripsOpen, setTripsOpen] = useState(true)
@@ -79,45 +80,34 @@ export function AppSidebar() {
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
+    // Load collapsed state from localStorage
     useEffect(() => {
-        // Load collapsed state from localStorage
         const savedCollapsed = localStorage.getItem('sidebar-collapsed')
         if (savedCollapsed) {
             setIsCollapsed(savedCollapsed === 'true')
         }
+    }, [])
 
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-            setUser(session?.user || null)
-            if (session?.user) {
-                loadRecentTrips(session.user.id)
+    // Load trips and check admin role when user changes
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (user) {
+                loadRecentTrips(user.id)
                 // Check if user is admin
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('role')
-                    .eq('id', session.user.id)
-                    .single()
-                setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
-            }
-        })
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setUser(session?.user || null)
-            if (session?.user) {
-                loadRecentTrips(session.user.id)
-                // Check if user is admin
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', session.user.id)
-                    .single()
+                    .eq('id', user.id)
+                    .maybeSingle()
                 setIsAdmin(profile?.role === 'admin' || profile?.role === 'super_admin')
             } else {
+                setRecentTrips([])
                 setIsAdmin(false)
             }
-        })
+        }
 
-        return () => subscription.unsubscribe()
-    }, [])
+        loadUserData()
+    }, [user])
 
     const loadRecentTrips = async (userId: string) => {
         const { data } = await supabase
@@ -162,7 +152,7 @@ export function AppSidebar() {
             }
 
             localStorage.removeItem("user")
-            setUser(null)
+            // Auth state will be updated by AuthProvider via onAuthStateChange
             await supabase.auth.signOut({ scope: 'local' })
 
             toast.success("Вы успешно вышли из аккаунта")

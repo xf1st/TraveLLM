@@ -53,7 +53,8 @@ import {
   Globe,
   Layout,
   Users,
-  X
+  X,
+  Heart
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -80,6 +81,7 @@ import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
 import { getPopularRoute } from "@/lib/popular-routes"
 import { LottieLoader } from "@/components/ui/LottieLoader"
+import { toggleFavorite } from "@/app/actions/favorites"
 
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
@@ -200,6 +202,8 @@ export default function TripDetailPage() {
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
 
   // Parallax hook
   const { scrollY } = useScroll()
@@ -242,105 +246,119 @@ export default function TripDetailPage() {
   useEffect(() => {
     const fetchTrip = async () => {
       setLoading(true)
-      const id = params.id as string
+      try {
+        const id = params.id as string
 
-      // Validate ID exists
-      if (!id) {
-        console.error("No trip ID provided")
-        setLoading(false)
-        return
-      }
-
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-      const isLocal = id?.startsWith('local-')
-      const isPopular = id?.startsWith('pop-')
-
-      console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal, "isPopular:", isPopular)
-
-      // Single auth check
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      setUser(currentUser)
-
-      if (isUuid && !currentUser) {
-        router.push(`/auth?next=/trip/${id}`)
-        return
-      }
-
-      let data = null
-      let error = null
-
-      // Handle popular routes (pop-1, pop-2, etc.)
-      if (isPopular) {
-        data = getPopularRoute(id)
-        if (!data) {
-          console.error("Popular route not found:", id)
+        // Validate ID exists
+        if (!id) {
+          console.error("No trip ID provided")
+          setLoading(false)
+          return
         }
-      } else if (isUuid) {
-        const result = await supabase
-          .from('trips')
-          .select('*')
-          .eq('id', id)
-          .single()
-        data = result.data
-        error = result.error
-      } else if (isLocal || id === "ai-last") {
-        const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
-        const stored = safeLocalStorage.getItem(key)
-        if (stored) {
-          try {
-            data = JSON.parse(stored)
-          } catch (e) {
-            console.error("Failed to parse local trip data")
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+        const isLocal = id?.startsWith('local-')
+        const isPopular = id?.startsWith('pop-')
+
+        console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal, "isPopular:", isPopular)
+
+        // Single auth check
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        setUser(currentUser)
+
+        if (isUuid && !currentUser) {
+          router.push(`/auth?next=/trip/${id}`)
+          return
+        }
+
+        let data = null
+        let error = null
+
+        // Handle popular routes (pop-1, pop-2, etc.)
+        if (isPopular) {
+          data = getPopularRoute(id)
+          if (!data) {
+            console.error("Popular route not found:", id)
           }
-        }
-      }
-
-      if (!data) {
-        if (error) console.error("Error fetching trip:", error.message)
-        const stored = safeLocalStorage.getItem("lastGeneratedRoute")
-        if (stored) {
-          try {
-            setRoute(JSON.parse(stored))
-          } catch (e) {
-            console.error("Failed to parse fallback trip data")
-          }
-        }
-      } else {
-        console.log("Trip data loaded successfully")
-        setRoute({
-          ...data,
-          title: data.title,
-          description: data.description,
-          totalBudget: data.total_cost || data.totalBudget,
-          itinerary: data.itinerary,
-          countries: data.destination ? [{ name: data.destination }] : (data.countries || []),
-          // Map snake_case DB fields to camelCase for frontend
-          budgetAnalysis: data.budget_analysis || data.budgetAnalysis,
-          visaAdvice: data.visa_advice || data.visaAdvice,
-          paymentAdvice: data.payment_advice || data.paymentAdvice,
-          safetyInfo: data.safety_info || data.safetyInfo,
-          restrictions: data.restrictions,
-          tags: data.tags,
-          coverImage: data.cover_image || data.coverImage,
-          budget_range: data.budget_range,
-          invite_code: data.invite_code,
-          flights: data.flights || [],
-          hotels: data.hotels || [],
-          viralSpots: data.viralSpots || data.viral_spots || []
-        })
-
-        // Check if member
-        if (currentUser && data.id) {
-          const { data: memberData } = await supabase
-            .from('trip_members')
-            .select('id')
-            .eq('trip_id', data.id)
-            .eq('user_id', currentUser.id)
+        } else if (isUuid) {
+          const result = await supabase
+            .from('trips')
+            .select('*')
+            .eq('id', id)
             .single()
-          setIsMember(!!memberData)
+          data = result.data
+          error = result.error
+        } else if (isLocal || id === "ai-last") {
+          const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
+          const stored = safeLocalStorage.getItem(key)
+          if (stored) {
+            try {
+              data = JSON.parse(stored)
+            } catch (e) {
+              console.error("Failed to parse local trip data")
+            }
+          }
         }
+
+        if (!data) {
+          if (error) console.error("Error fetching trip:", error.message)
+          const stored = safeLocalStorage.getItem("lastGeneratedRoute")
+          if (stored) {
+            try {
+              setRoute(JSON.parse(stored))
+            } catch (e) {
+              console.error("Failed to parse fallback trip data")
+            }
+          }
+        } else {
+          console.log("Trip data loaded successfully")
+          setRoute({
+            ...data,
+            title: data.title,
+            description: data.description,
+            totalBudget: data.total_cost || data.totalBudget,
+            itinerary: data.itinerary,
+            countries: data.destination ? [{ name: data.destination }] : (data.countries || []),
+            // Map snake_case DB fields to camelCase for frontend
+            budgetAnalysis: data.budget_analysis || data.budgetAnalysis,
+            visaAdvice: data.visa_advice || data.visaAdvice,
+            paymentAdvice: data.payment_advice || data.paymentAdvice,
+            safetyInfo: data.safety_info || data.safetyInfo,
+            restrictions: data.restrictions,
+            tags: data.tags,
+            coverImage: data.cover_image || data.coverImage,
+            budget_range: data.budget_range,
+            invite_code: data.invite_code,
+            flights: data.flights || [],
+            hotels: data.hotels || [],
+            viralSpots: data.viralSpots || data.viral_spots || []
+          })
+
+          // Check if member
+          if (currentUser && data.id) {
+            const { data: memberData } = await supabase
+              .from('trip_members')
+              .select('id')
+              .eq('trip_id', data.id)
+              .eq('user_id', currentUser.id)
+              .maybeSingle()
+            setIsMember(!!memberData)
+
+            // Check if favorite
+            const { data: favData } = await supabase
+              .from('favorites')
+              .select('trip_id')
+              .eq('trip_id', data.id)
+              .eq('user_id', currentUser.id)
+              .maybeSingle()
+            setIsFavorite(!!favData)
+          }
+        }
+      } catch (error) {
+        console.error("Critical error fetching trip:", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchTrip()
   }, [params.id, router])
@@ -414,6 +432,32 @@ export default function TripDetailPage() {
     window.print()
   }
 
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!user) {
+      toast.error("Войдите, чтобы добавить маршрут в избранное")
+      router.push(`/auth?next=/trip/${route.id}`)
+      return
+    }
+
+    setFavoriteLoading(true)
+    // Optimistic update
+    const newFav = !isFavorite
+    setIsFavorite(newFav)
+
+    try {
+      await toggleFavorite(route.id)
+      toast.success(newFav ? "Маршрут добавлен в избранное" : "Маршрут удален из избранного")
+    } catch (error) {
+      setIsFavorite(!newFav)
+      toast.error("Не удалось обновить избранное")
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-transparent overflow-x-hidden">
       <AppSidebar />
@@ -450,16 +494,40 @@ export default function TripDetailPage() {
           </motion.div>
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-background/20 to-background" />
 
+          {/* Favorites Button in Hero (Icon) */}
+          <div className="absolute top-4 right-4 z-30">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white border-white/10"
+              disabled={favoriteLoading}
+              onClick={handleToggleFavorite}
+            >
+              <Heart className={cn("h-5 w-5 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500 scale-110" : "text-white")} />
+            </Button>
+          </div>
+
           <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8 sm:pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
             <div className="container max-w-7xl px-4 text-center sm:text-left">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => router.back()}
-                className="mb-3 sm:mb-6 rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Назад
-              </Button>
+              <div className="flex items-center gap-3 mb-3 sm:mb-6">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => router.back()}
+                  className="rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Назад
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleToggleFavorite}
+                  className="rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0 text-xs sm:text-sm font-medium"
+                >
+                  <Heart className={cn("mr-2 h-4 w-4 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "text-white")} />
+                  {isFavorite ? "В избранном" : "В избранное"}
+                </Button>
+              </div>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

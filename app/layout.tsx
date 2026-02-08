@@ -11,6 +11,7 @@ import { MaintenanceGuard } from "@/components/admin/maintenance-guard"
 import { UserAccessGuard } from "@/components/admin/user-access-guard"
 import Script from "next/script"
 import "./globals.css"
+import { AuthProvider } from "@/components/auth-provider"
 
 const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
@@ -64,11 +65,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MaintenanceGuard>
-            <UserAccessGuard>
-              {children}
-            </UserAccessGuard>
-          </MaintenanceGuard>
+          <AuthProvider>
+            <MaintenanceGuard>
+              <UserAccessGuard>
+                {children}
+              </UserAccessGuard>
+            </MaintenanceGuard>
+          </AuthProvider>
           {/* Notification & Cookie System */}
           <NotificationPrompt />
           <CookieConsent />
