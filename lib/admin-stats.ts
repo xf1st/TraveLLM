@@ -1,11 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey)
-
 export type StatsResult = {
     users: number
     trips: number
@@ -14,10 +9,25 @@ export type StatsResult = {
     costUsd: number
 }
 
+// Helper to get Supabase Client lazily
+// This prevents build errors when environment variables might not be fully loaded globally
+function getSupabase() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('Supabase credentials missing in admin-stats')
+        throw new Error('Supabase credentials missing')
+    }
+
+    return createClient(supabaseUrl, supabaseKey)
+}
+
 /**
  * Get aggregated stats for a specific time range
  */
 export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise<StatsResult> {
+    const supabase = getSupabase()
     const startIso = startDate.toISOString()
     const endIso = endDate.toISOString()
 
@@ -29,8 +39,6 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
         .lt('created_at', endIso)
 
     // 2. Trips & Usage
-    // We fetch trips to sum up usage. 
-    // Optimization: If dataset grows huge, this needs an RPC function or separate analytics table.
     const { data: trips } = await supabase
         .from('trips')
         .select('token_usage')
@@ -60,9 +68,9 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
 
 /**
  * Get top spenders (users with most expensive trips)
- * Note: This sums up cost per user.
  */
 export async function getTopSpenders(limit = 10, days = 30) {
+    const supabase = getSupabase()
     const date = new Date()
     date.setDate(date.getDate() - days)
 
