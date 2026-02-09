@@ -215,6 +215,7 @@ function ResultsContent() {
   const [hasMoreRoutes, setHasMoreRoutes] = useState(true)
   const [totalRoutes, setTotalRoutes] = useState(0)
   const observerTarget = useRef(null)
+  const isLoadingMoreRef = useRef(false)
   const PAGE_SIZE = 9
 
   // Initial Data Fetch
@@ -290,7 +291,8 @@ function ResultsContent() {
   }, [observerTarget])
 
   const loadMore = async () => {
-    if (isLoadingMore || !hasMoreRoutes || view !== "my") return
+    if (isLoadingMoreRef.current || !hasMoreRoutes || view !== "my") return
+    isLoadingMoreRef.current = true
     setIsLoadingMore(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -313,6 +315,7 @@ function ResultsContent() {
       }
     } catch (e) { }
     setIsLoadingMore(false)
+    isLoadingMoreRef.current = false
   }
 
   // Toggle Favorite Handler

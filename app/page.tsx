@@ -13,11 +13,11 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import GradientText from "@/components/GradientText"
 import { Footer } from "@/components/footer"
-import { MeshGradient } from "@paper-design/shaders-react"
 import { TripImage } from "@/components/TripImage"
 
-// Dynamic import for WebGL component (client-side only)
+// Dynamic imports for WebGL components (client-side only)
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
+const MeshGradient = dynamic(() => import('@paper-design/shaders-react').then(m => ({ default: m.MeshGradient })), { ssr: false })
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)

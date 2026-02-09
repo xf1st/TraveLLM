@@ -102,20 +102,25 @@ export async function getTopSpenders(limit = 10, days = 30) {
         .sort((a, b) => b.costRub - a.costRub)
         .slice(0, limit)
 
-    // Fetch user emails/names
-    const enriched = await Promise.all(sorted.map(async (s) => {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name, telegram_chat_id')
-            .eq('id', s.userId)
-            .single()
+    // Fetch all user profiles in a single query
+    const userIds = sorted.map(s => s.userId)
+    const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, telegram_chat_id')
+        .in('id', userIds)
 
+    const profileMap = new Map(
+        (profiles || []).map(p => [p.id, p])
+    )
+
+    const enriched = sorted.map(s => {
+        const profile = profileMap.get(s.userId)
         return {
             ...s,
             email: profile?.email || 'Unknown',
             name: profile?.full_name || 'No Name'
         }
-    }))
+    })
 
     return enriched
 }

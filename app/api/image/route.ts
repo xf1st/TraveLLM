@@ -11,7 +11,9 @@ export async function GET(req: NextRequest) {
 
     try {
         const imageUrl = await getDestinationImage(query);
-        return NextResponse.json({ url: imageUrl });
+        return NextResponse.json({ url: imageUrl }, {
+            headers: { "Cache-Control": "public, max-age=86400, s-maxage=604800" }
+        });
     } catch (error) {
         console.error("Image proxy error:", error);
         return NextResponse.json({ url: null }, { status: 500 });

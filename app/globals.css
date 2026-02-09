@@ -204,11 +204,6 @@
     @apply bg-foreground/10 rounded-full hover:bg-foreground/20 transition-colors;
   }
 
-  /* Smooth Transitions - Atomize style */
-  * {
-    @apply transition-colors duration-150;
-  }
-
   /* Atomize Typography Scale */
   h1,
   h2,
