@@ -11,9 +11,11 @@ import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
+
 
 // Interest categories with Russian labels and unique colors
 const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -224,10 +226,11 @@ function ProfileContent() {
 
     if (error) {
       console.error("Error updating profile:", error)
-      alert(`Ошибка при сохранении профиля: ${error.message}`)
+      toast.error(`Ошибка при сохранении профиля: ${error.message}`)
     } else {
       setProfile({ ...profile, full_name: editForm.full_name, citizenship: editForm.citizenship, nationality: editForm.nationality, languages: editForm.languages, preferences: updatedPreferences })
       setIsEditing(false)
+      toast.success("Профиль успешно обновлен")
       // Notify other components (sidebar) about the update
       window.dispatchEvent(new Event('profile_updated'))
     }
@@ -271,9 +274,9 @@ function ProfileContent() {
       }
 
       setAvatarUrl(publicUrl)
-      // Optional: Show success toast
+      toast.success("Аватар обновлен")
     } catch (error: any) {
-      alert('Error uploading avatar: ' + error.message)
+      toast.error('Error uploading avatar: ' + error.message)
     } finally {
       setUploading(false)
     }

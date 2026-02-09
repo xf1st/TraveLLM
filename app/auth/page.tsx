@@ -170,7 +170,12 @@ function AuthContent() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-zinc-400 font-medium ml-1">Пароль</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password" className="text-zinc-400 font-medium ml-1">Пароль</Label>
+                      <Link href="/auth/reset-password" className="text-xs text-primary hover:text-primary/80 transition-colors">
+                        Забыли пароль?
+                      </Link>
+                    </div>
                     <div className="relative group">
                       <Lock className="absolute left-4 top-3.5 h-5 w-5 text-zinc-500 group-focus-within:text-primary transition-colors" />
                       <Input
@@ -242,6 +247,26 @@ function AuthContent() {
                         className="pl-12 h-12 bg-zinc-800/50 border-white/5 rounded-xl text-lg focus:border-primary/50 focus:ring-primary/20 transition-all placeholder:text-zinc-600"
                       />
                     </div>
+                    {/* Password Strength Indicator */}
+                    {password && (
+                      <div className="space-y-1 mt-2">
+                        <div className="flex gap-1 h-1">
+                          {[1, 2, 3, 4].map((level) => {
+                            const strength = password.length > 8 ? (/[A-Z]/.test(password) && /[0-9]/.test(password) ? 4 : 3) : (password.length > 5 ? 2 : 1);
+                            const active = strength >= level;
+                            const color = strength === 1 ? 'bg-red-500' : strength === 2 ? 'bg-orange-500' : strength === 3 ? 'bg-yellow-500' : 'bg-emerald-500';
+                            return (
+                              <div key={level} className={`flex-1 rounded-full transition-all duration-300 ${active ? color : 'bg-white/10'}`} />
+                            )
+                          })}
+                        </div>
+                        <p className="text-xs text-right text-zinc-500">
+                          {password.length > 8 && /[A-Z]/.test(password) && /[0-9]/.test(password) ? 'Отличный пароль' :
+                            password.length > 8 ? 'Хороший пароль' :
+                              password.length > 5 ? 'Средний пароль' : 'Слабый пароль'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <Button type="submit" className="w-full h-14 rounded-xl text-lg font-bold bg-white text-black hover:bg-zinc-200 mt-4 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all hover:scale-[1.02]" disabled={loading}>
                     {loading ? (

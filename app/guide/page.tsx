@@ -477,6 +477,19 @@ function GuidePageContent() {
 
                         {/* Trips Grid - Dark Glass Style */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* Create New Trip Card */}
+                            <Link href="/plan" className="group block h-full">
+                                <Card className="h-64 relative overflow-hidden border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-[2rem] flex flex-col items-center justify-center text-center gap-4 group-hover:scale-[1.02]">
+                                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                                        <Sparkles className="h-8 w-8 text-white/50 group-hover:text-white transition-colors" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white mb-1">Новое путешествие</h3>
+                                        <p className="text-sm text-zinc-400">Куда отправимся?</p>
+                                    </div>
+                                </Card>
+                            </Link>
+
                             {loadingTrips ? (
                                 Array(3).fill(0).map((_, i) => (
                                     <Card key={i} className="h-64 animate-pulse bg-zinc-900 border-white/5 rounded-[2rem]" />

@@ -140,6 +140,8 @@ const LightRays: React.FC<LightRaysProps> = ({
         const initializeWebGL = async () => {
             if (!containerRef.current) return;
 
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
             await new Promise(resolve => setTimeout(resolve, 10));
 
             if (!containerRef.current) return;
@@ -339,7 +341,21 @@ void main() {
 
             window.addEventListener('resize', updatePlacement);
             updatePlacement();
-            animationIdRef.current = requestAnimationFrame(loop);
+
+            if (!prefersReducedMotion) {
+                animationIdRef.current = requestAnimationFrame(loop);
+            } else {
+                // Render once for static effect if reduced motion is preferred
+                if (uniformsRef.current && meshRef.current) {
+                    uniformsRef.current.iTime.value = 0;
+                    uniformsRef.current.mousePos.value = [0.5, 0.5]; // Set a default mouse position
+                    try {
+                        renderer.render({ scene: meshRef.current });
+                    } catch (error) {
+                        console.warn('WebGL static rendering error:', error);
+                    }
+                }
+            }
 
             cleanupFunctionRef.current = () => {
                 if (animationIdRef.current) {

@@ -6,6 +6,7 @@ import { MapPin, Plane, Hotel, Utensils, Camera } from "lucide-react"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 import GradientText from "@/components/GradientText"
+import { MorphingText } from "@/components/ui/morphing-text"
 
 const STEPS = [
     { icon: Plane, text: "Подбираем рейсы..." },
@@ -20,7 +21,7 @@ interface GeneratingModalProps {
     destination?: string
 }
 
-export function GeneratingModal({ open, destination }: GeneratingModalProps) {
+export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps & { onCancel?: () => void }) {
     const [currentStep, setCurrentStep] = useState(0)
     const [progress, setProgress] = useState(0)
 
@@ -51,8 +52,8 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
     const CurrentIcon = STEPS[currentStep].icon
 
     return (
-        <Dialog open={open} onOpenChange={() => { }}>
-            <DialogContent className="sm:max-w-md border-none bg-black/90 p-0 overflow-hidden rounded-[2.5rem] shadow-2xl">
+        <Dialog open={open} onOpenChange={(val) => !val && onCancel && onCancel()}>
+            <DialogContent className="sm:max-w-md border-none bg-black/90 p-0 overflow-hidden rounded-[2.5rem] shadow-2xl [&>button]:hidden">
                 <DialogTitle className="sr-only">Генерация маршрута</DialogTitle>
                 <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8">
                     {/* Background Shader - Similar to Profile/Plan */}
@@ -64,6 +65,17 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
                         />
                         <div className="absolute inset-0 bg-black/60 backdrop-blur-3xl" />
                     </div>
+
+                    {/* Close Button */}
+                    {onCancel && (
+                        <button
+                            onClick={onCancel}
+                            className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white/50 hover:text-white"
+                        >
+                            <span className="sr-only">Закрыть</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                        </button>
+                    )}
 
                     <div className="relative z-10 w-full text-center space-y-8">
                         {/* Lottie Animation */}
@@ -100,10 +112,7 @@ export function GeneratingModal({ open, destination }: GeneratingModalProps) {
                                 </div>
                             </div>
 
-                            <p className="text-lg font-medium text-slate-300 transition-all duration-500 h-8 flex items-center justify-center gap-2">
-                                <CurrentIcon className="h-5 w-5 animate-bounce" />
-                                {STEPS[currentStep].text}
-                            </p>
+                            <MorphingText className="text-xl md:text-2xl lg:text-3xl leading-none h-12" texts={STEPS.map(s => s.text)} />
                         </div>
                     </div>
                 </div>

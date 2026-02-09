@@ -14,6 +14,8 @@ import { motion } from "framer-motion"
 import GradientText from "@/components/GradientText"
 import { Footer } from "@/components/footer"
 import { TripImage } from "@/components/TripImage"
+import { VideoText } from "@/components/ui/video-text"
+import { MorphingText } from "@/components/ui/morphing-text"
 
 // Dynamic imports for WebGL components (client-side only)
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
@@ -99,17 +101,19 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="mb-8 relative z-20"
+            className="mb-8 relative z-20 flex flex-col items-center"
           >
-            <GradientText
-              colors={["#a855f7", "#3b82f6", "#06b6d4", "#a855f7"]}
-              animationSpeed={6}
-              showBorder={false}
-              className="text-5xl md:text-7xl font-extrabold tracking-tight mb-4"
-            >
-              TraveLM:
-            </GradientText>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-foreground mt-2">
+            <div className="relative w-full max-w-4xl h-[120px] md:h-[180px] overflow-hidden rounded-2xl">
+              <VideoText
+                src="https://cdn.magicui.design/ocean-small.webm"
+                className="font-black"
+                fontSize={15}
+              >
+                TraveLM
+              </VideoText>
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mt-6">
               Откройте свое <br className="hidden md:block" />
               <span className="text-muted-foreground/80">следующее приключение</span>
             </h1>
@@ -231,8 +235,11 @@ export default function LandingPage() {
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <Badge variant="outline" className="mb-4 border-primary/50 text-primary bg-primary/10">О проекте</Badge>
             <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
-              Путешествия, созданные <br /><span className="text-primary">искусственным интеллектом</span>
+              Путешествия, созданные <br />
             </h2>
+            <div className="h-24">
+              <MorphingText className="text-3xl md:text-5xl" texts={["AI", "нейросетями", "алгоритмами", "с любовью"]} />
+            </div>
             <p className="text-muted-foreground text-lg">
               TraveLM анализирует тысячи вариантов и создаёт идеальный маршрут за секунды
             </p>

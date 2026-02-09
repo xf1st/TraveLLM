@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
@@ -58,6 +58,7 @@ export default function PlanPage() {
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
   const [date, setDate] = useState<DateRange | undefined>()
+  const abortControllerRef = useRef<AbortController | null>(null)
   const [travelStyle, setTravelStyle] = useState<string[]>([])
   const [companions, setCompanions] = useState("couple")
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
@@ -70,6 +71,7 @@ export default function PlanPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [aiCreativity, setAiCreativity] = useState("balanced")
   const [autoFavorites, setAutoFavorites] = useState(false)
+  const [stepperKey, setStepperKey] = useState(0)
 
   // Error Modal State
   const [errorModal, setErrorModal] = useState<{
@@ -91,6 +93,18 @@ export default function PlanPage() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Page leave warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (departureCity || date?.from || destination === "custom") {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [departureCity, date, destination])
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -255,8 +269,13 @@ export default function PlanPage() {
 
       console.log("Submitting request:", requestPayload)
 
+      // Create new AbortController
+      if (abortControllerRef.current) abortControllerRef.current.abort()
+      abortControllerRef.current = new AbortController()
+
       const endpoint = "/api/deepseek"
       const response = await fetch(endpoint, {
+        signal: abortControllerRef.current.signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestPayload),
@@ -330,6 +349,10 @@ export default function PlanPage() {
       }
 
     } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log("Request aborted")
+        return
+      }
       console.error("Generation error:", error)
       setErrorModal({
         open: true,
@@ -339,7 +362,16 @@ export default function PlanPage() {
       })
     } finally {
       setLoading(false)
+      abortControllerRef.current = null
     }
+  }
+
+  const handleCancelGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    setLoading(false)
+    setStepperKey(prev => prev + 1)
   }
 
   const toggleStyle = (style: string) => {
@@ -364,7 +396,7 @@ export default function PlanPage() {
 
   return (
     <AppLayout>
-      <GeneratingModal open={loading} />
+      <GeneratingModal open={loading} onCancel={handleCancelGeneration} />
       <ErrorModal
         open={errorModal.open}
         onClose={() => setErrorModal({ ...errorModal, open: false })}
@@ -397,7 +429,8 @@ export default function PlanPage() {
 
         {/* Stepper Form */}
         <Stepper
-          initialStep={1}
+          key={stepperKey}
+          initialStep={currentStep}
           onStepChange={(step) => setCurrentStep(step)}
           onFinalStepCompleted={handleSubmit}
           backButtonText="Назад"

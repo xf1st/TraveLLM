@@ -156,7 +156,7 @@ export function Header({ floating = false }: HeaderProps) {
             <div className="md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8">
+                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8" aria-label="Открыть меню">
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -178,7 +178,7 @@ export function Header({ floating = false }: HeaderProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label="Меню пользователя">
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                       <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
@@ -279,7 +279,7 @@ export function Header({ floating = false }: HeaderProps) {
           <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-1">
+                <Button variant="ghost" size="icon" className="mr-1" aria-label="Открыть меню">
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -302,7 +302,7 @@ export function Header({ floating = false }: HeaderProps) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label="Меню пользователя">
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">

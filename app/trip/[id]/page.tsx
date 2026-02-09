@@ -658,6 +658,8 @@ export default function TripDetailPage() {
                           <button
                             onClick={() => setExpandedDay(isExpanded ? null : day.day)}
                             className="w-full flex items-center justify-between p-3 sm:p-5 text-left group bg-transparent gap-2"
+                            aria-expanded={isExpanded}
+                            aria-controls={`day-content-${day.day}`}
                           >
                             <div className="flex items-center gap-3 sm:gap-6 min-w-0">
                               <div className={`flex flex-col h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
@@ -693,7 +695,10 @@ export default function TripDetailPage() {
                           </button>
 
                           {isExpanded && (
-                            <div className="px-3 sm:px-5 pb-4 sm:pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300 overflow-hidden">
+                            <div
+                              id={`day-content-${day.day}`}
+                              className="px-3 sm:px-5 pb-4 sm:pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300 overflow-hidden"
+                            >
                               {/* Logistics Bar */}
                               {day.logistics && (day.logistics.mode !== "None") && (
                                 <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">

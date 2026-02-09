@@ -88,7 +88,7 @@ export function AppSidebar() {
             if (savedCollapsed) {
                 setIsCollapsed(savedCollapsed === 'true')
             }
-        } catch {}
+        } catch { }
     }, [])
 
     // Load trips and check admin role when user changes
@@ -194,7 +194,7 @@ export function AppSidebar() {
         setIsCollapsed(newState)
         try {
             localStorage.setItem('sidebar-collapsed', String(newState))
-        } catch {}
+        } catch { }
         window.dispatchEvent(new Event('sidebar-change'))
     }
 
@@ -225,6 +225,7 @@ export function AppSidebar() {
                         size="icon"
                         className="h-8 w-8 rounded-lg"
                         onClick={toggleCollapsed}
+                        aria-label="Свернуть боковую панель"
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -239,6 +240,7 @@ export function AppSidebar() {
                         size="icon"
                         className="w-full h-10 rounded-xl"
                         onClick={toggleCollapsed}
+                        aria-label="Развернуть боковую панель"
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -290,7 +292,10 @@ export function AppSidebar() {
                 {!isCollapsed && recentTrips.length > 0 && (
                     <Collapsible open={tripsOpen} onOpenChange={setTripsOpen} className="mt-4">
                         <CollapsibleTrigger asChild>
-                            <button className="flex items-center justify-between w-full px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                            <button
+                                className="flex items-center justify-between w-full px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+                                aria-label={tripsOpen ? "Скрыть последние маршруты" : "Показать последние маршруты"}
+                            >
                                 <span>Последние маршруты</span>
                                 <ChevronDown className={cn(
                                     "h-4 w-4 transition-transform",
@@ -372,6 +377,7 @@ export function AppSidebar() {
                                     size="sm"
                                     className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'light' && 'bg-background shadow-sm')}
                                     onClick={() => setTheme('light')}
+                                    aria-label="Светлая тема"
                                 >
                                     <Sun className="h-4 w-4" />
                                 </Button>
@@ -380,6 +386,7 @@ export function AppSidebar() {
                                     size="sm"
                                     className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'system' && 'bg-background shadow-sm')}
                                     onClick={() => setTheme('system')}
+                                    aria-label="Системная тема"
                                 >
                                     <Monitor className="h-4 w-4" />
                                 </Button>
@@ -388,6 +395,7 @@ export function AppSidebar() {
                                     size="sm"
                                     className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'dark' && 'bg-background shadow-sm')}
                                     onClick={() => setTheme('dark')}
+                                    aria-label="Темная тема"
                                 >
                                     <Moon className="h-4 w-4" />
                                 </Button>
@@ -398,6 +406,7 @@ export function AppSidebar() {
                                 size="icon"
                                 className="w-full h-10 rounded-xl"
                                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                                aria-label="Переключить тему"
                             >
                                 {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                             </Button>
@@ -409,7 +418,9 @@ export function AppSidebar() {
                                 <button className={cn(
                                     "flex items-center gap-3 w-full rounded-xl transition-colors hover:bg-accent p-2",
                                     isCollapsed && "justify-center"
-                                )}>
+                                )}
+                                    aria-label="Меню пользователя"
+                                >
                                     <Avatar className="h-9 w-9 rounded-xl shrink-0">
                                         <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                                         <AvatarFallback className="rounded-xl bg-primary/10 text-primary text-sm font-medium">

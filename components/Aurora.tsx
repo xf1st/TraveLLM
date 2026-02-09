@@ -128,6 +128,8 @@ export default function Aurora(props: AuroraProps) {
         const ctn = ctnDom.current;
         if (!ctn) return;
 
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
         const renderer = new Renderer({
             alpha: true,
             premultipliedAlpha: true,
@@ -178,22 +180,34 @@ export default function Aurora(props: AuroraProps) {
         ctn.appendChild(gl.canvas);
 
         let animateId = 0;
-        const update = (t: number) => {
-            animateId = requestAnimationFrame(update);
+
+        const updateUniforms = (t: number) => {
+            if (!program) return;
+
             const { time = t * 0.01, speed = 1.0 } = propsRef.current;
-            if (program) {
-                program.uniforms.uTime.value = time * speed * 0.1;
-                program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
-                program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
-                const stops = propsRef.current.colorStops ?? colorStops;
-                program.uniforms.uColorStops.value = stops.map((hex: string) => {
-                    const c = new Color(hex);
-                    return [c.r, c.g, c.b];
-                });
-                renderer.render({ scene: mesh });
-            }
+            program.uniforms.uTime.value = time * speed * 0.1;
+            program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
+            program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
+            const stops = propsRef.current.colorStops ?? colorStops;
+            program.uniforms.uColorStops.value = stops.map((hex: string) => {
+                const c = new Color(hex);
+                return [c.r, c.g, c.b];
+            });
         };
-        animateId = requestAnimationFrame(update);
+
+        const update = (t: number) => {
+            updateUniforms(t);
+            renderer.render({ scene: mesh });
+            animateId = requestAnimationFrame(update);
+        };
+
+        if (!prefersReducedMotion) {
+            animateId = requestAnimationFrame(update);
+        } else {
+            // Render once for static background
+            updateUniforms(0);
+            renderer.render({ scene: mesh });
+        }
 
         resize();
 

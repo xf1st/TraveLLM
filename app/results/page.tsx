@@ -420,6 +420,7 @@ function ResultsContent() {
               variant={view === "favorites" ? "default" : "ghost"}
               onClick={() => setView("favorites")}
               className={`px-8 rounded-xl transition-all ${view === 'favorites' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
+              aria-pressed={view === "favorites"}
             >
               Избранное
             </Button>
@@ -427,6 +428,7 @@ function ResultsContent() {
               variant={view === "my" ? "default" : "ghost"}
               onClick={() => setView("my")}
               className={`px-8 rounded-xl transition-all ${view === 'my' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
+              aria-pressed={view === "my"}
             >
               Мои маршруты
             </Button>
