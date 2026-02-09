@@ -1,0 +1,122 @@
+"use client"
+
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Lock, Medal, Map, Briefcase, Zap, Globe, Compass, Plane, Star } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+export type Achievement = {
+    id: string
+    title: string
+    description: string
+    icon: any
+    condition: (stats: { countries: number, trips: number, weeks: number }) => boolean
+    color: string
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+    {
+        id: "first_step",
+        title: "Первый шаг",
+        description: "Посетите свою первую страну",
+        icon: Compass,
+        condition: (stats) => stats.countries >= 1,
+        color: "bg-blue-500"
+    },
+    {
+        id: "explorer",
+        title: "Исследователь",
+        description: "Посетите 5 стран",
+        icon: Map,
+        condition: (stats) => stats.countries >= 5,
+        color: "bg-emerald-500"
+    },
+    {
+        id: "globetrotter",
+        title: "Гражданин мира",
+        description: "Посетите 10 стран",
+        icon: Globe,
+        condition: (stats) => stats.countries >= 10,
+        color: "bg-purple-500"
+    },
+    {
+        id: "traveler",
+        title: "Путешественник",
+        description: "Создайте 3 маршрута",
+        icon: Plane,
+        condition: (stats) => stats.trips >= 3,
+        color: "bg-orange-500"
+    },
+    {
+        id: "expert",
+        title: "Эксперт",
+        description: "10+ путешествий в копилке",
+        icon: Star,
+        condition: (stats) => stats.trips >= 10,
+        color: "bg-yellow-500"
+    }
+]
+
+interface AchievementsProps {
+    visitedCountries: string[]
+    completedTripsCount: number
+}
+
+export default function Achievements({ visitedCountries, completedTripsCount }: AchievementsProps) {
+    const stats = {
+        countries: visitedCountries.length,
+        trips: completedTripsCount,
+        weeks: 0 // Placeholder
+    }
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ACHIEVEMENTS.map((achievement) => {
+                const isUnlocked = achievement.condition(stats)
+                const Icon = achievement.icon
+
+                return (
+                    <Card
+                        key={achievement.id}
+                        className={cn(
+                            "p-4 relative overflow-hidden transition-all duration-300 border-2",
+                            isUnlocked
+                                ? "bg-gradient-to-br from-white/10 to-transparent border-primary/20 hover:border-primary/50"
+                                : "bg-zinc-900/10 border-transparent opacity-60 grayscale"
+                        )}
+                    >
+                        <div className="flex items-start gap-4">
+                            <div className={cn(
+                                "p-3 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
+                                isUnlocked ? achievement.color : "bg-zinc-800"
+                            )}>
+                                {isUnlocked ? (
+                                    <Icon className="h-6 w-6 text-white" />
+                                ) : (
+                                    <Lock className="h-6 w-6 text-zinc-500" />
+                                )}
+                            </div>
+                            <div>
+                                <h3 className={cn("font-bold mb-1", isUnlocked ? "text-foreground" : "text-muted-foreground")}>
+                                    {achievement.title}
+                                </h3>
+                                <p className="text-xs text-muted-foreground leading-snug">
+                                    {achievement.description}
+                                </p>
+                                {isUnlocked && (
+                                    <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
+                                        Получено
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+
+                        {isUnlocked && (
+                            <div className={cn("absolute -top-10 -right-10 w-32 h-32 blur-3xl rounded-full opacity-20 pointer-events-none", achievement.color)} />
+                        )}
+                    </Card>
+                )
+            })}
+        </div>
+    )
+}

@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Hotel as HotelIcon } from "lucide-react"
+import { User, Settings, Heart, Map, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,7 +15,15 @@ import { toast } from "sonner"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
+import dynamic from 'next/dynamic'
 
+
+// Dynamically import ScratchMap to avoid SSR issues with Leaflet
+const ScratchMap = dynamic(() => import('@/components/ScratchMap'), {
+  ssr: false,
+  loading: () => <div className="h-[400px] w-full bg-muted/20 animate-pulse rounded-xl" />
+})
+import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
 
 // Interest categories with Russian labels and unique colors
 const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -193,11 +201,52 @@ function ProfileContent() {
     loadProfile()
   }, [])
 
-  // ... (Update Profile Logic remains similar, ensure avatar_url is preserved if needed, though usually handled separately)
+  // Achievements Logic
+  useEffect(() => {
+    if (!profile) return
+
+    // Calculate current stats
+    const stats = {
+      countries: editForm.visitedCountries.length,
+      trips: userRoutes.length,
+      weeks: 0
+    }
+
+    // Check for unlocked achievements (for notification purposes this usually needs previous state,
+    // but for now we won't spam on load. Real unlock checking should happen in handleUpdateProfile)
+  }, [editForm.visitedCountries, userRoutes])
+
+  const checkAchievements = (newVisitedCountries: string[]) => {
+    const prevStats = { countries: profile?.preferences?.visitedCountries?.length || 0, trips: userRoutes.length, weeks: 0 }
+    const newStats = { countries: newVisitedCountries.length, trips: userRoutes.length, weeks: 0 }
+
+    ACHIEVEMENTS.forEach(ach => {
+      const wasUnlocked = ach.condition(prevStats)
+      const isUnlocked = ach.condition(newStats)
+
+      if (!wasUnlocked && isUnlocked) {
+        toast.custom((t) => (
+          <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-2xl flex items-center gap-4 border border-white/20">
+            <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+              <Medal className="w-8 h-8 animate-bounce" />
+            </div>
+            <div>
+              <h4 className="font-bold text-lg">Новое достижение!</h4>
+              <p className="text-sm opacity-90">{ach.title}</p>
+            </div>
+          </div>
+        ), { duration: 5000 })
+      }
+    })
+  }
 
   const handleUpdateProfile = async () => {
     if (!user) return
     setLoading(true)
+
+    // Check achievements before saving
+    checkAchievements(editForm.visitedCountries)
+
     const updatedPreferences = {
       ...(profile.preferences || {}),
       pace: editForm.pace,
@@ -284,6 +333,7 @@ function ProfileContent() {
 
   const tabs = [
     { id: "overview", label: "Обзор" },
+    { id: "achievements", label: "Карта и Достижения" },
     { id: "preferences", label: "Предпочтения" },
     { id: "history", label: "История генераций" },
     { id: "settings", label: "Настройки" }
@@ -812,6 +862,34 @@ function ProfileContent() {
                         </div>
                       </div>
                     )}
+
+
+                    {activeTab === "achievements" && (
+                      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Globe className="w-6 h-6 text-emerald-500" />
+                            Ваша карта путешествий
+                          </h2>
+                          <p className="text-muted-foreground">
+                            Отмечайте страны, которые вы посетили, в настройках профиля, чтобы закрасить карту.
+                          </p>
+                          <ScratchMap visitedCountries={profile?.preferences?.visitedCountries || []} />
+                        </div>
+
+                        <div className="space-y-4">
+                          <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <Medal className="w-6 h-6 text-amber-500" />
+                            Достижения
+                          </h2>
+                          <Achievements
+                            visitedCountries={profile?.preferences?.visitedCountries || []}
+                            completedTripsCount={userRoutes.length}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {activeTab === "preferences" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <Card className="p-6 bg-card/40 border-border backdrop-blur-sm space-y-4">
