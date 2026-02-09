@@ -1,7 +1,10 @@
 import crypto from 'crypto'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const BOT_SECRET = process.env.TELEGRAM_BOT_SECRET || 'default_secret'
+const BOT_SECRET = process.env.TELEGRAM_BOT_SECRET || crypto.randomBytes(32).toString('hex')
+if (!process.env.TELEGRAM_BOT_SECRET) {
+    console.warn("[SECURITY] TELEGRAM_BOT_SECRET is not set — generated random fallback. Tokens will not persist across restarts!");
+}
 
 export const TG_API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`
 

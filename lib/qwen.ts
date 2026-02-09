@@ -2,6 +2,9 @@
 // https://router.huggingface.co
 
 const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "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";
+if (!process.env.HUGGING_FACE_TOKEN) {
+    console.warn("[SECURITY] HUGGING_FACE_TOKEN is not set (qwen.ts) — using hardcoded fallback. Set env variable in production!");
+}
 export const QWEN_MODEL = "Qwen/Qwen3-32B:novita";
 
 interface QwenMessage {

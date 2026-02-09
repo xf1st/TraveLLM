@@ -2,6 +2,9 @@
 // https://api.deepseek.com
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-e39ffbfd729047febe166ac950a5a68a";
+if (!process.env.DEEPSEEK_API_KEY) {
+    console.warn("[SECURITY] DEEPSEEK_API_KEY is not set — using hardcoded fallback. Set env variable in production!");
+}
 
 // Models with different token limits
 export const DEEPSEEK_CHAT = "deepseek-chat";        // 8k output

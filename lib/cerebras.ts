@@ -2,6 +2,9 @@
 // Primary: GLM-4.7 on Cerebras, Fallback: Llama-3.3-70B on Cerebras
 
 const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "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";
+if (!process.env.HUGGING_FACE_TOKEN) {
+    console.warn("[SECURITY] HUGGING_FACE_TOKEN is not set (cerebras.ts) — using hardcoded fallback. Set env variable in production!");
+}
 
 // Models available via Cerebras backend
 export const GLM_MODEL = "zai-org/GLM-4.7:cerebras";

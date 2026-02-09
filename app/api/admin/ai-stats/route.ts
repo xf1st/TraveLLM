@@ -1,13 +1,38 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createServerClient } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
 export async function GET(req: Request) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey
 
-        if (!supabaseUrl || !supabaseKey) {
+        if (!supabaseUrl || !supabaseKey || !supabaseAnonKey) {
             return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
+        }
+
+        // Auth check: verify the caller is an admin
+        const cookieStore = await cookies()
+        const authClient = createServerClient(supabaseUrl, supabaseAnonKey, {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value
+                },
+            },
+        })
+        const { data: { user } } = await authClient.auth.getUser()
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+        const { data: profile } = await authClient
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single()
+        if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
 
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {

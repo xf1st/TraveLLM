@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface TripChatProps {
     tripId: string
@@ -105,7 +106,8 @@ export function TripChat({ tripId, isOpen, onClose, currentUser }: TripChatProps
 
         if (error) {
             console.error('Error sending message:', error)
-            // Restore message if failed? Nah, keep it simple.
+            setNewMessage(msg)
+            toast.error('Не удалось отправить сообщение')
         }
     }
 

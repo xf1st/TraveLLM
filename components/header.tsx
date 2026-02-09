@@ -100,7 +100,6 @@ export function Header({ floating = false }: HeaderProps) {
 
       localStorage.removeItem("user")
       // Auth state will be updated by AuthProvider via onAuthStateChange
-      await supabase.auth.signOut({ scope: 'local' })
 
       toast.success("Вы успешно вышли из аккаунта")
 
