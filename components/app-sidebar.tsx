@@ -83,10 +83,12 @@ export function AppSidebar() {
 
     // Load collapsed state from localStorage
     useEffect(() => {
-        const savedCollapsed = localStorage.getItem('sidebar-collapsed')
-        if (savedCollapsed) {
-            setIsCollapsed(savedCollapsed === 'true')
-        }
+        try {
+            const savedCollapsed = localStorage.getItem('sidebar-collapsed')
+            if (savedCollapsed) {
+                setIsCollapsed(savedCollapsed === 'true')
+            }
+        } catch {}
     }, [])
 
     // Load trips and check admin role when user changes
@@ -190,7 +192,9 @@ export function AppSidebar() {
     const toggleCollapsed = () => {
         const newState = !isCollapsed
         setIsCollapsed(newState)
-        localStorage.setItem('sidebar-collapsed', String(newState))
+        try {
+            localStorage.setItem('sidebar-collapsed', String(newState))
+        } catch {}
         window.dispatchEvent(new Event('sidebar-change'))
     }
 

@@ -82,6 +82,10 @@ export function ItineraryChatWidget({
                 })
             })
 
+            if (!response.ok) {
+                throw new Error(`Ошибка сервера (${response.status})`)
+            }
+
             const data = await response.json()
 
             if (data.error) {
@@ -116,29 +120,6 @@ export function ItineraryChatWidget({
         }
     }
 
-    // Proactive Booking Suggestion - called after successful response, not in finally
-    const maybeAddBookingSuggestion = (userMessage: string, currentMessages: Message[]) => {
-        const lowerMsg = userMessage.toLowerCase()
-        const hasBookingSuggestion = currentMessages.some(m => m.bookingData)
-
-        // Don't add if there's already a booking suggestion in recent messages
-        if (hasBookingSuggestion) return
-
-        if (lowerMsg.includes('билет') || lowerMsg.includes('перелет') || lowerMsg.includes('летим')) {
-            setMessages(prev => [...prev, {
-                role: "assistant",
-                content: "Я могу помочь подобрать билеты! Хотите посмотреть рейсы?",
-                bookingData: { type: "flight", destination: itinerary?.countries?.[0]?.name || itinerary?.destination || "" }
-            }])
-        } else if (lowerMsg.includes('отель') || lowerMsg.includes('жилье') || lowerMsg.includes('где жить')) {
-            setMessages(prev => [...prev, {
-                role: "assistant",
-                content: "Нашел несколько вариантов жилья по вашему бюджету. Посмотрим?",
-                bookingData: { type: "hotel", destination: itinerary?.countries?.[0]?.name || itinerary?.destination || "" }
-            }])
-        }
-    }
-
     const applyModifications = (modifications: any[], metadataUpdates?: any) => {
         // Get itinerary array safely - itinerary prop could be object or array
         const itineraryArray = Array.isArray(itinerary)
@@ -155,12 +136,6 @@ export function ItineraryChatWidget({
 
         onItineraryUpdate?.(updatedItinerary)
         setHasUnsavedChanges(true)
-    }
-
-    const handleSave = async () => {
-        // This is handled by the parent Save button usually, 
-        // but we can offer a "Quick Save" here if needed.
-        // For now, we assume parent handles persistence via onItineraryUpdate bubbling up.
     }
 
     return (
