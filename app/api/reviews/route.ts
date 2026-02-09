@@ -248,19 +248,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Стратегия: сначала Google, потом AI
-    let reviews: PlaceReviews | null = null
-
-    // Пробуем Google Places API
-    if (GOOGLE_PLACES_API_KEY) {
-      reviews = await getGoogleReviews(placeName, city || "")
-    }
-
-    // Fallback на AI
-    if (!reviews) {
-      reviews = await generateAIReviews(placeName, city || "")
-    }
-
+    const reviews = await getReviewsData(placeName, city || "")
     return NextResponse.json(reviews)
   } catch (error) {
     console.error("Reviews API error:", error)
@@ -284,10 +272,34 @@ export async function GET(request: Request) {
     )
   }
 
-  // Перенаправляем на POST логику
-  const fakeRequest = {
-    json: async () => ({ placeName, city })
-  } as Request
+  try {
+    const reviews = await getReviewsData(placeName, city || "")
+    return NextResponse.json(reviews)
+  } catch (error) {
+    console.error("Reviews API error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch reviews" },
+      { status: 500 }
+    )
+  }
+}
 
-  return POST(fakeRequest)
+/**
+ * Shared logic to get reviews
+ */
+async function getReviewsData(placeName: string, city: string): Promise<PlaceReviews> {
+  // Стратегия: сначала Google, потом AI
+  let reviews: PlaceReviews | null = null
+
+  // Пробуем Google Places API
+  if (GOOGLE_PLACES_API_KEY) {
+    reviews = await getGoogleReviews(placeName, city)
+  }
+
+  // Fallback на AI
+  if (!reviews) {
+    reviews = await generateAIReviews(placeName, city)
+  }
+
+  return reviews
 }
