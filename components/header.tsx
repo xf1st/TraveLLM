@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu, Shield } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu, Shield, History } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -204,9 +204,9 @@ export function Header({ floating = false }: HeaderProps) {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                      <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
-                        <Map className="mr-3 h-4 w-4" />
-                        <span>Мои маршруты</span>
+                      <Link href="/profile?tab=history" className="w-full flex items-center p-2">
+                        <History className="mr-3 h-4 w-4" />
+                        <span>История генераций</span>
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
@@ -305,7 +305,7 @@ export function Header({ floating = false }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                    <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
                       {user.email?.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -315,7 +315,7 @@ export function Header({ floating = false }: HeaderProps) {
               <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal p-3">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user.user_metadata?.full_name || "Путешественник"}</p>
+                    <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>
@@ -328,9 +328,9 @@ export function Header({ floating = false }: HeaderProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                    <Link href="/profile?tab=routes" className="w-full flex items-center p-2">
-                      <Map className="mr-3 h-4 w-4" />
-                      <span>Мои маршруты</span>
+                    <Link href="/profile?tab=history" className="w-full flex items-center p-2">
+                      <History className="mr-3 h-4 w-4" />
+                      <span>История генераций</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
