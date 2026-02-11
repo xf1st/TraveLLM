@@ -6,11 +6,11 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ArrowLeft, Bookmark, Share2, Clock, Calendar, ChevronRight } from "lucide-react"
-import Image from "next/image"
 import Link from "next/link"
 import { getArticleById, articlesLibrary } from "@/lib/articles"
+import { TripImage } from "@/components/TripImage"
 
 export default function ArticlePage() {
   const params = useParams()
@@ -159,11 +159,11 @@ export default function ArticlePage() {
 
         {/* Hero Image */}
         <div className="relative h-[300px] md:h-[400px] rounded-2xl overflow-hidden mb-8">
-          <Image
+          <TripImage
             src={article.image}
+            query={article.title}
             alt={article.title}
-            fill
-            className="object-cover"
+            className="w-full h-full object-cover"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -187,7 +187,6 @@ export default function ArticlePage() {
         <div className="flex flex-wrap items-center gap-6 mb-8 pb-8 border-b border-border">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={article.author.avatar} alt={article.author.name} />
               <AvatarFallback>{article.author.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
             <div>
@@ -230,7 +229,6 @@ export default function ArticlePage() {
         <Card className="p-6 mb-12 bg-muted/30">
           <div className="flex items-start gap-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={article.author.avatar} alt={article.author.name} />
               <AvatarFallback className="text-lg">{article.author.name.substring(0, 2)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -254,11 +252,11 @@ export default function ArticlePage() {
                 <Link key={related.id} href={`/news/${related.id}`}>
                   <Card className="overflow-hidden group hover:shadow-lg transition-all h-full">
                     <div className="relative h-32">
-                      <Image
+                      <TripImage
                         src={related.image}
+                        query={related.title}
                         alt={related.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     </div>
                     <div className="p-4">

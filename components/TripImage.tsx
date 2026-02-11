@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MapPin } from "lucide-react"
+import { DEFAULT_TRAVEL_IMAGE, buildImageQuery, isProbablyBlockedImage } from "@/lib/image-utils"
 
 interface TripImageProps {
     src?: string
@@ -16,61 +17,65 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
     const [currentSrc, setCurrentSrc] = useState<string | undefined>(src)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(false)
+    const [retryCount, setRetryCount] = useState(0)
 
     // Check if initial src is invalid (blocked domain or empty)
     useEffect(() => {
-        const isInvalid = !src ||
-            src.includes('pexels.com') ||
-            src.includes('pollinations.ai') ||
-            src.includes('loremflickr.com');
+        const raw = String(src || "").trim()
+        const isHttp = /^https?:\/\//i.test(raw)
+        const isLocal = raw.startsWith("/")
+        const isInvalid = !raw || !isHttp && !isLocal || isProbablyBlockedImage(src)
 
         if (isInvalid) {
             fetchNewImage();
         } else {
             setCurrentSrc(src);
             setIsLoading(false);
+            setError(false);
+            setRetryCount(0);
         }
-    }, [src]);
+    }, [src, query, alt]);
 
     const fetchNewImage = async () => {
         setIsLoading(true);
         setError(false);
         try {
-            const res = await fetch(`/api/image?query=${encodeURIComponent(query)}`);
+            const res = await fetch(`/api/image?query=${encodeURIComponent(buildImageQuery(query, alt))}`);
             const data = await res.json();
-            if (data.url) {
+            if (data.url && !isProbablyBlockedImage(data.url)) {
                 setCurrentSrc(data.url);
             } else {
-                setError(true);
+                setCurrentSrc(DEFAULT_TRAVEL_IMAGE);
+                setError(false);
             }
         } catch (e) {
-            setError(true);
+            setCurrentSrc(DEFAULT_TRAVEL_IMAGE);
+            setError(false);
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleError = () => {
-        if (!error) {
-            // First retry - fetch a new one
-            console.log("Image load failed, fetching new:", currentSrc)
-            fetchNewImage();
-        } else {
-            // Already retried or failed fetch -> permanent error
-            setError(true)
+        if (currentSrc !== DEFAULT_TRAVEL_IMAGE && retryCount < 1) {
+            setRetryCount((v) => v + 1)
+            fetchNewImage()
+            return
         }
+        setCurrentSrc(DEFAULT_TRAVEL_IMAGE)
+        setError(true)
+        setIsLoading(false)
     };
 
     if (error || !currentSrc) {
         // Use guaranteed static fallback image
-        // Updated fallback to a reliable Unsplash ID or internal asset if possible, keeping Wikimedia for now but wrapped nicely
-        const fallbackUrl = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=800"; // Travel placeholder
+        const fallbackUrl = DEFAULT_TRAVEL_IMAGE;
         return (
             <div className={`relative overflow-hidden bg-muted flex items-center justify-center ${className}`}>
                 <img
                     src={fallbackUrl}
                     alt={alt}
-                    className="w-full h-full object-cover opacity-80 mix-blend-overlay"
+                    className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 text-white text-center">

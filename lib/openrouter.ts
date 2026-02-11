@@ -16,13 +16,16 @@ interface OpenRouterOptions {
     maxTokens?: number;
     temperature?: number;
     model?: string; // Allow overriding model per request
+    reasoning?: {
+        enabled: boolean;
+    };
 }
 
 export async function openrouterInference(
     messages: OpenRouterMessage[],
     options: OpenRouterOptions = {}
 ): Promise<string> {
-    const { maxTokens = 30000, temperature = 0.6, model = OPENROUTER_MODEL } = options;
+    const { maxTokens = 30000, temperature = 0.6, model = OPENROUTER_MODEL, reasoning } = options;
 
     console.log("OpenRouter: Starting inference with model:", model);
 
@@ -37,6 +40,7 @@ export async function openrouterInference(
             messages,
             max_tokens: maxTokens,
             temperature,
+            ...(reasoning ? { reasoning } : {}),
         }),
     });
 

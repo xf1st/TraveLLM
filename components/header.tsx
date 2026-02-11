@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu, Shield, History } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu, Shield, History, X } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -115,6 +115,7 @@ export function Header({ floating = false }: HeaderProps) {
   const navLinks = [
     // { href: "/guide", label: "AI Гид" }, // Hidden - preserved for future mobile app
     { href: "/results", label: "Маршруты" },
+    { href: "/dashboard", label: "3D Карта β" },
     { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
   ]
@@ -367,3 +368,4 @@ export function Header({ floating = false }: HeaderProps) {
     </div>
   )
 }
+

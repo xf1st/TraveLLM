@@ -14,7 +14,7 @@ function extractCity(title: string): string {
 
 export async function POST(req: Request) {
     try {
-        const { tripData, userMessage, tripId } = await req.json()
+        const { tripData, userMessage, tripId, userLocation: reqUserLocation } = await req.json()
 
         if (!tripData || !userMessage) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -206,7 +206,19 @@ ${itineraryContext}
         }
 
         // Handle QUESTION intent - answer about the trip
+        const currentDate = new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        const locationStr = reqUserLocation ? `${reqUserLocation.lat.toFixed(4)}, ${reqUserLocation.lng.toFixed(4)}` : "Неизвестно"
+
+        // Check safety
+        const closedAirport = GROUNDING_DATA_2026.closedAirports.find(a => destination.toLowerCase().includes(a.city.toLowerCase()))
+        const safetyWarning = closedAirport 
+            ? `⚠️ ВНИМАНИЕ: Аэропорт ${closedAirport.city} (${closedAirport.iata}) ЗАКРЫТ. Добраться можно только на поезде или автобусе из Сочи/Минвод.`
+            : ""
+
         const answerPrompt = `Ты — умный ИИ-помощник по путешествиям. Пользователь просматривает маршрут.
+
+СЕГОДНЯ: ${currentDate}
+ТЕКУЩАЯ ГЕОЛОКАЦИЯ ПОЛЬЗОВАТЕЛЯ: ${locationStr}
 
 КОНТЕКСТ ПУТЕШЕСТВИЯ:
 - Название: ${tripTitle}
@@ -219,14 +231,16 @@ ${itineraryContext}
 
 РЕАЛЬНОСТЬ (2026):
 ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
+${safetyWarning}
 
 ВОПРОС ПОЛЬЗОВАТЕЛЯ: "${userMessage}"
 
 ПРАВИЛА:
-1. Отвечай кратко и по делу (2-4 предложения)
-2. Давай практичные советы
-3. Если вопрос про редактирование — напомни, что можно попросить "Замени X на Y в день N"
-4. Будь дружелюбным
+1. Если пользователь спрашивает "где я?" или "что рядом?", используй его геолокацию.
+2. Отвечай кратко и по делу (2-4 предложения).
+3. Давай практичные советы.
+4. Если вопрос про редактирование — напомни, что можно попросить "Замени X на Y в день N".
+5. Будь дружелюбным.
 
 Ответ:`
 

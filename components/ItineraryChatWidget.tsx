@@ -27,6 +27,7 @@ interface ItineraryChatWidgetProps {
     mode?: "planning" | "guide"
     embedded?: boolean
     completedActivities?: string[]
+    userLocation?: { lat: number, lng: number }
 }
 
 export function ItineraryChatWidget({
@@ -38,6 +39,7 @@ export function ItineraryChatWidget({
     mode = "planning",
     embedded = false,
     completedActivities = [],
+    userLocation,
     className
 }: ItineraryChatWidgetProps & { className?: string }) {
     const [isOpen, setIsOpen] = useState(embedded) // If embedded, start open
@@ -78,7 +80,8 @@ export function ItineraryChatWidget({
                 body: JSON.stringify({
                     tripData: tripDetails || { itinerary }, // Send full trip object or fallback
                     userMessage,
-                    tripId
+                    tripId,
+                    userLocation // Pass location directly
                 })
             })
 

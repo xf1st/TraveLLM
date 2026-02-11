@@ -41,12 +41,8 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: [
-      {
-        url: "/logo-main.svg",
-        type: "image/svg+xml",
-      },
-    ],
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
     apple: "/apple-icon.png",
   },
 }
@@ -75,7 +71,7 @@ export default function RootLayout({
           {/* Notification & Cookie System */}
           <NotificationPrompt />
           <CookieConsent />
-          <Toaster position="top-center" richColors />
+          <Toaster position="top-center" />
           <Analytics />
         </ThemeProvider>
 

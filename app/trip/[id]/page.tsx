@@ -36,7 +36,6 @@ import {
   Mountain,
   Ticket,
   Building,
-  ArrowRight,
   MessageCircle,
   UserPlus,
   Loader2,
@@ -510,6 +509,7 @@ export default function TripDetailPage() {
           <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8 sm:pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
             <div className="container max-w-7xl px-4 text-center sm:text-left">
               <div className="flex items-center gap-3 mb-3 sm:mb-6">
+
                 <Button
                   variant="secondary"
                   size="sm"
@@ -526,6 +526,14 @@ export default function TripDetailPage() {
                 >
                   <Heart className={cn("mr-2 h-4 w-4 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "text-white")} />
                   {isFavorite ? "В избранном" : "В избранное"}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
+                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-xs sm:text-sm font-bold shadow-lg shadow-blue-500/20"
+                >
+                  <Globe className="mr-2 h-4 w-4 animate-pulse" /> 3D Режим β
                 </Button>
               </div>
 
@@ -860,34 +868,6 @@ export default function TripDetailPage() {
                   className="bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-border/50 dark:border-white/5 shadow-xl"
                 />
               </div>
-
-              {/* Route Map Widget */}
-              <Card className="overflow-hidden border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
-                <div className="p-4 border-b border-border/30 dark:border-white/5 flex items-center justify-between">
-                  <h3 className="text-sm font-bold flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    Карта маршрута
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsMapOpen(true)}
-                    className="text-xs h-7 px-2 hover:bg-primary/10"
-                  >
-                    <ArrowRight className="h-3 w-3 mr-1" />
-                    Развернуть
-                  </Button>
-                </div>
-                <div className="h-[200px] relative">
-                  {mapPlaces?.length > 0 ? (
-                    <TripMap places={mapPlaces} />
-                  ) : (
-                    <div className="h-full flex items-center justify-center bg-muted/20">
-                      <MapPin className="h-6 w-6 text-muted-foreground/30" />
-                    </div>
-                  )}
-                </div>
-              </Card>
 
               <Card className="p-6 border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -1250,3 +1230,4 @@ export default function TripDetailPage() {
     </div >
   )
 }
+
