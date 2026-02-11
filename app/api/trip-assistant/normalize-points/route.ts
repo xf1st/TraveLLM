@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { deepseekInference } from "@/lib/deepseek"
+import { deepseekInferenceWithUsage } from "@/lib/deepseek"
+import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
 
 type ActivityInput = {
   title?: string
@@ -11,7 +12,8 @@ type ActivityInput = {
 
 export async function POST(req: Request) {
   try {
-    const { activities, destination } = await req.json()
+    const { activities, destination, tripId, day } = await req.json()
+    const userId = await getRequestUserId()
 
     if (!Array.isArray(activities) || activities.length === 0) {
       return NextResponse.json({ error: "Invalid activities" }, { status: 400 })
@@ -40,7 +42,7 @@ Rules:
 Input:
 ${JSON.stringify(compactActivities)}`
 
-    const raw = await deepseekInference(
+    const { content: raw, usage } = await deepseekInferenceWithUsage(
       [
         { role: "system", content: "You output valid JSON only. No markdown." },
         { role: "user", content: prompt },
@@ -68,6 +70,21 @@ ${JSON.stringify(compactActivities)}`
         description: String(p.description || ""),
       }))
       .filter((p: any) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+
+    if (userId && usage) {
+      await recordAiUsageEvent({
+        userId,
+        tripId: typeof tripId === "string" ? tripId : null,
+        source: "map.normalize-points",
+        usage,
+        metadata: {
+          day: Number(day) || null,
+          destination: destination || null,
+          activitiesCount: compactActivities.length,
+          pointsCount: safePoints.length,
+        },
+      })
+    }
 
     return NextResponse.json({ points: safePoints })
   } catch (error) {

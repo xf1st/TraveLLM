@@ -90,28 +90,41 @@ export default function AdminUsersPage() {
 
       if (error) throw error
 
-      // Get trip counts and token usage for each user
-      const usersWithCounts = await Promise.all(
-        (data || []).map(async (user) => {
-          const { data: trips, count } = await supabase
-            .from("trips")
-            .select("token_usage", { count: "exact" })
-            .eq("user_id", user.id)
+      const [{ data: trips, error: tripsError }, { data: usageEvents, error: usageEventsError }] = await Promise.all([
+        supabase.from("trips").select("user_id, token_usage"),
+        supabase.from("ai_usage_events").select("user_id, total_tokens, cost_rub"),
+      ])
 
-          let total_tokens = 0
-          let total_cost_rub = 0
-          if (trips) {
-            for (const trip of trips) {
-              if (trip.token_usage) {
-                total_tokens += trip.token_usage.totalTokens || 0
-                total_cost_rub += trip.token_usage.costRub || 0
-              }
-            }
-          }
+      if (tripsError) throw tripsError
+      if (usageEventsError && usageEventsError.code !== "42P01") {
+        console.warn("Failed to load ai_usage_events, fallback to trips-only totals:", usageEventsError.message)
+      }
 
-          return { ...user, trips_count: count || 0, total_tokens, total_cost_rub }
-        })
-      )
+      const aggregateByUser = new Map<string, { trips_count: number; total_tokens: number; total_cost_rub: number }>()
+
+      for (const trip of trips || []) {
+        if (!trip.user_id) continue
+        const current = aggregateByUser.get(trip.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
+        current.trips_count += 1
+        if (trip.token_usage) {
+          current.total_tokens += Number(trip.token_usage.totalTokens || 0)
+          current.total_cost_rub += Number(trip.token_usage.costRub || 0)
+        }
+        aggregateByUser.set(trip.user_id, current)
+      }
+
+      for (const event of usageEvents || []) {
+        if (!event.user_id) continue
+        const current = aggregateByUser.get(event.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
+        current.total_tokens += Number(event.total_tokens || 0)
+        current.total_cost_rub += Number(event.cost_rub || 0)
+        aggregateByUser.set(event.user_id, current)
+      }
+
+      const usersWithCounts = (data || []).map((user) => {
+        const usage = aggregateByUser.get(user.id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
+        return { ...user, ...usage }
+      })
 
       setUsers(usersWithCounts)
       setFilteredUsers(usersWithCounts)

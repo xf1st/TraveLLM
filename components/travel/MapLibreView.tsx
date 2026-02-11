@@ -32,6 +32,10 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const currentSettingsRef = useRef(settings)
+  const routePointsRef = useRef<any[]>(points || [])
+  const routeArcsRef = useRef<any[]>(arcs || [])
+  const nearbyPointsRef = useRef<any[]>(nearbyPoints || [])
+  const routingLineRef = useRef<MapLibreViewProps["routingLine"]>(routingLine || null)
   const appliedStyleRef = useRef<"dark" | "satellite" | "street" | null>(null)
   const appliedProjectionRef = useRef<"globe" | "mercator" | null>(null)
   const socialDataRef = useRef<any[]>([])
@@ -95,6 +99,19 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
   useEffect(() => {
     currentSettingsRef.current = settings
   }, [settings])
+
+  useEffect(() => {
+    routePointsRef.current = Array.isArray(points) ? points : []
+    routeArcsRef.current = Array.isArray(arcs) ? arcs : []
+  }, [points, arcs])
+
+  useEffect(() => {
+    nearbyPointsRef.current = Array.isArray(nearbyPoints) ? nearbyPoints : []
+  }, [nearbyPoints])
+
+  useEffect(() => {
+    routingLineRef.current = routingLine || null
+  }, [routingLine])
 
   const ensureRouteLayersOnTop = () => {
     if (!map.current) return
@@ -342,10 +359,13 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
       }
     }
 
+    const activePoints = routePointsRef.current
+    const activeArcs = routeArcsRef.current
+
     const features: any[] = []
-    if (Array.isArray(points) && points.length > 0) {
-      if (Array.isArray(arcs) && arcs.length > 0) {
-        arcs.forEach((segment: any) => {
+    if (Array.isArray(activePoints) && activePoints.length > 0) {
+      if (Array.isArray(activeArcs) && activeArcs.length > 0) {
+        activeArcs.forEach((segment: any) => {
           const coordinates =
             Array.isArray(segment?.coordinates) && segment.coordinates.length > 1
               ? segment.coordinates
@@ -371,15 +391,15 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
             },
           })
         })
-      } else if (points.length > 1) {
+      } else if (activePoints.length > 1) {
         features.push({
           type: "Feature",
-          geometry: { type: "LineString", coordinates: points.map((p) => [p.lng, p.lat]) },
+          geometry: { type: "LineString", coordinates: activePoints.map((p) => [p.lng, p.lat]) },
           properties: { mode: "road", icon: "🚗", lineColor: "#facc15" },
         })
       }
 
-      points.forEach((p) => {
+      activePoints.forEach((p) => {
         features.push({
           type: "Feature",
           geometry: { type: "Point", coordinates: [p.lng, p.lat] },
@@ -414,8 +434,9 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
         return
       }
     }
-    const features = Array.isArray(nearbyPoints)
-      ? nearbyPoints.map((p: any) => ({
+    const activeNearby = nearbyPointsRef.current
+    const features = Array.isArray(activeNearby)
+      ? activeNearby.map((p: any) => ({
           type: "Feature",
           geometry: { type: "Point", coordinates: [p.lng, p.lat] },
           properties: {
@@ -447,16 +468,21 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
       }
     }
     const features: any[] = []
-    if (routingLine?.geometry?.type === "LineString" && Array.isArray(routingLine.geometry.coordinates) && routingLine.geometry.coordinates.length > 1) {
+    const activeRoutingLine = routingLineRef.current
+    if (
+      activeRoutingLine?.geometry?.type === "LineString" &&
+      Array.isArray(activeRoutingLine.geometry.coordinates) &&
+      activeRoutingLine.geometry.coordinates.length > 1
+    ) {
       features.push({
         type: "Feature",
-        geometry: routingLine.geometry,
+        geometry: activeRoutingLine.geometry,
         properties: {
-          mode: routingLine.mode || "road",
-          transportLabel: routingLine.transportLabel || "",
-          distanceKm: Number.isFinite(routingLine.distanceKm) ? routingLine.distanceKm : null,
-          durationMin: Number.isFinite(routingLine.durationMin) ? routingLine.durationMin : null,
-          targetTitle: routingLine.targetTitle || "",
+          mode: activeRoutingLine.mode || "road",
+          transportLabel: activeRoutingLine.transportLabel || "",
+          distanceKm: Number.isFinite(activeRoutingLine.distanceKm) ? activeRoutingLine.distanceKm : null,
+          durationMin: Number.isFinite(activeRoutingLine.durationMin) ? activeRoutingLine.durationMin : null,
+          targetTitle: activeRoutingLine.targetTitle || "",
         },
       })
     }

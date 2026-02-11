@@ -81,12 +81,55 @@ type DashboardRouteCache = {
   resolvedImageByQuery?: Record<string, string>
   activeDay?: number
   activeActivity?: number | null
+  itineraryFingerprint?: string
   updatedAt?: string
 }
 
 const DAY_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"]
 const ACTIVE_ROUTE_STORAGE_KEY = "travel-dashboard-active-route-v1"
 const ROUTE_CACHE_STORAGE_PREFIX = "travel-dashboard-route-cache-v1:"
+
+const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+  Paris: { lat: 48.8566, lng: 2.3522 },
+  "Париж": { lat: 48.8566, lng: 2.3522 },
+  London: { lat: 51.5074, lng: -0.1278 },
+  "Лондон": { lat: 51.5074, lng: -0.1278 },
+  Dubai: { lat: 25.2048, lng: 55.2708 },
+  "Дубай": { lat: 25.2048, lng: 55.2708 },
+  Tokyo: { lat: 35.6762, lng: 139.6503 },
+  "Токио": { lat: 35.6762, lng: 139.6503 },
+  "New York": { lat: 40.7128, lng: -74.006 },
+  "Нью-Йорк": { lat: 40.7128, lng: -74.006 },
+  Moscow: { lat: 55.7558, lng: 37.6173 },
+  "Москва": { lat: 55.7558, lng: 37.6173 },
+  "Санкт-Петербург": { lat: 59.9343, lng: 30.3351 },
+  Rome: { lat: 41.9028, lng: 12.4964 },
+  "Рим": { lat: 41.9028, lng: 12.4964 },
+  Berlin: { lat: 52.52, lng: 13.405 },
+  "Берлин": { lat: 52.52, lng: 13.405 },
+  Istanbul: { lat: 41.0082, lng: 28.9784 },
+  "Стамбул": { lat: 41.0082, lng: 28.9784 },
+  Bangkok: { lat: 13.7563, lng: 100.5018 },
+  "Бангкок": { lat: 13.7563, lng: 100.5018 },
+  Barcelona: { lat: 41.3874, lng: 2.1686 },
+  "Барселона": { lat: 41.3874, lng: 2.1686 },
+  Belgrade: { lat: 44.7866, lng: 20.4489 },
+  "Белград": { lat: 44.7866, lng: 20.4489 },
+}
+
+const AIRPORT_COORDS: Record<string, { lat: number; lng: number }> = {
+  SVO: { lat: 55.9726, lng: 37.4146 },
+  DME: { lat: 55.4088, lng: 37.9063 },
+  VKO: { lat: 55.5915, lng: 37.2615 },
+  LED: { lat: 59.8003, lng: 30.2625 },
+  IST: { lat: 41.2753, lng: 28.7519 },
+  SAW: { lat: 40.8986, lng: 29.3092 },
+  CDG: { lat: 49.0097, lng: 2.5479 },
+  ORY: { lat: 48.7262, lng: 2.3652 },
+  BEG: { lat: 44.8184, lng: 20.3091 },
+  JFK: { lat: 40.6413, lng: -73.7781 },
+  LHR: { lat: 51.47, lng: -0.4543 },
+}
 
 const safeReadJson = <T,>(key: string): T | null => {
   if (typeof window === "undefined") return null
@@ -118,6 +161,51 @@ const safeRemove = (key: string) => {
 }
 
 const buildRouteCacheKey = (ref: ActiveRouteRef) => `${ROUTE_CACHE_STORAGE_PREFIX}${ref.source}:${ref.id}`
+
+const normalizeText = (value: unknown) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+
+const extractCoordsFromMapLink = (rawLink: unknown): { lat: number; lng: number } | null => {
+  const link = String(rawLink || "")
+  if (!link) return null
+
+  const atMatch = link.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+  if (atMatch) {
+    const lat = Number(atMatch[1])
+    const lng = Number(atMatch[2])
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+  }
+
+  const queryMatch = link.match(/[?&](?:q|query)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+  if (queryMatch) {
+    const lat = Number(queryMatch[1])
+    const lng = Number(queryMatch[2])
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng }
+  }
+
+  return null
+}
+
+const buildItineraryFingerprint = (routeData: any): string => {
+  if (!Array.isArray(routeData?.itinerary)) return "no-itinerary"
+  return JSON.stringify(
+    routeData.itinerary.map((day: any) => ({
+      day: Number(day?.day) || null,
+      title: String(day?.title || ""),
+      logistics: String(day?.logistics?.to || day?.logistics?.from || ""),
+      activities: Array.isArray(day?.activities)
+        ? day.activities.map((act: any) => ({
+            t: String(act?.time || ""),
+            n: String(act?.title || act?.placeName || act?.place_name || ""),
+            m: String(act?.mapLink || act?.map_link || ""),
+          }))
+        : [],
+    })),
+  )
+}
 
 export default function TravelDashboard() {
   const searchParams = useSearchParams()
@@ -297,7 +385,12 @@ export default function TravelDashboard() {
   const applyTripWithCache = useCallback(
     (routeData: any, routeRef: ActiveRouteRef | null) => {
       const dayCount = Array.isArray(routeData?.itinerary) ? routeData.itinerary.length : 0
-      const cached = routeRef ? safeReadJson<DashboardRouteCache>(buildRouteCacheKey(routeRef)) : null
+      const itineraryFingerprint = buildItineraryFingerprint(routeData)
+      const cachedRaw = routeRef ? safeReadJson<DashboardRouteCache>(buildRouteCacheKey(routeRef)) : null
+      const cached = cachedRaw?.itineraryFingerprint === itineraryFingerprint ? cachedRaw : null
+      if (routeRef && cachedRaw && !cached) {
+        safeRemove(buildRouteCacheKey(routeRef))
+      }
       const rawCachedDay = Number(cached?.activeDay)
       const nextDay =
         dayCount > 0 ? Math.min(Math.max(Number.isFinite(rawCachedDay) && rawCachedDay > 0 ? rawCachedDay : 1, 1), dayCount) : 1
@@ -335,12 +428,19 @@ export default function TravelDashboard() {
   }, [])
 
   const buildCurvedFlightLine = useCallback((fromLat: number, fromLng: number, toLat: number, toLng: number) => {
-    const points: [number, number][] = []
-    const steps = 42
     const dx = toLng - fromLng
     const dy = toLat - fromLat
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    const curveAmplitude = Math.max(0.18, Math.min(1.8, distance * 0.22))
+    const distanceDeg = Math.sqrt(dx * dx + dy * dy)
+    if (distanceDeg < 0.0012) {
+      return [
+        [fromLng, fromLat] as [number, number],
+        [toLng, toLat] as [number, number],
+      ]
+    }
+
+    const points: [number, number][] = []
+    const steps = 42
+    const curveAmplitude = Math.min(1.2, distanceDeg * 0.22)
 
     for (let i = 0; i <= steps; i += 1) {
       const t = i / steps
@@ -354,6 +454,7 @@ export default function TravelDashboard() {
 
   const detectSegmentMode = useCallback(
     (fromActivity: any, toActivity: any, fromPoint: DisplayPoint, toPoint: DisplayPoint): SegmentMode => {
+      const distanceKm = haversineDistanceKm(fromPoint.lat, fromPoint.lng, toPoint.lat, toPoint.lng)
       const hintText = [
         fromActivity?.transport,
         fromActivity?.transportType,
@@ -374,14 +475,19 @@ export default function TravelDashboard() {
         .join(" ")
         .toLowerCase()
 
-      if (/(flight|plane|airport|рейс|самолет|перелет|airline|svo|dme|vko|ist|aeroflot)/i.test(hintText)) return "flight"
-      if (/(walk|walking|пеш|прогул)/i.test(hintText)) return "walk"
-      if (/(train|rail|поезд|жд|ржд)/i.test(hintText)) return "rail"
-      if (/(taxi|uber|car|drive|bus|metro|авто|такси|машин|трансфер|метро|автобус)/i.test(hintText)) return "road"
+      const hasFlightHint = /(flight|plane|airport|рейс|самолет|перелет|airline|svo|dme|vko|ist|aeroflot)/i.test(hintText)
+      const hasWalkHint = /(walk|walking|пеш|прогул)/i.test(hintText)
+      const hasRailHint = /(train|rail|поезд|жд|ржд)/i.test(hintText)
+      const hasRoadHint = /(taxi|uber|car|drive|bus|metro|авто|такси|машин|трансфер|метро|автобус)/i.test(hintText)
 
-      const distanceKm = haversineDistanceKm(fromPoint.lat, fromPoint.lng, toPoint.lat, toPoint.lng)
-      if (distanceKm > 120) return "flight"
-      if (distanceKm < 2.2) return "walk"
+      if (distanceKm < 1.8) return "walk"
+      if (hasWalkHint && distanceKm < 8) return "walk"
+      if (hasRailHint && distanceKm >= 25) return "rail"
+      if (hasFlightHint && distanceKm >= 180) return "flight"
+      if (hasRoadHint) return "road"
+
+      if (distanceKm > 220) return "flight"
+      if (distanceKm < 90) return "road"
       return "road"
     },
     [haversineDistanceKm],
@@ -521,7 +627,12 @@ export default function TravelDashboard() {
         const res = await fetch("/api/trip-assistant/normalize-points", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ activities: day.activities, destination: trip.destination }),
+          body: JSON.stringify({
+            activities: day.activities,
+            destination: trip.destination,
+            tripId: trip.id,
+            day: dayNum,
+          }),
         })
         if (res.ok) {
           const data = await res.json()
@@ -543,33 +654,29 @@ export default function TravelDashboard() {
     normalizeDayIfNeeded(activeDay)
   }, [activeDay, trip?.itinerary, normalizeDayIfNeeded])
 
-  const mockCoords: Record<string, { lat: number; lng: number }> = {
-    Paris: { lat: 48.8566, lng: 2.3522 },
-    London: { lat: 51.5074, lng: -0.1278 },
-    Dubai: { lat: 25.2048, lng: 55.2708 },
-    Tokyo: { lat: 35.6762, lng: 139.6503 },
-    "New York": { lat: 40.7128, lng: -74.006 },
-    Moscow: { lat: 55.7558, lng: 37.6173 },
-    Rome: { lat: 41.9028, lng: 12.4964 },
-    Berlin: { lat: 52.52, lng: 13.405 },
-    Istanbul: { lat: 41.0082, lng: 28.9784 },
-    Bangkok: { lat: 13.7563, lng: 100.5018 },
-    Barcelona: { lat: 41.3874, lng: 2.1686 },
-    Belgrade: { lat: 44.7866, lng: 20.4489 },
-  }
-
   const findDayCenter = useCallback(
     (day: any) => {
-      let lat = 48.8566
-      let lng = 2.3522
-      const title = day?.title || day?.endCity || ""
-      const dest = trip?.destination || ""
-      const match = Object.keys(mockCoords).find((c) => title.includes(c) || dest.includes(c))
-      if (match) {
-        lat = mockCoords[match].lat
-        lng = mockCoords[match].lng
+      const activityWithCoords = Array.isArray(day?.activities)
+        ? day.activities.find((act: any) => Number.isFinite(act?.coordinates?.lat) && Number.isFinite(act?.coordinates?.lng))
+        : null
+      if (activityWithCoords) {
+        return { lat: activityWithCoords.coordinates.lat, lng: activityWithCoords.coordinates.lng }
       }
-      return { lat, lng }
+
+      const rawSearch = [
+        day?.title,
+        day?.endCity,
+        day?.logistics?.from,
+        day?.logistics?.to,
+        trip?.destination,
+      ]
+        .filter(Boolean)
+        .join(" ")
+      const normalizedSearch = normalizeText(rawSearch)
+      const foundCity = Object.keys(CITY_COORDS).find((city) => normalizedSearch.includes(normalizeText(city)))
+
+      if (foundCity) return CITY_COORDS[foundCity]
+      return { lat: 48.8566, lng: 2.3522 }
     },
     [trip?.destination],
   )
@@ -608,6 +715,25 @@ export default function TravelDashboard() {
         lat = act.coordinates.lat
         lng = act.coordinates.lng
         foundNormalized = true
+      }
+
+      if (!foundNormalized) {
+        const fromMapLink =
+          extractCoordsFromMapLink(act.mapLink) || extractCoordsFromMapLink(act.map_link) || extractCoordsFromMapLink(act.link)
+        if (fromMapLink) {
+          lat = fromMapLink.lat
+          lng = fromMapLink.lng
+          foundNormalized = true
+        }
+      }
+
+      if (!foundNormalized) {
+        const iata = String(title).match(/\(([A-Z]{3})\)/)?.[1]
+        if (iata && AIRPORT_COORDS[iata]) {
+          lat = AIRPORT_COORDS[iata].lat
+          lng = AIRPORT_COORDS[iata].lng
+          foundNormalized = true
+        }
       }
 
       if (!foundNormalized) {
@@ -724,6 +850,8 @@ export default function TravelDashboard() {
     return { displayPoints: points, displayArcs: arcs }
   }, [activeDay, buildDayPoints])
 
+  const itineraryFingerprint = useMemo(() => buildItineraryFingerprint(trip), [trip?.id, trip?.itinerary])
+
   useEffect(() => {
     let cancelled = false
 
@@ -777,6 +905,9 @@ export default function TravelDashboard() {
               segmentCacheRef.current.set(cacheKey, result)
               return result
             }))
+          if (!routeResult?.geometry?.coordinates?.length) {
+            throw new Error("Empty route geometry")
+          }
 
           nextSegments.push({
             coordinates: routeResult.geometry.coordinates,
@@ -840,6 +971,7 @@ export default function TravelDashboard() {
         resolvedImageByQuery,
         activeDay,
         activeActivity,
+        itineraryFingerprint,
         updatedAt: new Date().toISOString(),
       } as DashboardRouteCache)
     }, 220)
@@ -850,7 +982,7 @@ export default function TravelDashboard() {
         cacheSaveTimerRef.current = null
       }
     }
-  }, [viewState, activeRouteRef, trip?.id, trip?.itinerary, normalizedDayPoints, refinedCoordinates, resolvedImageByQuery, activeDay, activeActivity])
+  }, [viewState, activeRouteRef, trip?.id, trip?.itinerary, normalizedDayPoints, refinedCoordinates, resolvedImageByQuery, activeDay, activeActivity, itineraryFingerprint])
 
   const findActivityIndexByTitle = useCallback(
     (dayNum: number, title?: string) => {

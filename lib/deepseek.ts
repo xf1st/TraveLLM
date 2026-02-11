@@ -3,7 +3,7 @@
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-e39ffbfd729047febe166ac950a5a68a";
 if (!process.env.DEEPSEEK_API_KEY) {
-    console.warn("[SECURITY] DEEPSEEK_API_KEY is not set — using hardcoded fallback. Set env variable in production!");
+    console.warn("[SECURITY] DEEPSEEK_API_KEY is not set - using hardcoded fallback. Set env variable in production!");
 }
 
 // Models with different token limits
@@ -17,14 +17,14 @@ const PRICING = {
     [DEEPSEEK_CHAT]: {
         input: 0.14 / 1_000_000,
         inputCached: 0.014 / 1_000_000,
-        output: 0.28 / 1_000_000
+        output: 0.28 / 1_000_000,
     },
     [DEEPSEEK_REASONER]: {
         input: 0.55 / 1_000_000,
         inputCached: 0.055 / 1_000_000,
-        output: 2.19 / 1_000_000
-    }
-}
+        output: 2.19 / 1_000_000,
+    },
+} as const;
 
 interface DeepSeekMessage {
     role: "system" | "user" | "assistant";
@@ -49,6 +49,11 @@ export interface TokenUsage {
     costRub: number; // Approximate at ~80 RUB/USD
 }
 
+export interface DeepSeekInferenceResult {
+    content: string;
+    usage: TokenUsage | null;
+}
+
 // Global accumulator for session usage
 let sessionUsage: TokenUsage = {
     promptTokens: 0,
@@ -56,13 +61,13 @@ let sessionUsage: TokenUsage = {
     totalTokens: 0,
     promptCacheHitTokens: 0,
     promptCacheMissTokens: 0,
-    model: 'mixed',
+    model: "mixed",
     costUsd: 0,
-    costRub: 0
-}
+    costRub: 0,
+};
 
 export function getSessionUsage(): TokenUsage {
-    return { ...sessionUsage }
+    return { ...sessionUsage };
 }
 
 export function resetSessionUsage(): void {
@@ -72,20 +77,56 @@ export function resetSessionUsage(): void {
         totalTokens: 0,
         promptCacheHitTokens: 0,
         promptCacheMissTokens: 0,
-        model: 'mixed',
+        model: "mixed",
         costUsd: 0,
-        costRub: 0
-    }
+        costRub: 0,
+    };
 }
 
-export async function deepseekInference(
+function buildCallUsage(rawUsage: any, model: string): TokenUsage | null {
+    if (!rawUsage) return null;
+
+    const pricing = PRICING[model as keyof typeof PRICING];
+    const promptTokens = rawUsage.prompt_tokens || 0;
+    const completionTokens = rawUsage.completion_tokens || 0;
+    const totalTokens = rawUsage.total_tokens || 0;
+    const cacheHit = rawUsage.prompt_cache_hit_tokens || 0;
+    const cacheMiss = rawUsage.prompt_cache_miss_tokens || promptTokens || 0;
+
+    const inputCost = cacheHit * pricing.inputCached + cacheMiss * pricing.input;
+    const outputCost = completionTokens * pricing.output;
+    const totalCostUsd = inputCost + outputCost;
+
+    return {
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        promptCacheHitTokens: cacheHit,
+        promptCacheMissTokens: cacheMiss,
+        model,
+        costUsd: totalCostUsd,
+        costRub: totalCostUsd * 80,
+    };
+}
+
+function applyUsageToSession(callUsage: TokenUsage): void {
+    sessionUsage.promptTokens += callUsage.promptTokens || 0;
+    sessionUsage.completionTokens += callUsage.completionTokens || 0;
+    sessionUsage.totalTokens += callUsage.totalTokens || 0;
+    sessionUsage.promptCacheHitTokens = (sessionUsage.promptCacheHitTokens || 0) + (callUsage.promptCacheHitTokens || 0);
+    sessionUsage.promptCacheMissTokens = (sessionUsage.promptCacheMissTokens || 0) + (callUsage.promptCacheMissTokens || 0);
+    sessionUsage.costUsd += callUsage.costUsd || 0;
+    sessionUsage.costRub += callUsage.costRub || 0;
+}
+
+async function runDeepseekInference(
     messages: DeepSeekMessage[],
     options: DeepSeekOptions = {}
-): Promise<string> {
+): Promise<DeepSeekInferenceResult> {
     const { maxTokens = 8192, temperature = 0.6, tripDays = 5 } = options;
 
     // Smart model selection:
-    // - Short trips (≤7 days): use deepseek-chat (faster, 8k limit)
+    // - Short trips (<=7 days): use deepseek-chat (faster, 8k limit)
     // - Long trips (8+ days): use deepseek-reasoner (16k limit)
     const isLongTrip = tripDays > 7;
     const model = isLongTrip ? DEEPSEEK_REASONER : DEEPSEEK_CHAT;
@@ -98,7 +139,7 @@ export async function deepseekInference(
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${DEEPSEEK_API_KEY}`,
+            Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         },
         body: JSON.stringify({
             model,
@@ -116,42 +157,51 @@ export async function deepseekInference(
     }
 
     const result = await response.json();
+    const callUsage = buildCallUsage(result?.usage, model);
 
-    // Extract and log token usage
-    const usage = result.usage;
-    if (usage) {
-        const pricing = PRICING[model as keyof typeof PRICING];
-        const cacheHit = usage.prompt_cache_hit_tokens || 0;
-        const cacheMiss = usage.prompt_cache_miss_tokens || usage.prompt_tokens || 0;
+    if (callUsage) {
+        applyUsageToSession(callUsage);
 
-        // Calculate cost
-        const inputCost = (cacheHit * pricing.inputCached) + (cacheMiss * pricing.input);
-        const outputCost = (usage.completion_tokens || 0) * pricing.output;
-        const totalCostUsd = inputCost + outputCost;
+        console.log(
+            `DeepSeek: Tokens used - prompt: ${callUsage.promptTokens}, completion: ${callUsage.completionTokens}, total: ${callUsage.totalTokens}`
+        );
 
-        // Update session totals
-        sessionUsage.promptTokens += usage.prompt_tokens || 0;
-        sessionUsage.completionTokens += usage.completion_tokens || 0;
-        sessionUsage.totalTokens += usage.total_tokens || 0;
-        sessionUsage.promptCacheHitTokens = (sessionUsage.promptCacheHitTokens || 0) + cacheHit;
-        sessionUsage.promptCacheMissTokens = (sessionUsage.promptCacheMissTokens || 0) + cacheMiss;
-        sessionUsage.costUsd += totalCostUsd;
-        sessionUsage.costRub += totalCostUsd * 80; // ~80 RUB/USD
-
-        console.log(`DeepSeek: Tokens used - prompt: ${usage.prompt_tokens}, completion: ${usage.completion_tokens}, total: ${usage.total_tokens}`);
-        if (cacheHit > 0) {
-            console.log(`DeepSeek: Cache hit: ${cacheHit} tokens (saved ${((cacheHit * (pricing.input - pricing.inputCached)) * 100).toFixed(4)}¢)`);
+        if ((callUsage.promptCacheHitTokens || 0) > 0) {
+            const pricing = PRICING[model as keyof typeof PRICING];
+            const cacheHit = callUsage.promptCacheHitTokens || 0;
+            const saved = cacheHit * (pricing.input - pricing.inputCached);
+            console.log(`DeepSeek: Cache hit: ${cacheHit} tokens (saved ${(saved * 100).toFixed(4)}c)`);
         }
-        console.log(`DeepSeek: Cost this call: $${totalCostUsd.toFixed(4)} (~${(totalCostUsd * 100).toFixed(2)} ₽)`);
-        console.log(`DeepSeek: Session total: ${sessionUsage.totalTokens} tokens, $${sessionUsage.costUsd.toFixed(4)} (~${sessionUsage.costRub.toFixed(2)} ₽)`);
+
+        console.log(`DeepSeek: Cost this call: $${callUsage.costUsd.toFixed(4)} (~${callUsage.costRub.toFixed(2)} RUB)`);
+        console.log(
+            `DeepSeek: Session total: ${sessionUsage.totalTokens} tokens, $${sessionUsage.costUsd.toFixed(4)} (~${sessionUsage.costRub.toFixed(2)} RUB)`
+        );
     }
 
-    const content = result.choices?.[0]?.message?.content;
-
+    const content = result?.choices?.[0]?.message?.content;
     if (!content) {
         console.error("DeepSeek: Empty response", JSON.stringify(result));
         throw new Error("Empty response from DeepSeek API");
     }
 
-    return content.trim();
+    return {
+        content: String(content).trim(),
+        usage: callUsage,
+    };
+}
+
+export async function deepseekInference(
+    messages: DeepSeekMessage[],
+    options: DeepSeekOptions = {}
+): Promise<string> {
+    const result = await runDeepseekInference(messages, options);
+    return result.content;
+}
+
+export async function deepseekInferenceWithUsage(
+    messages: DeepSeekMessage[],
+    options: DeepSeekOptions = {}
+): Promise<DeepSeekInferenceResult> {
+    return runDeepseekInference(messages, options);
 }

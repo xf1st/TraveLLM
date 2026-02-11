@@ -23,6 +23,11 @@ function getSupabase() {
     return createClient(supabaseUrl, supabaseKey)
 }
 
+function toNumber(value: unknown): number {
+    const num = Number(value)
+    return Number.isFinite(num) ? num : 0
+}
+
 /**
  * Get aggregated stats for a specific time range
  */
@@ -38,12 +43,19 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
         .gte('created_at', startIso)
         .lt('created_at', endIso)
 
-    // 2. Trips & Usage
-    const { data: trips } = await supabase
-        .from('trips')
-        .select('token_usage')
-        .gte('created_at', startIso)
-        .lt('created_at', endIso)
+    // 2. Trips & AI usage
+    const [{ data: trips }, { data: usageEvents, error: usageEventsError }] = await Promise.all([
+        supabase
+            .from('trips')
+            .select('token_usage')
+            .gte('created_at', startIso)
+            .lt('created_at', endIso),
+        supabase
+            .from('ai_usage_events')
+            .select('total_tokens, cost_rub, cost_usd')
+            .gte('created_at', startIso)
+            .lt('created_at', endIso)
+    ])
 
     let tokens = 0
     let costRub = 0
@@ -51,11 +63,18 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
 
     trips?.forEach((t: any) => {
         if (t.token_usage) {
-            tokens += t.token_usage.totalTokens || 0
-            costRub += t.token_usage.costRub || 0
-            costUsd += t.token_usage.costUsd || 0
+            tokens += toNumber(t.token_usage.totalTokens)
+            costRub += toNumber(t.token_usage.costRub)
+            costUsd += toNumber(t.token_usage.costUsd)
         }
     })
+    if (!usageEventsError || usageEventsError.code === '42P01') {
+        usageEvents?.forEach((event: any) => {
+            tokens += toNumber(event.total_tokens)
+            costRub += toNumber(event.cost_rub)
+            costUsd += toNumber(event.cost_usd)
+        })
+    }
 
     return {
         users: users || 0,
@@ -74,13 +93,21 @@ export async function getTopSpenders(limit = 10, days = 30) {
     const date = new Date()
     date.setDate(date.getDate() - days)
 
-    // Fetch all trips in period with user_id
-    const { data: trips } = await supabase
-        .from('trips')
-        .select('user_id, token_usage')
-        .gte('created_at', date.toISOString())
+    const [tripsResult, usageEventsResult] = await Promise.all([
+        supabase
+            .from('trips')
+            .select('user_id, token_usage')
+            .gte('created_at', date.toISOString()),
+        supabase
+            .from('ai_usage_events')
+            .select('user_id, total_tokens, cost_rub')
+            .gte('created_at', date.toISOString())
+    ])
 
-    if (!trips) return []
+    const trips = tripsResult.data || []
+    const usageEvents = usageEventsResult.error?.code === '42P01' ? [] : (usageEventsResult.data || [])
+
+    if (!trips.length && !usageEvents.length) return []
 
     // Map to aggregate by user
     const userStats = new Map<string, { userId: string, costRub: number, tokens: number, trips: number }>()
@@ -90,11 +117,20 @@ export async function getTopSpenders(limit = 10, days = 30) {
 
         const current = userStats.get(t.user_id) || { userId: t.user_id, costRub: 0, tokens: 0, trips: 0 }
 
-        current.costRub += t.token_usage.costRub || 0
-        current.tokens += t.token_usage.totalTokens || 0
+        current.costRub += toNumber(t.token_usage.costRub)
+        current.tokens += toNumber(t.token_usage.totalTokens)
         current.trips += 1
 
         userStats.set(t.user_id, current)
+    })
+
+    usageEvents.forEach((event: any) => {
+        if (!event.user_id) return
+
+        const current = userStats.get(event.user_id) || { userId: event.user_id, costRub: 0, tokens: 0, trips: 0 }
+        current.costRub += toNumber(event.cost_rub)
+        current.tokens += toNumber(event.total_tokens)
+        userStats.set(event.user_id, current)
     })
 
     // Sort by cost

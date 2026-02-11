@@ -3,6 +3,11 @@ import { createClient } from "@supabase/supabase-js"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
+const toNumber = (value: unknown) => {
+    const num = Number(value)
+    return Number.isFinite(num) ? num : 0
+}
+
 export async function GET(req: Request) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -63,8 +68,6 @@ export async function GET(req: Request) {
             dateFilter = monthAgo.toISOString()
         }
 
-        // Build query - get ALL trips and filter in JS instead of using Supabase filter
-        // This matches how the admin/trips page successfully retrieves data
         let query = supabase
             .from("trips")
             .select("id, token_usage, created_at")
@@ -83,23 +86,38 @@ export async function GET(req: Request) {
             countQuery = countQuery.gte("created_at", dateFilter)
         }
 
-        const [{ data: trips, error }, { count: totalTripCount }] = await Promise.all([
+        let usageEventsQuery = supabase
+            .from("ai_usage_events")
+            .select("prompt_tokens, completion_tokens, total_tokens, cost_usd, cost_rub, created_at")
+
+        if (dateFilter) {
+            usageEventsQuery = usageEventsQuery.gte("created_at", dateFilter)
+        }
+
+        const [{ data: trips, error }, { count: totalTripCount }, { data: usageEvents, error: usageEventsError }] = await Promise.all([
             query,
-            countQuery
+            countQuery,
+            usageEventsQuery,
         ])
 
         if (error) {
             console.error("Failed to fetch AI stats:", error)
             return NextResponse.json({ error: error.message }, { status: 500 })
         }
+        if (usageEventsError && usageEventsError.code !== "42P01") {
+            console.warn("[AI Stats] Failed to fetch ai_usage_events, fallback to trips only:", usageEventsError.message)
+        }
+        const mapEvents = usageEvents || []
 
         // Find first trip with token usage for debugging
         const firstTripWithUsage = trips?.find(t => t.token_usage && Object.keys(t.token_usage).length > 0)
+        const tripsWithTokenUsageCount = trips?.filter(t => t.token_usage).length || 0
 
         // Debug logging
         console.log("[AI Stats] Total trips in DB:", totalTripCount)
         console.log("[AI Stats] Trips fetched:", trips?.length || 0)
-        console.log("[AI Stats] Trips with non-null token_usage:", trips?.filter(t => t.token_usage).length || 0)
+        console.log("[AI Stats] Trips with non-null token_usage:", tripsWithTokenUsageCount)
+        console.log("[AI Stats] Map usage events:", mapEvents.length)
 
         if (firstTripWithUsage) {
             console.log("[AI Stats] Sample token_usage structure:", JSON.stringify(firstTripWithUsage.token_usage, null, 2))
@@ -119,12 +137,23 @@ export async function GET(req: Request) {
         for (const trip of trips || []) {
             const usage = trip.token_usage
             if (usage) {
-                totalPromptTokens += usage.promptTokens || 0
-                totalCompletionTokens += usage.completionTokens || 0
-                totalTokens += usage.totalTokens || 0
-                totalCacheHitTokens += usage.promptCacheHitTokens || 0
-                totalCostUsd += usage.costUsd || 0
-                totalCostRub += usage.costRub || 0
+                totalPromptTokens += toNumber(usage.promptTokens)
+                totalCompletionTokens += toNumber(usage.completionTokens)
+                totalTokens += toNumber(usage.totalTokens)
+                totalCacheHitTokens += toNumber(usage.promptCacheHitTokens)
+                totalCostUsd += toNumber(usage.costUsd)
+                totalCostRub += toNumber(usage.costRub)
+                requestCount++
+            }
+        }
+
+        for (const event of mapEvents) {
+            totalPromptTokens += toNumber(event.prompt_tokens)
+            totalCompletionTokens += toNumber(event.completion_tokens)
+            totalTokens += toNumber(event.total_tokens)
+            totalCostUsd += toNumber(event.cost_usd)
+            totalCostRub += toNumber(event.cost_rub)
+            if (toNumber(event.total_tokens) > 0) {
                 requestCount++
             }
         }
@@ -150,6 +179,10 @@ export async function GET(req: Request) {
                 const created = new Date(t.created_at)
                 return created >= date && created < nextDate
             })
+            const dayEvents = mapEvents.filter((event: any) => {
+                const created = new Date(event.created_at)
+                return created >= date && created < nextDate
+            })
 
             let dayTokens = 0
             let dayCost = 0
@@ -157,8 +190,15 @@ export async function GET(req: Request) {
 
             for (const trip of dayTrips) {
                 if (trip.token_usage) {
-                    dayTokens += trip.token_usage.totalTokens || 0
-                    dayCost += trip.token_usage.costUsd || 0
+                    dayTokens += toNumber(trip.token_usage.totalTokens)
+                    dayCost += toNumber(trip.token_usage.costUsd)
+                    dayRequests++
+                }
+            }
+            for (const event of dayEvents) {
+                dayTokens += toNumber(event.total_tokens)
+                dayCost += toNumber(event.cost_usd)
+                if (toNumber(event.total_tokens) > 0) {
                     dayRequests++
                 }
             }
@@ -176,7 +216,8 @@ export async function GET(req: Request) {
             summary: {
                 totalRequests: requestCount,
                 totalTrips: totalTripCount || 0,
-                tripsWithTokenData: trips?.length || 0,
+                tripsWithTokenData: tripsWithTokenUsageCount,
+                mapEventsCount: mapEvents.length,
                 totalTokens,
                 totalPromptTokens,
                 totalCompletionTokens,
