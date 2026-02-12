@@ -107,6 +107,12 @@ async function handleTopSpenders(chatId: number) {
 export async function POST(req: Request) {
     let chatId = 0;
     try {
+        const expectedSecret = process.env.TELEGRAM_BOT_SECRET
+        const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token')
+        if (!expectedSecret || receivedSecret !== expectedSecret) {
+            return NextResponse.json({ ok: true })
+        }
+
         const update = await req.json()
 
         if (!update.message || !update.message.text) {
@@ -212,19 +218,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-    const hasToken = !!process.env.TELEGRAM_BOT_TOKEN
-    const hasSecret = !!process.env.TELEGRAM_BOT_SECRET
-    const hasSupabase = !!process.env.NEXT_PUBLIC_SUPABASE_URL
-    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
-
     return NextResponse.json({
         status: 'active',
-        env_check: {
-            TELEGRAM_BOT_TOKEN: hasToken,
-            TELEGRAM_BOT_SECRET: hasSecret,
-            NEXT_PUBLIC_SUPABASE_URL: hasSupabase,
-            SUPABASE_SERVICE_ROLE_KEY: hasServiceKey
-        },
         timestamp: new Date().toISOString()
     })
 }

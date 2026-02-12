@@ -14,6 +14,9 @@ export async function POST(req: Request) {
   try {
     const { activities, destination, tripId, day } = await req.json()
     const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     if (!Array.isArray(activities) || activities.length === 0) {
       return NextResponse.json({ error: "Invalid activities" }, { status: 400 })

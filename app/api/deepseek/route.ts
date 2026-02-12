@@ -5,6 +5,7 @@ import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { createClient } from '@supabase/supabase-js'
+import { getRequestUserId } from "@/lib/ai-usage-events"
 // Real-time validation imports
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
@@ -77,9 +78,14 @@ function sanitizeClosedAirportLogistics(routeData: any) {
 
 export async function POST(req: Request) {
     try {
+        const userId = await getRequestUserId()
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         // Check maintenance mode
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
         if (!supabaseUrl || !supabaseKey) {
             console.error("Supabase credentials not configured")
@@ -97,59 +103,52 @@ export async function POST(req: Request) {
             .single()
 
         if (settings?.maintenance_mode) {
-            // Check if user is admin (can bypass)
-            const { data: { user } } = await supabase.auth.getUser()
             let canBypass = false
 
-            if (user && settings.maintenance_allow_admin_bypass) {
-                const { data: profile } = await supabase
+            if (settings.maintenance_allow_admin_bypass) {
+                const { data: roleProfile } = await supabase
                     .from('profiles')
                     .select('role')
-                    .eq('id', user.id)
+                    .eq('id', userId)
                     .single()
 
-                canBypass = profile?.role === 'admin' || profile?.role === 'super_admin'
+                canBypass = roleProfile?.role === 'admin' || roleProfile?.role === 'super_admin'
             }
 
             if (!canBypass) {
                 return NextResponse.json(
-                    { error: 'Техническое обслуживание', message: settings.maintenance_message || 'Сервис временно недоступен' },
+                    { error: 'Maintenance', message: settings.maintenance_message || 'Service is temporarily unavailable' },
                     { status: 503 }
                 )
             }
         }
 
         // Check user access mode (block AI generation if blocked)
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('access_mode, block_reason, blocked_until')
-                .eq('id', user.id)
-                .single()
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('access_mode, block_reason, blocked_until')
+            .eq('id', userId)
+            .single()
 
-            if (profile) {
-                // Check if temporary block expired
-                if (profile.blocked_until) {
-                    const blockedUntil = new Date(profile.blocked_until)
-                    if (blockedUntil < new Date()) {
-                        // Block expired, reset to active
-                        await supabase
-                            .from('profiles')
-                            .update({ access_mode: 'active', block_reason: null, blocked_until: null })
-                            .eq('id', user.id)
-                    } else if (profile.access_mode === 'ai_blocked' || profile.access_mode === 'full_blocked') {
-                        return NextResponse.json(
-                            { error: 'Генерация маршрутов временно недоступна для вашего аккаунта', reason: profile.block_reason },
-                            { status: 403 }
-                        )
-                    }
+        if (profile) {
+            if (profile.blocked_until) {
+                const blockedUntil = new Date(profile.blocked_until)
+                if (blockedUntil < new Date()) {
+                    await supabase
+                        .from('profiles')
+                        .update({ access_mode: 'active', block_reason: null, blocked_until: null })
+                        .eq('id', userId)
                 } else if (profile.access_mode === 'ai_blocked' || profile.access_mode === 'full_blocked') {
                     return NextResponse.json(
-                        { error: 'Генерация маршрутов временно недоступна для вашего аккаунта', reason: profile.block_reason },
+                        { error: 'Route generation is temporarily unavailable for this account', reason: profile.block_reason },
                         { status: 403 }
                     )
                 }
+            } else if (profile.access_mode === 'ai_blocked' || profile.access_mode === 'full_blocked') {
+                return NextResponse.json(
+                    { error: 'Route generation is temporarily unavailable for this account', reason: profile.block_reason },
+                    { status: 403 }
+                )
             }
         }
 

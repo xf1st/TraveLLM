@@ -1,16 +1,12 @@
 export const HUGGINGFACE_MODEL = "meta-llama/Llama-3.1-8B-Instruct:ovhcloud";
 
 export async function hfInference(prompt: string, systemPrompt: string) {
-    const token = process.env.HUGGING_FACE_TOKEN || "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";
-    if (!process.env.HUGGING_FACE_TOKEN) {
-        console.warn("[SECURITY] HUGGING_FACE_TOKEN is not set — using hardcoded fallback. Set env variable in production!");
-    }
+    const token = process.env.HUGGING_FACE_TOKEN || "";
 
     console.log("Starting HF Chat Inference with model:", HUGGINGFACE_MODEL);
 
     if (!token) {
-        console.error("HF Token is missing!");
-        throw new Error("HUGGING_FACE_TOKEN is not defined");
+        throw new Error("HUGGING_FACE_TOKEN is not configured");
     }
 
     try {

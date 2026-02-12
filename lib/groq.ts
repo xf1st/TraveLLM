@@ -1,9 +1,6 @@
 import { Groq } from "groq-sdk";
 
-const apiKey = process.env.GROQ_API_KEY || "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";
-if (!process.env.GROQ_API_KEY) {
-    console.warn("[SECURITY] GROQ_API_KEY is not set — using hardcoded fallback. Set env variable in production!");
-}
+const apiKey = process.env.GROQ_API_KEY || "";
 
 export const groq = new Groq({
   apiKey: apiKey,
@@ -17,6 +14,10 @@ export async function groqInference(
   messages: { role: "system" | "user" | "assistant"; content: string }[],
   options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY is not configured");
+  }
+
   const response = await groq.chat.completions.create({
     model: GROQ_MODEL,
     messages,
@@ -26,4 +27,3 @@ export async function groqInference(
 
   return response.choices[0]?.message?.content || "";
 }
-

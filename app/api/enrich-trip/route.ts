@@ -3,11 +3,17 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from "next/server"
 import { deepseekInference } from "@/lib/deepseek"
 import { openrouterInference } from "@/lib/openrouter"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 export const maxDuration = 60 // Allow longer timeout for enrichment
 
 export async function POST(req: Request) {
     try {
+        const userId = await getRequestUserId()
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         const { tripId, itinerary } = await req.json()
 
         if (!itinerary) {

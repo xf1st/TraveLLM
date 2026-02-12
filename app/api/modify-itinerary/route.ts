@@ -1,6 +1,7 @@
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 // Extract city from day title (e.g., "Токио: Сибуя" -> "Токио")
 function extractCity(title: string): string {
@@ -141,6 +142,11 @@ async function generateDepartureDay(fromCity: string, dayNumber: number): Promis
 
 export async function POST(req: Request) {
   try {
+    const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await req.json()
     const { currentItinerary, userMessage } = body
 

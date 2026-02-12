@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon } from "lucide-react"
+import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -15,15 +15,8 @@ import { toast } from "sonner"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
-import dynamic from 'next/dynamic'
-
-
-// Dynamically import ScratchMap to avoid SSR issues with Leaflet
-const ScratchMap = dynamic(() => import('@/components/ScratchMap'), {
-  ssr: false,
-  loading: () => <div className="h-[400px] w-full bg-muted/20 animate-pulse rounded-xl" />
-})
 import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
+import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 
 // Interest categories with Russian labels and unique colors
 const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -51,6 +44,79 @@ const PROFILE_BACKGROUNDS = [
   { id: "desert", label: "Пустыня", gradient: "from-amber-500/30 via-orange-500/20 to-yellow-500/30" },
   { id: "abstract", label: "Абстракция", gradient: "from-fuchsia-500/30 via-violet-500/20 to-indigo-500/30" },
 ]
+
+const COUNTRY_BY_CITY: Record<string, string> = {
+  moscow: "Russia",
+  petersburg: "Russia",
+  belgrade: "Serbia",
+  paris: "France",
+  rome: "Italy",
+  tokyo: "Japan",
+  dubai: "UAE",
+  istanbul: "Turkey",
+  bangkok: "Thailand",
+  barcelona: "Spain",
+  london: "United Kingdom",
+}
+
+const COUNTRY_FLAG_BY_KEY: Record<string, string> = {
+  russia: "RU",
+  "россия": "RU",
+  serbia: "RS",
+  "сербия": "RS",
+  france: "FR",
+  "франция": "FR",
+  italy: "IT",
+  "италия": "IT",
+  japan: "JP",
+  "япония": "JP",
+  uae: "AE",
+  "оаэ": "AE",
+  "united arab emirates": "AE",
+  turkey: "TR",
+  "турция": "TR",
+  thailand: "TH",
+  "таиланд": "TH",
+  spain: "ES",
+  "испания": "ES",
+  "united kingdom": "GB",
+  "великобритания": "GB",
+  germany: "DE",
+  "германия": "DE",
+  usa: "US",
+  "сша": "US",
+}
+
+const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ")
+const toKey = (value: string) => normalizeName(value).toLowerCase()
+
+function parseLocation(raw: unknown): { country?: string; city?: string } {
+  const value = normalizeName(String(raw || ""))
+  if (!value) return {}
+
+  const parts = value
+    .split(",")
+    .map((part) => normalizeName(part))
+    .filter(Boolean)
+
+  if (parts.length >= 2) {
+    return { city: parts[0], country: parts[parts.length - 1] }
+  }
+
+  const inferredCountry = COUNTRY_BY_CITY[toKey(value)]
+  if (inferredCountry) return { city: value, country: inferredCountry }
+  return { country: value }
+}
+
+function getCountryFlag(country: string): string {
+  const code = COUNTRY_FLAG_BY_KEY[toKey(country)]
+  if (!code) return "🌍"
+  return code
+    .toUpperCase()
+    .split("")
+    .map((char) => String.fromCodePoint(127397 + char.charCodeAt(0)))
+    .join("")
+}
 
 function ProfileContent() {
   const searchParams = useSearchParams()
@@ -85,6 +151,71 @@ function ProfileContent() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [feedbackByTripId, setFeedbackByTripId] = useState<Record<string, TripFeedbackRecord>>({})
+  const [feedbackTrip, setFeedbackTrip] = useState<any | null>(null)
+
+  const completedTrips = useMemo(() => {
+    return userRoutes.filter((trip: any) => {
+      const status = String(trip?.status || "").toLowerCase()
+      return status === "completed" || Boolean(trip?.completed_at || trip?.completedAt)
+    })
+  }, [userRoutes])
+
+  const visitedSummary = useMemo(() => {
+    const countries = new Set<string>()
+    const citiesByCountry = new Map<string, Set<string>>()
+
+    const addLocation = (raw: unknown) => {
+      const parsed = parseLocation(raw)
+      const country = parsed.country ? normalizeName(parsed.country) : ""
+      const city = parsed.city ? normalizeName(parsed.city) : ""
+      if (!country) return
+      countries.add(country)
+      if (city) {
+        if (!citiesByCountry.has(country)) citiesByCountry.set(country, new Set<string>())
+        citiesByCountry.get(country)!.add(city)
+      }
+    }
+
+    completedTrips.forEach((trip: any) => {
+      addLocation(trip.destination)
+
+      if (Array.isArray(trip.countries)) {
+        trip.countries.forEach((country: any) => addLocation(typeof country === "string" ? country : country?.name))
+      }
+
+      if (Array.isArray(trip.itinerary)) {
+        trip.itinerary.forEach((day: any) => {
+          addLocation(day?.endCity)
+          addLocation(day?.logistics?.to)
+          if (Array.isArray(day?.activities)) {
+            day.activities.forEach((act: any) => {
+              addLocation(act?.city)
+              addLocation(act?.country)
+              addLocation(act?.location)
+            })
+          }
+        })
+      }
+    })
+
+    const fromProfile = Array.isArray(profile?.preferences?.visitedCountries) ? profile.preferences.visitedCountries : []
+    fromProfile.forEach((item: any) => addLocation(item))
+
+    const countriesList = Array.from(countries).sort((a, b) => a.localeCompare(b, "ru"))
+    const citiesList = Array.from(citiesByCountry.entries())
+      .map(([country, cities]) => ({
+        country,
+        cities: Array.from(cities).sort((a, b) => a.localeCompare(b, "ru")),
+      }))
+      .sort((a, b) => a.country.localeCompare(b.country, "ru"))
+
+    return {
+      countries: countriesList,
+      citiesByCountry: citiesList,
+      totalCities: citiesList.reduce((sum, item) => sum + item.cities.length, 0),
+    }
+  }, [completedTrips, profile?.preferences?.visitedCountries])
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -175,6 +306,29 @@ function ProfileContent() {
         })
 
         setUserRoutes(allRoutes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+
+        try {
+          const { data: feedbackRows, error: feedbackError } = await supabase
+            .from("trip_feedback")
+            .select("trip_id,rating,comment,liked,disliked,source,updated_at")
+            .eq("user_id", authUser.id)
+
+          if (feedbackError) {
+            if (feedbackError.code !== "42P01") {
+              console.warn("Profile feedback load error:", feedbackError.message)
+            }
+          } else if (Array.isArray(feedbackRows)) {
+            const byTrip: Record<string, TripFeedbackRecord> = {}
+            feedbackRows.forEach((row: any) => {
+              const tripKey = String(row?.trip_id || "")
+              if (!tripKey) return
+              byTrip[tripKey] = row
+            })
+            setFeedbackByTripId(byTrip)
+          }
+        } catch (feedbackFetchError) {
+          console.warn("Failed to fetch trip feedback:", feedbackFetchError)
+        }
       } else {
         // GUEST MODE
         const localTrips: any[] = []
@@ -195,6 +349,7 @@ function ProfileContent() {
           }
         }
         setUserRoutes(localTrips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+        setFeedbackByTripId({})
       }
       setLoading(false)
     }
@@ -333,7 +488,7 @@ function ProfileContent() {
 
   const tabs = [
     { id: "overview", label: "Обзор" },
-    { id: "achievements", label: "Карта и Достижения" },
+    { id: "achievements", label: "Поездки и достижения" },
     { id: "preferences", label: "Предпочтения" },
     { id: "history", label: "История генераций" },
     { id: "settings", label: "Настройки" }
@@ -868,13 +1023,72 @@ function ProfileContent() {
                       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="space-y-4">
                           <h2 className="text-2xl font-bold flex items-center gap-2">
-                            <Globe className="w-6 h-6 text-emerald-500" />
-                            Ваша карта путешествий
+                            <MapPin className="w-6 h-6 text-cyan-500" />
+                            Завершенные поездки
                           </h2>
-                          <p className="text-muted-foreground">
-                            Отмечайте страны, которые вы посетили, в настройках профиля, чтобы закрасить карту.
-                          </p>
-                          <ScratchMap visitedCountries={profile?.preferences?.visitedCountries || []} />
+                          <p className="text-muted-foreground">Здесь хранятся завершенные маршруты. Для каждого можно оставить оценку и отзыв.</p>
+
+                          <Card className="border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+                            <div className="divide-y divide-border/60">
+                              {completedTrips.map((trip: any) => {
+                                const feedback = feedbackByTripId[String(trip.id)] || null
+                                return (
+                                  <div key={trip.id} className="p-4 flex items-center justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <div className="font-semibold text-foreground truncate">{trip.title || "Маршрут"}</div>
+                                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
+                                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                                          {trip.destination || "Без направления"}
+                                        </Badge>
+                                        <span>{new Date(trip.created_at || Date.now()).toLocaleDateString("ru-RU")}</span>
+                                        {feedback?.rating ? <span>Оценка: {feedback.rating}/5</span> : <span>Без оценки</span>}
+                                      </div>
+                                    </div>
+                                    <Button size="sm" variant="outline" onClick={() => setFeedbackTrip(trip)}>
+                                      {feedback?.rating ? "Изменить отзыв" : "Оценить"}
+                                    </Button>
+                                  </div>
+                                )
+                              })}
+
+                              {completedTrips.length === 0 && <div className="p-8 text-center text-muted-foreground">Пока нет завершенных маршрутов.</div>}
+                            </div>
+                          </Card>
+                        </div>
+
+                        <div className="grid gap-6">
+                          <Card className="p-5 border-border bg-card/40 backdrop-blur-sm">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                              <MapIcon className="h-5 w-5 text-cyan-500" />
+                              Города по странам
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                              {visitedSummary.countries.length} стран, {visitedSummary.totalCities} городов
+                            </p>
+                            <div className="mt-3 space-y-3 max-h-72 overflow-y-auto pr-1">
+                              {visitedSummary.citiesByCountry.map((entry) => (
+                                <div key={entry.country} className="rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-emerald-500/5 p-3">
+                                  <div className="flex items-center justify-between gap-3 mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-lg leading-none">{getCountryFlag(entry.country)}</span>
+                                      <div className="font-semibold text-foreground truncate">{entry.country}</div>
+                                    </div>
+                                    <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400">
+                                      {entry.cities.length} {entry.cities.length === 1 ? "город" : "города"}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {entry.cities.map((city) => (
+                                      <Badge key={entry.country + "-" + city} variant="outline" className="text-[10px] border-emerald-500/25">
+                                        {city}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                              {visitedSummary.citiesByCountry.length === 0 && <span className="text-sm text-muted-foreground">Пока нет данных.</span>}
+                            </div>
+                          </Card>
                         </div>
 
                         <div className="space-y-4">
@@ -882,10 +1096,7 @@ function ProfileContent() {
                             <Medal className="w-6 h-6 text-amber-500" />
                             Достижения
                           </h2>
-                          <Achievements
-                            visitedCountries={profile?.preferences?.visitedCountries || []}
-                            completedTripsCount={userRoutes.length}
-                          />
+                          <Achievements visitedCountries={visitedSummary.countries} completedTripsCount={completedTrips.length} />
                         </div>
                       </div>
                     )}
@@ -1187,6 +1398,22 @@ function ProfileContent() {
 
         </div>
       </div>
+
+      {feedbackTrip && (
+        <TripFeedbackDialog
+          open={!!feedbackTrip}
+          onOpenChange={(open) => {
+            if (!open) setFeedbackTrip(null)
+          }}
+          tripId={String(feedbackTrip.id)}
+          tripTitle={feedbackTrip.title || "Completed trip"}
+          source="profile"
+          initialFeedback={feedbackByTripId[String(feedbackTrip.id)] || null}
+          onSubmitted={(saved) => {
+            setFeedbackByTripId((prev) => ({ ...prev, [String(saved.trip_id)]: saved }))
+          }}
+        />
+      )}
     </AppLayout>
   )
 }

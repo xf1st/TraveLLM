@@ -1,8 +1,8 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,9 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail, Calendar } from "lucide-react"
+import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail } from "lucide-react"
 import { toast } from "sonner"
-import Link from "next/link"
 
 interface User {
   id: string
@@ -45,6 +44,8 @@ interface User {
   trips_count?: number
   total_tokens?: number
   total_cost_rub?: number
+  feedback_count?: number
+  avg_feedback_rating?: number | null
 }
 
 export default function AdminUsersPage() {
@@ -67,63 +68,131 @@ export default function AdminUsersPage() {
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredUsers(users)
-    } else {
-      const query = searchQuery.toLowerCase()
-      setFilteredUsers(
-        users.filter(
-          (u) =>
-            u.email.toLowerCase().includes(query) ||
-            u.full_name?.toLowerCase().includes(query) ||
-            u.id.toLowerCase().includes(query)
-        )
-      )
+      return
     }
+
+    const query = searchQuery.toLowerCase()
+    setFilteredUsers(
+      users.filter(
+        (u) =>
+          u.email.toLowerCase().includes(query) ||
+          u.full_name?.toLowerCase().includes(query) ||
+          u.id.toLowerCase().includes(query)
+      )
+    )
   }, [searchQuery, users])
 
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false })
 
-      if (error) throw error
+      if (profilesError) throw profilesError
 
-      const [{ data: trips, error: tripsError }, { data: usageEvents, error: usageEventsError }] = await Promise.all([
+      const [
+        { data: trips, error: tripsError },
+        { data: usageEvents, error: usageEventsError },
+        { data: feedbackRows, error: feedbackError },
+      ] = await Promise.all([
         supabase.from("trips").select("user_id, token_usage"),
         supabase.from("ai_usage_events").select("user_id, total_tokens, cost_rub"),
+        supabase.from("trip_feedback").select("user_id, rating"),
       ])
 
       if (tripsError) throw tripsError
       if (usageEventsError && usageEventsError.code !== "42P01") {
         console.warn("Failed to load ai_usage_events, fallback to trips-only totals:", usageEventsError.message)
       }
+      if (feedbackError && feedbackError.code !== "42P01") {
+        console.warn("Failed to load trip_feedback stats:", feedbackError.message)
+      }
 
-      const aggregateByUser = new Map<string, { trips_count: number; total_tokens: number; total_cost_rub: number }>()
+      const aggregateByUser = new Map<
+        string,
+        {
+          trips_count: number
+          total_tokens: number
+          total_cost_rub: number
+          feedback_count: number
+          feedback_rating_sum: number
+        }
+      >()
 
       for (const trip of trips || []) {
         if (!trip.user_id) continue
-        const current = aggregateByUser.get(trip.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
+        const current =
+          aggregateByUser.get(trip.user_id) || {
+            trips_count: 0,
+            total_tokens: 0,
+            total_cost_rub: 0,
+            feedback_count: 0,
+            feedback_rating_sum: 0,
+          }
+
         current.trips_count += 1
         if (trip.token_usage) {
           current.total_tokens += Number(trip.token_usage.totalTokens || 0)
           current.total_cost_rub += Number(trip.token_usage.costRub || 0)
         }
+
         aggregateByUser.set(trip.user_id, current)
       }
 
       for (const event of usageEvents || []) {
         if (!event.user_id) continue
-        const current = aggregateByUser.get(event.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
+        const current =
+          aggregateByUser.get(event.user_id) || {
+            trips_count: 0,
+            total_tokens: 0,
+            total_cost_rub: 0,
+            feedback_count: 0,
+            feedback_rating_sum: 0,
+          }
+
         current.total_tokens += Number(event.total_tokens || 0)
         current.total_cost_rub += Number(event.cost_rub || 0)
         aggregateByUser.set(event.user_id, current)
       }
 
-      const usersWithCounts = (data || []).map((user) => {
-        const usage = aggregateByUser.get(user.id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0 }
-        return { ...user, ...usage }
+      for (const row of feedbackRows || []) {
+        if (!row.user_id) continue
+        const current =
+          aggregateByUser.get(row.user_id) || {
+            trips_count: 0,
+            total_tokens: 0,
+            total_cost_rub: 0,
+            feedback_count: 0,
+            feedback_rating_sum: 0,
+          }
+
+        current.feedback_count += 1
+        current.feedback_rating_sum += Number(row.rating || 0)
+        aggregateByUser.set(row.user_id, current)
+      }
+
+      const usersWithCounts = (profiles || []).map((user) => {
+        const usage =
+          aggregateByUser.get(user.id) || {
+            trips_count: 0,
+            total_tokens: 0,
+            total_cost_rub: 0,
+            feedback_count: 0,
+            feedback_rating_sum: 0,
+          }
+
+        return {
+          ...user,
+          trips_count: usage.trips_count,
+          total_tokens: usage.total_tokens,
+          total_cost_rub: usage.total_cost_rub,
+          feedback_count: usage.feedback_count,
+          avg_feedback_rating:
+            usage.feedback_count > 0 ? usage.feedback_rating_sum / usage.feedback_count : null,
+        }
       })
 
       setUsers(usersWithCounts)
@@ -144,27 +213,21 @@ export default function AdminUsersPage() {
         block_reason: blockReason || null,
       }
 
-      if (blockUntil) {
-        updateData.blocked_until = new Date(blockUntil).toISOString()
-      } else {
-        updateData.blocked_until = null
-      }
+      updateData.blocked_until = blockUntil ? new Date(blockUntil).toISOString() : null
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", selectedUser.id)
-
+      const { error } = await supabase.from("profiles").update(updateData).eq("id", selectedUser.id)
       if (error) throw error
 
-      // Log to audit
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (user) {
         await supabase.from("admin_audit_log").insert({
           admin_user_id: user.id,
           action: `user.${blockMode}`,
           target_user_id: selectedUser.id,
-          payload: { reason: blockReason, until: blockUntil },
+          payload: { reason: blockReason, until: blockUntil || null },
         })
       }
 
@@ -172,7 +235,7 @@ export default function AdminUsersPage() {
         blockMode === "active"
           ? "Доступ восстановлен"
           : blockMode === "ai_blocked"
-            ? "Генерация заблокирована"
+            ? "Доступ к AI заблокирован"
             : "Пользователь заблокирован"
       )
 
@@ -193,10 +256,12 @@ export default function AdminUsersPage() {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (!user) throw new Error("Не авторизован")
 
-      // Check if user already exists
       const { data: existing } = await supabase
         .from("profiles")
         .select("id")
@@ -204,17 +269,10 @@ export default function AdminUsersPage() {
         .single()
 
       if (existing) {
-        // User exists, just upgrade to admin
-        const { error } = await supabase
-          .from("profiles")
-          .update({ role: "admin" })
-          .eq("id", existing.id)
-
+        const { error } = await supabase.from("profiles").update({ role: "admin" }).eq("id", existing.id)
         if (error) throw error
-
-        toast.success("Пользователь повышен до админа")
+        toast.success("Пользователь повышен до администратора")
       } else {
-        // Create invite
         const { error } = await supabase.from("admin_invites").insert({
           email: inviteEmail,
           invited_by: user.id,
@@ -222,7 +280,6 @@ export default function AdminUsersPage() {
 
         if (error) throw error
 
-        // Log to audit
         await supabase.from("admin_audit_log").insert({
           admin_user_id: user.id,
           action: "admin.invite",
@@ -244,9 +301,7 @@ export default function AdminUsersPage() {
     setSelectedUser(user)
     setBlockMode(mode)
     setBlockReason(user.block_reason || "")
-    setBlockUntil(
-      user.blocked_until ? new Date(user.blocked_until).toISOString().slice(0, 16) : ""
-    )
+    setBlockUntil(user.blocked_until ? new Date(user.blocked_until).toISOString().slice(0, 16) : "")
     setBlockDialogOpen(true)
   }
 
@@ -260,7 +315,7 @@ export default function AdminUsersPage() {
               Пользователи
             </h1>
             <p className="text-muted-foreground">
-              Управление пользователями, блокировки, приглашения админов
+              Управление пользователями, блокировками, ролями и статистикой расходов
             </p>
           </div>
           <Button onClick={() => setInviteDialogOpen(true)}>
@@ -288,7 +343,7 @@ export default function AdminUsersPage() {
         ) : (
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <Table className="min-w-[1100px]">
+              <Table className="min-w-[1240px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Email</TableHead>
@@ -298,6 +353,8 @@ export default function AdminUsersPage() {
                     <TableHead>Маршрутов</TableHead>
                     <TableHead>Токены</TableHead>
                     <TableHead>Потрачено</TableHead>
+                    <TableHead>Отзывов</TableHead>
+                    <TableHead>Сред. оценка</TableHead>
                     <TableHead>Регистрация</TableHead>
                     <TableHead>Последний вход</TableHead>
                     <TableHead className="text-right">Действия</TableHead>
@@ -307,15 +364,9 @@ export default function AdminUsersPage() {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.email}</TableCell>
-                      <TableCell>{user.full_name || "—"}</TableCell>
+                      <TableCell>{user.full_name || "-"}</TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "admin" || user.role === "super_admin"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
+                        <Badge variant={user.role === "admin" || user.role === "super_admin" ? "default" : "secondary"}>
                           {user.role === "super_admin"
                             ? "Супер-админ"
                             : user.role === "admin"
@@ -340,29 +391,25 @@ export default function AdminUsersPage() {
                               : "Заблокирован"}
                         </Badge>
                         {user.block_reason && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {user.block_reason}
-                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">{user.block_reason}</div>
                         )}
                       </TableCell>
                       <TableCell>{user.trips_count || 0}</TableCell>
                       <TableCell>
-                        {user.total_tokens
-                          ? user.total_tokens.toLocaleString("ru-RU")
-                          : "—"}
+                        {typeof user.total_tokens === "number" ? user.total_tokens.toLocaleString("ru-RU") : "-"}
                       </TableCell>
                       <TableCell>
-                        {user.total_cost_rub
-                          ? `${user.total_cost_rub.toFixed(2)} ₽`
-                          : "—"}
+                        {typeof user.total_cost_rub === "number" ? `${user.total_cost_rub.toFixed(2)} ₽` : "-"}
                       </TableCell>
+                      <TableCell>{user.feedback_count || 0}</TableCell>
                       <TableCell>
-                        {new Date(user.created_at).toLocaleDateString("ru-RU")}
+                        {typeof user.avg_feedback_rating === "number"
+                          ? `${user.avg_feedback_rating.toFixed(1)}/5`
+                          : "-"}
                       </TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString("ru-RU")}</TableCell>
                       <TableCell>
-                        {user.last_seen_at
-                          ? new Date(user.last_seen_at).toLocaleDateString("ru-RU")
-                          : "Никогда"}
+                        {user.last_seen_at ? new Date(user.last_seen_at).toLocaleDateString("ru-RU") : "Никогда"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -395,7 +442,6 @@ export default function AdminUsersPage() {
           </Card>
         )}
 
-        {/* Block Dialog */}
         <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -403,16 +449,16 @@ export default function AdminUsersPage() {
                 {blockMode === "active"
                   ? "Восстановить доступ"
                   : blockMode === "ai_blocked"
-                    ? "Заблокировать генерацию AI"
+                    ? "Заблокировать доступ к AI"
                     : "Заблокировать пользователя"}
               </DialogTitle>
               <DialogDescription>
-                {selectedUser && `Пользователь: ${selectedUser.email}`}
+                {selectedUser ? `Пользователь: ${selectedUser.email}` : ""}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Причина блокировки</label>
+                <label className="text-sm font-medium">Причина</label>
                 <Input
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
@@ -430,7 +476,7 @@ export default function AdminUsersPage() {
                     className="mt-1"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Оставьте пустым для постоянной блокировки
+                    Оставьте пустым для бессрочной блокировки
                   </p>
                 </div>
               )}
@@ -444,14 +490,13 @@ export default function AdminUsersPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Invite Admin Dialog */}
         <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Пригласить админа</DialogTitle>
               <DialogDescription>
-                Введите email пользователя. Если он уже зарегистрирован, ему будет выдана роль
-                админа. Если нет — будет создано приглашение.
+                Введите email пользователя. Если аккаунт уже существует, ему будет назначена роль администратора.
+                Если нет, будет создано приглашение.
               </DialogDescription>
             </DialogHeader>
             <div>

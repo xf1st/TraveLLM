@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { deepseekInference } from "@/lib/deepseek"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -8,6 +9,11 @@ type ChatMessage = {
 
 export async function POST(req: Request) {
   try {
+    const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const { activity, day, destination, userMessage, history = [] } = await req.json()
 
     if (!userMessage || typeof userMessage !== "string") {

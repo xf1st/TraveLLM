@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import Groq from "groq-sdk"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 /**
  * API для получения отзывов о местах
@@ -238,6 +239,11 @@ async function getGoogleReviews(placeName: string, city: string): Promise<PlaceR
 
 export async function POST(request: Request) {
   try {
+    const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = await request.json()
     const { placeName, city } = body
 
@@ -261,6 +267,11 @@ export async function POST(request: Request) {
 
 // GET для простых запросов
 export async function GET(request: Request) {
+  const userId = await getRequestUserId()
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const placeName = searchParams.get("place")
   const city = searchParams.get("city")

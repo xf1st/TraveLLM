@@ -96,7 +96,7 @@ export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettings
                 <MapPin className="w-5 h-5 text-cyan-400" />
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-white">Соцслой POI</span>
-                  <span className="text-[10px] text-white/40">Дороги, места, рестораны, достопримечательности</span>
+                  <span className="text-[10px] text-white/40">Дороги, места, рестораны и достопримечательности</span>
                 </div>
               </div>
               <Switch checked={settings.showSocialLayer} onCheckedChange={(c) => onUpdateSettings({ ...settings, showSocialLayer: c })} />
@@ -124,7 +124,7 @@ export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettings
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white">3D Здания</span>
+                  <span className="text-sm font-medium text-white">3D здания</span>
                   <span className="text-[10px] text-white/40">Объёмные модели</span>
                 </div>
               </div>

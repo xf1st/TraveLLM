@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 interface SearchRequest {
     departureCity: string
@@ -40,6 +41,11 @@ function parseJsonResponse(raw: string): any {
 
 export async function POST(req: Request) {
     try {
+        const userId = await getRequestUserId()
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         const body: SearchRequest = await req.json()
         const {
             departureCity,

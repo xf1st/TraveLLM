@@ -1,10 +1,7 @@
 // Qwen API Client via HuggingFace Router
 // https://router.huggingface.co
 
-const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "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";
-if (!process.env.HUGGING_FACE_TOKEN) {
-    console.warn("[SECURITY] HUGGING_FACE_TOKEN is not set (qwen.ts) — using hardcoded fallback. Set env variable in production!");
-}
+const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "";
 export const QWEN_MODEL = "Qwen/Qwen3-32B:novita";
 
 interface QwenMessage {
@@ -21,6 +18,10 @@ export async function qwenInference(
     messages: QwenMessage[],
     options: QwenOptions = {}
 ): Promise<string> {
+    if (!HF_TOKEN) {
+        throw new Error("HUGGING_FACE_TOKEN is not configured");
+    }
+
     const { maxTokens = 16384, temperature = 0.6 } = options;
 
     console.log("Qwen: Starting inference with model:", QWEN_MODEL);

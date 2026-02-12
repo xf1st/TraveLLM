@@ -243,6 +243,12 @@ export default function TravelDashboard() {
   const [normalizingDay, setNormalizingDay] = useState<number | null>(null)
   const [refinedCoordinates, setRefinedCoordinates] = useState<Record<string, { lat: number; lng: number }>>({})
   const [flyToCoords, setFlyToCoords] = useState<{ lat: number; lng: number; altitude?: number } | null>(null)
+  const [fitToPointsRequest, setFitToPointsRequest] = useState<{
+    token: string
+    points: Array<{ lat: number; lng: number }>
+    padding?: number
+    maxZoom?: number
+  } | null>(null)
   const [routingLine, setRoutingLine] = useState<ActiveRouteOverlay | null>(null)
   const [routeSegments, setRouteSegments] = useState<StyledSegment[]>([])
   const [isBuildingSegments, setIsBuildingSegments] = useState(false)
@@ -852,6 +858,32 @@ export default function TravelDashboard() {
 
   const itineraryFingerprint = useMemo(() => buildItineraryFingerprint(trip), [trip?.id, trip?.itinerary])
 
+  const focusActivityOnMap = useCallback(
+    (dayNum: number, activityIndex: number) => {
+      const dayPoints = buildDayPoints(dayNum)
+      const point = dayPoints.find((p) => p.activityIndex === activityIndex)
+      if (!point) return false
+      setFlyToCoords({ lat: point.lat, lng: point.lng, altitude: 420 })
+      return true
+    },
+    [buildDayPoints],
+  )
+
+  const fitDayOnMap = useCallback(
+    (dayNum: number) => {
+      const dayPoints = buildDayPoints(dayNum).filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+      if (dayPoints.length === 0) return false
+      setFitToPointsRequest({
+        token: `day-${dayNum}-${Date.now()}`,
+        points: dayPoints.map((p) => ({ lat: p.lat, lng: p.lng })),
+        padding: dayPoints.length === 1 ? 180 : 90,
+        maxZoom: dayPoints.length === 1 ? 14 : 13,
+      })
+      return true
+    },
+    [buildDayPoints],
+  )
+
   useEffect(() => {
     let cancelled = false
 
@@ -1041,7 +1073,7 @@ export default function TravelDashboard() {
       const points = buildDayPoints(dayNum)
       const point = points.find((p) => p.activityIndex === activityIndex)
       if (!point) {
-        toast.error("РљРѕРѕСЂРґРёРЅР°С‚С‹ С‚РѕС‡РєРё РЅРµ РЅР°Р№РґРµРЅС‹")
+        toast.error("Координаты точки не найдены")
         return
       }
 
@@ -1058,13 +1090,15 @@ export default function TravelDashboard() {
       const activityIdx = findActivityIndexByTitle(dayNum, title)
       setActiveDay(dayNum)
       setActiveActivity(activityIdx)
+      setRoutingLine(null)
+      focusActivityOnMap(dayNum, activityIdx)
       setActivePanel("route")
       normalizeDayIfNeeded(dayNum)
     }
 
     window.addEventListener("map-show-detail", handler)
     return () => window.removeEventListener("map-show-detail", handler)
-  }, [findActivityIndexByTitle, normalizeDayIfNeeded])
+  }, [findActivityIndexByTitle, normalizeDayIfNeeded, focusActivityOnMap])
 
   useEffect(() => {
     const handler = async (e: Event) => {
@@ -1206,6 +1240,7 @@ export default function TravelDashboard() {
           points={viewState === "ACTIVE" ? displayPoints : []}
           arcs={viewState === "ACTIVE" ? (routeSegments.length ? routeSegments : displayArcs) : []}
           flyTo={flyToCoords}
+          fitToPoints={fitToPointsRequest}
           routingLine={routingLine}
           settings={mapSettings}
           nearbyPoints={viewState === "ACTIVE" || activePanel === "nearby" ? nearbyPoints : []}
@@ -1250,8 +1285,9 @@ export default function TravelDashboard() {
 
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2">
           <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-full px-6 py-2.5 shadow-2xl hover:bg-black/50 transition-all cursor-pointer" onClick={() => router.push("/")}>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 flex items-center gap-3">
-              TraveLM Map <span className="text-[10px] font-medium text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full bg-emerald-500/10">BETA</span>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 flex items-center gap-2 whitespace-nowrap">
+              <span className="leading-none">TraveLM Map</span>
+              <span className="text-[10px] font-medium text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full bg-emerald-500/10">β</span>
             </h1>
           </div>
 
@@ -1442,10 +1478,18 @@ export default function TravelDashboard() {
             setActiveDay(day)
             setActiveActivity(0)
             setRoutingLine(null)
-            normalizeDayIfNeeded(day)
+            void normalizeDayIfNeeded(day).finally(() => {
+              fitDayOnMap(day)
+            })
           }}
           activeActivity={boundedActivityIndex}
-          onSelectActivity={(idx) => setActiveActivity(idx)}
+          onSelectActivity={(idx, mode) => {
+            setActiveActivity(idx)
+            setRoutingLine(null)
+            if (mode === "focus") {
+              focusActivityOnMap(activeDay, idx)
+            }
+          }}
           onGoToPoint={(day, activityIndex, title) => handleGoToPoint(day, activityIndex, title)}
           onCompleteTrip={trip?.id ? handleCompleteTrip : undefined}
           isCompletingTrip={isCompletingTrip}

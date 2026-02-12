@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 export async function POST(req: Request) {
     try {
+        const userId = await getRequestUserId()
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
         const { message, context, mode = 'local' } = await req.json()
 
         let systemPrompt = ""

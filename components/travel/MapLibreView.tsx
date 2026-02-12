@@ -10,6 +10,12 @@ interface MapLibreViewProps {
   arcs: any[]
   refreshToken?: string | number
   flyTo?: { lat: number; lng: number; altitude?: number } | null
+  fitToPoints?: {
+    token: string
+    points: Array<{ lat: number; lng: number }>
+    padding?: number
+    maxZoom?: number
+  } | null
   routingLine?: {
     geometry: { type: "LineString"; coordinates: [number, number][] }
     mode: "flight" | "walk" | "road" | "rail"
@@ -28,7 +34,7 @@ interface MapLibreViewProps {
   nearbyPoints?: any[]
 }
 
-export default function MapLibreView({ points, arcs, refreshToken, flyTo, routingLine, settings, nearbyPoints = [] }: MapLibreViewProps) {
+export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToPoints, routingLine, settings, nearbyPoints = [] }: MapLibreViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const currentSettingsRef = useRef(settings)
@@ -115,7 +121,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
 
   const ensureRouteLayersOnTop = () => {
     if (!map.current) return
-    ;["route-line", "route-segment-icons", "route-points", "point-labels"].forEach((layerId) => {
+    ;["route-line", "route-segment-icons", "route-points", "route-point-badges", "point-labels"].forEach((layerId) => {
       if (map.current?.getLayer(layerId)) {
         map.current.moveLayer(layerId)
       }
@@ -200,11 +206,32 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
         source: "route-data",
         filter: ["==", "$type", "Point"],
         paint: {
-          "circle-radius": 8.5,
+          "circle-radius": 10.5,
           "circle-color": ["coalesce", ["get", "color"], "#14b8a6"],
-          "circle-stroke-width": 2.2,
-          "circle-stroke-color": "#ffffff",
+          "circle-stroke-width": 3,
+          "circle-stroke-color": "#f8fafc",
           "circle-opacity": 0.98,
+        },
+      })
+    }
+
+    if (!map.current.getLayer("route-point-badges")) {
+      map.current.addLayer({
+        id: "route-point-badges",
+        type: "symbol",
+        source: "route-data",
+        filter: ["==", "$type", "Point"],
+        layout: {
+          "text-field": ["to-string", ["coalesce", ["get", "label"], ""]],
+          "text-font": ["Open Sans Bold"],
+          "text-size": 11,
+          "text-allow-overlap": true,
+          "text-ignore-placement": true,
+        },
+        paint: {
+          "text-color": "#111827",
+          "text-halo-color": "#ffffff",
+          "text-halo-width": 0.8,
         },
       })
     }
@@ -406,6 +433,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
           properties: {
             kind: "route",
             sourceType: "route",
+            label: Number.isFinite(Number((p as any).label)) ? Number((p as any).label) : "",
             title: p.title || p.label || "",
             description: p.desc || "",
             image: p.image || DEFAULT_TRAVEL_IMAGE,
@@ -513,6 +541,15 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
         map.current.setLayoutProperty(layerId, "visibility", target)
       }
     })
+    ;["route-points", "route-line", "route-segment-icons", "route-point-badges"].forEach((layerId) => {
+      if (map.current?.getLayer(layerId)) {
+        map.current.setLayoutProperty(layerId, "visibility", "visible")
+      }
+    })
+    if (map.current.getLayer("point-labels")) {
+      map.current.setLayoutProperty("point-labels", "visibility", currentSettingsRef.current?.showLabels ? "visible" : "none")
+    }
+    updateRouteData()
     ensureRouteLayersOnTop()
   }
 
@@ -595,7 +632,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
     if (latestSettings && map.current.getLayer("point-labels")) {
       map.current.setLayoutProperty("point-labels", "visibility", latestSettings.showLabels ? "visible" : "none")
     }
-    ;["route-points", "route-line", "route-segment-icons"].forEach((layerId) => {
+    ;["route-points", "route-line", "route-segment-icons", "route-point-badges"].forEach((layerId) => {
       if (map.current?.getLayer(layerId)) {
         map.current.setLayoutProperty(layerId, "visibility", "visible")
       }
@@ -631,66 +668,94 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
       if (!coords || coords.length < 2 || Number.isNaN(coords[0]) || Number.isNaN(coords[1])) return
 
       const popupNode = document.createElement("div")
-      const safeTitle = String(props.title || "Точка").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;")
+      const title = String(props.title || "Точка")
       const dayRaw = Number(props.day)
       const day = Number.isFinite(dayRaw) && dayRaw > 0 ? dayRaw : null
-      const time = String(props.time || (layerId === "social-pois" ? "Рядом" : "Днём"))
+      const time = String(props.time || (layerId === "social-pois" ? "Рядом" : "День"))
       const price = String(props.price || "")
       const description = String(props.description || "Интересное место")
       const image = String(props.image || "")
-      const safeImage = image.replace(/"/g, "&quot;")
       const canOpenDetails = layerId === "route-points"
       const source = layerId === "nearby-points" ? "nearby" : layerId === "social-pois" ? "social" : "route"
       const category = String(props.category || "")
       const distanceRaw = Number(props.distanceKm)
       const distanceKm = Number.isFinite(distanceRaw) ? distanceRaw : null
-      const poiDetailEncoded = encodeURIComponent(
-        JSON.stringify({
-          source,
-          category,
-          title: String(props.title || "Точка"),
-          description: String(props.description || ""),
-          day,
-          time,
-          lat: coords[1],
-          lng: coords[0],
-          distanceKm,
-        }),
-      )
-      const leftAction = canOpenDetails
-        ? `<button onclick="window.dispatchEvent(new CustomEvent('map-show-detail', {detail: {day: ${day}, title: '${safeTitle}'}}))" class="flex-1 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border border-emerald-500/20 text-center cursor-pointer">
-            Подробнее
-          </button>`
-        : `<button onclick="window.dispatchEvent(new CustomEvent('map-open-poi', {detail: JSON.parse(decodeURIComponent('${poiDetailEncoded}'))}))" class="flex-1 py-2 bg-white/10 hover:bg-white/15 text-zinc-200 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border border-white/10 text-center cursor-pointer">
-            Открыть
-          </button>`
 
-      popupNode.innerHTML = `
-        <div class="w-[260px] max-w-[calc(100vw-32px)] bg-neutral-900/95 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border border-white/10 font-sans">
-          <div class="h-36 bg-zinc-800 relative overflow-hidden">
-            ${
-              image
-                ? `<img src="${safeImage}" class="absolute inset-0 w-full h-full object-cover" alt="${safeTitle}" onerror="this.onerror=null;this.src='${DEFAULT_TRAVEL_IMAGE}'" />`
-                : `<img src="${DEFAULT_TRAVEL_IMAGE}" class="absolute inset-0 w-full h-full object-cover" alt="${safeTitle}" />`
-            }
-            <div class="absolute inset-0 bg-gradient-to-t from-neutral-900/90 via-transparent to-transparent"></div>
-            <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] uppercase font-bold text-emerald-400 border border-white/10 shadow-lg flex gap-2">
-              ${price ? `<span class="text-white">${price}</span> <span class="text-white/30">|</span>` : ""}
-              <span>${day ? `День ${day} • ${time}` : time}</span>
-            </div>
-          </div>
-          <div class="p-4 relative -mt-6 z-10">
-            <h3 class="font-bold text-sm text-white leading-tight mb-1.5 truncate pr-2 drop-shadow-md">${safeTitle}</h3>
-            <div class="text-xs text-gray-300 line-clamp-2 leading-relaxed mb-3 min-h-[2.5em]">${description}</div>
-            <div class="flex gap-2">
-              ${leftAction}
-              <button onclick="window.dispatchEvent(new CustomEvent('map-route-to', {detail: {lat: ${coords[1]}, lng: ${coords[0]}, title: '${safeTitle}'}}))" class="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-300 transition-all border border-blue-500/20 cursor-pointer text-[10px] font-bold uppercase tracking-wide">
-                Маршрут
-              </button>
-            </div>
-          </div>
-        </div>
-      `
+      popupNode.innerHTML = [
+        '<div class="w-[260px] max-w-[calc(100vw-32px)] bg-neutral-900/95 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border border-white/10 font-sans">',
+        '  <div class="h-36 bg-zinc-800 relative overflow-hidden">',
+        '    <img class="map-popup-image absolute inset-0 w-full h-full object-cover" alt="" />',
+        '    <div class="absolute inset-0 bg-gradient-to-t from-neutral-900/90 via-transparent to-transparent"></div>',
+        '    <div class="map-popup-meta absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] uppercase font-bold text-emerald-400 border border-white/10 shadow-lg"></div>',
+        '  </div>',
+        '  <div class="p-4 relative -mt-6 z-10">',
+        '    <h3 class="map-popup-title font-bold text-sm text-white leading-tight mb-1.5 truncate pr-2 drop-shadow-md"></h3>',
+        '    <div class="map-popup-description text-xs text-gray-300 line-clamp-2 leading-relaxed mb-3 min-h-[2.5em]"></div>',
+        '    <div class="flex gap-2">',
+        '      <button class="map-popup-left-action flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border text-center cursor-pointer"></button>',
+        '      <button class="map-popup-route px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-300 transition-all border border-blue-500/20 cursor-pointer text-[10px] font-bold uppercase tracking-wide">Маршрут</button>',
+        '    </div>',
+        '  </div>',
+        '</div>',
+      ].join("")
+
+      const imageEl = popupNode.querySelector<HTMLImageElement>(".map-popup-image")
+      if (imageEl) {
+        imageEl.src = image || DEFAULT_TRAVEL_IMAGE
+        imageEl.alt = title
+        imageEl.onerror = () => {
+          imageEl.onerror = null
+          imageEl.src = DEFAULT_TRAVEL_IMAGE
+        }
+      }
+
+      const dayTimeLabel = day ? "День " + day + " - " + time : time
+      const metaEl = popupNode.querySelector<HTMLDivElement>(".map-popup-meta")
+      if (metaEl) {
+        metaEl.textContent = price ? price + " | " + dayTimeLabel : dayTimeLabel
+      }
+
+      const titleEl = popupNode.querySelector<HTMLHeadingElement>(".map-popup-title")
+      if (titleEl) titleEl.textContent = title
+      const descriptionEl = popupNode.querySelector<HTMLDivElement>(".map-popup-description")
+      if (descriptionEl) descriptionEl.textContent = description
+
+      const leftActionButton = popupNode.querySelector<HTMLButtonElement>(".map-popup-left-action")
+      if (leftActionButton) {
+        leftActionButton.textContent = canOpenDetails ? "Подробнее" : "Открыть"
+        if (canOpenDetails) {
+          leftActionButton.classList.add("bg-emerald-500/20", "hover:bg-emerald-500/30", "text-emerald-300", "border-emerald-500/20")
+          leftActionButton.addEventListener("click", () => {
+            window.dispatchEvent(new CustomEvent("map-show-detail", { detail: { day: day || 1, title } }))
+          })
+        } else {
+          leftActionButton.classList.add("bg-white/10", "hover:bg-white/15", "text-zinc-200", "border-white/10")
+          leftActionButton.addEventListener("click", () => {
+            window.dispatchEvent(
+              new CustomEvent("map-open-poi", {
+                detail: {
+                  source,
+                  category,
+                  title,
+                  description,
+                  day,
+                  time,
+                  lat: coords[1],
+                  lng: coords[0],
+                  distanceKm,
+                },
+              }),
+            )
+          })
+        }
+      }
+
+      const routeButton = popupNode.querySelector<HTMLButtonElement>(".map-popup-route")
+      if (routeButton) {
+        routeButton.addEventListener("click", () => {
+          window.dispatchEvent(new CustomEvent("map-route-to", { detail: { lat: coords[1], lng: coords[0], title } }))
+        })
+      }
 
       const popup = new maplibregl.Popup({ closeButton: false, className: "map-popup-glass" }).setLngLat(coords).setDOMContent(popupNode).addTo(map.current!)
       popup.on("close", () => {
@@ -858,11 +923,40 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
     if (!map.current || !flyTo) return
     map.current.flyTo({
       center: [flyTo.lng, flyTo.lat],
-      zoom: 12,
+      zoom: 14,
       speed: 1.2,
       essential: true,
     })
   }, [flyTo])
+
+  useEffect(() => {
+    if (!map.current || !fitToPoints?.points?.length) return
+
+    const validPoints = fitToPoints.points.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng))
+    if (validPoints.length === 0) return
+
+    if (validPoints.length === 1) {
+      const point = validPoints[0]
+      map.current.flyTo({
+        center: [point.lng, point.lat],
+        zoom: fitToPoints.maxZoom || 14,
+        speed: 1,
+        essential: true,
+      })
+      return
+    }
+
+    const bounds = new maplibregl.LngLatBounds()
+    validPoints.forEach((point) => bounds.extend([point.lng, point.lat]))
+    if (bounds.isEmpty()) return
+
+    map.current.fitBounds(bounds, {
+      padding: fitToPoints.padding || 80,
+      duration: 900,
+      maxZoom: fitToPoints.maxZoom || 13,
+      essential: true,
+    })
+  }, [fitToPoints?.token, fitToPoints?.points, fitToPoints?.padding, fitToPoints?.maxZoom])
 
   useEffect(() => {
     if (!map.current || !routingLine?.geometry?.coordinates?.length) return
@@ -897,4 +991,3 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, routin
 
   return <div ref={mapContainer} className="w-full h-full absolute inset-0 z-0 bg-black" />
 }
-

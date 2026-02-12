@@ -80,8 +80,7 @@ function PoiContent({
           className={`h-9 rounded-xl border text-xs font-semibold transition-colors ${activeTab === "about" ? "bg-white/15 border-white/20 text-white" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10"}`}
         >
           <span className="inline-flex items-center gap-1.5">
-            <Info className="h-3.5 w-3.5" />
-            О месте
+            <Info className="h-3.5 w-3.5" />О месте
           </span>
         </button>
         <button
@@ -230,10 +229,7 @@ export function PoiDrawer({ isOpen, onClose, poi, onBuildRoute, onFlyTo }: PoiDr
 
     const load = async () => {
       try {
-        const [coverRes, galleryRes] = await Promise.all([
-          fetch(getImageApiUrl(photoQuery)),
-          fetch(getGalleryApiUrl(photoQuery, 6)),
-        ])
+        const [coverRes, galleryRes] = await Promise.all([fetch(getImageApiUrl(photoQuery)), fetch(getGalleryApiUrl(photoQuery, 6))])
 
         if (coverRes.ok) {
           const coverData = await coverRes.json()
@@ -312,7 +308,7 @@ export function PoiDrawer({ isOpen, onClose, poi, onBuildRoute, onFlyTo }: PoiDr
         <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" />
         <Drawer.Content className="bg-zinc-950/95 border-t border-white/10 flex flex-col rounded-t-[20px] h-[80vh] fixed bottom-0 left-0 right-0 z-50 outline-none pb-[env(safe-area-inset-bottom)]">
           <Drawer.Title className="sr-only">Информация о точке</Drawer.Title>
-          <Drawer.Description className="sr-only">Детальная карточка внешней или nearby точки на карте.</Drawer.Description>
+          <Drawer.Description className="sr-only">Детальная карточка внешней или nearby-точки на карте.</Drawer.Description>
 
           <div className="p-4 flex-1 flex flex-col min-h-0">
             <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-zinc-800 mb-4" />

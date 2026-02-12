@@ -17,7 +17,7 @@ interface RouteDrawerProps {
   activeDay: number
   onSelectDay: (day: number) => void
   activeActivity?: number | null
-  onSelectActivity?: (activityIndex: number) => void
+  onSelectActivity?: (activityIndex: number, mode?: "focus" | "silent") => void
   onGoToPoint?: (day: number, activityIndex: number, title?: string) => void
   onCompleteTrip?: () => Promise<void> | void
   isCompletingTrip?: boolean
@@ -124,7 +124,7 @@ function RouteContent({
   activeDay: number
   onSelectDay: (day: number) => void
   activeActivity: number | null
-  onSelectActivity?: (activityIndex: number) => void
+  onSelectActivity?: (activityIndex: number, mode?: "focus" | "silent") => void
   onGoToPoint?: (day: number, activityIndex: number, title?: string) => void
   onCompleteTrip?: () => Promise<void> | void
   isCompletingTrip: boolean
@@ -166,7 +166,7 @@ function RouteContent({
             key={dayNum}
             onClick={() => {
               onSelectDay(dayNum)
-              onSelectActivity?.(0)
+              onSelectActivity?.(0, "silent")
             }}
             className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors whitespace-nowrap ${
               safeDay === dayNum ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-300" : "bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10"
@@ -185,9 +185,9 @@ function RouteContent({
           <div className="relative h-36 md:h-40 rounded-2xl overflow-hidden border border-emerald-500/20 mt-3">
             <TripImage src={heroImage} query={heroQuery} alt={selectedActivity?.title || "активность"} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-            {selectedActivity && (
-              <div className="absolute left-3 bottom-3 text-white font-semibold text-sm line-clamp-2">{selectedActivity.title || selectedActivity.placeName || "Активность"}</div>
-            )}
+            <div className="absolute left-3 bottom-3 text-white font-semibold text-sm line-clamp-2">
+              {selectedActivity.title || selectedActivity.placeName || "Активность"}
+            </div>
           </div>
         )}
       </div>
@@ -229,7 +229,7 @@ function RouteContent({
                       size="sm"
                       variant="outline"
                       className="h-7 text-[11px] px-2.5 border-white/15 text-white/80 hover:bg-white/10"
-                      onClick={() => onSelectActivity?.(actIdx)}
+                      onClick={() => onSelectActivity?.(actIdx, "focus")}
                     >
                       Выбрать
                     </Button>

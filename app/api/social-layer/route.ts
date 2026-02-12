@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 type Bbox = {
   south: number
@@ -206,6 +207,11 @@ const parseElementsToFeatures = (elements: OverpassElement[], zoom: number) => {
 
 export async function POST(req: Request) {
   try {
+    const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized", features: [] }, { status: 401 })
+    }
+
     const body = (await req.json()) as SocialLayerRequest
     const zoom = Number(body?.zoom)
     const rawBbox = body?.bbox

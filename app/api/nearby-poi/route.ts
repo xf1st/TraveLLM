@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { getRequestUserId } from "@/lib/ai-usage-events"
 
 type NearbyTheme = "food" | "culture" | "nature" | "fun" | "shopping"
 
@@ -186,6 +187,11 @@ const fetchOverpass = async (query: string) => {
 
 export async function POST(req: Request) {
   try {
+    const userId = await getRequestUserId()
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const body = (await req.json()) as NearbyPoiRequest
     const lat = Number(body?.lat)
     const lng = Number(body?.lng)

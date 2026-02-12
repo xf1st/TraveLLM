@@ -135,7 +135,7 @@ export async function llamaInference(messages, options) { ... }
 
 ```env
 # HuggingFace (Primary AI + Cerebras Router)
-HUGGING_FACE_TOKEN=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
+HUGGING_FACE_TOKEN=hf_xxx_replace_with_real_token
 
 # Supabase (Database)
 NEXT_PUBLIC_SUPABASE_URL=https://gsmdgtopofvklvkninfl.supabase.co

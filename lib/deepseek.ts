@@ -1,10 +1,7 @@
 // DeepSeek API Client
 // https://api.deepseek.com
 
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-e39ffbfd729047febe166ac950a5a68a";
-if (!process.env.DEEPSEEK_API_KEY) {
-    console.warn("[SECURITY] DEEPSEEK_API_KEY is not set - using hardcoded fallback. Set env variable in production!");
-}
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 
 // Models with different token limits
 export const DEEPSEEK_CHAT = "deepseek-chat";        // 8k output
@@ -123,6 +120,10 @@ async function runDeepseekInference(
     messages: DeepSeekMessage[],
     options: DeepSeekOptions = {}
 ): Promise<DeepSeekInferenceResult> {
+    if (!DEEPSEEK_API_KEY) {
+        throw new Error("DEEPSEEK_API_KEY is not configured");
+    }
+
     const { maxTokens = 8192, temperature = 0.6, tripDays = 5 } = options;
 
     // Smart model selection:

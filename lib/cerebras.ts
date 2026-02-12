@@ -1,10 +1,7 @@
 // AI Providers via HuggingFace Router
 // Primary: GLM-4.7 on Cerebras, Fallback: Llama-3.3-70B on Cerebras
 
-const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "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";
-if (!process.env.HUGGING_FACE_TOKEN) {
-    console.warn("[SECURITY] HUGGING_FACE_TOKEN is not set (cerebras.ts) — using hardcoded fallback. Set env variable in production!");
-}
+const HF_TOKEN = process.env.HUGGING_FACE_TOKEN || "";
 
 // Models available via Cerebras backend
 export const GLM_MODEL = "zai-org/GLM-4.7:cerebras";
@@ -20,11 +17,18 @@ interface InferenceOptions {
     temperature?: number;
 }
 
+function requireToken() {
+    if (!HF_TOKEN) {
+        throw new Error("HUGGING_FACE_TOKEN is not configured");
+    }
+}
+
 // GLM-4.7 via Cerebras (Primary - newest, 358B)
 export async function glmInference(
     messages: ChatMessage[],
     options: InferenceOptions = {}
 ): Promise<string> {
+    requireToken();
     const { maxTokens = 65536, temperature = 0.6 } = options;
 
     console.log("GLM-4.7 (via Cerebras): Starting inference...");
@@ -64,6 +68,7 @@ export async function llamaInference(
     messages: ChatMessage[],
     options: InferenceOptions = {}
 ): Promise<string> {
+    requireToken();
     const { maxTokens = 65536, temperature = 0.6 } = options;
 
     console.log("Llama-3.3-70B (via Cerebras): Starting inference...");
