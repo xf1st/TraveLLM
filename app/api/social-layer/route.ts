@@ -111,11 +111,29 @@ const fetchOverpass = async (query: string) => {
         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
         body: `data=${encodeURIComponent(query)}`,
       })
+      const raw = await response.text()
+
       if (!response.ok) {
-        lastError = new Error(`Overpass ${endpoint} returned ${response.status}`)
+        lastError = new Error(`Overpass ${endpoint} returned ${response.status}: ${raw.slice(0, 180)}`)
         continue
       }
-      return await response.json()
+
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase()
+      const trimmed = raw.trim()
+
+      // Overpass can occasionally return XML/HTML payloads (rate limits/proxy pages).
+      // Treat them as invalid and try the next endpoint instead of throwing JSON parse errors.
+      if (trimmed.startsWith("<") || (!contentType.includes("json") && !trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+        lastError = new Error(`Overpass ${endpoint} returned non-JSON payload: ${trimmed.slice(0, 180)}`)
+        continue
+      }
+
+      try {
+        return JSON.parse(trimmed)
+      } catch {
+        lastError = new Error(`Overpass ${endpoint} returned malformed JSON: ${trimmed.slice(0, 180)}`)
+        continue
+      }
     } catch (error) {
       lastError = error
     }
@@ -229,9 +247,13 @@ export async function POST(req: Request) {
 
     for (const part of parts) {
       const query = buildQueryForPart(part, zoom)
-      const data = await fetchOverpass(query)
-      if (Array.isArray(data?.elements)) {
-        allElements.push(...(data.elements as OverpassElement[]))
+      try {
+        const data = await fetchOverpass(query)
+        if (Array.isArray(data?.elements)) {
+          allElements.push(...(data.elements as OverpassElement[]))
+        }
+      } catch (partError) {
+        console.warn("Social layer part failed:", partError)
       }
     }
 
