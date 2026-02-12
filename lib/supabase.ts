@@ -1,8 +1,33 @@
+﻿import { createBrowserClient } from '@supabase/ssr'
 
-import { createBrowserClient } from '@supabase/ssr'
+const normalizeSupabaseUrl = (raw: string) => {
+  const cleaned = String(raw || "")
+    .trim()
+    .replace(/^['\"]|['\"]$/g, "")
+    .replace(/\uFEFF/g, "")
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+  if (!cleaned) return ""
+
+  const withProtocol = /^https?:\/\//i.test(cleaned)
+    ? cleaned
+    : `https://${cleaned}`
+
+  try {
+    return new URL(withProtocol).toString().replace(/\/$/, "")
+  } catch {
+    return ""
+  }
+}
+
+const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[supabase] Missing or invalid public config', {
+    hasUrl: Boolean(supabaseUrl),
+    hasAnonKey: Boolean(supabaseAnonKey),
+  })
+}
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
@@ -19,13 +44,12 @@ export async function signInWithGoogle() {
 export async function signOut() {
   try {
     const { error } = await supabase.auth.signOut()
-    // Игнорируем ошибку "Auth session missing!" - это нормальное поведение при выходе
+    // Ignore "Auth session missing" during logout.
     if (error?.message?.includes('Auth session missing')) {
       return { error: null }
     }
     return { error }
   } catch (error) {
-    // Если произошла ошибка, но это не "Auth session missing", возвращаем её
     if (error instanceof Error && !error.message.includes('Auth session missing')) {
       return { error }
     }

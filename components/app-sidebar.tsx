@@ -8,10 +8,8 @@ import {
     Search,
     User,
     Settings,
-    LogOut,
-    Sun,
-    Moon,
-    Monitor,
+    LogOut,
+    Moon,
     Newspaper,
     ChevronLeft,
     ChevronRight,
@@ -81,7 +79,7 @@ export function AppSidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [tripsOpen, setTripsOpen] = useState(true)
     const [tripMembers, setTripMembers] = useState<any[]>([])
-    const { theme, setTheme } = useTheme()
+    const { setTheme } = useTheme()
     const [isAdmin, setIsAdmin] = useState(false)
     const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
 
@@ -375,46 +373,21 @@ export function AppSidebar() {
             <div className="p-3 border-t border-border/50">
                 {user ? (
                     <div className="space-y-2">
-                        {/* Theme Toggle */}
+                        {/* Theme is fixed to dark mode */}
                         {!isCollapsed ? (
-                            <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-xl">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'light' && 'bg-background shadow-sm')}
-                                    onClick={() => setTheme('light')}
-                                    aria-label="Светлая тема"
-                                >
-                                    <Sun className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'system' && 'bg-background shadow-sm')}
-                                    onClick={() => setTheme('system')}
-                                    aria-label="Системная тема"
-                                >
-                                    <Monitor className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn("flex-1 h-8 rounded-lg gap-2", theme === 'dark' && 'bg-background shadow-sm')}
-                                    onClick={() => setTheme('dark')}
-                                    aria-label="Темная тема"
-                                >
-                                    <Moon className="h-4 w-4" />
-                                </Button>
+                            <div className="flex items-center justify-center gap-2 p-2 bg-muted/50 rounded-xl text-xs text-muted-foreground">
+                                <Moon className="h-4 w-4" />
+                                <span>Dark theme</span>
                             </div>
                         ) : (
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="w-full h-10 rounded-xl"
-                                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                                aria-label="Переключить тему"
+                                className="w-full h-10 rounded-xl cursor-not-allowed opacity-70"
+                                disabled
+                                aria-label="Dark theme"
                             >
-                                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                                <Moon className="h-4 w-4" />
                             </Button>
                         )}
 
