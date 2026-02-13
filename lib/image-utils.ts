@@ -1,8 +1,6 @@
 export const DEFAULT_TRAVEL_IMAGE = "/tbilisi-old-town.jpg"
 
 const BLOCKED_OR_UNSTABLE_PATTERNS = [
-  "images.unsplash.com",
-  "source.unsplash.com",
   "loremflickr.com",
   "picsum.photos",
   "pexels.com",

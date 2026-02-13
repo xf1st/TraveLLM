@@ -15,7 +15,9 @@
       "Bash(timeout:*)",
       "Bash(findstr:*)",
       "Bash(ping:*)",
-      "Bash(npx next dev:*)"
+      "Bash(npx next dev:*)",
+      "Bash(python -c:*)",
+      "Bash(pip install:*)"
     ]
   }
 }

@@ -186,6 +186,8 @@ const tagIcons: Record<string, any> = {
   "default": Sparkles
 }
 
+const SHOW_TRANSPORT_CARDS = false
+
 export default function TripDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -650,7 +652,7 @@ export default function TripDetailPage() {
                         className="w-full max-w-full overflow-hidden"
                       >
                         {/* Flight cards BEFORE day card (inline in timeline) */}
-                        {isExpanded && flightsToShow.length > 0 && (
+                        {SHOW_TRANSPORT_CARDS && isExpanded && flightsToShow.length > 0 && (
                           <div className="mb-4 space-y-3 animate-in slide-in-from-top duration-300 w-full max-w-full overflow-hidden">
                             <div className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 ml-1">
                               <Plane className="h-4 w-4" />
@@ -691,7 +693,7 @@ export default function TripDetailPage() {
                                   <Plane className="h-3 w-3 mr-1" /> Перелёт
                                 </Badge>
                               )}
-                              {hotelsToShow.length > 0 && (
+                              {SHOW_TRANSPORT_CARDS && hotelsToShow.length > 0 && (
                                 <Badge variant="outline" className="hidden sm:flex rounded-full border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
                                   <HotelIcon className="h-3 w-3 mr-1" /> Отель
                                 </Badge>
@@ -727,11 +729,14 @@ export default function TripDetailPage() {
                                   className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                   onClick={() => {
                                     const destination = day.logistics?.to || route.destination || ""
-                                    const url = day.logistics?.bookingLink || `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
+                                    const url =
+                                      flightsToShow?.[0]?.bookingUrl ||
+                                      day.logistics?.bookingLink ||
+                                      `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
                                     window.open(url, '_blank')
                                   }}
                                 >
-                                  <Plane className="mr-2 h-3.5 w-3.5" /> {day.logistics?.bookingLink?.includes('aviasales') ? 'Билеты' : 'Найти билеты'}
+                                  <Plane className="mr-2 h-3.5 w-3.5" /> Билеты
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -739,11 +744,13 @@ export default function TripDetailPage() {
                                   className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
                                   onClick={() => {
                                     const destination = day.logistics?.to || route.destination || ""
-                                    const url = `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
+                                    const url =
+                                      hotelsToShow?.[0]?.bookingUrl ||
+                                      `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
                                     window.open(url, '_blank')
                                   }}
                                 >
-                                  <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {day.logistics?.to || route.destination || 'Поиск'}
+                                  <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {hotelsToShow?.[0]?.hotelName || day.logistics?.to || route.destination || "Поиск"}
                                 </Button>
                               </div>
 
