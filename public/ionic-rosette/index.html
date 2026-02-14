@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="ru" data-theme="sky">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TraveLM — Откройте своё следующее приключение</title>
+    <meta
+      name="description"
+      content="AI-гид и планировщик путешествий. Создавайте идеальные маршруты за считанные секунды."
+    />
+
+    <!-- Design System Styles -->
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Lucide Icons (SVG) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Favicon (using a lucide svg as data uri for simplicity or standard placeholder) -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230e7fd6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 12h20'/><path d='M13 2a9 9 0 0 0-9 9H2l.6 7.2a2 2 0 0 0 2.2 1.8h14.4a2 2 0 0 0 2.2-1.8L22 11h-2a9 9 0 0 0-9-9z'/></svg>"
+    />
+  </head>
+  <body>
+    <!-- Background Elements -->
+    <div class="floating-icons"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <header class="header-inner">
+        <a href="#" class="logo">
+          <div class="logo-icon">
+            <i data-lucide="send"></i>
+          </div>
+          TraveLM
+        </a>
+
+        <nav>
+          <ul class="nav-links">
+            <li><a href="#">Маршруты</a></li>
+            <li><a href="#">3D Карта β</a></li>
+            <li><a href="#">Лента</a></li>
+            <li><a href="#">Спланировать</a></li>
+          </ul>
+        </nav>
+
+        <div class="header-actions">
+          <button class="mobile-menu-btn">
+            <i data-lucide="menu"></i>
+          </button>
+        </div>
+      </header>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu">
+      <button class="mobile-menu-close">
+        <i data-lucide="x"></i>
+      </button>
+      <a href="#">Маршруты</a>
+      <a href="#">3D Карта</a>
+      <a href="#">Лента</a>
+      <a href="#">Спланировать</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title fade-in">TraveLM</h1>
+        <p class="hero-subtitle fade-in fade-in-delay-1">
+          Откройте своё следующее приключение
+        </p>
+        <p class="hero-subtitle-muted fade-in fade-in-delay-2">
+          ИИ-планировщик для идеальных путешествий
+        </p>
+
+        <div style="height: 40px"></div>
+
+        <!-- Search Capsule -->
+        <div class="search-capsule fade-in fade-in-delay-3">
+          <div class="search-field">
+            <div class="search-field-icon"><i data-lucide="map-pin"></i></div>
+            <div class="search-field-text">
+              <span class="search-field-label">Куда?</span>
+              <span class="search-field-hint">Поиск направлений</span>
+            </div>
+          </div>
+          <div class="search-field">
+            <div class="search-field-icon"><i data-lucide="calendar"></i></div>
+            <div class="search-field-text">
+              <span class="search-field-label">Даты</span>
+              <span class="search-field-hint">Добавить даты</span>
+            </div>
+          </div>
+          <div class="search-field">
+            <div class="search-field-icon"><i data-lucide="users"></i></div>
+            <div class="search-field-text">
+              <span class="search-field-label">Гости</span>
+              <span class="search-field-hint">Добавить</span>
+            </div>
+          </div>
+          <button class="search-btn">
+            <i data-lucide="search"></i>
+          </button>
+        </div>
+
+        <!-- Popular Destinations Mockup -->
+        <div class="popular-label fade-in fade-in-delay-4">
+          Популярные направления:
+        </div>
+        <div class="popular-grid fade-in fade-in-delay-5">
+          <div class="popular-card">
+            <img
+              src="https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?auto=format&fit=crop&q=80&w=300"
+              alt="Yalta"
+            />
+            <div class="popular-card-overlay"></div>
+            <div class="popular-card-content">
+              <div class="popular-card-title">Ялта</div>
+              <div class="popular-card-desc">7 дней у моря</div>
+              <div class="popular-card-arrow">
+                <i data-lucide="arrow-right"></i>
+              </div>
+            </div>
+          </div>
+          <div class="popular-card">
+            <img
+              src="https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&q=80&w=300"
+              alt="Antalya"
+            />
+            <div class="popular-card-overlay"></div>
+            <div class="popular-card-content">
+              <div class="popular-card-title">Анталья</div>
+              <div class="popular-card-desc">Всё включено</div>
+              <div class="popular-card-arrow">
+                <i data-lucide="arrow-right"></i>
+              </div>
+            </div>
+          </div>
+          <div class="popular-card">
+            <img
+              src="https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&q=80&w=300"
+              alt="Tbilisi"
+            />
+            <div class="popular-card-overlay"></div>
+            <div class="popular-card-content">
+              <div class="popular-card-title">Тбилиси</div>
+              <div class="popular-card-desc">Гастро-тур</div>
+              <div class="popular-card-arrow">
+                <i data-lucide="arrow-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features / About Section -->
+    <section class="container fade-in">
+      <div class="section-divider"></div>
+      <div class="section-center" style="padding-top: 60px">
+        <div class="section-badge">О проекте</div>
+        <h2 class="section-title">Путешествия, созданные ИИ</h2>
+        <p class="section-desc">
+          TraveLM анализирует тысячи вариантов и создаёт идеальный маршрут за
+          секунды.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <div class="glass feature-card">
+          <div class="feature-icon"><i data-lucide="brain"></i></div>
+          <h3 class="feature-title">Умное планирование</h3>
+          <p class="feature-desc">
+            ИИ учитывает ваш стиль путешествия, интересы, бюджет и даже темп
+            прогулок.
+          </p>
+        </div>
+        <div class="glass feature-card">
+          <div class="feature-icon"><i data-lucide="plane"></i></div>
+          <h3 class="feature-title">Реальные данные</h3>
+          <p class="feature-desc">
+            Актуальные цены на билеты и отели, ссылки на бронирование напрямую.
+          </p>
+        </div>
+        <div class="glass feature-card">
+          <div class="feature-icon"><i data-lucide="map"></i></div>
+          <h3 class="feature-title">Детальные маршруты</h3>
+          <p class="feature-desc">
+            Почасовой план на каждый день с адресами, временем работы и
+            секретными местами.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Popular Routes Section -->
+    <section class="container fade-in">
+      <div class="section-center">
+        <div class="section-badge">Маршруты</div>
+        <h2 class="section-title">Вдохновитесь путешествиями</h2>
+        <p class="section-desc">
+          Лучшие направления, отобранные нашими экспертами и пользователями.
+        </p>
+      </div>
+
+      <div class="routes-grid">
+        <!-- Card 1 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?auto=format&fit=crop&q=80&w=600"
+              alt="Yalta"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 10/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> Крым, Россия
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 7 дней
+            </div>
+            <h3 class="route-title">Неделя в Ялте: Крымская классика</h3>
+            <p class="route-desc">
+              Ласточкино гнездо, Ливадийский дворец, Массандра. Идеальный
+              пляжный отдых.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">МОРЕ</span>
+              <span class="route-tag">ПЛЯЖ</span>
+              <span class="route-tag">КУЛЬТУРА</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">55 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&q=80&w=600"
+              alt="Antalya"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 9/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> Турция
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 10 дней
+            </div>
+            <h3 class="route-title">Анталья: Всё включено</h3>
+            <p class="route-desc">
+              Отели 5*, пляжи, экскурсия в Памуккале и Каппадокию.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">ПЛЯЖ</span>
+              <span class="route-tag">РЕЛАКС</span>
+              <span class="route-tag">АКВАПАРК</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">120 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&q=80&w=600"
+              alt="Georgia"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 9/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> Грузия
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 7 дней
+            </div>
+            <h3 class="route-title">Тбилиси и вкусная Кахетия</h3>
+            <p class="route-desc">
+              Хинкали, хачапури, вино. Серные бани и ночной Тбилиси.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">ЕДА</span>
+              <span class="route-tag">ИСТОРИЯ</span>
+              <span class="route-tag">ВИНО</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">75 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&q=80&w=600"
+              alt="Altai"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 9/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> Алтай, Россия
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 10 дней
+            </div>
+            <h3 class="route-title">Алтай: Дикий и прекрасный</h3>
+            <p class="route-desc">
+              Чуйский тракт, Телецкое озеро, Марсианские пейзажи.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">ПРИРОДА</span>
+              <span class="route-tag">ГОРЫ</span>
+              <span class="route-tag">АКТИВНЫЙ</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">110 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1565967511849-76a60a516170?auto=format&fit=crop&q=80&w=600"
+              alt="Uzbekistan"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 9/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> Узбекистан
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 8 дней
+            </div>
+            <h3 class="route-title">Узбекистан: Шёлковый путь</h3>
+            <p class="route-desc">
+              Самарканд, Бухара, Хива. Плов каждый день, мечети и медресе.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">ИСТОРИЯ</span>
+              <span class="route-tag">КУЛЬТУРА</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">70 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="glass route-card">
+          <div class="route-img-wrap">
+            <img
+              src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=600"
+              alt="Dubai"
+              class="route-img"
+            />
+            <div class="route-img-overlay"></div>
+            <div class="route-safety"><i data-lucide="shield"></i> 10/10</div>
+          </div>
+          <div class="route-content">
+            <div class="route-meta">
+              <i data-lucide="map-pin" style="width: 12px"></i> ОАЭ
+              <div class="route-meta-dot"></div>
+              <i data-lucide="clock" style="width: 12px"></i> 5 дней
+            </div>
+            <h3 class="route-title">Дубай за 5 дней</h3>
+            <p class="route-desc">
+              Бурдж Халифа, Palm Jumeirah, Dubai Mall. Прямой рейс.
+            </p>
+            <div class="route-tags">
+              <span class="route-tag">ШОПИНГ</span>
+              <span class="route-tag">РАЗВЛЕЧЕНИЯ</span>
+            </div>
+            <div class="route-bottom">
+              <div class="route-price">150 000 ₽</div>
+              <button class="btn btn-primary">
+                Открыть <i data-lucide="arrow-right" style="width: 16px"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="routes-cta">
+        <button class="btn btn-outline btn-large">
+          Посмотреть все маршруты
+          <i data-lucide="arrow-right" style="width: 18px"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Achievements Section -->
+    <section class="container fade-in">
+      <div class="section-center">
+        <div class="section-badge">Достижения</div>
+        <h2 class="section-title">Собирайте впечатления</h2>
+        <p class="section-desc">
+          Отслеживайте свои путешествия и получайте уникальные награды.
+        </p>
+      </div>
+
+      <div class="achievements-grid">
+        <div class="glass achievement-card">
+          <div class="achievement-icon blue"><i data-lucide="compass"></i></div>
+          <div class="achievement-info">
+            <h4>Первый шаг</h4>
+            <p>Посетите свою первую страну</p>
+            <span class="achievement-badge">Получено</span>
+          </div>
+          <div class="achievement-glow" style="background: #3b82f6"></div>
+        </div>
+
+        <div class="glass achievement-card">
+          <div class="achievement-icon green"><i data-lucide="map"></i></div>
+          <div class="achievement-info">
+            <h4>Исследователь</h4>
+            <p>Посетите 5 стран</p>
+            <span class="achievement-badge">Получено</span>
+          </div>
+          <div class="achievement-glow" style="background: #10b981"></div>
+        </div>
+
+        <div class="glass achievement-card locked">
+          <div class="achievement-icon locked-icon">
+            <i data-lucide="plane"></i>
+          </div>
+          <div class="achievement-info">
+            <h4>Гражданин мира</h4>
+            <p>Посетите 10 стран</p>
+          </div>
+        </div>
+
+        <div class="glass achievement-card locked">
+          <div class="achievement-icon locked-icon">
+            <i data-lucide="folder-check"></i>
+          </div>
+          <div class="achievement-info">
+            <h4>Путешественник</h4>
+            <p>Завершите 3 маршрута</p>
+          </div>
+        </div>
+
+        <div class="glass achievement-card locked">
+          <div class="achievement-icon locked-icon">
+            <i data-lucide="star"></i>
+          </div>
+          <div class="achievement-info">
+            <h4>Эксперт</h4>
+            <p>Завершите 10 маршрутов</p>
+          </div>
+        </div>
+
+        <div class="glass achievement-card locked">
+          <div class="achievement-icon locked-icon">
+            <i data-lucide="camera"></i>
+          </div>
+          <div class="achievement-info">
+            <h4>Фотограф</h4>
+            <p>Загрузите 50 фото</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta fade-in">
+      <div class="cta-glow"></div>
+      <div class="cta-content">
+        <h2 class="cta-title">Готовы к путешествию?</h2>
+        <p class="cta-desc">
+          Создайте свой идеальный маршрут за минуту — бесплатно. Без регистрации
+          карты.
+        </p>
+        <button class="btn btn-primary btn-large">
+          Создать маршрут
+          <i
+            data-lucide="arrow-right"
+            style="width: 20px; margin-left: 8px"
+          ></i>
+        </button>
+        <div class="cta-note">
+          100% бесплатно · ИИ-генерация · Актуальные цены
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a href="#" class="logo">
+              <div
+                class="logo-icon"
+                style="
+                  background: transparent;
+                  color: inherit;
+                  padding: 0;
+                  width: auto;
+                  height: auto;
+                "
+              >
+                <i data-lucide="send" style="width: 24px; height: 24px"></i>
+              </div>
+              TraveLM
+            </a>
+            <p>
+              Ваш персональный ИИ-гид. Планируйте, бронируйте и наслаждайтесь
+              путешествиями без стресса.
+            </p>
+          </div>
+
+          <div class="footer-col">
+            <h5>Продукт</h5>
+            <ul>
+              <li><a href="#">Создать маршрут</a></li>
+              <li><a href="#">Мои поездки</a></li>
+              <li><a href="#">Возможности</a></li>
+              <li><a href="#">API для бизнеса</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h5>Поддержка</h5>
+            <ul>
+              <li><a href="#">Центр помощи</a></li>
+              <li><a href="#">Telegram</a></li>
+              <li><a href="#">Политика конфиденциальности</a></li>
+              <li><a href="#">Условия использования</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          &copy; 2026 TraveLM AI. Все права защищены.
+        </div>
+      </div>
+    </footer>
+
+<!-- Theme Switcher Removed -->
+
+    <!-- Init Script -->
+    <script src="script.js"></script>
+  </body>
+</html>

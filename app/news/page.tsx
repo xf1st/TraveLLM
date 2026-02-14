@@ -164,7 +164,7 @@ export default function NewsFeedPage() {
                             <Calendar className="h-3.5 w-3.5" />
                             {post.readTime}
                           </span>
-                          <Button size="sm" className="rounded-full bg-white text-black hover:bg-white/90 font-bold px-5 h-9 shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all group-hover:scale-105">
+                          <Button size="sm" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-5 h-9 shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all group-hover:scale-105">
                             Читать <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -187,7 +187,7 @@ export default function NewsFeedPage() {
                   <Button asChild variant="outline" className="rounded-full border-white/10 hover:bg-white/5 text-zinc-300">
                     <Link href="/profile">Настроить интересы</Link>
                   </Button>
-                  <Button asChild className="rounded-full bg-white text-black hover:bg-white/90 font-bold">
+                  <Button asChild className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
                     <Link href="/plan">Создать маршрут</Link>
                   </Button>
                 </div>

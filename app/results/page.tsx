@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef } from "react"
 import { useSearchParams } from "next/navigation"
+import { useTheme } from "next-themes"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { AppLayout } from "@/components/app-layout"
@@ -15,6 +16,7 @@ import { FadeIn } from "@/components/FadeIn"
 import { RouteSearch } from "@/components/RouteSearch"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
+import { FloatingIcons } from "@/components/FloatingIcons"
 
 // Dynamic import for WebGL component (client-side only)
 const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
@@ -397,12 +399,14 @@ function ResultsContent() {
 
   const hasMore = view === "my" ? hasMoreRoutes : false
 
+  const { resolvedTheme } = useTheme()
+
   return (
     <AppLayout title={title} description={description}>
       <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
         <LightRays
           raysOrigin="top-center"
-          raysColor="#ffffff"
+          raysColor={resolvedTheme === 'light' ? "#6366f1" : "#ffffff"}
           raysSpeed={0.5}
           lightSpread={0.6}
           rayLength={4}
@@ -411,6 +415,7 @@ function ResultsContent() {
           className="custom-rays"
           pulsating={true}
         />
+        <FloatingIcons />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">

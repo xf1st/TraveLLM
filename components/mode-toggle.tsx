@@ -13,20 +13,26 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function ModeToggle() {
-    const { theme } = useTheme()
+    const { setTheme } = useTheme()
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" disabled className="h-9 w-9 rounded-full opacity-70 cursor-not-allowed">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
                     <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Тема зафиксирована: тёмная</span>
+                    <span className="sr-only">Переключить тему</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled>
-                    Тёмная тема ({theme === "dark" ? "активна" : "зафиксирована"})
+                <DropdownMenuItem onClick={() => setTheme("light")}>
+                    Светлая
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")}>
+                    Тёмная
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")}>
+                    Системная
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

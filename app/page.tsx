@@ -14,6 +14,7 @@ import { motion } from "framer-motion"
 import GradientText from "@/components/GradientText"
 import { Footer } from "@/components/footer"
 import { TripImage } from "@/components/TripImage"
+import { FloatingIcons } from "@/components/FloatingIcons"
 import { VideoText } from "@/components/ui/video-text"
 import { MorphingText } from "@/components/ui/morphing-text"
 
@@ -74,8 +75,8 @@ export default function LandingPage() {
       <main className="flex-1 relative flex flex-col justify-center min-h-[90vh]">
         {/* Background Effects */}
         <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
-          {/* Liquid Background */}
-          <div className="absolute inset-0 opacity-30 dark:opacity-20 animate-in fade-in duration-1000">
+          {/* Liquid Background - dark only */}
+          <div className="absolute inset-0 opacity-30 dark:opacity-20 animate-in fade-in duration-1000 hidden dark:block">
             <MeshGradient
               colors={["#000000", "#1e1e1e", "#111111", "#3b0764"]}
               speed={0.1}
@@ -92,6 +93,7 @@ export default function LandingPage() {
             className="custom-rays"
             pulsating={true}
           />
+          <FloatingIcons />
         </div>
 
         <section className="relative z-10 w-full max-w-7xl mx-auto px-4 py-20 flex flex-col items-center justify-center text-center">
@@ -115,7 +117,7 @@ export default function LandingPage() {
 
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground mt-6">
               Откройте свое <br className="hidden md:block" />
-              <span className="text-muted-foreground/80">следующее приключение</span>
+              <span className="bg-gradient-to-r from-sky-500 via-violet-500 to-rose-400 bg-clip-text text-transparent">следующее приключение</span>
             </h1>
           </motion.div>
 
@@ -133,7 +135,7 @@ export default function LandingPage() {
                   scale: { duration: 1 },
                   y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: i * 1.2 }
                 }}
-                className={`absolute ${img.className} rounded-3xl overflow-hidden border border-white/10 shadow-2xl`}
+                className={`absolute ${img.className} rounded-3xl overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl`}
               >
                 <TripImage
                   src={img.src}
@@ -153,11 +155,11 @@ export default function LandingPage() {
             className="w-full max-w-2xl relative z-30 mb-20"
           >
             <Link href="/plan" className="block group">
-              <div className="relative overflow-hidden rounded-full border border-white/10 bg-white/5 backdrop-blur-xl hover:bg-white/10 transition-all duration-300 shadow-2xl shadow-primary/10 group-hover:shadow-primary/20 p-2 pl-6 flex items-center justify-between gap-4">
+              <div className="relative overflow-hidden rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-white/10 transition-all duration-300 shadow-2xl shadow-primary/10 group-hover:shadow-primary/20 p-2 pl-6 flex items-center justify-between gap-4">
 
                 {/* Inputs Visual Mockup */}
                 <div className="flex items-center gap-6 flex-1 overflow-hidden">
-                  <div className="flex items-center gap-3 min-w-0 flex-1 border-r border-white/10 pr-4">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 border-r border-black/10 dark:border-white/10 pr-4">
                     <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex flex-col text-left">
                       <span className="text-sm font-medium text-foreground">Куда?</span>
@@ -165,7 +167,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 hidden sm:flex border-r border-white/10 pr-4">
+                  <div className="flex items-center gap-3 hidden sm:flex border-r border-black/10 dark:border-white/10 pr-4">
                     <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex flex-col text-left">
                       <span className="text-sm font-medium text-foreground">Даты</span>
@@ -201,7 +203,7 @@ export default function LandingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 + (i * 0.1) }}
-                    className="relative h-24 rounded-2xl overflow-hidden border border-white/10 group-hover:border-primary/50 transition-colors"
+                    className="relative h-24 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-primary/50 transition-colors shadow-lg"
                   >
                     {/* Background Image */}
                     <TripImage
@@ -231,10 +233,10 @@ export default function LandingPage() {
         </section>
 
         {/* ===== ABOUT / FEATURES SECTION ===== */}
-        <section className="w-full max-w-7xl mx-auto px-4 py-24 relative z-20 border-t border-white/5">
+        <section className="w-full max-w-7xl mx-auto px-4 py-24 relative z-20 border-t border-black/5 dark:border-white/5">
           <div className="text-center mb-16 max-w-2xl mx-auto">
             <Badge variant="outline" className="mb-4 border-primary/50 text-primary bg-primary/10">О проекте</Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60 dark:from-white dark:to-white/60">
               Путешествия, созданные <br />
             </h2>
             <div className="h-24">
@@ -246,18 +248,18 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-white/5 border-white/10 p-6 hover:border-primary/50 transition-all hover:-translate-y-1 group rounded-[2rem]">
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">🧠</div>
+            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-primary/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-primary/5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">🧠</div>
               <h3 className="text-xl font-bold mb-2">Умное планирование</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">ИИ учитывает ваш стиль путешествия, интересы, бюджет и даже темп прогулок.</p>
             </Card>
-            <Card className="bg-white/5 border-white/10 p-6 hover:border-blue-500/50 transition-all hover:-translate-y-1 group rounded-[2rem]">
-              <div className="h-14 w-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">✈️</div>
+            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-blue-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-blue-500/5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">✈️</div>
               <h3 className="text-xl font-bold mb-2">Реальные данные</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">Актуальные цены на билеты и отели, ссылки на бронирование напрямую.</p>
             </Card>
-            <Card className="bg-white/5 border-white/10 p-6 hover:border-pink-500/50 transition-all hover:-translate-y-1 group rounded-[2rem]">
-              <div className="h-14 w-14 rounded-2xl bg-pink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">📍</div>
+            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-pink-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-rose-500/5">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:bg-pink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">📍</div>
               <h3 className="text-xl font-bold mb-2">Детальные маршруты</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">Почасовой план на каждый день с адресами, временем работы и секретными местами.</p>
             </Card>
@@ -267,7 +269,7 @@ export default function LandingPage() {
         {/* ===== FEATURED ROUTES SECTION ===== */}
         <section className="w-full max-w-7xl mx-auto px-4 py-24 relative z-20">
           <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4 border-emerald-500/50 text-emerald-400 bg-emerald-500/10">Популярные маршруты</Badge>
+            <Badge variant="outline" className="mb-4 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">Популярные маршруты</Badge>
             <h2 className="text-3xl md:text-5xl font-bold mb-4">Вдохновитесь путешествиями</h2>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">Лучшие направления, отобранные нашими экспертами и пользователями</p>
           </div>
@@ -325,7 +327,7 @@ export default function LandingPage() {
 
                     <div className="mb-4 flex flex-wrap gap-1.5 mt-auto">
                       {trip.tags.map((tag) => (
-                        <span key={tag} className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide bg-white/10 text-muted-foreground">
+                        <span key={tag} className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide bg-black/5 dark:bg-white/10 text-muted-foreground">
                           {tag}
                         </span>
                       ))}
@@ -335,7 +337,7 @@ export default function LandingPage() {
                       <span className="text-lg font-black text-foreground dark:text-white tracking-tight">
                         {trip.budget}
                       </span>
-                      <Button asChild className="rounded-full bg-primary text-primary-foreground dark:bg-white dark:text-black hover:bg-primary/90 dark:hover:bg-white/90 font-bold px-6 h-10 shadow-lg transition-all hover:scale-105 group/btn">
+                      <Button asChild className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-6 h-10 shadow-lg transition-all hover:scale-105 group/btn">
                         <Link href={`/trip/${trip.id}`}>
                           Открыть
                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
@@ -350,7 +352,7 @@ export default function LandingPage() {
 
           <div className="text-center mt-12">
             <Link href="/results">
-              <Button variant="outline" className="rounded-full px-8 py-6 text-lg border-white/20 hover:bg-white/10">
+              <Button variant="outline" className="rounded-full px-8 py-6 text-lg border-black/15 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10">
                 Посмотреть все маршруты <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>

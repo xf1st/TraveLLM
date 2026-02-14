@@ -8,8 +8,11 @@ import {
     Search,
     User,
     Settings,
-    LogOut,
-    Moon,
+    LogOut,
+
+    Moon,
+    Sun,
+
     Newspaper,
     ChevronLeft,
     ChevronRight,
@@ -79,7 +82,7 @@ export function AppSidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [tripsOpen, setTripsOpen] = useState(true)
     const [tripMembers, setTripMembers] = useState<any[]>([])
-    const { setTheme } = useTheme()
+    const { setTheme, resolvedTheme } = useTheme()
     const [isAdmin, setIsAdmin] = useState(false)
     const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
 
@@ -373,21 +376,25 @@ export function AppSidebar() {
             <div className="p-3 border-t border-border/50">
                 {user ? (
                     <div className="space-y-2">
-                        {/* Theme is fixed to dark mode */}
+                        {/* Theme Toggle */}
                         {!isCollapsed ? (
-                            <div className="flex items-center justify-center gap-2 p-2 bg-muted/50 rounded-xl text-xs text-muted-foreground">
-                                <Moon className="h-4 w-4" />
-                                <span>Dark theme</span>
-                            </div>
+                            <Button
+                                variant="ghost"
+                                className="w-full flex items-center justify-start gap-3 p-2 h-auto rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                            >
+                                {resolvedTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                                <span>{resolvedTheme === 'dark' ? 'Тёмная тема' : 'Светлая тема'}</span>
+                            </Button>
                         ) : (
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="w-full h-10 rounded-xl cursor-not-allowed opacity-70"
-                                disabled
-                                aria-label="Dark theme"
+                                className="w-full h-10 rounded-xl text-muted-foreground hover:text-foreground"
+                                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                                aria-label="Переключить тему"
                             >
-                                <Moon className="h-4 w-4" />
+                                {resolvedTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                             </Button>
                         )}
 

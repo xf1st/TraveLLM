@@ -53,13 +53,13 @@ export function ViralSpotCard({ name, desc, description, mapLink }: ViralSpotCar
 
     return (
         <>
-            <Card className="p-4 bg-black/40 border border-white/10 backdrop-blur-md hover:border-pink-500/50 transition-colors overflow-hidden">
+            <Card className="p-4 bg-white/60 dark:bg-black/40 border border-black/10 dark:border-white/10 backdrop-blur-md hover:border-pink-500/50 transition-colors overflow-hidden shadow-lg dark:shadow-none">
                 <div className="flex gap-4">
                     {/* Left: Text content */}
                     <div className="flex-1 min-w-0 flex flex-col">
                         <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg leading-tight text-white/90 line-clamp-2 pr-2">{name}</h3>
-                            <Badge variant="outline" className="text-[10px] text-pink-400 border-pink-500/30 whitespace-nowrap shrink-0">Viral</Badge>
+                            <h3 className="font-bold text-lg leading-tight text-foreground dark:text-white/90 line-clamp-2 pr-2">{name}</h3>
+                            <Badge variant="outline" className="text-[10px] text-pink-600 dark:text-pink-400 border-pink-500/30 whitespace-nowrap shrink-0">Viral</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-4 line-clamp-3 flex-1">{displayDesc}</p>
                         <Button
@@ -74,7 +74,7 @@ export function ViralSpotCard({ name, desc, description, mapLink }: ViralSpotCar
                     </div>
 
                     {/* Right: Image thumbnail */}
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-white/10 relative group cursor-pointer"
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border border-black/10 dark:border-white/10 relative group cursor-pointer"
                         onClick={() => imageUrl && setIsPreviewOpen(true)}
                     >
                         {loading ? (

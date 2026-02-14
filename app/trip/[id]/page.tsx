@@ -1012,7 +1012,7 @@ export default function TripDetailPage() {
                   {tStyle && (Array.isArray(tStyle) ? tStyle.length > 0 : tStyle) && (
                     <>
                       {(Array.isArray(tStyle) ? tStyle : [tStyle]).map((style: string, idx: number) => (
-                        <Badge key={idx} className="rounded-full px-3 py-1 text-xs font-bold bg-pink-500/20 text-pink-200 border border-pink-500/20 flex items-center gap-1.5">
+                        <Badge key={idx} className="rounded-full px-3 py-1 text-xs font-bold bg-pink-500/20 text-pink-700 dark:text-pink-200 border border-pink-500/20 flex items-center gap-1.5">
                           <Sparkles className="h-3 w-3" />
                           {translateStyle(style)}
                         </Badge>
@@ -1021,14 +1021,14 @@ export default function TripDetailPage() {
                   )}
 
                   {tPace && (
-                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-sky-500/20 text-sky-200 border border-sky-500/20 flex items-center gap-1.5">
+                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-sky-500/20 text-sky-700 dark:text-sky-200 border border-sky-500/20 flex items-center gap-1.5">
                       <Zap className="h-3 w-3" />
                       {translatePace(tPace)}
                     </Badge>
                   )}
 
                   {tCompanions && (
-                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-200 border border-purple-500/20 flex items-center gap-1.5">
+                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-700 dark:text-purple-200 border border-purple-500/20 flex items-center gap-1.5">
                       <Users className="h-3 w-3" />
                       {translateCompanions(tCompanions)}
                     </Badge>

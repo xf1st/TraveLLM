@@ -92,52 +92,54 @@ export default function Stepper({
         >
             <div
                 className={cn(
-                    "mx-auto w-full max-w-3xl rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl",
+                    "mx-auto w-full max-w-3xl rounded-3xl border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-2xl shadow-2xl",
                     stepCircleContainerClassName
                 )}
             >
                 {/* Step indicators */}
-                <div className={cn("flex w-full items-center px-6 py-8 md:px-16 md:py-10", stepContainerClassName)}>
-                    {stepsArray.map((_, index) => {
-                        const stepNumber = index + 1
-                        const isNotLastStep = index < totalSteps - 1
-                        return (
-                            <React.Fragment key={stepNumber}>
-                                {renderStepIndicator ? (
-                                    renderStepIndicator({
-                                        step: stepNumber,
-                                        currentStep,
-                                        onStepClick: clicked => {
-                                            setDirection(clicked > currentStep ? 1 : -1)
-                                            updateStep(clicked)
-                                        }
-                                    })
-                                ) : (
-                                    <div className="flex flex-col items-center">
-                                        <StepIndicator
-                                            step={stepNumber}
-                                            disableStepIndicators={disableStepIndicators}
-                                            currentStep={currentStep}
-                                            onClickStep={clicked => {
+                <StepIndicatorWrapper>
+                    <div className={cn("flex w-full items-center px-6 py-8 md:px-16 md:py-10", stepContainerClassName)}>
+                        {stepsArray.map((_, index) => {
+                            const stepNumber = index + 1
+                            const isNotLastStep = index < totalSteps - 1
+                            return (
+                                <React.Fragment key={stepNumber}>
+                                    {renderStepIndicator ? (
+                                        renderStepIndicator({
+                                            step: stepNumber,
+                                            currentStep,
+                                            onStepClick: clicked => {
                                                 setDirection(clicked > currentStep ? 1 : -1)
                                                 updateStep(clicked)
-                                            }}
-                                        />
-                                        {showStepLabels && stepLabels[index] && (
-                                            <span className={cn(
-                                                "text-[10px] font-medium mt-1.5 transition-colors text-center max-w-[60px] leading-tight",
-                                                currentStep >= stepNumber ? "text-primary" : "text-muted-foreground/60"
-                                            )}>
-                                                {stepLabels[index]}
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                                {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
-                            </React.Fragment>
-                        )
-                    })}
-                </div>
+                                            }
+                                        })
+                                    ) : (
+                                        <div className="flex flex-col items-center">
+                                            <StepIndicator
+                                                step={stepNumber}
+                                                disableStepIndicators={disableStepIndicators}
+                                                currentStep={currentStep}
+                                                onClickStep={clicked => {
+                                                    setDirection(clicked > currentStep ? 1 : -1)
+                                                    updateStep(clicked)
+                                                }}
+                                            />
+                                            {showStepLabels && stepLabels[index] && (
+                                                <span className={cn(
+                                                    "text-[10px] font-medium mt-1.5 transition-colors text-center max-w-[60px] leading-tight",
+                                                    currentStep >= stepNumber ? "text-primary" : "text-muted-foreground/60"
+                                                )}>
+                                                    {stepLabels[index]}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                    {isNotLastStep && <StepConnector isComplete={currentStep > stepNumber} />}
+                                </React.Fragment>
+                            )
+                        })}
+                    </div>
+                </StepIndicatorWrapper>
 
                 {/* Step content */}
                 <StepContentWrapper
@@ -157,7 +159,7 @@ export default function Stepper({
                                 <button
                                     onClick={handleBack}
                                     type="button"
-                                    className="rounded-xl px-6 py-3 text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 border border-white/20 transition-all duration-300"
+                                    className="rounded-xl px-6 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground dark:text-white/70 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 border border-black/10 dark:border-white/20 transition-all duration-300"
                                     {...backButtonProps}
                                 >
                                     {backButtonText}
@@ -170,8 +172,8 @@ export default function Stepper({
                                 className={cn(
                                     "flex items-center justify-center rounded-xl py-3.5 px-8 font-bold tracking-tight transition-all duration-300 min-w-[140px]",
                                     isLastStep
-                                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/30"
-                                        : "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-500/25",
+                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/30"
+                                        : "bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 text-white shadow-lg shadow-blue-500/25",
                                     isNextDisabled && "opacity-40 cursor-not-allowed"
                                 )}
                                 {...nextButtonProps}
@@ -311,32 +313,47 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators =
                 variants={{
                     inactive: {
                         scale: 1,
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        borderColor: 'rgba(255,255,255,0.1)'
+                        backgroundColor: 'var(--step-inactive-bg, rgba(0,0,0,0.05))',
+                        borderColor: 'var(--step-inactive-border, rgba(0,0,0,0.1))',
+                        color: 'var(--step-inactive-text, #666)'
                     },
                     active: {
                         scale: 1.1,
-                        backgroundColor: 'rgb(139, 92, 246)',
-                        borderColor: 'rgb(139, 92, 246)'
+                        backgroundColor: 'var(--primary)',
+                        borderColor: 'var(--primary)',
+                        color: 'var(--primary-foreground)'
                     },
                     complete: {
                         scale: 1,
-                        backgroundColor: 'rgb(139, 92, 246)',
-                        borderColor: 'rgb(139, 92, 246)'
+                        backgroundColor: 'var(--primary)',
+                        borderColor: 'var(--primary)',
+                        color: 'var(--primary-foreground)'
                     }
                 }}
                 transition={{ duration: 0.3 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full font-bold border-2 shadow-lg"
             >
                 {status === 'complete' ? (
-                    <CheckIcon className="h-5 w-5 text-white" />
+                    <CheckIcon className="h-5 w-5 text-primary-foreground" />
                 ) : status === 'active' ? (
-                    <span className="text-white text-sm">{step}</span>
+                    <span className="text-primary-foreground text-sm">{step}</span>
                 ) : (
                     <span className="text-muted-foreground text-sm">{step}</span>
                 )}
             </motion.div>
         </motion.div>
+    )
+}
+
+function StepIndicatorWrapper({ children }: { children: ReactNode }) {
+    return (
+        <div className="contents" style={{
+            '--step-inactive-bg': 'var(--muted)',
+            '--step-inactive-border': 'var(--border)',
+            '--step-inactive-text': 'var(--muted-foreground)'
+        } as React.CSSProperties}>
+            {children}
+        </div>
     )
 }
 
@@ -347,11 +364,11 @@ interface StepConnectorProps {
 function StepConnector({ isComplete }: StepConnectorProps) {
     const lineVariants: Variants = {
         incomplete: { width: 0, backgroundColor: 'transparent' },
-        complete: { width: '100%', backgroundColor: 'rgb(139, 92, 246)' }
+        complete: { width: '100%', backgroundColor: 'var(--primary)' }
     }
 
     return (
-        <div className="relative mx-2 h-0.5 flex-1 overflow-hidden rounded-full bg-white/10">
+        <div className="relative mx-2 h-0.5 flex-1 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
             <motion.div
                 className="absolute left-0 top-0 h-full rounded-full"
                 variants={lineVariants}

@@ -1,8 +1,10 @@
+// Force HMR update
 "use client"
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -52,8 +54,9 @@ const Aurora = dynamic(() => import('@/components/Aurora'), { ssr: false })
 
 export default function PlanPage() {
   const router = useRouter()
+  const { resolvedTheme } = useTheme()
   const [departureCity, setDepartureCity] = useState("")
-  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("abroad")
+  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("abroad") 
   const [countryCount, setCountryCount] = useState("1")
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
@@ -409,20 +412,32 @@ export default function PlanPage() {
       />
 
       {/* Background */}
+      {/* Background */}
+
       <div className="fixed inset-0 z-0">
-        <Aurora colorStops={["#3A228A", "#181825", "#0E0E14"]} amplitude={1.2} speed={0.4} />
+        <Aurora 
+          colorStops={resolvedTheme === 'light' ? ["#DBEAFE", "#BFDBFE", "#60A5FA"] : ["#3B82F6", "#1D4ED8", "#0F172A"]} 
+          amplitude={1.2} 
+          speed={0.4} 
+        />
         <FloatingIcons />
       </div>
 
-      <div className="container relative z-10 py-8 md:py-12 px-4 min-h-[calc(100vh-80px)] flex flex-col items-center justify-center">
+      <div 
+        className="container relative z-10 py-8 md:py-12 px-4 min-h-[calc(100vh-80px)] flex flex-col items-center justify-center"
+        style={resolvedTheme === 'dark' ? {
+          '--primary': 'oklch(0.65 0.22 255)',
+          '--primary-foreground': 'oklch(1 0 0)'
+        } as React.CSSProperties : undefined}
+      >
         {/* Header */}
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white/30 dark:bg-black/10 backdrop-blur-sm p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-sm">
           <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-3">
-            <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-900 via-indigo-800 to-blue-900 dark:from-sky-400 dark:via-blue-500 dark:to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
               Создайте идеальное путешествие
             </span>
           </h1>
-          <p className="text-muted-foreground text-sm md:text-base max-w-md mx-auto">
+          <p className="text-slate-900 dark:text-muted-foreground text-sm md:text-base max-w-md mx-auto font-medium">
             AI спланирует маршрут под ваши предпочтения за несколько секунд
           </p>
         </div>
@@ -445,8 +460,8 @@ export default function PlanPage() {
           <Step>
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 mb-3 border border-violet-500/10 shadow-lg shadow-violet-500/10">
-                  <Plane className="h-7 w-7 text-violet-400" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 mb-3 border border-blue-500/10 shadow-lg shadow-blue-500/10">
+                  <Plane className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">Откуда и когда?</h2>
                 <p className="text-sm text-muted-foreground mt-1">Укажите город вылета и даты поездки</p>
@@ -454,20 +469,20 @@ export default function PlanPage() {
 
               <div className="space-y-2 max-w-lg mx-auto">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
-                  <MapPin className="h-4 w-4 text-violet-400" />
+                  <MapPin className="h-4 w-4 text-blue-400" />
                   Город отправления
                 </Label>
                 <CityAutocomplete
                   placeholder="Например: Москва"
                   value={departureCity}
                   onValueChange={setDepartureCity}
-                  className="h-12 rounded-xl text-base px-4 bg-white/5 border-white/10 focus:bg-white/10 transition-all hover:bg-white/10"
+                  className="h-12 rounded-xl text-base px-4 bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 focus:bg-white/80 dark:focus:bg-white/10 transition-all hover:bg-white/60 dark:hover:bg-white/10"
                 />
               </div>
 
               <div className="space-y-2 max-w-lg mx-auto">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
-                  <CalendarIcon className="h-4 w-4 text-violet-400" />
+                  <CalendarIcon className="h-4 w-4 text-blue-400" />
                   Даты поездки
                 </Label>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -476,7 +491,7 @@ export default function PlanPage() {
                       id="date"
                       variant={"outline"}
                       className={cn(
-                        "w-full justify-start text-left font-normal h-12 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 hover:text-white transition-all text-base",
+                        "w-full justify-start text-left font-normal h-12 rounded-xl bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:text-foreground dark:hover:text-white transition-all text-base",
                         !date && "text-muted-foreground"
                       )}
                     >
@@ -523,7 +538,7 @@ export default function PlanPage() {
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 mb-3 border border-emerald-500/10 shadow-lg shadow-emerald-500/10">
-                  <Globe className="h-7 w-7 text-emerald-400" />
+                  <Globe className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">Куда едем?</h2>
                 <p className="text-sm text-muted-foreground mt-1">Выберите направление путешествия</p>
@@ -548,8 +563,8 @@ export default function PlanPage() {
                     className={cn(
                       "flex flex-col cursor-pointer items-center justify-center gap-2 rounded-2xl py-4 sm:py-6 text-sm font-medium transition-all duration-300 border",
                       destination === type.id
-                        ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-lg shadow-emerald-500/10"
-                        : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-muted-foreground hover:text-foreground"
+                        ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/10"
+                        : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:border-black/20 dark:hover:border-white/20 text-muted-foreground hover:text-foreground"
                     )}
                   >
                     <RadioGroupItem value={type.id} id={type.id} className="sr-only" />
@@ -565,14 +580,14 @@ export default function PlanPage() {
                     value={customDestination}
                     onValueChange={setCustomDestination}
                     placeholder="Укажите город или страну"
-                    className="h-12 rounded-xl text-base bg-white/5 border-white/10"
+                    className="h-12 rounded-xl text-base bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10"
                     multiselect={true}
                   />
                 </div>
               ) : (
                 <div className="animate-in fade-in slide-in-from-top-2 max-w-lg mx-auto">
                   <Select value={countryCount} onValueChange={setCountryCount}>
-                    <SelectTrigger className="h-12 w-full rounded-xl text-base px-4 bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
+                    <SelectTrigger className="h-12 w-full rounded-xl text-base px-4 bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
                       <SelectValue placeholder={destination === "russia" ? "Сколько городов?" : "Количество стран"} />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
@@ -603,7 +618,7 @@ export default function PlanPage() {
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 mb-3 border border-amber-500/10 shadow-lg shadow-amber-500/10">
-                  <CreditCard className="h-7 w-7 text-amber-400" />
+                  <CreditCard className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">Бюджет и интересы</h2>
                 <p className="text-sm text-muted-foreground mt-1">Выберите уровень комфорта и стиль</p>
@@ -629,8 +644,8 @@ export default function PlanPage() {
                         className={cn(
                           "flex flex-col items-center gap-2 rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-300 border",
                           isSelected
-                            ? "bg-amber-500/10 border-amber-500/50 text-amber-400 shadow-lg shadow-amber-500/10"
-                            : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-muted-foreground hover:text-foreground"
+                            ? "bg-amber-500/10 border-amber-500/50 text-amber-600 dark:text-amber-400 shadow-lg shadow-amber-500/10"
+                            : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:border-black/20 dark:hover:border-white/20 text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <RadioGroupItem value={b.id} id={b.id} className="sr-only" />
@@ -645,7 +660,7 @@ export default function PlanPage() {
                 {/* Custom budget */}
                 <div className={cn(
                   "flex items-center gap-3 p-4 rounded-2xl transition-all",
-                  budget === 'custom' ? "bg-primary/10 border border-primary/30" : "bg-white/5 border border-white/10"
+                  budget === 'custom' ? "bg-primary/10 border border-primary/30" : "bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10"
                 )}>
                   <Sparkles className={cn("h-5 w-5", budget === 'custom' ? 'text-primary' : 'text-muted-foreground')} />
                   <span className="text-sm font-medium">Свой:</span>
@@ -692,7 +707,7 @@ export default function PlanPage() {
                           "flex items-center gap-2 p-3 sm:p-4 rounded-xl cursor-pointer transition-all text-sm",
                           isSelected
                             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                            : "bg-white/5 border border-white/10 hover:bg-white/10"
+                            : "bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10"
                         )}
                       >
                         <Checkbox
@@ -716,7 +731,7 @@ export default function PlanPage() {
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 mb-3 border border-pink-500/10 shadow-lg shadow-pink-500/10">
-                  <Users className="h-7 w-7 text-pink-400" />
+                  <Users className="h-7 w-7 text-pink-600 dark:text-pink-400" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">Последние детали</h2>
                 <p className="text-sm text-muted-foreground mt-1">С кем едете и способ оплаты</p>
@@ -740,8 +755,8 @@ export default function PlanPage() {
                       className={cn(
                         "flex items-center gap-3 p-4 sm:p-5 rounded-2xl cursor-pointer transition-all border",
                         companions === c.id
-                          ? "bg-pink-500/10 border-pink-500/50 text-pink-400 shadow-lg shadow-pink-500/10"
-                          : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 text-muted-foreground hover:text-foreground"
+                          ? "bg-pink-500/10 border-pink-500/50 text-pink-600 dark:text-pink-400 shadow-lg shadow-pink-500/10"
+                          : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:border-black/20 dark:hover:border-white/20 text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <RadioGroupItem value={c.id} id={`comp-${c.id}`} className="sr-only" />
@@ -777,7 +792,7 @@ export default function PlanPage() {
                           "flex flex-col items-center justify-center gap-2 p-3 rounded-xl cursor-pointer transition-all",
                           isSelected
                             ? "bg-primary/10 border-2 border-primary"
-                            : "bg-white/5 border border-white/10 hover:bg-white/10"
+                            : "bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10"
                         )}
                       >
                         <RadioGroupItem value={method.id} id={`pay-${method.id}`} className="sr-only" />

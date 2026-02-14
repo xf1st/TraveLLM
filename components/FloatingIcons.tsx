@@ -40,17 +40,17 @@ const icons = [
 export function FloatingIcons() {
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-            {/* Animated icons */}
+            {/* Animated travel icons */}
             {icons.map((item, index) => {
                 const Icon = item.Icon
                 return (
                     <motion.div
                         key={index}
-                        className="absolute text-white/[0.03]"
+                        className="absolute text-black/[0.06] dark:text-white/[0.03]"
                         style={{ left: item.x, top: item.y }}
                         initial={{ opacity: 0, scale: 0.5 }}
                         animate={{
-                            opacity: [0.03, 0.06, 0.03],
+                            opacity: [0.4, 0.7, 0.4],
                             scale: [1, 1.1, 1],
                             y: [0, -20, 0],
                             rotate: [0, 5, -5, 0]
@@ -67,9 +67,9 @@ export function FloatingIcons() {
                 )
             })}
 
-            {/* Glowing orbs */}
+            {/* Glowing orbs — visible in both themes */}
             <motion.div
-                className="absolute w-[500px] h-[500px] rounded-full bg-violet-500/5 blur-3xl"
+                className="absolute w-[500px] h-[500px] rounded-full bg-sky-400/10 dark:bg-violet-500/5 blur-3xl"
                 style={{ left: '-10%', top: '20%' }}
                 animate={{
                     x: [0, 50, 0],
@@ -83,7 +83,7 @@ export function FloatingIcons() {
                 }}
             />
             <motion.div
-                className="absolute w-[400px] h-[400px] rounded-full bg-indigo-500/5 blur-3xl"
+                className="absolute w-[400px] h-[400px] rounded-full bg-violet-400/10 dark:bg-indigo-500/5 blur-3xl"
                 style={{ right: '-5%', bottom: '10%' }}
                 animate={{
                     x: [0, -40, 0],
@@ -97,7 +97,7 @@ export function FloatingIcons() {
                 }}
             />
             <motion.div
-                className="absolute w-[300px] h-[300px] rounded-full bg-purple-500/5 blur-3xl"
+                className="absolute w-[300px] h-[300px] rounded-full bg-rose-300/10 dark:bg-purple-500/5 blur-3xl"
                 style={{ left: '50%', top: '60%', transform: 'translateX(-50%)' }}
                 animate={{
                     scale: [1, 1.2, 1],
