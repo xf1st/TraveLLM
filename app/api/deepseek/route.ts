@@ -623,7 +623,20 @@ JSON СХЕМА:
   "title": "Название маршрута",
   "description": "Описание",
   "totalBudget": "150 000 ₽",
+  "budgetAnalysis": {
+    "avgAccommodation": "5000 ₽/ночь",
+    "avgFood": "3000 ₽/день",
+    "avgTransport": "15000 ₽",
+    "avgActivities": "5000 ₽/день",
+    "avgMisc": "3000 ₽"
+  },
+  "visaAdvice": "Визовые требования для каждой страны...",
+  "paymentAdvice": "Карты, наличные, обмен валюты...",
+  "safetyInfo": { "rating": 8, "tips": "Советы по безопасности..." },
+  "restrictions": "Ограничения...",
   "countries": [{"name": "Страна", "visaRequired": true}],
+  "tags": ["тег1", "тег2"],
+  "viralSpots": [{"name": "Место", "desc": "Почему популярно", "mapLink": "..."}],
   "flights": [
     { "dayNumber": 1, "direction": "outbound", "departureCode": "MOW", "arrivalCode": "IST", "airline": "Aeroflot", "price": 25000, "duration": "4ч 30м" }
   ],

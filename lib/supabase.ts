@@ -19,8 +19,8 @@ const normalizeSupabaseUrl = (raw: string) => {
   }
 }
 
-const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://travellm.ru')
-const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'NEXT_PUBLIC_SUPABASE_ANON_KEY').trim()
+const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim()
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[supabase] Missing or invalid public config', {
