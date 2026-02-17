@@ -146,7 +146,37 @@ export default function AdminImagesPage() {
   const [count, setCount] = useState(4)
   const [results, setResults] = useState<QueryResult[]>([])
   const [loading, setLoading] = useState(false)
-  const [mode, setMode] = useState<"gallery" | "hero">("gallery")
+  const [mode, setMode] = useState<"gallery" | "hero" | "db">("gallery")
+  const [cacheEntries, setCacheEntries] = useState<any[]>([])
+  const [loadingCache, setLoadingCache] = useState(false)
+
+  const fetchCache = useCallback(async () => {
+    setLoadingCache(true)
+    try {
+      const res = await fetch("/api/admin/image-cache")
+      const data = await res.json()
+      if (data.cache) setCacheEntries(data.cache)
+    } catch (e) {
+      console.error("Failed to fetch cache", e)
+    }
+    setLoadingCache(false)
+  }, [])
+
+  const deleteFromCache = async (q: string) => {
+    if (!confirm("Удалить из кэша?")) return
+    try {
+      const res = await fetch("/api/admin/image-cache", {
+        method: "DELETE",
+        body: JSON.stringify({ query: q }),
+        headers: { "Content-Type": "application/json" }
+      })
+      if (res.ok) {
+        setCacheEntries(prev => prev.filter(e => e.query !== q))
+      }
+    } catch (e) {
+      alert("Ошибка при удалении")
+    }
+  }
 
   const runQuery = useCallback(async (q: string) => {
     if (!q.trim()) return
@@ -171,11 +201,14 @@ export default function AdminImagesPage() {
 
       const ms = Date.now() - start
       setResults(prev => [{ query: q, images, ms, error: fetchError }, ...prev].slice(0, 20))
+      
+      // Refresh cache if we were in DB mode or just want to be synced
+      if (mode === "db") fetchCache()
     } catch (e: any) {
       setResults(prev => [{ query: q, images: [], ms: Date.now() - start, error: e.message }, ...prev].slice(0, 20))
     }
     setLoading(false)
-  }, [count, mode])
+  }, [count, mode, fetchCache])
 
   const runAll = async () => {
     for (const q of PRESET_QUERIES) {
@@ -219,10 +252,71 @@ export default function AdminImagesPage() {
               /api/image
               <span className="ml-1.5 text-[10px] font-normal opacity-70">Unsplash→Wiki</span>
             </button>
+            <button
+              onClick={() => { setMode("db"); fetchCache() }}
+              className={`px-4 py-1.5 rounded-md font-bold transition-colors ${mode === "db" ? "bg-amber-600 text-white" : "text-zinc-400 hover:text-white"}`}
+            >
+              Кэш БД
+              <span className="ml-1.5 text-[10px] font-normal opacity-70">Supabase</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        {mode === "db" ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                📦 Сохраненные изображения ({cacheEntries.length})
+                <button onClick={fetchCache} className="text-xs bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded">Обновить</button>
+              </h2>
+            </div>
+            
+            {loadingCache ? (
+              <div className="py-20 text-center animate-pulse text-zinc-500">Загрузка кэша...</div>
+            ) : cacheEntries.length === 0 ? (
+              <div className="py-20 text-center text-zinc-500">Кэш пуст</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {cacheEntries.map((entry) => (
+                  <div key={entry.query} className="bg-zinc-900 border border-white/10 rounded-xl overflow-hidden flex flex-col">
+                    <div className="p-3 border-b border-white/5 flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs text-zinc-500 truncate mb-0.5">{entry.query.startsWith('gallery:') ? 'Gallery' : 'Hero'}</div>
+                        <div className="font-bold text-sm truncate" title={entry.query}>{entry.query.replace('gallery:', '').split(':')[0]}</div>
+                      </div>
+                      <button 
+                        onClick={() => deleteFromCache(entry.query)}
+                        className="text-zinc-600 hover:text-red-400 p-1"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                    
+                    <div className="flex-1 p-3 flex flex-wrap gap-2 overflow-auto max-h-60">
+                      {entry.image_url && (
+                        <div className="w-full aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0">
+                          <img src={entry.image_url} alt="hero" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      {entry.gallery_urls && entry.gallery_urls.map((u: string, i: number) => (
+                        <div key={i} className="w-[45%] aspect-square rounded overflow-hidden bg-black flex-shrink-0">
+                          <img src={u} alt={`gallery-${i}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="px-3 py-2 bg-black/40 text-[10px] text-zinc-500 flex justify-between">
+                      <span>{new Date(entry.updated_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-3">
+
           <input
             type="text"
             value={query}
@@ -306,7 +400,10 @@ export default function AdminImagesPage() {
             <p>Введи запрос или нажми «Прогнать все пресеты»</p>
           </div>
         )}
-      </div>
-    </div>
+      </>
+    )}
+  </div>
+</div>
   )
 }
+
