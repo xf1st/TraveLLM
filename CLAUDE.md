@@ -8,6 +8,7 @@ TraveLLM — AI-powered travel planning app that generates personalized trip iti
 
 - **Framework**: Next.js 16.1 (App Router), React 19.2, TypeScript 5
 - **Styling**: Tailwind CSS 4 + CSS variables, shadcn/ui (Radix UI + Lucide icons)
+- **Production URL**: `https://travellm.ru`
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions, RLS)
 - **AI**:
   - **DeepSeek** (Primary: `deepseek-chat` / `deepseek-reasoner`)

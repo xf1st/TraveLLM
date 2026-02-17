@@ -19,14 +19,7 @@ try {
     console.warn('Could not read .env file, secret might be missing.');
 }
 
-const baseUrl = process.argv[2];
-
-
-if (!baseUrl) {
-    console.error('❌ Please provide your public URL (e.g., https://my-app.vercel.app)');
-    console.log('Usage: node scripts/set-webhooks.js <YOUR_PUBLIC_URL>');
-    process.exit(1);
-}
+const baseUrl = process.argv[2] || 'https://travellm.ru';
 
 // Ensure no trailing slash
 const cleanUrl = baseUrl.replace(/\/$/, '');
