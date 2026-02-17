@@ -19,6 +19,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(false)
     const [retryCount, setRetryCount] = useState(0)
+    const [isProxied, setIsProxied] = useState(false)
 
     // Check if initial src is invalid (blocked domain or empty)
     useEffect(() => {
@@ -34,6 +35,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             setIsLoading(false);
             setError(false);
             setRetryCount(0);
+            setIsProxied(false);
         }
     }, [src, query, alt]);
 
@@ -44,7 +46,12 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             const res = await fetch(`/api/image?query=${encodeURIComponent(buildImageQuery(query, alt))}`);
             const data = await res.json();
             if (data.url && !isProbablyBlockedImage(data.url)) {
-                setCurrentSrc(data.url);
+                // If we were already proxying due to errors, keep proxying the new image
+                if (isProxied) {
+                    setCurrentSrc(`/api/proxy-image?url=${encodeURIComponent(data.url)}`);
+                } else {
+                    setCurrentSrc(data.url);
+                }
             } else {
                 setCurrentSrc(DEFAULT_TRAVEL_IMAGE);
                 setError(false);
@@ -58,11 +65,22 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
     };
 
     const handleError = () => {
-        if (currentSrc !== DEFAULT_TRAVEL_IMAGE && retryCount < 1) {
+        // 1. First error? Try proxying the SAME image (bypass client blocks)
+        if (!isProxied && currentSrc && !currentSrc.startsWith("/")) {
+            setIsProxied(true);
+            setCurrentSrc(`/api/proxy-image?url=${encodeURIComponent(currentSrc)}`);
+            setError(false); // Retry
+            return;
+        }
+
+        // 2. Proxy failed or already proxied? Try fetching a NEW image
+        if (retryCount < 2) {
             setRetryCount((v) => v + 1)
             fetchNewImage()
             return
         }
+
+        // 3. Give up
         setCurrentSrc(DEFAULT_TRAVEL_IMAGE)
         setError(true)
         setIsLoading(false)
