@@ -21,9 +21,13 @@ function detectProvider(url: string): { label: string; color: string } {
     return { label: "local", color: "bg-slate-500" }
 }
 
+// Module-level client cache: survives re-renders and component remounts within a session
+const galleryClientCache = new Map<string, string[]>()
+
 export function PlaceGallery({ query, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
-    const [images, setImages] = useState<string[]>([])
-    const [loading, setLoading] = useState(true)
+    const cacheKey = `${query}:${count}`
+    const [images, setImages] = useState<string[]>(() => galleryClientCache.get(cacheKey) ?? [])
+    const [loading, setLoading] = useState(() => !galleryClientCache.has(cacheKey))
     const [activeIndex, setActiveIndex] = useState(0)
     const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
@@ -37,12 +41,16 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
     }, [isPreviewOpen])
 
     useEffect(() => {
+        const key = `${query}:${count}`
+        if (galleryClientCache.has(key)) return // already cached, skip fetch
+
         const fetchImages = async () => {
             setLoading(true)
             try {
                 const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}`)
                 const data = await res.json()
                 if (data.images && data.images.length > 0) {
+                    galleryClientCache.set(key, data.images)
                     setImages(data.images)
                 }
             } catch (e) {

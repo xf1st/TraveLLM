@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon } from "lucide-react"
+import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -87,6 +87,43 @@ const COUNTRY_FLAG_BY_KEY: Record<string, string> = {
   "сша": "US",
 }
 
+const TRAVEL_DOCUMENTS_PROFILE = [
+  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪" },
+  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘" },
+  { value: "schengen", label: "Шенгенская виза", icon: "🇪🇺" },
+  { value: "us_visa", label: "Виза США", icon: "🇺🇸" },
+  { value: "uk_visa", label: "Виза Великобритании", icon: "🇬🇧" },
+  { value: "canada_visa", label: "Виза Канады (TRV)", icon: "🇨🇦" },
+  { value: "australia_visa", label: "Виза Австралии (Sub 600)", icon: "🇦🇺" },
+  { value: "japan_visa", label: "Виза Японии", icon: "🇯🇵" },
+  { value: "korea_visa", label: "Виза Кореи (K-ETA)", icon: "🇰🇷" },
+  { value: "india_evisa", label: "E-виза Индии", icon: "🇮🇳" },
+  { value: "thailand_evisa", label: "Таиланд (Штамп/Виза)", icon: "🇹🇭" },
+  { value: "vietnam_evisa", label: "E-виза Вьетнама", icon: "🇻🇳" },
+  { value: "china_visa", label: "Виза Китая", icon: "🇨🇳" },
+  { value: "uae_visa", label: "ОАЭ (Виза по прибытии)", icon: "🇦🇪" },
+  { value: "saudi_visa", label: "Виза Саудовской Аравии", icon: "🇸🇦" },
+  { value: "israel_visa", label: "Израиль (ETA-IL)", icon: "🇮🇱" },
+  { value: "albania_evisa", label: "E-виза Албании", icon: "🇦🇱" },
+]
+
+function docLabel(d: string): string {
+  const labels: Record<string, string> = {
+    ru_passport: "🪪 Паспорт РФ", foreign_passport: "📘 Загранпаспорт РФ",
+    schengen: "🇪🇺 Шенген", us_visa: "🇺🇸 Виза США", uk_visa: "🇬🇧 Виза UK",
+    canada_visa: "🇨🇦 Виза Канады (TRV)", australia_visa: "🇦🇺 Виза Австралии",
+    japan_visa: "🇯🇵 Виза Японии", korea_visa: "🇰🇷 Виза Кореи",
+    india_evisa: "🇮🇳 E-виза Индии", thailand_evisa: "🇹🇭 Таиланд (Штамп/Виза)",
+    vietnam_evisa: "🇻🇳 E-виза Вьетнама", china_visa: "🇨🇳 Виза Китая",
+    uae_visa: "🇦🇪 ОАЭ (По прибытии)", saudi_visa: "🇸🇦 Виза Саудовской Аравии",
+    israel_visa: "🇮🇱 Израиль (ETA-IL)", albania_evisa: "🇦🇱 E-виза Албании",
+  }
+  if (d.startsWith('passport:')) return `🌍 Паспорт ${d.split(':')[1]}`
+  if (d.startsWith('id:')) return `🆔 ID ${d.split(':')[1]}`
+  if (d.startsWith('visa:')) return `✈️ Виза ${d.split(':')[1]}`
+  return labels[d] || d
+}
+
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ")
 const toKey = (value: string) => normalizeName(value).toLowerCase()
 
@@ -131,6 +168,9 @@ function ProfileContent() {
     full_name: "",
     citizenship: "",
     nationality: "",
+    gender: "",
+    age: "",
+    documents: [] as string[],
     pace: "moderate",
     religion: "none",
     languages: [] as string[],
@@ -234,6 +274,9 @@ function ProfileContent() {
             full_name: data.full_name || "",
             citizenship: data.citizenship || "",
             nationality: data.nationality || "",
+            gender: prefs.gender || "",
+            age: prefs.age ? String(prefs.age) : "",
+            documents: prefs.documents || [],
             pace: prefs.pace || "moderate",
             religion: prefs.religion || "none",
             languages: data.languages || [],
@@ -404,6 +447,9 @@ function ProfileContent() {
 
     const updatedPreferences = {
       ...(profile.preferences || {}),
+      gender: editForm.gender,
+      age: editForm.age ? Number(editForm.age) : null,
+      documents: editForm.documents,
       pace: editForm.pace,
       religion: editForm.religion,
       visitedCountries: editForm.visitedCountries,
@@ -627,6 +673,101 @@ function ProfileContent() {
                 <div className="col-span-2 sm:col-span-1 space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /> Национальность</label>
                   <Input value={editForm.nationality} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} className="bg-background/50 border-input" />
+                </div>
+
+                {/* Gender */}
+                <div className="col-span-2 sm:col-span-1 space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /> Пол</label>
+                  <Select value={editForm.gender || "unspecified"} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
+                    <SelectTrigger className="bg-background/50 border-input"><SelectValue placeholder="Выберите..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unspecified">Не указываю</SelectItem>
+                      <SelectItem value="male">👨 Мужской</SelectItem>
+                      <SelectItem value="female">👩 Женский</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Age */}
+                <div className="col-span-2 sm:col-span-1 space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><User className="h-4 w-4" /> Возраст</label>
+                  <Input
+                    type="number"
+                    min={10}
+                    max={100}
+                    placeholder="Например: 28"
+                    value={editForm.age}
+                    onChange={(e) => setEditForm({ ...editForm, age: e.target.value })}
+                    className="bg-background/50 border-input"
+                  />
+                </div>
+
+                {/* Travel Documents */}
+                <div className="col-span-2 space-y-3">
+                  <label className="text-sm font-medium flex items-center gap-2 text-muted-foreground"><FileText className="h-4 w-4" /> Документы для путешествий</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {TRAVEL_DOCUMENTS_PROFILE.map((doc) => {
+                      const isChecked = editForm.documents.includes(doc.value)
+                      return (
+                        <button
+                          key={doc.value}
+                          type="button"
+                          onClick={() => {
+                            const newDocs = isChecked
+                              ? editForm.documents.filter(d => d !== doc.value)
+                              : [...editForm.documents, doc.value]
+                            setEditForm({ ...editForm, documents: newDocs })
+                          }}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all text-left ${
+                            isChecked
+                              ? "border-primary/60 bg-primary/8 text-foreground"
+                              : "border-border bg-card/50 text-muted-foreground hover:bg-accent/50"
+                          }`}
+                        >
+                          <span className="text-base shrink-0">{doc.icon}</span>
+                          <span className="font-medium text-xs leading-tight">{doc.label}</span>
+                          {isChecked && <Check className="h-3 w-3 ml-auto text-primary shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {/* Custom document inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                    {[
+                      { prefix: "passport", placeholder: "🌍 Паспорт другой страны (Enter)" },
+                      { prefix: "id", placeholder: "🆔 ID-карта страны (Enter)" },
+                      { prefix: "visa", placeholder: "✈️ Другая виза (Enter)" },
+                    ].map(({ prefix, placeholder }) => (
+                      <input
+                        key={prefix}
+                        className="bg-background/50 border border-input rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
+                        placeholder={placeholder}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const val = e.currentTarget.value.trim()
+                            if (val) {
+                              const key = `${prefix}:${val}`
+                              if (!editForm.documents.includes(key)) {
+                                setEditForm({ ...editForm, documents: [...editForm.documents, key] })
+                              }
+                              e.currentTarget.value = ''
+                            }
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {/* Show custom entries */}
+                  {editForm.documents.filter(d => d.includes(':')).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {editForm.documents.filter(d => d.includes(':')).map(d => (
+                        <Badge key={d} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground rounded-full" onClick={() => setEditForm({ ...editForm, documents: editForm.documents.filter(x => x !== d) })}>
+                          {docLabel(d)} ×
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="col-span-2 sm:col-span-1 space-y-2">
@@ -1016,6 +1157,29 @@ function ProfileContent() {
                             </Card>
                           </motion.div>
                         </div>
+
+                        {/* Documents Card */}
+                        {(() => {
+                          const docs: string[] = profile?.preferences?.documents || []
+                          if (docs.length === 0) return null
+                          return (
+                            <motion.div whileHover={{ y: -3 }} transition={{ type: "spring", stiffness: 300 }}>
+                              <Card className="p-6 trip-glass border-white/20 space-y-4">
+                                <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
+                                  <FileText className="h-4 w-4 text-blue-400" />
+                                  Документы для путешествий
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {docs.map((d: string) => (
+                                    <Badge key={d} variant="outline" className="rounded-full px-3 py-1 text-xs border-blue-500/20 bg-blue-500/10 text-blue-300">
+                                      {docLabel(d)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </Card>
+                            </motion.div>
+                          )
+                        })()}
                       </div>
                     )}
 

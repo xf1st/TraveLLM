@@ -293,7 +293,8 @@ export async function POST(req: Request) {
             requireRussianGuide,
             customDestination,
             customBudget,
-            travelers
+            travelers,
+            filterByDocuments
         } = body
 
         // Apply profile preferences if fields are missing
@@ -493,10 +494,90 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 
 ПЕРСОНАЛИЗАЦИЯ:
 - Гражданство: ${preferences?.citizenship || 'Не указано'}
+- Пол: ${preferences?.gender === 'male' ? 'Мужской' : preferences?.gender === 'female' ? 'Женский' : 'Не указан'}
+- Возраст: ${preferences?.age ? `${preferences.age} лет` : 'Не указан'}
+- Документы: ${(() => {
+  const DOC_LABELS: Record<string, string> = {
+    ru_passport: 'Паспорт РФ (внутренний)', foreign_passport: 'Загранпаспорт РФ',
+    schengen: 'Шенгенская виза (29 стран)', us_visa: 'Виза США', uk_visa: 'Виза Великобритании',
+    canada_visa: 'Виза Канады (TRV)', australia_visa: 'Виза Австралии (Sub 600)', japan_visa: 'Виза Японии',
+    korea_visa: 'Виза Южной Кореи (K-ETA)', india_evisa: 'E-виза Индии', thailand_evisa: 'Таиланд (Безвизовый штамп/Виза)',
+    vietnam_evisa: 'E-виза Вьетнама', china_visa: 'Виза Китая', saudi_visa: 'Виза Саудовской Аравии',
+    israel_visa: 'Израиль (ETA-IL)', albania_evisa: 'E-виза Албании', uae_visa: 'Виза ОАЭ (По прибытии)',
+  }
+  const docs = toArray(preferences?.documents)
+  return docs.map((d: string) => {
+    if (d.startsWith('passport:')) return `Паспорт ${d.split(':')[1]}`
+    if (d.startsWith('id:')) return `ID-карта ${d.split(':')[1]}`
+    if (d.startsWith('visa:')) return `Виза ${d.split(':')[1]}`
+    return DOC_LABELS[d] || d
+  }).join(', ') || 'Не указаны'
+})()}
 - Языки: ${toArray(preferences?.languages).join(', ') || 'Не указано'}
 - Темп: ${preferences?.pace || 'moderate'} (slow = поздние подъёмы, много свободного времени; fast = насыщенный день)
 - Диета: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'Без ограничений'}, доп: ${preferences?.dietaryCustom || 'Нет'}
 - Интересы: ${toArray(preferences?.interestsDetailed).join(', ') || 'Общие'}, доп: ${preferences?.interestsCustom || 'Нет'}
+${filterByDocuments && toArray(preferences?.documents).length > 0 ? (() => {
+  const docs = toArray(preferences?.documents)
+  const has = (key: string) => docs.includes(key) || docs.some((d: string) => d.startsWith(key + ':'))
+  const hasForeign = has('foreign_passport')
+  const hasSchengen = has('schengen')
+  const hasUs = has('us_visa')
+  const hasUk = has('uk_visa')
+  const hasCanada = has('canada_visa')
+  const hasAustralia = has('australia_visa')
+  const hasJapan = has('japan_visa')
+  const hasKorea = has('korea_visa')
+  const hasIndia = has('india_evisa')
+  const hasAlbania = has('albania_evisa') || docs.some((d: string) => d.toLowerCase().includes('albani'))
+  const hasSaudi = has('saudi_visa')
+
+  const allowed: string[] = []
+  const forbidden: string[] = []
+
+  if (hasForeign) {
+    allowed.push('Беларусь', 'Казахстан', 'Армения', 'Азербайджан', 'Узбекистан', 'Таджикистан', 'Кыргызстан', 'Туркменистан', 'Молдова', 'Грузия',
+      'Сербия', 'Черногория', 'Северная Македония', 'Босния и Герцеговина',
+      'Турция', 'Таиланд', 'Марокко', 'Тунис', 'Израиль', 'Иордания', 'ОАЭ', 'Катар', 'Бахрейн', 'Мальдивы',
+      'Куба', 'Мексика', 'Бразилия', 'Аргентина', 'Колумбия', 'Эквадор', 'Перу', 'Чили', 'Доминиканская Республика',
+      'Индонезия', 'Малайзия', 'Камбоджа', 'Лаос', 'Монголия', 'Вьетнам', 'Китай', 'Филиппины',
+      'Египет', 'ЮАР', 'Танзания', 'Кения', 'Эфиопия', 'Намибия', 'Ботсвана', 'Зимбабве')
+    if (!hasAlbania) forbidden.push('Албания (нужна e-виза, которой НЕТ у пользователя)')
+    forbidden.push('Косово (нужна виза РФ граждан)')
+    if (!hasSchengen) forbidden.push('Германия, Франция, Испания, Италия, Греция, Австрия, Чехия, Венгрия, Польша, Нидерланды и все страны Шенгена')
+    if (!hasUs) forbidden.push('США, Канада (без соответствующей визы)')
+    if (!hasUk) forbidden.push('Великобритания')
+    if (!hasJapan) forbidden.push('Япония')
+    if (!hasKorea) forbidden.push('Южная Корея')
+    if (!hasAustralia) forbidden.push('Австралия, Новая Зеландия')
+    if (!hasIndia) forbidden.push('Индия (нужна e-виза)')
+    if (!hasSaudi) forbidden.push('Саудовская Аравия (нужна e-виза)')
+  }
+  if (hasSchengen) allowed.push('Германия', 'Франция', 'Испания', 'Италия', 'Греция', 'Австрия', 'Чехия', 'Венгрия', 'Польша', 'Нидерланды', 'Португалия', 'Бельгия', 'Швейцария', 'Норвегия', 'Швеция', 'Финляндия', 'Дания', 'Исландия', 'Мальта', 'Хорватия', 'Словения', 'Словакия', 'Латвия', 'Литва', 'Эстония', 'Люксембург', 'Румыния', 'Болгария')
+  if (hasAlbania) allowed.push('Албания')
+  if (hasUs) allowed.push('США')
+  if (hasCanada) allowed.push('Канада')
+  if (hasUk) allowed.push('Великобритания')
+  if (hasJapan) allowed.push('Япония')
+  if (hasKorea) allowed.push('Южная Корея')
+  if (hasAustralia) allowed.push('Австралия', 'Новая Зеландия')
+  if (hasIndia) allowed.push('Индия')
+  if (hasSaudi) allowed.push('Саудовская Аравия')
+
+  // Add countries from custom documents (passport:X, id:X, visa:X)
+  docs.forEach((d: string) => {
+    if (d.startsWith('passport:') || d.startsWith('id:') || d.startsWith('visa:')) {
+      const country = d.split(':')[1]
+      if (country) allowed.push(country)
+    }
+  })
+
+  return `
+🛂 СТРОГИЙ ФИЛЬТР ПО ДОКУМЕНТАМ АКТИВЕН — нарушение = критическая ошибка!
+Доступные страны (разрешено предлагать): ${[...new Set(allowed)].join(', ')}
+ЗАПРЕЩЕНО предлагать: ${forbidden.join('; ')}
+ПРАВИЛО: Если страна не в списке "Доступные" — не предлагай её, даже если кажется что виза не нужна. При любом сомнении — НЕ предлагай эту страну.`
+})() : ''}
 - Способы оплаты: ${toArray(paymentMethods).join(', ') || 'Не указано'}
 - Русскоговорящий гид: ${requireRussianGuide ? 'ДА' : 'НЕТ'}
 - Посещённые страны: ${toArray(preferences?.visitedCountries).join(', ') || 'Нет'} (предлагай НОВЫЕ места, избегай повторов)

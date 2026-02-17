@@ -266,38 +266,35 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
         const addUrls = (urls: string[]) => {
             for (const u of urls) {
                 if (finalUrls.length >= count) break
-                if (!seen.has(u)) { seen.add(u); finalUrls.push(u) }
+                if (u && !seen.has(u)) { seen.add(u); finalUrls.push(u) }
             }
         }
 
-        // 1. Unsplash (not blocked in Russia, good for landscapes/destinations)
-        const unsplashUrls = await searchUnsplash(query, count)
+        // 1. Unsplash + Pexels in parallel (fastest path, covers most queries)
+        const latinQuery = extractLatinWords(query)
+        const shortQuery = shortenQuery(query)
+        const pexelsFallbackQuery = latinQuery || shortQuery || query
+
+        const [unsplashUrls, pexelsUrls] = await Promise.all([
+            searchUnsplash(query, count),
+            searchPexels(query, count),
+        ])
         addUrls(unsplashUrls)
+        addUrls(pexelsUrls)
 
-        // 2. Pexels with original query (fills gaps; client uses proxy in Russia)
-        if (finalUrls.length < count) {
-            const pexelsUrls = await searchPexels(query, count - finalUrls.length)
-            addUrls(pexelsUrls)
+        // 2. Pexels retry with simplified query (only if still short AND query had Cyrillic)
+        if (finalUrls.length < count && pexelsFallbackQuery !== query) {
+            const retryUrls = await searchPexels(pexelsFallbackQuery, count - finalUrls.length)
+            addUrls(retryUrls)
         }
 
-        // 3. Pexels retry with Latin-only or shortened query (helps with Cyrillic)
-        if (finalUrls.length < count) {
-            const latinQuery = extractLatinWords(query)
-            const shortQuery = shortenQuery(query)
-            const retryQuery = latinQuery || shortQuery
-            if (retryQuery && retryQuery !== query) {
-                const retryUrls = await searchPexels(retryQuery, count - finalUrls.length)
-                addUrls(retryUrls)
-            }
-        }
-
-        // 4. Wikimedia supplement
+        // 3. Wikimedia supplement — only if genuinely short on images
         if (finalUrls.length < count) {
             const wikiUrls = await searchWikimediaGallery(query, count - finalUrls.length)
             addUrls(wikiUrls)
         }
 
-        // 5. Local fallback
+        // 4. Local fallback
         if (finalUrls.length === 0) {
             finalUrls.push("/tbilisi-old-town.jpg")
         }

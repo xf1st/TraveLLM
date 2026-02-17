@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 const STEP_LABELS = [
   "Частота",
+  "О себе",
   "Страны",
   "Регионы",
   "Питание",
@@ -27,8 +28,32 @@ const STEP_LABELS = [
   "Темп",
   "Интересы",
   "Гражданство",
+  "Документы",
   "Языки",
   "Готово",
+]
+
+const DOC_PASSPORTS = [
+  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪", desc: "Внутренний" },
+  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘", desc: "Для выезда за рубеж" },
+]
+
+const DOC_VISAS = [
+  { value: "schengen", label: "Шенгенская виза", icon: "🇪🇺", desc: "29 стран Европы" },
+  { value: "us_visa", label: "Виза США", icon: "🇺🇸", desc: "B1/B2 (бизнес/туризм)" },
+  { value: "uk_visa", label: "Виза Великобритании", icon: "🇬🇧", desc: "Standard Visitor" },
+  { value: "canada_visa", label: "Виза Канады", icon: "🇨🇦", desc: "Виза посетителя (TRV)" },
+  { value: "australia_visa", label: "Виза Австралии", icon: "🇦🇺", desc: "Виза (Subclass 600)" },
+  { value: "japan_visa", label: "Виза Японии", icon: "🇯🇵", desc: "Туристическая" },
+  { value: "korea_visa", label: "Виза Южной Кореи", icon: "🇰🇷", desc: "K-ETA (разрешение)" },
+  { value: "india_evisa", label: "E-виза Индии", icon: "🇮🇳", desc: "e-Tourist Visa" },
+  { value: "thailand_evisa", label: "Таиланд (Штамп/Виза)", icon: "🇹🇭", desc: "Безвиз (60 дн) или e-Visa" },
+  { value: "vietnam_evisa", label: "E-виза Вьетнама", icon: "🇻🇳", desc: "90 дней (e-Visa)" },
+  { value: "china_visa", label: "Виза Китая", icon: "🇨🇳", desc: "Туристическая L-виза" },
+  { value: "uae_visa", label: "Виза ОАЭ", icon: "🇦🇪", desc: "Виза по прибытии" },
+  { value: "saudi_visa", label: "Виза Саудовской Аравии", icon: "🇸🇦", desc: "e-Visa" },
+  { value: "israel_visa", label: "Виза Израиля", icon: "🇮🇱", desc: "ETA-IL / Туристическая" },
+  { value: "albania_evisa", label: "E-виза Албании", icon: "🇦🇱", desc: "Для граждан РФ" },
 ]
 
 export default function OnboardingPage() {
@@ -36,6 +61,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const [preferences, setPreferences] = useState({
     travelFrequency: "",
+    gender: "",
+    age: "",
     visitedCountries: "",
     preferredDestinations: [] as string[],
     dietaryRestrictions: [] as string[],
@@ -49,10 +76,11 @@ export default function OnboardingPage() {
     interestsDetailed: [] as string[],
     citizenship: "",
     nationality: "",
+    documents: [] as string[],
     languages: [] as string[],
   })
 
-  const totalSteps = 11
+  const totalSteps = 13
 
   const handleNext = async () => {
     if (step < totalSteps) {
@@ -91,7 +119,7 @@ export default function OnboardingPage() {
   }
 
   const optionClass =
-    "flex cursor-pointer items-center gap-4 rounded-2xl border border-border bg-card/50 p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary/60 has-[:checked]:bg-primary/8"
+    "flex cursor-pointer items-center gap-4 rounded-2xl border border-border bg-card/50 p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30 active:scale-[0.98] active:bg-primary/10 has-[:checked]:border-primary has-[:checked]:bg-primary/15 has-[:checked]:shadow-[0_0_0_1px_hsl(var(--primary))]"
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -183,8 +211,53 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 2 — Visited countries */}
+              {/* Step 2 — О себе */}
               {step === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">О вас</h2>
+                    <p className="text-muted-foreground mt-2">Поможет подобрать маршрут под ваши потребности.</p>
+                  </div>
+                  <div className="space-y-5">
+                    <div className="space-y-3">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пол</Label>
+                      <RadioGroup
+                        value={preferences.gender}
+                        onValueChange={(v) => setPreferences({ ...preferences, gender: v })}
+                        className="grid grid-cols-3 gap-3"
+                      >
+                        {[
+                          { value: "male", label: "Мужской", icon: "👨" },
+                          { value: "female", label: "Женский", icon: "👩" },
+                          { value: "unspecified", label: "Не указываю", icon: "🤷" },
+                        ].map((o) => (
+                          <Label key={o.value} htmlFor={`gender-${o.value}`} className={cn(optionClass, "relative justify-center flex-col text-center py-4")}>
+                            <RadioGroupItem value={o.value} id={`gender-${o.value}`} className="border-border text-primary absolute right-3 top-3" />
+                            <span className="text-2xl mb-1">{o.icon}</span>
+                            <span className="font-medium text-foreground text-sm">{o.label}</span>
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                    </div>
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <Label htmlFor="age-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Возраст</Label>
+                      <Input
+                        id="age-input"
+                        type="number"
+                        min={10}
+                        max={100}
+                        placeholder="Например: 28"
+                        value={preferences.age}
+                        onChange={(e) => setPreferences({ ...preferences, age: e.target.value })}
+                        className="h-12 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3 — Visited countries */}
+              {step === 3 && (
                 <div className="space-y-6">
                   <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                     <Globe className="w-5 h-5" />
@@ -204,8 +277,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 3 — Preferred destinations */}
-              {step === 3 && (
+              {/* Step 4 — Preferred destinations */}
+              {step === 4 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">География планов</h2>
@@ -238,8 +311,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 4 — Special preferences */}
-              {step === 4 && (
+              {/* Step 5 — Special preferences */}
+              {step === 5 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">Особые предпочтения</h2>
@@ -293,8 +366,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 5 — Transport */}
-              {step === 5 && (
+              {/* Step 6 — Transport */}
+              {step === 6 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">Транспорт</h2>
@@ -326,8 +399,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 6 — Accommodation */}
-              {step === 6 && (
+              {/* Step 7 — Accommodation */}
+              {step === 7 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">Жильё</h2>
@@ -357,8 +430,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 7 — Pace */}
-              {step === 7 && (
+              {/* Step 8 — Pace */}
+              {step === 8 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">Темп путешествия</h2>
@@ -391,8 +464,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 8 — Interests */}
-              {step === 8 && (
+              {/* Step 9 — Interests */}
+              {step === 9 && (
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl sm:text-3xl font-black text-foreground">Интересы</h2>
@@ -426,8 +499,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 9 — Citizenship */}
-              {step === 9 && (
+              {/* Step 10 — Citizenship */}
+              {step === 10 && (
                 <div className="space-y-6">
                   <div className="h-11 w-11 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                     <Globe className="h-5 w-5" />
@@ -461,8 +534,144 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 10 — Languages */}
-              {step === 10 && (
+              {/* Step 11 — Documents */}
+              {step === 11 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Ваши документы</h2>
+                    <p className="text-muted-foreground mt-2">Какие паспорта и визы у вас есть? AI будет предлагать только доступные для вас страны.</p>
+                  </div>
+
+                  {/* Passports */}
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Паспорта и удостоверения</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {DOC_PASSPORTS.map((doc) => (
+                        <Label key={doc.value} htmlFor={`doc-${doc.value}`} className={cn(optionClass, "relative flex-col text-center py-4 justify-center")}>
+                          <Checkbox
+                            id={`doc-${doc.value}`}
+                            checked={preferences.documents.includes(doc.value)}
+                            onCheckedChange={() => toggleArray("documents", doc.value)}
+                            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary absolute right-3 top-3"
+                          />
+                          <span className="text-2xl mb-1">{doc.icon}</span>
+                          <span className="font-semibold text-foreground text-sm block">{doc.label}</span>
+                          <span className="text-xs text-muted-foreground">{doc.desc}</span>
+                        </Label>
+                      ))}
+                    </div>
+                    {/* Other country passport */}
+                    <div className="flex gap-2 items-center">
+                      <span className="text-xl shrink-0">🌍</span>
+                      <Input
+                        placeholder="Паспорт другой страны (напр: Израиль)"
+                        className="h-10 rounded-xl text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const val = e.currentTarget.value.trim()
+                            if (val) {
+                              const key = `passport:${val}`
+                              if (!preferences.documents.includes(key)) {
+                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
+                              }
+                              e.currentTarget.value = ''
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Other country ID */}
+                    <div className="flex gap-2 items-center">
+                      <span className="text-xl shrink-0">🆔</span>
+                      <Input
+                        placeholder="ID-карта другой страны (напр: Германия)"
+                        className="h-10 rounded-xl text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const val = e.currentTarget.value.trim()
+                            if (val) {
+                              const key = `id:${val}`
+                              if (!preferences.documents.includes(key)) {
+                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
+                              }
+                              e.currentTarget.value = ''
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Show added custom passport/IDs */}
+                    {preferences.documents.filter(d => d.startsWith('passport:') || d.startsWith('id:')).length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {preferences.documents.filter(d => d.startsWith('passport:') || d.startsWith('id:')).map(d => (
+                          <Badge key={d} variant="secondary" className="cursor-pointer rounded-full" onClick={() => setPreferences({ ...preferences, documents: preferences.documents.filter(x => x !== d) })}>
+                            {d.startsWith('passport:') ? `🌍 Паспорт ${d.split(':')[1]}` : `🆔 ID ${d.split(':')[1]}`} ×
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Visas */}
+                  <div className="space-y-3 pt-2 border-t border-border">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Визы</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {DOC_VISAS.map((doc) => {
+                        const checked = preferences.documents.includes(doc.value)
+                        return (
+                          <button
+                            key={doc.value}
+                            type="button"
+                            onClick={() => toggleArray("documents", doc.value)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-all text-left duration-200 active:scale-[0.98] ${checked ? 'border-primary bg-primary/15 shadow-[0_0_0_1px_hsl(var(--primary))]' : 'border-border bg-card/50 hover:bg-accent/50 hover:border-primary/30 active:bg-primary/10'}`}
+                          >
+                            <span className="text-base shrink-0">{doc.icon}</span>
+                            <div className="min-w-0">
+                              <span className="font-medium text-foreground text-xs block truncate">{doc.label}</span>
+                              <span className="text-[10px] text-muted-foreground">{doc.desc}</span>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {/* Custom visa input */}
+                    <div className="flex gap-2 items-center">
+                      <span className="text-xl shrink-0">✈️</span>
+                      <Input
+                        placeholder="Другая виза → Enter (напр: Албания)"
+                        className="h-10 rounded-xl text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            const val = e.currentTarget.value.trim()
+                            if (val) {
+                              const key = `visa:${val}`
+                              if (!preferences.documents.includes(key)) {
+                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
+                              }
+                              e.currentTarget.value = ''
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                    {preferences.documents.filter(d => d.startsWith('visa:')).length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {preferences.documents.filter(d => d.startsWith('visa:')).map(d => (
+                          <Badge key={d} variant="secondary" className="cursor-pointer rounded-full" onClick={() => setPreferences({ ...preferences, documents: preferences.documents.filter(x => x !== d) })}>
+                            ✈️ Виза {d.split(':')[1]} ×
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 12 — Languages */}
+              {step === 12 && (
                 <div className="space-y-6">
                   <div className="h-11 w-11 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-500">
                     <Languages className="h-5 w-5" />
@@ -493,8 +702,8 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* Step 11 — Done */}
-              {step === 11 && (
+              {/* Step 13 — Done */}
+              {step === 13 && (
                 <div className="space-y-8 text-center py-6">
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
@@ -571,13 +780,13 @@ export default function OnboardingPage() {
             className="flex-1 h-12 rounded-xl text-base font-bold"
             disabled={step === 1 && !preferences.travelFrequency}
           >
-            {step === totalSteps ? "Начать планирование" : "Далее"}
+            {step === totalSteps ? "Создать профиль" : "Далее"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
 
         {/* Skip hint on optional steps */}
-        {[2, 4, 9, 10].includes(step) && (
+        {[2, 3, 5, 10, 11, 12].includes(step) && (
           <p className="text-center text-xs text-muted-foreground mt-3">
             Этот шаг необязателен — можно пропустить
           </p>

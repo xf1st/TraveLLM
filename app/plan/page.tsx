@@ -75,6 +75,7 @@ export default function PlanPage() {
   const [aiCreativity, setAiCreativity] = useState("balanced")
   const [autoFavorites, setAutoFavorites] = useState(false)
   const [stepperKey, setStepperKey] = useState(0)
+  const [filterByDocuments, setFilterByDocuments] = useState(false)
 
   // Error Modal State
   const [errorModal, setErrorModal] = useState<{
@@ -266,7 +267,19 @@ export default function PlanPage() {
         startDate: date?.from?.toISOString().split("T")[0],
         endDate: date?.to?.toISOString().split("T")[0],
         travelers: (companions === 'family' || companions === 'friends') ? travelers : (companions === 'solo' ? 1 : 2),
-        aiCreativity
+        aiCreativity,
+        filterByDocuments,
+        preferences: profile?.preferences ? {
+          citizenship: profile.preferences.citizenship || profile.citizenship,
+          languages: profile.preferences.languages || profile.languages,
+          interestsDetailed: profile.preferences.interestsDetailed,
+          dietaryRestrictions: profile.preferences.dietaryRestrictions,
+          dietaryCustom: profile.preferences.dietaryCustom,
+          pace: profile.preferences.pace,
+          gender: profile.preferences.gender,
+          age: profile.preferences.age,
+          documents: profile.preferences.documents,
+        } : undefined,
       }
 
 
@@ -604,6 +617,43 @@ export default function PlanPage() {
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Documents filter — only for international trips */}
+              {destination === "abroad" && profile?.preferences?.documents?.length > 0 && (
+                <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-top-2">
+                  <button
+                    type="button"
+                    onClick={() => setFilterByDocuments(!filterByDocuments)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all ${
+                      filterByDocuments
+                        ? "border-primary/60 bg-primary/8 text-foreground"
+                        : "border-border bg-white/30 dark:bg-white/5 text-muted-foreground hover:bg-white/50 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    <span className={`text-xl shrink-0 transition-all ${filterByDocuments ? 'scale-110' : ''}`}>🛂</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-semibold block text-foreground">Учитывать мои документы</span>
+                      <span className="text-xs text-muted-foreground">Мои документы: {profile.preferences.documents.map((d: string) => {
+                        const labels: Record<string, string> = {
+                          ru_passport: "🪪 РФ", foreign_passport: "📘 Загран", schengen: "🇪🇺 Шенген",
+                          us_visa: "🇺🇸 США", uk_visa: "🇬🇧 UK", canada_visa: "🇨🇦 Канада",
+                          australia_visa: "🇦🇺 Австралия", japan_visa: "🇯🇵 Япония", korea_visa: "🇰🇷 Корея",
+                          india_evisa: "🇮🇳 Индия", thailand_evisa: "🇹🇭 Таиланд", vietnam_evisa: "🇻🇳 Вьетнам",
+                          china_visa: "🇨🇳 Китай", uae_visa: "🇦🇪 ОАЭ", saudi_visa: "🇸🇦 Саудовская",
+                          israel_visa: "🇮🇱 Израиль", albania_evisa: "🇦🇱 Албания",
+                        }
+                        if (d.startsWith('passport:')) return `🌍 ${d.split(':')[1]}`
+                        if (d.startsWith('id:')) return `🆔 ${d.split(':')[1]}`
+                        if (d.startsWith('visa:')) return `✈️ ${d.split(':')[1]}`
+                        return labels[d] || d
+                      }).join(' · ')}</span>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${filterByDocuments ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`}>
+                      {filterByDocuments && <span className="text-white text-[10px] font-bold">✓</span>}
+                    </div>
+                  </button>
                 </div>
               )}
             </div>
