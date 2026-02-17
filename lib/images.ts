@@ -240,13 +240,17 @@ export async function getDestinationImage(query: string): Promise<string> {
 /**
  * Activity / place gallery (multiple images).
  *
- * Waterfall:
- *   1. Pexels (descriptive)      — stock photos matching the activity theme
- *   2. Pexels retry              — simplified/latin query if first Pexels call returns nothing
- *   3. Wikimedia                 — encyclopedia photos as supplement
- *   4. Local fallback            — always succeeds
+ * Server waterfall:
+ *   1. Unsplash  — not blocked in Russia, high quality landscape photos
+ *   2. Pexels    — blocked in Russia without VPN, but client handles via /api/proxy-image
+ *   3. Pexels retry — latin/shortened query if Cyrillic got no results
+ *   4. Wikimedia — encyclopedia photos as supplement
+ *   5. Local fallback — always succeeds
  *
- * @param query  Descriptive English query for Pexels (e.g. "rooftop restaurant Istanbul")
+ * NOTE: Pexels CDN (images.pexels.com) IS blocked in Russia without VPN.
+ *       TripImage component handles this client-side: direct → proxy → /api/image → fallback.
+ *
+ * @param query  Descriptive query (e.g. "rooftop restaurant Istanbul")
  * @param count  Max number of images
  */
 export async function getGalleryImages(query: string, count: number = 4): Promise<string[]> {
@@ -256,38 +260,48 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
 
     try {
-        // 1. Pexels with descriptive query
-        let pexelsUrls = await searchPexels(query, count)
+        const seen = new Set<string>()
+        const finalUrls: string[] = []
+
+        const addUrls = (urls: string[]) => {
+            for (const u of urls) {
+                if (finalUrls.length >= count) break
+                if (!seen.has(u)) { seen.add(u); finalUrls.push(u) }
+            }
+        }
+
+        // 1. Unsplash (not blocked in Russia, good for landscapes/destinations)
+        const unsplashUrls = await searchUnsplash(query, count)
+        addUrls(unsplashUrls)
+
+        // 2. Pexels with original query (fills gaps; client uses proxy in Russia)
+        if (finalUrls.length < count) {
+            const pexelsUrls = await searchPexels(query, count - finalUrls.length)
+            addUrls(pexelsUrls)
+        }
 
         // 3. Pexels retry with Latin-only or shortened query (helps with Cyrillic)
-        if (pexelsUrls.length === 0) {
+        if (finalUrls.length < count) {
             const latinQuery = extractLatinWords(query)
             const shortQuery = shortenQuery(query)
             const retryQuery = latinQuery || shortQuery
             if (retryQuery && retryQuery !== query) {
-                pexelsUrls = await searchPexels(retryQuery, count)
+                const retryUrls = await searchPexels(retryQuery, count - finalUrls.length)
+                addUrls(retryUrls)
             }
         }
 
-        // 4. Supplement with Wikimedia if still short
-        let finalUrls = [...pexelsUrls]
+        // 4. Wikimedia supplement
         if (finalUrls.length < count) {
             const wikiUrls = await searchWikimediaGallery(query, count - finalUrls.length)
-            const seen = new Set(finalUrls)
-            for (const u of wikiUrls) {
-                if (!seen.has(u)) {
-                    finalUrls.push(u)
-                    seen.add(u)
-                }
-            }
+            addUrls(wikiUrls)
         }
 
         // 5. Local fallback
         if (finalUrls.length === 0) {
-            finalUrls = ["/tbilisi-old-town.jpg"]
+            finalUrls.push("/tbilisi-old-town.jpg")
         }
 
-        finalUrls = finalUrls.slice(0, count)
         galleryCache.set(cacheKey, { urls: finalUrls, timestamp: Date.now() })
         return finalUrls
     } catch {

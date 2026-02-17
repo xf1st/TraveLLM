@@ -210,7 +210,7 @@ export default function AdminImagesPage() {
               className={`px-4 py-1.5 rounded-md font-bold transition-colors ${mode === "gallery" ? "bg-green-600 text-white" : "text-zinc-400 hover:text-white"}`}
             >
               /api/gallery
-              <span className="ml-1.5 text-[10px] font-normal opacity-70">Pexels→Wiki</span>
+              <span className="ml-1.5 text-[10px] font-normal opacity-70">Unsplash→Pexels→Wiki</span>
             </button>
             <button
               onClick={() => { setMode("hero"); setResults([]) }}
