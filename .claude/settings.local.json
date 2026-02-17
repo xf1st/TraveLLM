@@ -17,7 +17,9 @@
       "Bash(ping:*)",
       "Bash(npx next dev:*)",
       "Bash(python -c:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(claude mcp add --transport stdio supabase -- cmd /c npx -y @supabase/mcp-server-supabase@latest --access-token sbp_965a461f39869bed60e114619bb520909079043f)",
+      "Bash(claude mcp:*)"
     ]
   }
 }

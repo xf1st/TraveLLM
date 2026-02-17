@@ -13,7 +13,7 @@ import {
     Moon,
     Sun,
 
-    Newspaper,
+    // Newspaper,
     ChevronLeft,
     ChevronRight,
     ChevronDown,
@@ -62,11 +62,11 @@ const navItems = [
         href: "/dashboard",
         icon: Globe,
     },
-    {
-        title: "Лента",
-        href: "/news",
-        icon: Newspaper,
-    },
+    // {
+    //     title: "Лента",
+    //     href: "/news",
+    //     icon: Newspaper,
+    // },
     // Hidden - preserved for future mobile app
     // {
     //     title: "ИИ-гид",
@@ -208,7 +208,7 @@ export function AppSidebar() {
     return (
         <aside
             className={cn(
-                "hidden lg:flex flex-col fixed top-0 left-0 h-screen border-r border-border/50 bg-card/95 backdrop-blur-md transition-all duration-300 z-40",
+                "hidden lg:flex flex-col fixed top-0 left-0 h-screen sidebar-glass transition-all duration-300 z-40",
                 isCollapsed ? "w-[72px]" : "w-64"
             )}
         >
@@ -223,7 +223,7 @@ export function AppSidebar() {
                 )}>
                     <Logo size={40} className="shrink-0" />
                     {!isCollapsed && (
-                        <span className="text-xl font-semibold tracking-tight">TraveLM</span>
+                        <span className="text-xl font-semibold tracking-tight">TraveLLM</span>
                     )}
                 </Link>
                 {!isCollapsed && (
@@ -318,8 +318,8 @@ export function AppSidebar() {
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors",
                                         pathname === `/trip/${trip.id}`
-                                            ? "bg-accent text-foreground"
-                                            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                                            ? "bg-primary/10 text-primary font-semibold shadow-sm border border-primary/20"
+                                            : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
                                     )}
                                 >
                                     <MapPin className="h-4 w-4 shrink-0" />
@@ -361,8 +361,8 @@ export function AppSidebar() {
                                 className={cn(
                                     "flex items-center justify-center px-2 py-2.5 rounded-xl transition-colors",
                                     pathname === `/trip/${trip.id}`
-                                        ? "bg-accent text-foreground"
-                                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                                        ? "bg-primary/10 text-primary font-semibold border border-primary/20"
+                                        : "text-muted-foreground hover:bg-primary/5 hover:text-primary"
                                 )}
                             >
                                 <MapPin className="h-4 w-4" />

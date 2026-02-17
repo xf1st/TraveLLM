@@ -15,9 +15,11 @@ export async function sendTelegramMessage(
     chatId: string | number,
     text: string,
     parseMode: 'Markdown' | 'HTML' = 'HTML',
-    replyMarkup?: object
+    replyMarkup?: object,
+    token?: string
 ) {
-    if (!BOT_TOKEN) {
+    const activeToken = token || BOT_TOKEN
+    if (!activeToken) {
         console.warn('TELEGRAM_BOT_TOKEN is not set')
         return null
     }
@@ -33,7 +35,7 @@ export async function sendTelegramMessage(
             body.reply_markup = replyMarkup
         }
 
-        const res = await fetch(`${TG_API_URL}/sendMessage`, {
+        const res = await fetch(`https://api.telegram.org/bot${activeToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)

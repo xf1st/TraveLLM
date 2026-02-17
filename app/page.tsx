@@ -19,8 +19,6 @@ import { VideoText } from "@/components/ui/video-text"
 import { MorphingText } from "@/components/ui/morphing-text"
 
 // Dynamic imports for WebGL components (client-side only)
-const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
-const MeshGradient = dynamic(() => import('@paper-design/shaders-react').then(m => ({ default: m.MeshGradient })), { ssr: false })
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
@@ -69,30 +67,12 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="flex min-h-screen flex-col bg-background overflow-x-hidden">
+    <div className="flex min-h-screen flex-col trip-bg overflow-x-hidden">
       <Header />
 
       <main className="flex-1 relative flex flex-col justify-center min-h-[90vh]">
         {/* Background Effects */}
         <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
-          {/* Liquid Background - dark only */}
-          <div className="absolute inset-0 opacity-30 dark:opacity-20 animate-in fade-in duration-1000 hidden dark:block">
-            <MeshGradient
-              colors={["#000000", "#1e1e1e", "#111111", "#3b0764"]}
-              speed={0.1}
-            />
-          </div>
-          <LightRays
-            raysOrigin="top-center"
-            raysColor="#ffffff"
-            raysSpeed={0.5}
-            lightSpread={0.6}
-            rayLength={4}
-            followMouse={true}
-            mouseInfluence={0.2}
-            className="custom-rays"
-            pulsating={true}
-          />
           <FloatingIcons />
         </div>
 
@@ -111,7 +91,7 @@ export default function LandingPage() {
                 className="font-black"
                 fontSize={15}
               >
-                TraveLM
+                TraveLLM
               </VideoText>
             </div>
 
@@ -155,31 +135,31 @@ export default function LandingPage() {
             className="w-full max-w-2xl relative z-30 mb-20"
           >
             <Link href="/plan" className="block group">
-              <div className="relative overflow-hidden rounded-full border border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-xl hover:bg-white/90 dark:hover:bg-white/10 transition-all duration-300 shadow-2xl shadow-primary/10 group-hover:shadow-primary/20 p-2 pl-6 flex items-center justify-between gap-4">
+              <div className="relative overflow-hidden rounded-full border border-white/20 trip-glass hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300 shadow-2xl shadow-primary/10 group-hover:shadow-primary/20 p-2 pl-6 flex items-center justify-between gap-4">
 
                 {/* Inputs Visual Mockup */}
                 <div className="flex items-center gap-6 flex-1 overflow-hidden">
                   <div className="flex items-center gap-3 min-w-0 flex-1 border-r border-black/10 dark:border-white/10 pr-4">
-                    <MapPin className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <MapPin className="h-5 w-5 text-slate-500 dark:text-slate-400 shrink-0" />
                     <div className="flex flex-col text-left">
-                      <span className="text-sm font-medium text-foreground">Куда?</span>
-                      <span className="text-xs text-muted-foreground truncate">Поиск направлений</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">Куда?</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate">Поиск направлений</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 hidden sm:flex border-r border-black/10 dark:border-white/10 pr-4">
                     <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex flex-col text-left">
-                      <span className="text-sm font-medium text-foreground">Даты</span>
-                      <span className="text-xs text-muted-foreground">Добавить даты</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">Даты</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Добавить даты</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 hidden sm:flex">
                     <Users className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex flex-col text-left">
-                      <span className="text-sm font-medium text-foreground">Гости</span>
-                      <span className="text-xs text-muted-foreground">Добавить</span>
+                      <span className="text-sm font-medium text-slate-800 dark:text-white">Гости</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Добавить</span>
                     </div>
                   </div>
                 </div>
@@ -203,7 +183,7 @@ export default function LandingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 + (i * 0.1) }}
-                    className="relative h-24 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-primary/50 transition-colors shadow-lg"
+                    className="relative h-24 rounded-2xl overflow-hidden border border-white/20 trip-glass group-hover:border-primary/50 transition-colors shadow-lg"
                   >
                     {/* Background Image */}
                     <TripImage
@@ -243,22 +223,22 @@ export default function LandingPage() {
               <MorphingText className="text-3xl md:text-5xl" texts={["AI", "нейросетями", "алгоритмами", "с любовью"]} />
             </div>
             <p className="text-muted-foreground text-lg">
-              TraveLM анализирует тысячи вариантов и создаёт идеальный маршрут за секунды
+              TraveLLM анализирует тысячи вариантов и создаёт идеальный маршрут за секунды
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-primary/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-primary/5">
+            <Card className="trip-glass border-white/20 p-6 hover:border-primary/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-primary/5">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">🧠</div>
               <h3 className="text-xl font-bold mb-2">Умное планирование</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">ИИ учитывает ваш стиль путешествия, интересы, бюджет и даже темп прогулок.</p>
             </Card>
-            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-blue-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-blue-500/5">
+            <Card className="trip-glass border-white/20 p-6 hover:border-blue-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-blue-500/5">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">✈️</div>
               <h3 className="text-xl font-bold mb-2">Реальные данные</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">Актуальные цены на билеты и отели, ссылки на бронирование напрямую.</p>
             </Card>
-            <Card className="bg-white/60 dark:bg-white/5 border-black/5 dark:border-white/10 backdrop-blur-xl p-6 hover:border-pink-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-rose-500/5">
+            <Card className="trip-glass border-white/20 p-6 hover:border-pink-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-rose-500/5">
               <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:bg-pink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">📍</div>
               <h3 className="text-xl font-bold mb-2">Детальные маршруты</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">Почасовой план на каждый день с адресами, временем работы и секретными местами.</p>
@@ -290,7 +270,7 @@ export default function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="group relative flex flex-col h-full overflow-hidden border border-border/50 dark:border-white/5 bg-card dark:bg-zinc-900 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]">
+                <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40">
                   {/* Image */}
                   <div className="relative h-48 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
                     <TripImage

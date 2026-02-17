@@ -55,7 +55,7 @@ export default function TripCompletedPage() {
         </div>
 
         <h1 className="text-3xl font-bold mb-3">Спасибо, что путешествовали с нами</h1>
-        <p className="text-white/70 mb-5">Ваше путешествие отмечено как завершённое. Надеемся, TraveLM сделал поездку проще и приятнее.</p>
+        <p className="text-white/70 mb-5">Ваше путешествие отмечено как завершённое. Надеемся, TraveLLM сделал поездку проще и приятнее.</p>
 
         <div className="mb-8 rounded-2xl border border-white/10 bg-white/5 p-4">
           <div className="text-sm text-zinc-300">Помогите нам улучшить сервис</div>

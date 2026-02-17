@@ -21,7 +21,7 @@ export function AdminSidebar() {
             {/* Logo */}
             <div className="h-16 flex items-center px-6 border-b border-white/10">
                 <Link href="/admin" className="text-xl font-bold text-white">
-                    TraveLM <span className="text-primary">Admin</span>
+                    TraveLLM <span className="text-primary">Admin</span>
                 </Link>
             </div>
 

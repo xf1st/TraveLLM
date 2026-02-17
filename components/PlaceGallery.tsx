@@ -8,10 +8,21 @@ import { ExternalLink, Maximize2, X, Camera, ChevronRight } from "lucide-react"
 
 interface PlaceGalleryProps {
     query: string
+    specificQuery?: string
     count?: number
+    showProviderBadge?: boolean
+    displayTitle?: string
 }
 
-export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
+function detectProvider(url: string): { label: string; color: string } {
+    if (url.includes("pexels.com")) return { label: "pexels", color: "bg-emerald-500" }
+    if (url.includes("unsplash.com")) return { label: "unsplash", color: "bg-sky-500" }
+    if (url.includes("wikimedia.org")) return { label: "wiki", color: "bg-purple-500" }
+    if (url.includes("googleusercontent.com") || url.includes("googleapis.com")) return { label: "google", color: "bg-blue-500" }
+    return { label: "local", color: "bg-slate-500" }
+}
+
+export function PlaceGallery({ query, specificQuery, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
     const [images, setImages] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
     const [activeIndex, setActiveIndex] = useState(0)
@@ -30,7 +41,8 @@ export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
         const fetchImages = async () => {
             setLoading(true)
             try {
-                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}`)
+                const specificParam = specificQuery ? `&specific=${encodeURIComponent(specificQuery)}` : ""
+                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}${specificParam}`)
                 const data = await res.json()
                 if (data.images && data.images.length > 0) {
                     setImages(data.images)
@@ -75,13 +87,22 @@ export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
                 )}
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className={`grid gap-2 ${
+                images.length === 1 ? 'grid-cols-1' :
+                images.length === 2 ? 'grid-cols-2' :
+                images.length === 3 ? 'grid-cols-2' :
+                'grid-cols-4'
+            }`}>
                 {images.map((img, i) => (
                     <motion.div
                         key={i}
                         whileHover={{ scale: 0.98 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`relative aspect-square rounded-xl overflow-hidden border border-white/5 cursor-pointer group ${i === 0 ? 'col-span-2 row-span-2' : ''}`}
+                        className={`relative rounded-xl overflow-hidden border border-white/5 cursor-pointer group 
+                            ${images.length === 1 ? 'aspect-video' : 'aspect-square'}
+                            ${images.length === 3 && i === 0 ? 'col-span-2 aspect-video' : ''}
+                            ${images.length >= 4 && i === 0 ? 'col-span-2 row-span-2' : ''}
+                        `}
                         onClick={() => {
                             setActiveIndex(i)
                             setIsPreviewOpen(true)
@@ -92,6 +113,14 @@ export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
                             alt={`Gallery ${i}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
+                        {showProviderBadge && (() => {
+                            const p = detectProvider(img)
+                            return (
+                                <span className={`absolute top-1.5 left-1.5 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full z-10 opacity-80 ${p.color}`}>
+                                    {p.label}
+                                </span>
+                            )
+                        })()}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <Maximize2 className="h-5 w-5 text-white" />
                         </div>
@@ -133,7 +162,7 @@ export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
 
                                 <div className="absolute top-0 inset-x-0 p-8 flex items-center justify-between pointer-events-none">
                                     <div className="pointer-events-auto">
-                                        <h3 className="text-2xl font-black text-white drop-shadow-lg tracking-tighter uppercase">{query}</h3>
+                                        <h3 className="text-2xl font-black text-white drop-shadow-lg tracking-tighter uppercase">{displayTitle || "Галерея места"}</h3>
                                         <span className="text-white/60 text-sm font-bold uppercase tracking-widest mt-1 block">Фото {activeIndex + 1} / {images.length}</span>
                                     </div>
                                     <div className="flex gap-3 pointer-events-auto">
@@ -143,13 +172,6 @@ export function PlaceGallery({ query, count = 4 }: PlaceGalleryProps) {
                                             onClick={() => window.open(images[activeIndex], '_blank')}
                                         >
                                             <ExternalLink className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            className="rounded-full bg-white/10 border-white/10 hover:bg-white/20 text-white"
-                                            onClick={() => setIsPreviewOpen(false)}
-                                        >
-                                            <X className="h-5 w-5" />
                                         </Button>
                                     </div>
                                 </div>

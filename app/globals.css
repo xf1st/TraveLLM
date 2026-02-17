@@ -164,9 +164,15 @@
   }
 
   body {
-    @apply bg-background text-foreground overflow-x-hidden antialiased selection:bg-primary/30;
+    @apply bg-transparent text-foreground overflow-x-hidden antialiased selection:bg-primary/30;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     letter-spacing: -0.01em;
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
+  /* Smooth Theme Transition for all major elements */
+  *, *::before, *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
   }
 
   .container {
@@ -230,11 +236,7 @@
   }
 }
 
-/* Light theme gradient background */
-:root:not(.dark) body {
-  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 35%, #fff1f5 65%, #f0f9ff 100%) !important;
-  background-attachment: fixed !important;
-}
+/* Light theme gradient background removed to allow PaperMesh */
 
 /* Atomize Glassmorphism Utilities */
 @layer utilities {
@@ -291,6 +293,200 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* ===== Trip Page Design System ===== */
+
+  /* Trip page background gradients */
+  .trip-bg {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 25%, #7dd3fc 50%, #bae6fd 75%, #e0f2fe 100%);
+    background-size: 200% 200%;
+    animation: trip-gradient 15s ease infinite;
+    background-attachment: fixed;
+    overflow-x: clip;
+  }
+
+  .dark .trip-bg {
+    background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e3a8a 100%);
+    background-size: 100% 100%;
+    animation: none;
+  }
+
+  /* Trip glassmorphism panels */
+  .trip-glass {
+    background: rgba(255, 255, 255, 0.45);
+    -webkit-backdrop-filter: blur(25px);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  .dark .trip-glass {
+    background: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Trip glass - hover variant */
+  .trip-glass-hover:hover {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  .dark .trip-glass-hover:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Trip floating header bar */
+  .trip-glass-header {
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .trip-glass-header {
+    background: rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Sidebar Glass */
+  .sidebar-glass {
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 10px 0 40px -10px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .sidebar-glass {
+    background: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 10px 0 40px -10px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Modal Glass */
+  .modal-glass {
+    background: rgba(255, 255, 255, 0.8) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .dark .modal-glass {
+    background: rgba(10, 10, 10, 0.5) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* Trip timeline vertical dashed line */
+  .trip-timeline {
+    position: relative;
+  }
+
+  .trip-timeline::before {
+    content: "";
+    position: absolute;
+    left: 23px;
+    top: 3.5rem;
+    bottom: 2rem;
+    width: 0;
+    border-left: 2px dashed rgba(51, 65, 85, 0.3);
+    z-index: 0;
+  }
+
+  .dark .trip-timeline::before {
+    border-left-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Trip activity icon glow variants */
+  .trip-icon-transport {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+  }
+  .dark .trip-icon-transport {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(96, 165, 250, 0.5);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  }
+
+  .trip-icon-food {
+    background: rgba(251, 146, 60, 0.15);
+    border-color: rgba(251, 146, 60, 0.4);
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
+  }
+  .dark .trip-icon-food {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(251, 146, 60, 0.5);
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+  }
+
+  .trip-icon-activity {
+    background: rgba(192, 132, 252, 0.15);
+    border-color: rgba(192, 132, 252, 0.4);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
+  }
+  .dark .trip-icon-activity {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(192, 132, 252, 0.5);
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+  }
+
+  .trip-icon-hotel {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+  }
+  .dark .trip-icon-hotel {
+    background: rgba(52, 211, 153, 0.2);
+    border-color: rgba(52, 211, 153, 0.5);
+    box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+  }
+
+  .trip-icon-free {
+    background: rgba(129, 140, 248, 0.15);
+    border-color: rgba(129, 140, 248, 0.4);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2);
+  }
+  .dark .trip-icon-free {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: rgba(129, 140, 248, 0.5);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+  }
+
+  /* Dark mode decorative background stripes */
+  .dark .trip-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 80px,
+        rgba(59, 130, 246, 0.03) 80px,
+        rgba(59, 130, 246, 0.03) 82px
+      );
+  }
+
+  /* Material Symbols sizing helper */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
 }
 
 @layer base {
@@ -317,6 +513,20 @@
   }
 }
 
+@keyframes trip-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 @keyframes loading {
   0% {
     transform: translateX(-100%);
@@ -324,6 +534,43 @@
 
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes floatIcon {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes orbFloat1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(50px, 30px) scale(1.1);
+  }
+}
+
+@keyframes orbFloat2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-40px, -40px) scale(1.15);
   }
 }
 

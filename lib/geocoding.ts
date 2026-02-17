@@ -33,7 +33,7 @@ export async function getCoordinates(placeName: string): Promise<{lat: number, l
     try {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1`, {
             headers: {
-                'User-Agent': 'TraveLM-AI-App'
+                'User-Agent': 'TraveLLM-AI-App'
             }
         })
 

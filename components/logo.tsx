@@ -26,7 +26,7 @@ export function Logo({ size = 36, className = "" }: LogoProps) {
     return (
         <Image
             src={logoSrc}
-            alt="TraveLM"
+            alt="TraveLLM"
             width={size}
             height={size}
             className={combinedClassName}

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -6,65 +6,35 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import {
-  ArrowLeft,
-  Calendar,
-  Clock,
   Compass,
-  Download,
-  Hotel as HotelIcon,
   Map,
   MapPin,
   Shield,
   Star,
-  Utensils,
-  Wallet,
-  Zap,
-  ChevronRight,
-  ExternalLink,
   Sparkles,
   PieChart,
   Plane,
   Car,
   Train,
+  Zap,
+  MessageCircle,
+  X,
+  Heart,
   Umbrella,
   ShoppingBag,
   Waves,
   Mountain,
   Ticket,
   Building,
-  MessageCircle,
-  UserPlus,
-  Loader2,
-  CheckCircle2,
-  Camera,
-  Music,
-  Tent,
-  TreeDeciduous,
-  Landmark,
-  Palmtree,
-  Printer,
-  PenLine,
-  Navigation,
-  Globe,
-  Layout,
-  Users,
-  X,
-  Heart
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import Image from "next/image"
-import Link from "next/link"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { TripImage } from "@/components/TripImage"
 import { FlightCard } from "@/components/itinerary/FlightCard"
 import { HotelCard } from "@/components/itinerary/HotelCard"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
-import { PlaceGallery } from "@/components/PlaceGallery"
-import { ViralSpotCard } from "@/components/ViralSpotCard"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -73,175 +43,180 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
 import { Footer } from "@/components/footer"
-import GradientText from "@/components/GradientText"
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
 import { getPopularRoute } from "@/lib/popular-routes"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 import { toggleFavorite } from "@/app/actions/favorites"
+import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/ActivityTimelineCard"
+import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 
-const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
+import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
+import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
+import { addDays } from "date-fns"
+
 
 // Dynamic import for TripMap to avoid SSR issues with Leaflet
 const TripMap = dynamic(
-  () => import('@/components/TripMap'),
+  () => import("@/components/TripMap"),
   {
     ssr: false,
-    loading: () => <div className="h-[300px] bg-muted/20 rounded-xl animate-pulse flex items-center justify-center"><MapPin className="h-8 w-8 text-muted-foreground/30 animate-bounce" /></div>
+    loading: () => (
+      <div className="h-[300px] bg-muted/20 rounded-xl animate-pulse flex items-center justify-center">
+        <MapPin className="h-8 w-8 text-muted-foreground/30 animate-bounce" />
+      </div>
+    ),
   }
 )
 
+// ===== Constants =====
+
+const monthsShort = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+
+function formatDayDate(startDate: Date | null, dayIndex: number): string {
+  if (!startDate) return ""
+  const d = new Date(startDate)
+  d.setDate(d.getDate() + dayIndex)
+  return `${d.getDate()} ${monthsShort[d.getMonth()]}`
+}
+
+function formatDateRange(start: Date | null, end: Date | null): string {
+  if (!start || !end) return ""
+  const s = `${start.getDate()} ${monthsShort[start.getMonth()]}`
+  const e = `${end.getDate()} ${monthsShort[end.getMonth()]}`
+  const year = end.getFullYear()
+  return `${s} — ${e} ${year}`
+}
+
 const transportIcons: Record<string, any> = {
-  "Flight": Plane,
-  "Plane": Plane,
-  "Train": Train,
-  "Taxi": Car,
-  "Transfer": Car,
-  "Car": Car,
-  "Walk": Compass,
-  "None": Zap
+  Flight: Plane,
+  Plane: Plane,
+  Train: Train,
+  Taxi: Car,
+  Transfer: Car,
+  Car: Car,
+  Walk: Compass,
+  None: Zap,
 }
 
 const modeTranslations: Record<string, string> = {
-  "Flight": "Перелет",
-  "Plane": "Перелет",
-  "Train": "Поезд",
-  "Taxi": "Такси",
-  "Transfer": "Трансфер",
-  "Car": "Автомобиль",
-  "Walk": "Пешком",
-  "None": "Нет"
+  Flight: "Перелёт",
+  Plane: "Перелёт",
+  Train: "Поезд",
+  Taxi: "Такси",
+  Transfer: "Трансфер",
+  Car: "Автомобиль",
+  Walk: "Пешком",
+  None: "Нет",
 }
 
-// Russian translations for travel preferences
-const styleTranslations: Record<string, string> = {
-  "nature": "Природа",
-  "culture": "Культура",
-  "urban": "Городской",
-  "adventure": "Приключения",
-  "relaxation": "Релакс",
-  "luxury": "Люкс",
-  "budget": "Бюджет",
-  "events": "Мероприятия",
-  "culinary": "Гастрономия",
-  "active": "Активный",
-  "romantic": "Романтик",
-  "beach": "Пляжный"
+const tagConfig: Record<string, { color: string; icon: any }> = {
+  "пляж": { color: "bg-sky-100/80 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-200/50 dark:border-sky-500/30", icon: Umbrella },
+  "шопинг": { color: "bg-pink-100/80 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300 border-pink-200/50 dark:border-pink-500/30", icon: ShoppingBag },
+  "аквапарк": { color: "bg-cyan-100/80 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 border-cyan-200/50 dark:border-cyan-500/30", icon: Waves },
+  "горы": { color: "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-200/50 dark:border-emerald-500/30", icon: Mountain },
+  "море": { color: "bg-blue-100/80 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border-blue-200/50 dark:border-blue-500/30", icon: Waves },
+  "торговые центры": { color: "bg-purple-100/80 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 border-purple-200/50 dark:border-purple-500/30", icon: ShoppingBag },
+  "природа": { color: "bg-green-100/80 text-green-700 dark:bg-green-500/20 dark:text-green-300 border-green-200/50 dark:border-green-500/30", icon: Mountain },
+  "культура": { color: "bg-amber-100/80 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-200/50 dark:border-amber-500/30", icon: Building },
+  "развлечения": { color: "bg-rose-100/80 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border-rose-200/50 dark:border-rose-500/30", icon: Ticket },
+  "мероприятия": { color: "bg-fuchsia-100/80 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300 border-fuchsia-200/50 dark:border-fuchsia-500/30", icon: Sparkles },
+  "гастрономия": { color: "bg-orange-100/80 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200/50 dark:border-orange-500/30", icon: Sparkles },
+  "еда": { color: "bg-orange-100/80 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200/50 dark:border-orange-500/30", icon: Sparkles },
+  "релакс": { color: "bg-teal-100/80 text-teal-700 dark:bg-teal-500/20 dark:text-teal-300 border-teal-200/50 dark:border-teal-500/30", icon: Sparkles },
+  "история": { color: "bg-yellow-100/80 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300 border-yellow-200/50 dark:border-yellow-500/30", icon: Building },
+  "активный": { color: "bg-lime-100/80 text-lime-700 dark:bg-lime-500/20 dark:text-lime-300 border-lime-200/50 dark:border-lime-500/30", icon: Zap },
+  "дайвинг": { color: "bg-cyan-100/80 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300 border-cyan-200/50 dark:border-cyan-500/30", icon: Waves },
+  "уникальный": { color: "bg-indigo-100/80 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200/50 dark:border-indigo-500/30", icon: Star },
+  "premium": { color: "bg-amber-100/80 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/20", icon: Star },
+  "умеренный": { color: "bg-sky-100/80 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-200/50 dark:border-sky-500/30", icon: Sparkles },
+  "вдвоём": { color: "bg-rose-100/80 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border-rose-200/50 dark:border-rose-500/30", icon: Heart },
+  "вдвоем": { color: "bg-rose-100/80 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border-rose-200/50 dark:border-rose-500/30", icon: Heart },
+  "компания": { color: "bg-indigo-100/80 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200/50 dark:border-indigo-500/30", icon: Sparkles },
 }
 
-const paceTranslations: Record<string, string> = {
-  "slow": "Спокойный",
-  "moderate": "Умеренный",
-  "fast": "Насыщенный"
+function getTagConfig(tag: string) {
+  const clean = tag.toLowerCase().replace("#", "").trim()
+  const key = Object.keys(tagConfig).find((k) => clean.includes(k))
+  if (key) return tagConfig[key]
+  return { color: "bg-white/60 text-slate-600 dark:bg-white/10 dark:text-white/80 border-white/40 dark:border-white/10", icon: Sparkles }
 }
-
-const companionsTranslations: Record<string, string> = {
-  "solo": "Один",
-  "couple": "Вдвоём",
-  "family": "Семья",
-  "friends": "С друзьями",
-  "business": "Деловая"
-}
-
-const tagColors: Record<string, string> = {
-  "пляж": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
-  "шопинг": "bg-pink-100/80 text-pink-700 border-none dark:bg-pink-500/20 dark:text-pink-300",
-  "аквапарк": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
-  "горы": "bg-emerald-100/80 text-emerald-700 border-none dark:bg-emerald-500/20 dark:text-emerald-300",
-  "море": "bg-blue-100/80 text-blue-700 border-none dark:bg-blue-500/20 dark:text-blue-300",
-  "торговые центры": "bg-purple-100/80 text-purple-700 border-none dark:bg-purple-500/20 dark:text-purple-300",
-  "природа": "bg-green-100/80 text-green-700 border-none dark:bg-green-500/20 dark:text-green-300",
-  "культура": "bg-amber-100/80 text-amber-800 border-none dark:bg-amber-500/20 dark:text-amber-300",
-  "развлечения": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
-  "мероприятия": "bg-fuchsia-100/80 text-fuchsia-700 border-none dark:bg-fuchsia-500/20 dark:text-fuchsia-300",
-  "вино": "bg-violet-100/80 text-violet-700 border-none dark:bg-violet-500/20 dark:text-violet-300",
-  "гастрономия": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
-  "еда": "bg-orange-100/80 text-orange-700 border-none dark:bg-orange-500/20 dark:text-orange-300",
-  "релакс": "bg-teal-100/80 text-teal-700 border-none dark:bg-teal-500/20 dark:text-teal-300",
-  "храмы": "bg-stone-100/80 text-stone-700 border-none dark:bg-stone-500/20 dark:text-stone-300",
-  "история": "bg-yellow-100/80 text-yellow-800 border-none dark:bg-yellow-500/20 dark:text-yellow-300",
-  "активный": "bg-lime-100/80 text-lime-700 border-none dark:bg-lime-500/20 dark:text-lime-300",
-  "дайвинг": "bg-cyan-100/80 text-cyan-700 border-none dark:bg-cyan-500/20 dark:text-cyan-300",
-  "уникальный": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
-  "premium": "bg-amber-100/80 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20",
-  "умеренный": "bg-sky-100/80 text-sky-700 border-none dark:bg-sky-500/20 dark:text-sky-300",
-  "вдвоём": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
-  "вдвоем": "bg-rose-100/80 text-rose-700 border-none dark:bg-rose-500/20 dark:text-rose-300",
-  "компания": "bg-indigo-100/80 text-indigo-700 border-none dark:bg-indigo-500/20 dark:text-indigo-300",
-  "default": "bg-muted text-muted-foreground border-none dark:bg-white/10 dark:text-white/80"
-}
-
-const tagIcons: Record<string, any> = {
-  "пляж": Umbrella,
-  "шопинг": ShoppingBag,
-  "аквапарк": Waves,
-  "горы": Mountain,
-  "море": Waves,
-  "торговые центры": ShoppingBag,
-  "природа": Mountain,
-  "культура": Building,
-  "развлечения": Ticket,
-  "default": Sparkles
-}
-
-const SHOW_TRANSPORT_CARDS = false
 
 export default function TripDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [route, setRoute] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [expandedDay, setExpandedDay] = useState<number | null>(1)
+  const [activeDay, setActiveDay] = useState<number>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
+  const [showTipsModal, setShowTipsModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
 
-  // Parallax hook
+  // Parallax
   const { scrollY } = useScroll()
-  const y = useTransform(scrollY, [0, 500], [0, 250])
-  const opacity = useTransform(scrollY, [0, 400], [1, 0])
-  const scale = useTransform(scrollY, [0, 500], [1, 1.1])
+  const heroY = useTransform(scrollY, [0, 500], [0, 150])
+  const heroScale = useTransform(scrollY, [0, 500], [1, 1.15])
 
   // Memoized places for map
-  const mapPlaces = useMemo(() => route?.itinerary?.flatMap((day: any, dayIdx: number) =>
-    day.activities?.map((activity: any, actIdx: number) => ({
-      id: `${dayIdx}-${actIdx}`,
-      name: activity.placeName || activity.desc?.split('.')[0] || `День ${day.day}`,
-      description: activity.desc,
-      status: expandedDay === day.day ? 'active' : dayIdx === 0 ? 'visited' : 'pending',
-      day: day.day
-    })) || []
-  ) || [], [route, expandedDay])
+  const mapPlaces = useMemo(
+    () =>
+      route?.itinerary?.flatMap((day: any, dayIdx: number) =>
+        day.activities?.map((activity: any, actIdx: number) => ({
+          id: `${dayIdx}-${actIdx}`,
+          name: activity.placeName || activity.desc?.split(".")[0] || `День ${day.day}`,
+          description: activity.desc,
+          status: activeDay === day.day ? "active" : dayIdx === 0 ? "visited" : "pending",
+          day: day.day,
+        })) || []
+      ) || [],
+    [route, activeDay]
+  )
 
   useEffect(() => {
     const checkSidebar = () => {
-      const saved = localStorage.getItem('sidebar-collapsed') === 'true'
+      const saved = localStorage.getItem("sidebar-collapsed") === "true"
       setIsSidebarCollapsed(saved)
     }
     checkSidebar()
-    window.addEventListener('sidebar-change', checkSidebar)
-    return () => window.removeEventListener('sidebar-change', checkSidebar)
+    window.addEventListener("sidebar-change", checkSidebar)
+    return () => window.removeEventListener("sidebar-change", checkSidebar)
   }, [])
 
-  // Safe localStorage helper
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   const safeLocalStorage = {
     getItem: (key: string): string | null => {
       try {
-        return typeof window !== 'undefined' ? localStorage.getItem(key) : null
+        return typeof window !== "undefined" ? localStorage.getItem(key) : null
       } catch {
         return null
       }
-    }
+    },
   }
 
   useEffect(() => {
@@ -249,21 +224,15 @@ export default function TripDetailPage() {
       setLoading(true)
       try {
         const id = params.id as string
-
-        // Validate ID exists
         if (!id) {
-          console.error("No trip ID provided")
           setLoading(false)
           return
         }
 
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-        const isLocal = id?.startsWith('local-')
-        const isPopular = id?.startsWith('pop-')
+        const isLocal = id?.startsWith("local-")
+        const isPopular = id?.startsWith("pop-")
 
-        console.log("Fetching trip with ID:", id, "isUuid:", isUuid, "isLocal:", isLocal, "isPopular:", isPopular)
-
-        // Single auth check
         const { data: { user: currentUser } } = await supabase.auth.getUser()
         setUser(currentUser)
 
@@ -275,17 +244,13 @@ export default function TripDetailPage() {
         let data = null
         let error = null
 
-        // Handle popular routes (pop-1, pop-2, etc.)
         if (isPopular) {
           data = getPopularRoute(id)
-          if (!data) {
-            console.error("Popular route not found:", id)
-          }
         } else if (isUuid) {
           const result = await supabase
-            .from('trips')
-            .select('*')
-            .eq('id', id)
+            .from("trips")
+            .select("*")
+            .eq("id", id)
             .single()
           data = result.data
           error = result.error
@@ -293,11 +258,7 @@ export default function TripDetailPage() {
           const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
           const stored = safeLocalStorage.getItem(key)
           if (stored) {
-            try {
-              data = JSON.parse(stored)
-            } catch (e) {
-              console.error("Failed to parse local trip data")
-            }
+            try { data = JSON.parse(stored) } catch {}
           }
         }
 
@@ -305,14 +266,9 @@ export default function TripDetailPage() {
           if (error) console.error("Error fetching trip:", error.message)
           const stored = safeLocalStorage.getItem("lastGeneratedRoute")
           if (stored) {
-            try {
-              setRoute(JSON.parse(stored))
-            } catch (e) {
-              console.error("Failed to parse fallback trip data")
-            }
+            try { setRoute(JSON.parse(stored)) } catch {}
           }
         } else {
-          console.log("Trip data loaded successfully")
           setRoute({
             ...data,
             title: data.title,
@@ -320,7 +276,6 @@ export default function TripDetailPage() {
             totalBudget: data.total_cost || data.totalBudget,
             itinerary: data.itinerary,
             countries: data.destination ? [{ name: data.destination }] : (data.countries || []),
-            // Map snake_case DB fields to camelCase for frontend
             budgetAnalysis: data.budget_analysis || data.budgetAnalysis,
             visaAdvice: data.visa_advice || data.visaAdvice,
             paymentAdvice: data.payment_advice || data.paymentAdvice,
@@ -332,31 +287,32 @@ export default function TripDetailPage() {
             invite_code: data.invite_code,
             flights: data.flights || [],
             hotels: data.hotels || [],
-            viralSpots: data.viralSpots || data.viral_spots || []
+            viralSpots: data.viralSpots || data.viral_spots || [],
+            start_date: data.start_date,
+            end_date: data.end_date,
+            travelers: data.travelers || data.passengers || 2,
           })
 
-          // Check if member
           if (currentUser && data.id) {
             const { data: memberData } = await supabase
-              .from('trip_members')
-              .select('id')
-              .eq('trip_id', data.id)
-              .eq('user_id', currentUser.id)
+              .from("trip_members")
+              .select("id")
+              .eq("trip_id", data.id)
+              .eq("user_id", currentUser.id)
               .maybeSingle()
             setIsMember(!!memberData)
 
-            // Check if favorite
             const { data: favData } = await supabase
-              .from('favorites')
-              .select('trip_id')
-              .eq('trip_id', data.id)
-              .eq('user_id', currentUser.id)
+              .from("favorites")
+              .select("trip_id")
+              .eq("trip_id", data.id)
+              .eq("user_id", currentUser.id)
               .maybeSingle()
             setIsFavorite(!!favData)
           }
         }
-      } catch (error) {
-        console.error("Critical error fetching trip:", error)
+      } catch (err) {
+        console.error("Critical error fetching trip:", err)
       } finally {
         setLoading(false)
       }
@@ -364,10 +320,10 @@ export default function TripDetailPage() {
     fetchTrip()
   }, [params.id, router])
 
+  // ============== Loading State ==============
   if (loading) {
     return (
       <div className="min-h-screen bg-background relative overflow-hidden">
-        {/* Purple Mesh Background for loading */}
         <div className="absolute inset-0 z-0">
           <MeshGradient
             className="w-full h-full opacity-20"
@@ -375,13 +331,11 @@ export default function TripDetailPage() {
             speed={0.1}
           />
         </div>
-
         <AppSidebar />
-        <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
+        <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
           <div className="lg:hidden"><Header /></div>
           <main className="flex min-h-[80vh] items-center justify-center p-6">
             <div className="text-center space-y-6">
-              {/* Airplane Lottie Animation */}
               <div className="relative h-48 w-48 mx-auto">
                 <LottieLoader type="plane" className="h-full w-full" />
                 <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
@@ -397,11 +351,12 @@ export default function TripDetailPage() {
     )
   }
 
+  // ============== Not found State ==============
   if (!route) {
     return (
       <div className="min-h-screen bg-background">
         <AppSidebar />
-        <div className={`transition-[margin] duration-300 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
+        <div className={`transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
           <div className="lg:hidden"><Header /></div>
           <main className="flex h-[60vh] items-center justify-center">
             <div className="text-center px-4">
@@ -409,7 +364,7 @@ export default function TripDetailPage() {
               <p className="text-muted-foreground mb-8 text-balance">
                 Мы не смогли найти указанный маршрут. Попробуйте создать новый или проверьте ссылку.
               </p>
-              <Button onClick={() => router.push('/plan')}>Создать новый маршрут</Button>
+              <Button onClick={() => router.push("/plan")}>Создать новый маршрут</Button>
             </div>
           </main>
         </div>
@@ -417,41 +372,185 @@ export default function TripDetailPage() {
     )
   }
 
-  // Generate a dynamic image URL based on destination
+  // ===== Computed data =====
   const destinationName = route.countries?.[0]?.name || route.destination || "Travel"
-  // Prioritize Pexels image from generation, fallback to placeholder
   const heroImage = route.coverImage || route.image || "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
-
   const tripDurationDays = Array.isArray(route.itinerary) ? route.itinerary.length : 0
-  const tripDestinationLabel = route.destination || route.countries?.[0]?.name || destinationName
 
-  const handleOpenMap = (searchQuery: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`, "_blank")
+  // Active day data
+  const currentDay = route.itinerary?.find((d: any) => d.day === activeDay)
+  const TransportIcon = transportIcons[currentDay?.logistics?.mode] || Zap
+
+  // Flights for active day
+  const isFirstDay = activeDay === 1
+  const isLastDay = activeDay === route.itinerary?.length
+  const dayFlights = route.flights?.filter((f: any) => {
+    if (f.dayNumber === activeDay) return true
+    if (f.direction === "outbound" && isFirstDay) return true
+    if (f.direction === "return" && isLastDay) return true
+    return false
+  }) || []
+  const showAllFlights = isFirstDay && route.flights?.length > 0 && !route.flights.some((f: any) => f.dayNumber || f.direction)
+  const flightsToShow = showAllFlights ? route.flights : dayFlights
+
+  // Hotels for active day — prefer AI-generated hotel activity over API data
+  const hotelActivityForDay = (() => {
+    // Find the most recent hotel activity at or before the active day
+    if (!Array.isArray(route.itinerary)) return null
+    for (let d = activeDay; d >= 1; d--) {
+      const day = route.itinerary.find((dd: any) => dd.day === d)
+      const hotelAct = day?.activities?.find((a: any) =>
+        a.type === "hotel" ||
+        /заселение|отель|hotel|check.?in/i.test(`${a.title || ""} ${a.desc || ""}`)
+      )
+      if (hotelAct) return hotelAct
+    }
+    return null
+  })()
+
+  const dayHotels = route.hotels?.filter((h: any) => Number(h.dayStart) === Number(activeDay)) || []
+  const apiHotel = dayHotels[0] || null
+
+  // Build sidebar hotel: AI activity data takes priority, API data fills gaps
+  const sidebarHotel = hotelActivityForDay ? {
+    hotelName: hotelActivityForDay.placeName || hotelActivityForDay.title?.replace(/^заселение в\s*/i, "") || apiHotel?.hotelName || "Отель",
+    stars: apiHotel?.stars || (hotelActivityForDay.desc?.match(/(\d)\*/)?.[1] ? Number(hotelActivityForDay.desc.match(/(\d)\*/)[1]) : null),
+    rating: apiHotel?.rating,
+    checkIn: hotelActivityForDay.desc?.match(/(\d{2}:\d{2})/)?.[1] || apiHotel?.checkIn || "14:00",
+    cost: hotelActivityForDay.cost,
+    bookingUrl: apiHotel?.bookingUrl || hotelActivityForDay.link,
+    desc: hotelActivityForDay.desc,
+  } : apiHotel
+
+  // Trip date range for calendar
+  const tripStartDate = route.start_date ? new Date(route.start_date) : null
+  const tripEndDate = route.end_date ? new Date(route.end_date) : null
+  const calendarSelectedDays: Date[] = []
+  if (tripStartDate && tripEndDate) {
+    const d = new Date(tripStartDate)
+    while (d <= tripEndDate) {
+      calendarSelectedDays.push(new Date(d))
+      d.setDate(d.getDate() + 1)
+    }
+  }
+  
+  const itineraryTips = route.itinerary?.filter((day: any) => day?.tips?.trim()) || []
+
+  // Activities for active day
+  const rawActivities = currentDay?.activities || [
+    { time: "Утро", desc: currentDay?.morning, type: "activity" },
+    { time: "День", desc: currentDay?.daytime, type: "food" },
+    { time: "Вечер", desc: currentDay?.night, type: "activity" },
+  ].filter((i: any) => i.desc)
+
+  // Always append free time as the 4th activity
+  const dayActivities = [
+    ...rawActivities,
+    {
+      time: "Свободное время",
+      title: "Свободное время",
+      desc: "Свободное время для отдыха, прогулки по городу или собственных планов.",
+      type: "free",
+    },
+  ]
+
+  // === ENRICH ACTIVITIES WITH FLIGHT DATA ===
+  // 1. Map existing activities to add booking links if it's a transport activity
+  const enrichedDayActivities = dayActivities.map((activity: any) => {
+    const theme = getActivityColorTheme(activity)
+    if (theme === "transport") {
+      // Find matching flight (heuristic: first available flight for the day since usually 1 per day)
+      const flight = flightsToShow?.[0]
+
+      if (flight) {
+        const fDate = flight.departureDate ? new Date(flight.departureDate) : (tripStartDate ? addDays(tripStartDate, (flight.dayNumber || 1) - 1) : undefined)
+        const origin = flight.departureCode || "MOW"
+        const dest = flight.arrivalCode || (flight.direction === "return" ? "MOW" : (route.destinationIata || getIataCode(destinationName) || ""))
+        
+        const url = getFlightSearchLink({
+          origin,
+          destination: dest,
+          departDate: fDate,
+          adults: route.travelers || 2,
+          subId: "timeline_btn"
+        })
+
+        return {
+          ...activity,
+          cost: activity.cost || (flight.price ? `${flight.price.toLocaleString("ru-RU")} ₽` : undefined),
+          ticketsRequired: true,
+          link: url
+        }
+      }
+    }
+    return activity
+  })
+
+  // 2. If we have flights but no transport activity in the list, prepend a synthetic one
+  const hasTransport = enrichedDayActivities.some((a: any) => getActivityColorTheme(a) === "transport")
+  const finalDayActivities = [...enrichedDayActivities]
+
+  if (!hasTransport && flightsToShow?.length > 0) {
+    const f = flightsToShow[0]
+    const fDate = f.departureDate ? new Date(f.departureDate) : (tripStartDate ? addDays(tripStartDate, (f.dayNumber || 1) - 1) : undefined)
+    const origin = f.departureCode || "MOW"
+    const dest = f.arrivalCode || (f.direction === "return" ? "MOW" : (route.destinationIata || getIataCode(destinationName) || ""))
+    
+    // Only add if we have valid date/dates
+    if (fDate) {
+        const url = getFlightSearchLink({
+            origin,
+            destination: dest,
+            departDate: fDate,
+            adults: route.travelers || 2,
+            subId: "timeline_btn_synthetic"
+        })
+
+        finalDayActivities.unshift({
+            time: f.departureTime || "Утро",
+            title: `Перелёт ${origin} -> ${dest}`,
+            desc: `${f.airline || "Авиаперелет"} ${f.duration ? `• ${f.duration}` : ""}`,
+            cost: f.price ? `${f.price.toLocaleString("ru-RU")} ₽` : undefined,
+            type: "transport",
+            ticketsRequired: true,
+            link: url
+        })
+    }
   }
 
-  const handlePrint = () => {
-    window.print()
+
+
+  // ===== Handlers =====
+  const handleShare = async () => {
+    const url = window.location.href
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: route.title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        toast.success("Ссылка скопирована!")
+      }
+    } catch {
+      await navigator.clipboard.writeText(url)
+      toast.success("Ссылка скопирована!")
+    }
   }
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-
     if (!user) {
       toast.error("Войдите, чтобы добавить маршрут в избранное")
       router.push(`/auth?next=/trip/${route.id}`)
       return
     }
-
     setFavoriteLoading(true)
-    // Optimistic update
     const newFav = !isFavorite
     setIsFavorite(newFav)
-
     try {
       await toggleFavorite(route.id)
-      toast.success(newFav ? "Маршрут добавлен в избранное" : "Маршрут удален из избранного")
-    } catch (error) {
+      toast.success(newFav ? "Маршрут добавлен в избранное" : "Маршрут удалён из избранного")
+    } catch {
       setIsFavorite(!newFav)
       toast.error("Не удалось обновить избранное")
     } finally {
@@ -459,32 +558,49 @@ export default function TripDetailPage() {
     }
   }
 
+  const handleGenerateExtraActivity = async (dayNumber: number) => {
+    setIsGeneratingExtra(true)
+    try {
+      // Open AI chat with prefilled prompt
+      window.dispatchEvent(
+        new CustomEvent("trip-ai-prefill", {
+          detail: { text: `Добавь ещё одну интересную активность в день ${dayNumber}. Что-нибудь уникальное и местное.` },
+        })
+      )
+      // On mobile open the AI chat sheet, on desktop open sidebar chat
+      if (window.innerWidth < 1024) {
+        setIsMobileAIChatOpen(true)
+      } else {
+        setIsAIChatOpen(true)
+      }
+      toast.info("Генерируем активность через AI...")
+    } finally {
+      setIsGeneratingExtra(false)
+    }
+  }
+
+  const handleRequestModifyInChat = (activity: any, dayNumber: number) => {
+    window.dispatchEvent(
+      new CustomEvent("trip-ai-prefill", {
+        detail: { text: `Измени активность "${activity.title || activity.placeName || activity.desc?.slice(0, 30)}" в день ${dayNumber}.` },
+      })
+    )
+    if (window.innerWidth < 1024) {
+      setIsMobileAIChatOpen(true)
+    } else {
+      setIsAIChatOpen(true)
+    }
+  }
+
+  // ============== RENDER ==============
   return (
-    <div className="min-h-screen bg-transparent overflow-x-hidden">
+    <div className="min-h-screen trip-bg relative">
       <AppSidebar />
 
-      {/* LightRays Background */}
-      <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
-        <LightRays
-          raysOrigin="top-center"
-          raysColor="#ffffff"
-          raysSpeed={0.5}
-          lightSpread={0.6}
-          rayLength={4}
-          followMouse={true}
-          mouseInfluence={0.2}
-          className="custom-rays"
-          pulsating={true}
-        />
-      </div>
-
-      <div className={`relative z-10 transition-[margin] duration-300 pb-20 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'}`}>
-        {/* Mobile Header - Floating Overlay */}
-        <div className="lg:hidden"><Header floating /></div>
-
-        {/* Hero Banner */}
-        <div className="relative h-[50vh] min-h-[400px] sm:min-h-[500px] w-full overflow-hidden lg:mt-0">
-          <motion.div style={{ y, scale }} className="absolute inset-0 h-full w-full">
+      <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
+        {/* ===== HERO IMAGE SECTION ===== */}
+        <div className="relative w-full h-[420px] sm:h-[520px] shrink-0 overflow-hidden">
+          <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
             <TripImage
               src={heroImage}
               query={destinationName}
@@ -493,433 +609,426 @@ export default function TripDetailPage() {
               priority
             />
           </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-background/20 to-background" />
 
-          {/* Favorites Button in Hero (Icon) */}
-          <div className="absolute top-4 right-4 z-30">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white border-white/10"
-              disabled={favoriteLoading}
-              onClick={handleToggleFavorite}
-            >
-              <Heart className={cn("h-5 w-5 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500 scale-110" : "text-white")} />
-            </Button>
+          {/* Gradient overlays — lighter to show image */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent h-1/3" />
+
+          {/* ===== Floating Header Bar (all screens) ===== */}
+          <div className="absolute top-3 sm:top-6 left-3 sm:left-8 right-3 sm:right-8 z-40">
+            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-2xl">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <button
+                  onClick={() => router.back()}
+                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-sm"
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                </button>
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white tracking-tight truncate">{route.title}</h1>
+                  <div className="hidden sm:flex items-center text-sm text-slate-600 dark:text-blue-100/80 gap-4 mt-1 font-medium">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-base">calendar_month</span>
+                      {formatDateRange(tripStartDate, tripEndDate) || `${tripDurationDays} дней`}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-base">person</span>
+                      {route.travelers || 2} путешественника
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+                <button onClick={() => setShowBudgetModal(true)} className="hidden sm:block text-right group cursor-pointer">
+                  <p className="text-xs text-slate-500 dark:text-blue-200/70 font-medium uppercase tracking-wide">Общий бюджет</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-white group-hover:text-sky-600 dark:group-hover:text-blue-300 transition-colors">{route.totalBudget}</p>
+                </button>
+                <div className="hidden sm:block h-10 w-px bg-slate-300 dark:bg-white/10" />
+                <div className="flex items-center gap-1.5 sm:gap-3">
+                  <button
+                    onClick={handleShare}
+                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors bg-white/30 dark:bg-white/5 backdrop-blur-sm"
+                  >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">share</span>
+                  </button>
+                  <button
+                    onClick={handleToggleFavorite}
+                    disabled={favoriteLoading}
+                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors bg-white/30 dark:bg-white/5 backdrop-blur-sm"
+                  >
+                    <Heart className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "")} />
+                  </button>
+
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 p-4 pb-6 sm:p-8 sm:pb-12 bg-gradient-to-t from-background via-background/80 to-transparent">
-            <div className="container max-w-7xl px-4 text-center sm:text-left">
-              <div className="flex items-center gap-3 mb-3 sm:mb-6">
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => router.back()}
-                  className="rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Назад
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleToggleFavorite}
-                  className="rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20 border-0 text-xs sm:text-sm font-medium"
-                >
-                  <Heart className={cn("mr-2 h-4 w-4 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "text-white")} />
-                  {isFavorite ? "В избранном" : "В избранное"}
-                </Button>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 text-white border-0 text-xs sm:text-sm font-bold shadow-lg shadow-blue-500/20"
-                >
-                  <Globe className="mr-2 h-4 w-4 animate-pulse" /> 3D Режим β
-                </Button>
+          {/* ===== Bottom Overlay (tags + title + description) ===== */}
+          <div className="absolute bottom-6 sm:bottom-10 left-4 sm:left-8 right-4 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-6 z-30">
+            <div className="max-w-3xl">
+              {/* Colored Tags with icons */}
+              <div className="flex items-center flex-wrap gap-2 mb-4">
+                {route.tags?.map((tag: string, idx: number) => {
+                  const cfg = getTagConfig(tag)
+                  const TagIcon = cfg.icon
+                  return (
+                    <span
+                      key={idx}
+                      className={cn(
+                        "px-3 py-1.5 backdrop-blur-md text-[10px] font-bold rounded-full border uppercase tracking-wide shadow-sm flex items-center gap-1.5",
+                        cfg.color
+                      )}
+                    >
+                      <TagIcon className="w-3 h-3" />
+                      {tag.replace("#", "")}
+                    </span>
+                  )
+                })}
+                {route.safetyInfo?.rating && (
+                  <span className="px-3 py-1.5 bg-emerald-100/80 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-200/50 dark:border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                    {route.safetyInfo.rating}/10
+                  </span>
+                )}
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="space-y-3 sm:space-y-6"
+              {/* Big Title */}
+              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight drop-shadow-xl leading-tight">
+                {route.title}
+              </h2>
+
+              {/* Description — subtle */}
+              {route.description && (
+                <p className="text-white/70 max-w-2xl text-sm sm:text-base drop-shadow-md font-medium leading-relaxed line-clamp-2">
+                  {route.description}
+                </p>
+              )}
+            </div>
+
+            {/* 3D Map Button */}
+            <button
+              onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
+              className="bg-blue-600 hover:bg-blue-500 backdrop-blur-xl text-white px-6 sm:px-8 py-3 sm:py-4 rounded-3xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-3 transform hover:-translate-y-1 border border-blue-400/50 hover:shadow-blue-500/50 shrink-0"
+            >
+              <span className="material-symbols-outlined text-2xl">view_in_ar</span>
+              <span className="text-base">3D-карта</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ===== STICKY DAY TABS ===== */}
+        <div className="sticky top-0 z-40 px-2 sm:px-4 lg:px-8 py-3">
+          <div className="trip-glass rounded-full p-1.5 sm:p-2 shadow-2xl max-w-7xl mx-auto flex items-center gap-1">
+            {/* Left arrow */}
+            {tripDurationDays > 1 && (
+              <button
+                onClick={() => setActiveDay(Math.max(1, activeDay - 1))}
+                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
               >
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start">
-                  {route.tags?.map((tag: string) => {
-                    const cleanTag = tag.toLowerCase().replace('#', '').trim();
-                    const matchKey = Object.keys(tagIcons).find(key => cleanTag.includes(key.toLowerCase())) || "default";
-                    const colorKey = Object.keys(tagColors).find(key => cleanTag.includes(key.toLowerCase())) || "default";
+                <span className="material-symbols-outlined text-lg">chevron_left</span>
+              </button>
+            )}
+            <div className="flex space-x-1 overflow-x-auto no-scrollbar flex-1 px-1">
+              {route.itinerary?.map((day: any) => {
+                const isActive = activeDay === day.day
+                const hasFlight =
+                  route.flights?.some((f: any) => f.dayNumber === day.day) ||
+                  (day.day === 1 && route.flights?.some((f: any) => f.direction === "outbound")) ||
+                  (day.day === route.itinerary.length && route.flights?.some((f: any) => f.direction === "return")) ||
+                  day.activities?.some((a: any) => 
+                    a.type === "transport" && 
+                    /перелёт|перелет|рейс|вылет|прибытие|аэропорт/i.test(a.title || "")
+                  )
+                const isCompact = false
 
-                    const Icon = tagIcons[matchKey] || tagIcons["default"];
-                    const colorClass = tagColors[colorKey] || tagColors["default"];
-
-                    return (
-                      <Badge key={tag} className={`${colorClass} rounded-full px-2.5 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm font-bold flex items-center gap-1 sm:gap-1.5 border-none shadow-sm transition-colors`}>
-                        <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        {tag}
-                      </Badge>
-                    )
-                  })}
-                </div>
-
-                <h1 className="text-2xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-foreground dark:text-white drop-shadow-2xl">
-                  {route.title}
-                </h1>
-
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 justify-center sm:justify-start text-foreground/80 dark:text-white/90 font-medium text-xs sm:text-sm md:text-lg">
-                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
-                    <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-sky-600 dark:text-sky-400" />
-                    {route.itinerary?.length || 0} дней
-                  </div>
-                  <div
-                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10 cursor-pointer hover:bg-muted dark:hover:bg-white/10 transition-colors group"
-                    onClick={() => setShowBudgetModal(true)}
+                return (
+                  <button
+                    key={day.day}
+                    onClick={() => setActiveDay(day.day)}
+                    className={cn(
+                      "flex-shrink-0 rounded-full transition-all flex flex-col items-center relative border",
+                      isCompact ? "px-3 py-1.5 min-w-[56px]" : "px-4 sm:px-6 py-2 sm:py-3 min-w-[80px] sm:min-w-[100px]",
+                      isActive
+                        ? "bg-sky-500 dark:bg-blue-600 text-white shadow-lg shadow-sky-400/40 dark:shadow-blue-500/40 border-sky-400/50 dark:border-blue-400/50"
+                        : "text-slate-600 dark:text-white/70 hover:bg-white/50 dark:hover:bg-white/10 hover:text-sky-700 dark:hover:text-white border-transparent hover:border-white/30 dark:hover:border-white/10 group"
+                    )}
                   >
-                    <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-                    <span className="underline decoration-dotted underline-offset-4">{route.totalBudget}</span>
+                    {hasFlight && (
+                      <span className={cn(
+                        "absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center shadow-md border",
+                        isActive
+                          ? "bg-white text-sky-600 border-sky-300"
+                          : "bg-sky-500 text-white border-sky-400 dark:bg-blue-500 dark:border-blue-400"
+                      )}>
+                        <Plane className="w-2.5 h-2.5" />
+                      </span>
+                    )}
+                    <span className={cn(
+                      "font-bold uppercase tracking-widest",
+                      isCompact ? "text-[9px]" : "text-[10px]",
+                      isActive ? "opacity-90" : "opacity-70 group-hover:opacity-100"
+                    )}>
+                      {formatDayDate(tripStartDate, day.day - 1) ? `День ${day.day}` : ""}
+                    </span>
+                    <span className={cn(
+                      "font-bold",
+                      isCompact ? "text-xs" : "text-base sm:text-lg",
+                      isActive ? "font-extrabold" : "group-hover:text-sky-800 dark:group-hover:text-white"
+                    )}>
+                      {formatDayDate(tripStartDate, day.day - 1) || `День ${day.day}`}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {/* Right arrow */}
+            {tripDurationDays > 1 && (
+              <button
+                onClick={() => setActiveDay(Math.min(tripDurationDays, activeDay + 1))}
+                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">chevron_right</span>
+              </button>
+            )}
+            <div className="hidden md:flex border-l border-slate-300/40 dark:border-white/10 pl-2 ml-1">
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <button className="p-2.5 text-slate-500 dark:text-white/70 hover:text-sky-700 dark:hover:text-white transition-colors bg-white/30 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 rounded-full backdrop-blur-md">
+                    <span className="material-symbols-outlined text-xl">calendar_month</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 rounded-2xl" align="end">
+                  <div className="p-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Даты поездки</p>
+                    {tripStartDate && tripEndDate ? (
+                      <Calendar
+                        mode="multiple"
+                        selected={calendarSelectedDays}
+                        defaultMonth={tripStartDate}
+                        className="rounded-xl"
+                      />
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        <p className="font-medium">{tripDurationDays} дней</p>
+                        <p className="text-xs mt-1">Точные даты не указаны</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full bg-muted/80 dark:bg-white/5 backdrop-blur-sm border border-border/50 dark:border-white/10">
-                    <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />
-                    Безопасность {route.safetyInfo?.rating || 8}/10
-                  </div>
-
-                </div>
-              </motion.div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
 
-        <main className="container max-w-7xl px-3 sm:px-4 mt-8 overflow-hidden">
-          <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
-            {/* Main Itinerary */}
-            <div className="space-y-6 min-w-0 overflow-hidden">
-              <h2 className="text-2xl font-bold flex items-center gap-3">
-                <Map className="h-6 w-6 text-primary" />
-                План путешествия
-              </h2>
+        {/* ===== MAIN CONTENT GRID ===== */}
+        <div className="max-w-7xl mx-auto px-4 lg:px-8 pb-20 relative z-30">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-4">
 
-              <div className="space-y-8">
-                <h3 className="text-xl font-bold flex items-center gap-2 pt-4">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Программа по дням
-                </h3>
+            {/* ===== LEFT COLUMN: Timeline ===== */}
+            <div className="lg:col-span-7 space-y-6">
+              {currentDay && (
+                <>
+                  {/* Day title bar */}
+                  <div className="flex items-center justify-between trip-glass p-4 rounded-3xl shadow-lg">
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm">
+                      День {currentDay.day}: {currentDay.title || "Продолжение приключения"}
+                    </h3>
+                    <button
+                      onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
+                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-5 py-2.5 rounded-full transition-all flex items-center gap-2 shadow-lg shadow-sky-500/30 dark:shadow-blue-600/30 border border-sky-400/20 dark:border-blue-400/50 shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-sm">view_in_ar</span> 3D-карта
+                    </button>
+                  </div>
 
-                <div className="space-y-4">
-                  {route.itinerary?.map((day: any, idx: number) => {
-                    const isExpanded = expandedDay === day.day;
-                    const TransportIcon = transportIcons[day.logistics?.mode] || Zap;
-                    const isFirstDay = day.day === 1;
-                    const isLastDay = day.day === route.itinerary.length;
-                    const logisticsIsFlightMode = day.logistics?.mode && (day.logistics.mode.toLowerCase().includes('самол') || day.logistics.mode.toLowerCase().includes('flight') || day.logistics.mode.toLowerCase().includes('plane') || day.logistics.mode.toLowerCase().includes('перелёт') || day.logistics.mode.toLowerCase().includes('перелет'));
+                  {/* Logistics bar */}
+                  {currentDay.logistics && currentDay.logistics.mode !== "None" && (
+                    <div className="trip-glass rounded-2xl p-4 flex items-center gap-4 text-sm text-slate-600 dark:text-blue-100/80 font-medium">
+                      <TransportIcon className="h-5 w-5 text-sky-500 dark:text-blue-400" />
+                      <span>
+                        {modeTranslations[currentDay.logistics.mode] || currentDay.logistics.mode}: {currentDay.logistics.from} → {currentDay.logistics.to}
+                        {currentDay.logistics.distance && ` (${currentDay.logistics.distance}`}
+                        {currentDay.logistics.duration && `, ~${currentDay.logistics.duration})`}
+                      </span>
+                      {currentDay.logistics.price && (
+                        <Badge variant="secondary" className="ml-auto">{currentDay.logistics.price}</Badge>
+                      )}
+                    </div>
+                  )}
 
-                    // Find flights associated with this day
-                    const dayFlights = route.flights?.filter((f: any) => {
-                      if (f.dayNumber === day.day) return true;
-                      // For outbound: show on first day or day with flight logistics
-                      if (f.direction === 'outbound' && isFirstDay) return true;
-                      if (f.direction === 'return' && isLastDay) return true;
-                      return false;
-                    }) || [];
+                  {/* Flight cards — hidden by design */}
 
-                    // Find hotels for this day — strictly by check-in day only
-                    // Show hotel badge only if:
-                    // 1. Hotel check-in (dayStart) matches this day
-                    // 2. This is an arrival day (first day OR day with flight/transfer arrival to new city)
-                    const isArrivalDay = isFirstDay ||
-                      (day.logistics?.mode && ['Flight', 'Plane', 'Перелёт', 'Перелет', 'Train', 'Поезд'].some(m =>
-                        day.logistics.mode.toLowerCase().includes(m.toLowerCase())
-                      ));
 
-                    const dayHotels = route.hotels?.filter((h: any) => {
-                      // Only show if this is the check-in day for this hotel
-                      return Number(h.dayStart) === Number(day.day);
-                    }) || [];
 
-                    // If no explicit day assignments, show all flights on first day
-                    const showAllFlights = isFirstDay && route.flights?.length > 0 && !route.flights.some((f: any) => f.dayNumber || f.direction);
+                  {/* Hotel cards — hidden by design */}
 
-                    const flightsToShow = showAllFlights ? route.flights : dayFlights;
-                    // Only show hotels if this is an actual arrival day (has hotel check-in AND is arrival day)
-                    const hotelsToShow = isArrivalDay ? dayHotels : [];
+                  {/* ===== Activity Timeline ===== */}
+                  <div className="trip-timeline relative space-y-6 pl-4">
+                    {finalDayActivities.map((activity: any, i: number) => (
+                      <ActivityTimelineCard
+                        key={`act-${activeDay}-${i}`}
+                        activity={activity}
+                        destination={destinationName}
+                        dayNumber={activeDay}
+                        onGenerateExtraActivity={handleGenerateExtraActivity}
+                        onRequestModifyInChat={handleRequestModifyInChat}
+                        isGeneratingExtra={isGeneratingExtra}
+                      />
+                    ))}
+                  </div>
 
-                    return (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        key={idx}
-                        className="w-full max-w-full overflow-hidden"
-                      >
-                        {/* Flight cards BEFORE day card (inline in timeline) */}
-                        {SHOW_TRANSPORT_CARDS && isExpanded && flightsToShow.length > 0 && (
-                          <div className="mb-4 space-y-3 animate-in slide-in-from-top duration-300 w-full max-w-full overflow-hidden">
-                            <div className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 ml-1">
-                              <Plane className="h-4 w-4" />
-                              {isFirstDay ? 'Перелёт туда' : isLastDay ? 'Обратный перелёт' : 'Перелёт'}
-                            </div>
-                            {flightsToShow.map((flight: any, i: number) => (
-                              <FlightCard key={`flight-${day.day}-${i}`} {...flight} />
-                            ))}
-                          </div>
-                        )}
+                  {/* Day tips */}
+                  {currentDay.tips && (
+                    <div className="trip-glass rounded-2xl p-4 flex gap-3 text-sm text-amber-900 dark:text-amber-200 bg-amber-50/50 dark:!bg-amber-900/20 !border-amber-200/50 dark:!border-amber-900/30">
+                      <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
+                      <p><strong>Совет:</strong> {currentDay.tips}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
 
-                        <Card className={`overflow-hidden border border-border/50 dark:border-white/10 bg-card dark:bg-white/5 backdrop-blur-md shadow-lg transition-all duration-300 max-w-full ${isModifying ? 'animate-pulse blur-[2px] opacity-70 scale-[0.98]' : ''} hover:border-primary/30`}>
-                          <button
-                            onClick={() => setExpandedDay(isExpanded ? null : day.day)}
-                            className="w-full flex items-center justify-between p-3 sm:p-5 text-left group bg-transparent gap-2"
-                            aria-expanded={isExpanded}
-                            aria-controls={`day-content-${day.day}`}
-                          >
-                            <div className="flex items-center gap-3 sm:gap-6 min-w-0">
-                              <div className={`flex flex-col h-10 w-10 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full transition-all duration-300 border border-border/30 dark:border-white/5 ${isExpanded ? 'bg-primary/10 dark:bg-white/10' : 'bg-muted/50 dark:bg-white/5'}`}>
-                                {isExpanded ? (
-                                  <span className="text-base sm:text-xl font-black bg-gradient-to-b from-blue-400 to-red-100 bg-clip-text text-transparent">
-                                    {day.day}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground dark:text-white/60 font-bold text-sm sm:text-base">{day.day}</span>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-0.5 sm:mb-1">День {day.day}</div>
-                                <div className="font-bold text-base sm:text-xl md:text-2xl group-hover:text-primary transition-colors truncate">{day.title || "Продолжение приключения"}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                              {/* Inline indicators for flights/hotels on this day */}
-                              {flightsToShow.length > 0 && (
-                                <Badge variant="outline" className="hidden sm:flex rounded-full border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold px-2 py-0.5">
-                                  <Plane className="h-3 w-3 mr-1" /> Перелёт
-                                </Badge>
-                              )}
-                              {SHOW_TRANSPORT_CARDS && hotelsToShow.length > 0 && (
-                                <Badge variant="outline" className="hidden sm:flex rounded-full border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold px-2 py-0.5">
-                                  <HotelIcon className="h-3 w-3 mr-1" /> Отель
-                                </Badge>
-                              )}
-                              <div className={`p-1.5 sm:p-2 rounded-full bg-muted/50 dark:bg-white/5 transition-transform duration-300 ${isExpanded ? 'rotate-90 bg-primary/20 text-primary' : ''}`}>
-                                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
-                              </div>
-                            </div>
-                          </button>
+            {/* ===== RIGHT COLUMN: Sticky Sidebar ===== */}
+            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
 
-                          {isExpanded && (
-                            <div
-                              id={`day-content-${day.day}`}
-                              className="px-3 sm:px-5 pb-4 sm:pb-6 bg-transparent animate-in slide-in-from-top-2 duration-300 overflow-hidden"
-                            >
-                              {/* Logistics Bar */}
-                              {day.logistics && (day.logistics.mode !== "None") && (
-                                <div className="mb-6 flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50 italic text-sm text-muted-foreground">
-                                  <TransportIcon className="h-5 w-5 text-primary" />
-                                  <span>
-                                    {day.logistics.mode}: {day.logistics.from} → {day.logistics.to}
-                                    ({day.logistics.distance}, ~{day.logistics.duration})
-                                  </span>
-                                  {day.logistics.price && <Badge variant="secondary" className="ml-auto">{day.logistics.price}</Badge>}
-                                </div>
-                              )}
+              {/* Weather Widget - REMOVED (Moved to grid below) */}
 
-                              {/* Booking Bar (Aviasales/Ostrovok) */}
-                              <div className="mb-6 flex flex-wrap gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-full bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
-                                  onClick={() => {
-                                    const destination = day.logistics?.to || route.destination || ""
-                                    const url =
-                                      flightsToShow?.[0]?.bookingUrl ||
-                                      day.logistics?.bookingLink ||
-                                      `https://www.aviasales.ru/?destination=${encodeURIComponent(destination)}`
-                                    window.open(url, '_blank')
-                                  }}
-                                >
-                                  <Plane className="mr-2 h-3.5 w-3.5" /> Билеты
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-full bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-black uppercase tracking-tighter h-8"
-                                  onClick={() => {
-                                    const destination = day.logistics?.to || route.destination || ""
-                                    const url =
-                                      hotelsToShow?.[0]?.bookingUrl ||
-                                      `https://ostrovok.ru/search/?q=${encodeURIComponent(destination)}`
-                                    window.open(url, '_blank')
-                                  }}
-                                >
-                                  <HotelIcon className="mr-2 h-3.5 w-3.5" /> Отели: {hotelsToShow?.[0]?.hotelName || day.logistics?.to || route.destination || "Поиск"}
-                                </Button>
-                              </div>
+              {/* AI Assistant Button */}
+              <div className="hidden lg:block trip-glass rounded-[2rem] shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
+                <button
+                  onClick={() => setIsAIChatOpen(!isAIChatOpen)}
+                  className="w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-xl border border-white/50 dark:border-white/10 flex items-center justify-between group/btn hover:bg-white dark:hover:bg-[#0B1121]/90 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 dark:from-blue-600 dark:to-blue-600 flex items-center justify-center text-white border border-white/40 dark:border-white/20 shadow-md dark:shadow-[0_0_15px_rgba(37,99,235,0.5)]">
+                      <span className="material-symbols-outlined text-lg">smart_toy</span>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white group-hover/btn:text-sky-600 dark:group-hover/btn:text-blue-300 transition-colors">AI помощник</p>
+                      <p className="text-[10px] text-slate-500 dark:text-gray-400 uppercase tracking-wide">вопросы и изменения</p>
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover/btn:bg-sky-500 dark:group-hover/btn:bg-blue-600 group-hover/btn:text-white transition-all text-slate-400 dark:text-white/70">
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </div>
+                </button>
+              </div>
 
-                              <div className="space-y-6 pl-2 border-l-2 border-border ml-4 sm:ml-6">
-                                {(day.activities || [
-                                  { time: "Утро", desc: day.morning },
-                                  { time: "День", desc: day.daytime },
-                                  { time: "Вечер", desc: day.night }
-                                ].filter(i => i.desc)).map((item: any, i: number) => {
-                                  const iconMap: Record<string, any> = { "Утро": Clock, "День": Utensils, "Вечер": HotelIcon };
-                                  const Icon = iconMap[item.time] || Sparkles;
+              {/* AI Chat Widget (toggleable on desktop) — longer */}
+              <AnimatePresence>
+                {isAIChatOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden hidden lg:block"
+                  >
+                    <ItineraryChatWidget
+                      itinerary={route}
+                      tripDetails={route}
+                      onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
+                      onModifying={setIsModifying}
+                      tripId={params.id as string}
+                      embedded
+                      className="trip-glass rounded-[2rem] min-h-[500px]"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                                  return (
-                                    <div key={i} className="relative">
-                                      <div className="absolute -left-[1.65rem] top-0 h-4 w-4 rounded-full bg-background border-4 border-primary shadow-sm" />
-                                      <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-tighter text-primary/60">
-                                            <Icon className="h-3 w-3" />
-                                            {item.time}
-                                          </div>
-                                          {item.cost && <span className="text-xs font-bold text-muted-foreground/60">{item.cost}</span>}
-                                        </div>
-                                        {item.placeName && (
-                                          <h4 className="font-semibold text-foreground mb-1">{item.placeName}</h4>
-                                        )}
-                                        <p className="text-sm leading-relaxed text-foreground/80 font-medium">
-                                          {item.desc}
-                                        </p>
-                                        <div className="flex items-center gap-4 mt-2">
-                                          <Button
-                                            variant="link"
-                                            size="sm"
-                                            className="h-auto p-0 text-xs text-slate-400 hover:text-primary"
-                                            onClick={() => {
-                                              const mapUrl = item.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.placeName || item.desc.split('.')[0])}`
-                                              window.open(mapUrl, "_blank")
-                                            }}
-                                          >
-                                            <MapPin className="mr-1 h-3 w-3" /> На карте
-                                          </Button>
-                                          {item.link && item.ticketsRequired && (
-                                            <Link href={item.link} target="_blank" className="flex items-center text-xs text-primary hover:underline">
-                                              <ExternalLink className="mr-1 h-3 w-3" /> Купить билеты
-                                            </Link>
-                                          )}
-                                        </div>
+              {/* Weather + Tips Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Weather Card */}
+                <CurrentWeatherWidget 
+                    destination={destinationName} 
+                    date={undefined} 
+                />
 
-                                        {/* Place Gallery, AI Reviews & Social Proof */}
-                                        {item.placeName && (
-                                          <div className="mt-4 pt-4 border-t border-white/5 space-y-6">
-                                            <PlaceGallery query={`${item.placeName} ${route.destination || ""}`} count={5} />
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Hotel cards INSIDE day card (after activities) */}
-                              {hotelsToShow.length > 0 && (
-                                <div className="mt-6 space-y-3 animate-in slide-in-from-bottom duration-300">
-                                  <div className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 ml-1">
-                                    <HotelIcon className="h-4 w-4" />
-                                    Проживание
-                                  </div>
-                                  {hotelsToShow.map((hotel: any, i: number) => (
-                                    <HotelCard key={`hotel-${day.day}-${i}`} {...hotel} />
-                                  ))}
-                                </div>
-                              )}
-
-                              {day.tips && (
-                                <div className="mt-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 flex gap-3 text-sm text-amber-900 dark:text-amber-200 shadow-inner">
-                                  <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                                  <p><strong>Совет:</strong> {day.tips}</p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
+                {/* Tips Card */}
+                <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div className="bg-white/60 dark:bg-white/5 p-2.5 rounded-2xl shadow-sm dark:shadow-inner backdrop-blur-md border border-white/40 dark:border-white/5">
+                      <span className="material-symbols-outlined text-amber-500 dark:text-amber-300">lightbulb</span>
+                    </div>
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-200/70 uppercase tracking-wide">Советы</span>
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-slate-800 dark:text-white line-clamp-2 leading-tight drop-shadow-sm">
+                      {currentDay?.tips || "Важная информация по маршруту"}
+                    </span>
+                    <button
+                      onClick={() => setShowTipsModal(true)}
+                      className="text-[10px] font-bold text-amber-600 dark:text-amber-300 hover:text-amber-800 dark:hover:text-white mt-1 block uppercase tracking-wide transition-colors"
+                    >
+                      Все советы
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Chat Widget moved to FAB bottom sheet on mobile */}
-
-              {/* Viral Spots (Ghost Points) */}
-              {route.viralSpots && route.viralSpots.length > 0 && (
-                <div className="mt-12 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                  <h2 className="text-2xl font-bold flex items-center gap-3 mb-6">
-                    <Camera className="h-6 w-6 text-pink-500" />
-                    <GradientText className="from-pink-500 to-purple-600">TikTok Trends & Viral Spots</GradientText>
-                  </h2>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {route.viralSpots.map((spot: any, idx: number) => (
-                      <ViralSpotCard key={idx} {...spot} />
-                    ))}
+              {/* Accommodation Card (sidebar preview) */}
+              {sidebarHotel && (
+                <div className="trip-glass p-6 rounded-[2rem] shadow-lg hover:shadow-xl transition-colors">
+                  <h4 className="text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-4 opacity-80">Проживание</h4>
+                  <div className="flex items-center gap-5">
+                    <div className="w-20 h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
+                      <TripImage
+                        query={`${sidebarHotel.hotelName} ${destinationName} hotel`}
+                        alt={sidebarHotel.hotelName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-slate-800 dark:text-white text-lg">{sidebarHotel.hotelName}</h5>
+                      <div className="flex items-center text-xs text-yellow-500 dark:text-yellow-300 mt-1 font-bold">
+                        <span className="material-symbols-outlined text-sm text-yellow-400 mr-1">star</span>
+                        <span>{sidebarHotel.stars || sidebarHotel.rating || "5.0"}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-blue-100/70 mt-1.5 font-medium">
+                        Заселение: {sidebarHotel.checkIn || "14:00"}
+                      </p>
+                      {sidebarHotel.cost && (
+                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-1">{sidebarHotel.cost}</p>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-3 italic text-center opacity-60">
-                    * Локации, популярные в социальных сетях в 2025-2026 году. Не входят в основной маршрут.
-                  </p>
+                  <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center">
+                    <span className="px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
+                      Подтверждено
+                    </span>
+                    <button
+                      onClick={() => {
+                        const checkInDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
+                        const checkOutDate = checkInDate ? addDays(checkInDate, 1) : undefined
+
+                        const link = sidebarHotel.bookingUrl || getHotelSearchLink({
+                             destination: sidebarHotel.hotelName,
+                             checkIn: checkInDate,
+                             checkOut: checkOutDate,
+                             adults: route.travelers || 2,
+                             subId: "sidebar_card"
+                        })
+                        window.open(link, "_blank")
+                      }}
+                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-4 py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
+                    >
+                      Бронирование
+                    </button>
+                  </div>
                 </div>
               )}
 
+              {/* TikTok Places */}
+              <TripViralCarousel spots={route.viralSpots || []} />
 
-              {/* --- SOCIAL LAYER REMOVED BY USER REQUEST --- */}
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              <div className="hidden lg:block">
-                <ItineraryChatWidget
-                  itinerary={route}
-                  tripDetails={route}
-                  onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
-                  onModifying={setIsModifying}
-                  tripId={params.id as string}
-                  className="bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-border/50 dark:border-white/5 shadow-xl"
-                />
-              </div>
-
-              <Card className="p-6 border border-border/50 dark:border-white/5 shadow-xl bg-card/80 dark:bg-white/5 backdrop-blur-md rounded-[2rem]">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-primary" />
-                  Важная информация
-                </h3>
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2">Виза</h4>
-                    <p className="text-sm text-foreground/80 leading-relaxed">{route.visaAdvice || "Информация о визе будет доступна после генерации"}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2">Оплата</h4>
-                    <p className="text-sm text-foreground/80 leading-relaxed">{route.paymentAdvice || "Информация об оплате будет доступна после генерации"}</p>
-                  </div>
-                  {route.restrictions && (
-                    <div>
-                      <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2">Ограничения</h4>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{route.restrictions}</p>
-                    </div>
-                  )}
-                  {route.safetyInfo && (
-                    <div>
-                      <h4 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2">Безопасность</h4>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex items-center gap-1">
-                          {[...Array(10)].map((_, i) => (
-                            <div
-                              key={i}
-                              className={`w-2 h-2 rounded-full ${i < (route.safetyInfo?.rating || 0) ? 'bg-emerald-500' : 'bg-muted'}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm font-bold">{route.safetyInfo?.rating}/10</span>
-                      </div>
-                      <p className="text-sm text-foreground/80 leading-relaxed">{route.safetyInfo?.tips}</p>
-                    </div>
-                  )}
-                </div>
-              </Card>
+              {/* Important Info — hidden, accessible via Tips modal */}
             </div>
           </div>
-        </main>
+        </div>
 
-        {/* Budget Analysis Modal */}
+        {/* ===== Budget Analysis Modal ===== */}
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
           <DialogContent className="max-w-md rounded-3xl p-8">
             <DialogHeader>
@@ -931,7 +1040,6 @@ export default function TripDetailPage() {
                 Детальный разбор расходов на вашу поездку
               </DialogDescription>
             </DialogHeader>
-
             <div className="space-y-6 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border">
@@ -960,7 +1068,6 @@ export default function TripDetailPage() {
                   <div className="text-[10px] text-muted-foreground">чаевые, сувениры и т.д.</div>
                 </div>
               </div>
-
               <div className="space-y-3">
                 <h4 className="text-sm font-bold">Общие итоги</h4>
                 <div className="flex justify-between items-center py-2 border-b border-border italic text-sm">
@@ -968,83 +1075,97 @@ export default function TripDetailPage() {
                   <span className="font-bold">{route.totalBudget}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля ("{route.budget_range || "Комфорт"}"). Реальная стоимость может отличаться.
+                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля &quot;{route.budget_range || "Комфорт"}&quot;. Реальная стоимость может отличаться.
                 </p>
               </div>
-
               <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
                 Понятно
               </Button>
             </div>
           </DialogContent>
-        </Dialog >
+        </Dialog>
 
-        <div className="container max-w-4xl mx-auto px-4 mt-12 mb-24">
-          <div className="p-6 rounded-2xl border border-border/50 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md flex flex-wrap gap-3 justify-center items-center shadow-xl">
-            {/* Main info badges */}
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
-              {tripDestinationLabel}
-            </Badge>
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
-              {tripDurationDays} дней
-            </Badge>
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-bold bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-foreground dark:text-white border border-border/50 dark:border-white/10 flex items-center gap-2">
-              <Wallet className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
-              {route.budget_range || route.totalBudget}
-            </Badge>
+        {/* ===== Tips Modal ===== */}
+        <Dialog open={showTipsModal} onOpenChange={setShowTipsModal}>
+          <DialogContent className="max-w-2xl rounded-3xl p-6 sm:p-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+                <Compass className="h-6 w-6 text-amber-500" />
+                Советы по маршруту
+              </DialogTitle>
+              <DialogDescription>
+                Рекомендации по дням и важная информация по поездке.
+              </DialogDescription>
+            </DialogHeader>
 
-            {/* Preferences badges with translations */}
-            {(() => {
-              const prefs = route.preferences || {};
-              const tStyle = prefs.travel_style || route.travel_style;
-              const tPace = prefs.pace || route.pace;
-              const tCompanions = prefs.companions || route.companions;
+            <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="space-y-3">
+                <h4 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">
+                  Советы по дням
+                </h4>
+                {itineraryTips.length > 0 ? (
+                  <div className="space-y-3">
+                    {itineraryTips.map((day: any) => (
+                      <div
+                        key={`tip-day-${day.day}`}
+                        className="trip-glass rounded-2xl p-4 text-sm text-slate-700 dark:text-blue-100/90"
+                      >
+                        <p className="font-bold text-slate-900 dark:text-white mb-1">День {day.day}</p>
+                        <p className="leading-relaxed">{day.tips}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Советы по дням пока не добавлены.</p>
+                )}
+              </div>
 
-              // Helper to translate style values
-              const translateStyle = (s: string) => styleTranslations[s.toLowerCase()] || s;
-              const translatePace = (p: string) => paceTranslations[p.toLowerCase()] || p;
-              const translateCompanions = (c: string) => companionsTranslations[c.toLowerCase()] || c;
-
-              return (
-                <>
-                  {tStyle && (Array.isArray(tStyle) ? tStyle.length > 0 : tStyle) && (
-                    <>
-                      {(Array.isArray(tStyle) ? tStyle : [tStyle]).map((style: string, idx: number) => (
-                        <Badge key={idx} className="rounded-full px-3 py-1 text-xs font-bold bg-pink-500/20 text-pink-700 dark:text-pink-200 border border-pink-500/20 flex items-center gap-1.5">
-                          <Sparkles className="h-3 w-3" />
-                          {translateStyle(style)}
-                        </Badge>
-                      ))}
-                    </>
+              <div className="trip-glass rounded-2xl p-5 sm:p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white">
+                  <Shield className="h-5 w-5 text-sky-500 dark:text-blue-400" />
+                  Важная информация
+                </h3>
+                <div className="space-y-5">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Виза</h4>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.visaAdvice || "Информация о визе будет доступна после генерации"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Оплата</h4>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.paymentAdvice || "Информация об оплате будет доступна после генерации"}</p>
+                  </div>
+                  {route.restrictions && (
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Ограничения</h4>
+                      <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.restrictions}</p>
+                    </div>
                   )}
-
-                  {tPace && (
-                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-sky-500/20 text-sky-700 dark:text-sky-200 border border-sky-500/20 flex items-center gap-1.5">
-                      <Zap className="h-3 w-3" />
-                      {translatePace(tPace)}
-                    </Badge>
+                  {route.safetyInfo && (
+                    <div>
+                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Безопасность</h4>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1">
+                          {[...Array(10)].map((_, i) => (
+                            <div
+                              key={i}
+                              className={`w-2 h-2 rounded-full ${i < (route.safetyInfo?.rating || 0) ? "bg-emerald-500" : "bg-slate-200 dark:bg-white/10"}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{route.safetyInfo?.rating}/10</span>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.safetyInfo?.tips}</p>
+                    </div>
                   )}
-
-                  {tCompanions && (
-                    <Badge className="rounded-full px-3 py-1 text-xs font-bold bg-purple-500/20 text-purple-700 dark:text-purple-200 border border-purple-500/20 flex items-center gap-1.5">
-                      <Users className="h-3 w-3" />
-                      {translateCompanions(tCompanions)}
-                    </Badge>
-                  )}
-                </>
-              )
-            })()}
-          </div>
-        </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="mt-20">
           <Footer />
         </div>
-
-        {/* TripShareModal Component */}
-
 
         <TripChat
           tripId={params.id as string}
@@ -1053,20 +1174,11 @@ export default function TripDetailPage() {
           currentUser={user}
         />
 
-        {/* ===== MOBILE FAB BUTTONS ===== */}
-        <div className="lg:hidden fixed bottom-6 left-4 right-4 z-50 flex justify-between pointer-events-none">
-          {/* Map FAB */}
-          <button
-            onClick={() => { setIsMapOpen(true); setIsMobileAIChatOpen(false) }}
-            className="pointer-events-auto w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
-          >
-            <Map className="w-6 h-6" />
-          </button>
-
-          {/* Chat FAB */}
+        {/* ===== MOBILE FAB BUTTON (chat only) ===== */}
+        <div className="lg:hidden fixed bottom-6 right-4 z-50">
           <button
             onClick={() => { setIsMobileAIChatOpen(true); setIsMapOpen(false) }}
-            className="pointer-events-auto w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
+            className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
           >
             <MessageCircle className="w-6 h-6" />
           </button>
@@ -1082,40 +1194,32 @@ export default function TripDetailPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Backdrop */}
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMapOpen(false)} />
-
-              {/* Sheet */}
               <motion.div
                 className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
-                style={{ maxHeight: '75vh' }}
-                initial={{ y: '100%' }}
+                style={{ maxHeight: "75vh" }}
+                initial={{ y: "100%" }}
                 animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
               >
-                {/* Handle bar */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <Map className="h-5 w-5 text-primary" />
                     Карта маршрута
                   </h3>
-                  <button
-                    onClick={() => setIsMapOpen(false)}
-                    className="p-2 rounded-full hover:bg-muted transition-colors"
-                  >
+                  <button onClick={() => setIsMapOpen(false)} className="p-2 rounded-full hover:bg-muted transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-
                 <div className="h-[60vh]">
                   <TripMap
                     places={mapPlaces}
-                    activePlaceId={expandedDay ? `${expandedDay - 1}-0` : undefined}
+                    activePlaceId={activeDay ? `${activeDay - 1}-0` : undefined}
                     onPlaceSelect={(placeId: string) => {
-                      const [dayIdx] = placeId.split('-').map(Number);
-                      setExpandedDay(dayIdx + 1);
-                      setIsMapOpen(false);
+                      const [dayIdx] = placeId.split("-").map(Number)
+                      setActiveDay(dayIdx + 1)
+                      setIsMapOpen(false)
                     }}
                   />
                 </div>
@@ -1134,39 +1238,33 @@ export default function TripDetailPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Backdrop */}
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileAIChatOpen(false)} />
-
-              {/* Sheet */}
               <motion.div
                 className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
-                style={{ maxHeight: '80vh' }}
-                initial={{ y: '100%' }}
+                style={{ maxHeight: "85vh" }}
+                initial={{ y: "100%" }}
                 animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
               >
-                {/* Handle bar */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <MessageCircle className="h-5 w-5 text-blue-500" />
                     AI Ассистент
                   </h3>
-                  <button
-                    onClick={() => setIsMobileAIChatOpen(false)}
-                    className="p-2 rounded-full hover:bg-muted transition-colors"
-                  >
+                  <button onClick={() => setIsMobileAIChatOpen(false)} className="p-2 rounded-full hover:bg-muted transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-
-                <div className="h-[70vh] overflow-y-auto">
+                <div className="h-[75vh] overflow-y-auto">
                   <ItineraryChatWidget
                     itinerary={route}
                     tripDetails={route}
                     onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
                     onModifying={setIsModifying}
                     tripId={params.id as string}
+                    embedded
+                    className="h-full"
                   />
                 </div>
               </motion.div>
@@ -1174,7 +1272,7 @@ export default function TripDetailPage() {
           )}
         </AnimatePresence>
 
-        {/* Expandable Map Modal */}
+        {/* ===== DESKTOP MAP MODAL ===== */}
         <AnimatePresence>
           {isMapOpen && (
             <motion.div
@@ -1183,7 +1281,6 @@ export default function TripDetailPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {/* Backdrop with blur */}
               <motion.div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={() => setIsMapOpen(false)}
@@ -1191,32 +1288,22 @@ export default function TripDetailPage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               />
-
-              {/* Map Container */}
               <motion.div
                 className="relative w-full max-w-4xl h-[50vh] sm:h-[60vh] lg:h-[70vh] bg-card rounded-3xl overflow-hidden shadow-2xl border border-border/50 dark:border-white/10"
                 initial={{ scale: 0.9, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 50 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
               >
-                {/* Header */}
                 <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-card via-card/95 to-transparent">
                   <h3 className="text-lg font-bold flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
                     Карта маршрута
                   </h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsMapOpen(false)}
-                    className="rounded-full hover:bg-muted h-9 w-9"
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => setIsMapOpen(false)} className="rounded-full hover:bg-muted h-9 w-9">
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
-
-                {/* Map */}
                 <div className="h-full w-full">
                   {mapPlaces?.length > 0 ? (
                     <TripMap places={mapPlaces} />
@@ -1233,8 +1320,19 @@ export default function TripDetailPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div >
-    </div >
+
+        {showScrollTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-xl"
+            aria-label="Наверх"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 19V5M5 12l7-7 7 7" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
-

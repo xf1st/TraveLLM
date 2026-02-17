@@ -75,7 +75,7 @@ export function RouteSearch({ className }: RouteSearchProps) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onFocus={() => query && setIsOpen(true)}
-                    className="h-10 w-full rounded-full bg-background/50 pl-9 pr-4 backdrop-blur-sm transition-all focus:bg-background focus:shadow-lg focus:ring-primary/20"
+                    className="h-10 w-full rounded-full bg-white/10 dark:bg-black/10 pl-9 pr-4 backdrop-blur-sm transition-all focus:bg-white/20 dark:focus:bg-black/20 focus:shadow-lg ring-0 border-none placeholder:text-muted-foreground/70"
                     placeholder="Поиск маршрутов..."
                 />
             </div>

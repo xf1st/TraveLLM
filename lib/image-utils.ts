@@ -3,7 +3,7 @@ export const DEFAULT_TRAVEL_IMAGE = "/tbilisi-old-town.jpg"
 const BLOCKED_OR_UNSTABLE_PATTERNS = [
   "loremflickr.com",
   "picsum.photos",
-  "pexels.com",
+  // "pexels.com" — unblocked: now using real Pexels API (not AI-hallucinated URLs)
   "pollinations.ai",
 ]
 

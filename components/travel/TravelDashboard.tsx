@@ -1286,7 +1286,7 @@ export default function TravelDashboard() {
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2">
           <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-full px-6 py-2.5 shadow-2xl hover:bg-black/50 transition-all cursor-pointer" onClick={() => router.push("/")}>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 flex items-center gap-2 whitespace-nowrap">
-              <span className="leading-none">TraveLM Map</span>
+              <span className="leading-none">TraveLLM Map</span>
               <span className="text-[10px] font-medium text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full bg-emerald-500/10">β</span>
             </h1>
           </div>

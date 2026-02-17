@@ -116,7 +116,7 @@ export function Header({ floating = false }: HeaderProps) {
     // { href: "/guide", label: "AI Гид" }, // Hidden - preserved for future mobile app
     { href: "/results", label: "Маршруты" },
     { href: "/dashboard", label: "3D Карта β" },
-    { href: "/news", label: "Лента" },
+    // { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
   ]
 
@@ -130,7 +130,7 @@ export function Header({ floating = false }: HeaderProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <Logo size={28} />
-            <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLM</span>
+            <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLLM</span>
           </Link>
 
           {/* Navigation - Desktop */}
@@ -249,11 +249,11 @@ export function Header({ floating = false }: HeaderProps) {
 
   return (
     <div className="sticky top-0 z-50 w-full p-3 md:p-4">
-      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
+      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl trip-glass shadow-2xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
           <Logo size={24} />
-          <span className="text-sm font-semibold tracking-tight">TraveLM</span>
+          <span className="text-sm font-semibold tracking-tight">TraveLLM</span>
         </Link>
 
         {/* Navigation - Desktop */}

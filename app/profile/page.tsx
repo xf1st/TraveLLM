@@ -495,8 +495,9 @@ function ProfileContent() {
   ]
 
   return (
-    <AppLayout>
-      <div className="relative min-h-screen pb-20 bg-background text-foreground transition-colors duration-300">
+    <AppLayout className="trip-bg">
+      <div className="relative min-h-[calc(100vh-4rem)] pb-20">
+
         {/* Dynamic Profile Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           {editForm.profileBackground === "avatar" && avatarUrl ? (
@@ -570,7 +571,7 @@ function ProfileContent() {
 
           {/* Edit Mode Content */}
           {isEditing ? (
-            <Card className="p-8 bg-card/50 backdrop-blur-xl border border-border animate-in zoom-in-95 duration-300">
+            <Card className="p-8 trip-glass border-white/20 animate-in zoom-in-95 duration-300">
               <div className="grid gap-6 sm:grid-cols-2">
 
                 {/* Background Picker - Full Width */}
@@ -858,7 +859,7 @@ function ProfileContent() {
                             whileHover={{ y: -5 }}
                             transition={{ type: "spring", stiffness: 300 }}
                           >
-                            <Card className="h-64 p-8 bg-card/40 border border-border backdrop-blur-sm rounded-[2rem] flex flex-col items-center justify-center text-center group hover:bg-card/60 transition-colors cursor-pointer w-full relative" onClick={() => setActiveTab("routes")}>
+                            <Card className="h-64 p-8 trip-glass border-white/20 flex flex-col items-center justify-center text-center group hover:bg-white/20 dark:hover:bg-black/20 transition-colors cursor-pointer w-full relative" onClick={() => setActiveTab("routes")}>
                               <h3 className="text-lg font-bold absolute top-6 left-6 flex items-center gap-2 text-foreground">
                                 <Globe className="h-4 w-4 text-emerald-400" />
                                 Посещенные места
@@ -985,7 +986,7 @@ function ProfileContent() {
                             whileHover={{ y: -5 }}
                             transition={{ type: "spring", stiffness: 300 }}
                           >
-                            <Card className="h-64 p-8 bg-card/40 border border-border backdrop-blur-sm rounded-[2rem] flex flex-col text-center relative group hover:bg-card/60 transition-colors w-full h-full">
+                            <Card className="h-64 p-8 trip-glass border-white/20 flex flex-col text-center relative group hover:bg-white/20 dark:hover:bg-black/20 transition-colors w-full h-full">
                               <h3 className="text-lg font-bold absolute top-6 left-6 flex items-center gap-2 text-foreground">
                                 <Heart className="h-4 w-4 text-rose-400" />
                                 Ваши интересы
@@ -1028,7 +1029,7 @@ function ProfileContent() {
                           </h2>
                           <p className="text-muted-foreground">Здесь хранятся завершенные маршруты. Для каждого можно оставить оценку и отзыв.</p>
 
-                          <Card className="border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+                          <Card className="border-white/20 trip-glass overflow-hidden">
                             <div className="divide-y divide-border/60">
                               {completedTrips.map((trip: any) => {
                                 const feedback = feedbackByTripId[String(trip.id)] || null
@@ -1057,7 +1058,7 @@ function ProfileContent() {
                         </div>
 
                         <div className="grid gap-6">
-                          <Card className="p-5 border-border bg-card/40 backdrop-blur-sm">
+                          <Card className="p-5 border-white/20 trip-glass">
                             <h3 className="text-lg font-semibold flex items-center gap-2">
                               <MapIcon className="h-5 w-5 text-cyan-500" />
                               Города по странам
@@ -1103,7 +1104,7 @@ function ProfileContent() {
 
                     {activeTab === "preferences" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <Card className="p-6 bg-card/40 border-border backdrop-blur-sm space-y-4">
+                        <Card className="p-6 trip-glass border-white/20 space-y-4">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                               <Utensils className="h-5 w-5" />
@@ -1125,7 +1126,7 @@ function ProfileContent() {
                           </div>
                         </Card>
 
-                        <Card className="p-6 bg-card/40 border-border backdrop-blur-sm space-y-4">
+                        <Card className="p-6 trip-glass border-white/20 space-y-4">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                               <Clock className="h-5 w-5" />
@@ -1142,7 +1143,7 @@ function ProfileContent() {
                           </div>
                         </Card>
 
-                        <Card className="p-6 bg-card/40 border-border backdrop-blur-sm space-y-4">
+                        <Card className="p-6 trip-glass border-white/20 space-y-4">
                           <div className="flex items-center gap-3 mb-2">
                             <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
                               <BookOpen className="h-5 w-5" />
@@ -1169,7 +1170,7 @@ function ProfileContent() {
                         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trip.id)
                       )
                       return (
-                        <Card className="overflow-hidden bg-card/40 border-border">
+                        <Card className="overflow-hidden trip-glass border-white/20">
                           <div className="p-6 border-b border-border">
                             <h3 className="font-bold text-xl flex items-center gap-2">
                               <Zap className="h-5 w-5 text-primary" />
@@ -1215,7 +1216,7 @@ function ProfileContent() {
 
                     {activeTab === "settings" && (
                       <div className="max-w-2xl mx-auto space-y-8 pb-20">
-                        <Card className="p-6 bg-card/40 border-border space-y-6">
+                        <Card className="p-6 trip-glass border-white/20 space-y-6">
                           <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Основные настройки</h3>
 
                           <div className="space-y-4">
@@ -1364,7 +1365,7 @@ function ProfileContent() {
                           </div>
                         </Card>
 
-                        <Card className="p-6 bg-card/40 border-border space-y-6">
+                        <Card className="p-6 trip-glass border-white/20 space-y-6">
                           <h3 className="font-bold text-lg flex items-center gap-2"><Settings className="h-5 w-5" /> Управление</h3>
                           <Button variant="outline" className="w-full justify-start hover:bg-primary/10 hover:text-primary" onClick={() => window.location.href = "/onboarding"}>
                             <RotateCcw className="h-4 w-4 mr-2" />

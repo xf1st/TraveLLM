@@ -5,7 +5,7 @@
 
 import { collectDynamicContext, formatDynamicContextForPrompt, type DynamicContext } from "./context/dynamic-context"
 import { formatTravelStyleForPrompt, getTravelStyle, type TravelStyleDefinition } from "./travel-styles"
-import { getApplicableRules, STRICT_RULES } from "./strict-rules"
+import { getApplicableRules, STRICT_RULES, ACTIVITY_STRUCTURE_RULES } from "./strict-rules"
 import { type ValidationResult } from "./real-time-validation"
 
 export interface PromptBuilderParams {
@@ -80,7 +80,9 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
     const systemParts: string[] = [
         "Ты — эксперт по путешествиям. Создаёшь детальные, реалистичные маршруты.",
         "",
-        STRICT_RULES
+        STRICT_RULES,
+        "",
+        ACTIVITY_STRUCTURE_RULES
     ]
 
     // Добавляем ситуативные правила
@@ -167,8 +169,10 @@ ${companions ? `- Компания: ${companions}` : ""}
     // Формат вывода
     userParts.push(`
 ФОРМАТ ОТВЕТА:
-Верни JSON объект со структурой маршрута. Каждый день содержит массив активностей.
-Каждая активность имеет: time, title, desc, cost (число), link (если есть).
+Верни JSON объект со структурой маршрута. Каждый день содержит массив активностей (3-5 штук).
+Каждая активность обязана иметь поля: time, type, title, placeName, desc, cost.
+Следуй шаблонам дней из системного промпта (ДЕНЬ ПРИБЫТИЯ, ОБЫЧНЫЙ ДЕНЬ, ДЕНЬ ПЕРЕЕЗДА, ПОСЛЕДНИЙ ДЕНЬ).
+Для "activity" — подбирай уникальные, нетуристические места!
 `.trim())
 
     const userPrompt = userParts.join("\n")

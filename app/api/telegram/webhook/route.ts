@@ -102,6 +102,21 @@ async function handleTopSpenders(chatId: number) {
     await sendTelegramMessage(chatId, msg)
 }
 
+async function handleSetSupport(chatId: number, supabase: any) {
+    // We try to update where id is not null (should be only one row usually)
+    const { error } = await supabase
+        .from('app_settings')
+        .update({ telegram_support_chat_id: chatId.toString() })
+        .neq('id', '00000000-0000-0000-0000-000000000000') 
+
+    if (error) {
+        await sendTelegramMessage(chatId, `❌ Ошибка сохранения настройки: ${error.message}`)
+    } else {
+        await sendTelegramMessage(chatId, `✅ <b>Канал поддержки установлен!</b>\nТеперь сообщения от пользователей будут пересылаться сюда.\nID чата: <code>${chatId}</code>`)
+    }
+}
+
+
 // --- Webhook ---
 
 export async function POST(req: Request) {
@@ -126,7 +141,6 @@ export async function POST(req: Request) {
 
         // 1. Check for Token (Deep Link OR Raw Message)
         let potentialToken: string | null = null
-
         if (text.startsWith('/start ') && text.split(' ').length > 1) {
             potentialToken = text.split(' ')[1]
         } else if (!text.startsWith('/') && text.length > 20) {
@@ -200,10 +214,16 @@ export async function POST(req: Request) {
             case '🏆 Топ транжир':
                 await handleTopSpenders(chatId)
                 break
+            
+            // Support Setup (Still on Main Bot? Yes, admin commands on main bot)
+             case '/setsupport':
+                // We keep /setsupport on Main Bot so Admin can configure it easily.
+                // But we need to define handleSetSupport helper again or import it?
+                // Actually, let's keep handleSetSupport helper in this file but REMOVE forwardToSupport.
+                await handleSetSupport(chatId, supabase)
+                break
 
             default:
-                // Don't respond to unknown text to allow other bot uses if any, or say "Unknown"
-                // await sendTelegramMessage(chatId, 'Неизвестная команда', 'HTML', MAIN_MENU)
                 break
         }
 
@@ -213,13 +233,6 @@ export async function POST(req: Request) {
         if (chatId) {
             await sendTelegramMessage(chatId, `❌ Произошла ошибка: ${error.message || 'Unknown error'}`)
         }
-        return NextResponse.json({ ok: true }) // Always 200 to Telegram
+        return NextResponse.json({ ok: true }) 
     }
-}
-
-export async function GET(req: Request) {
-    return NextResponse.json({
-        status: 'active',
-        timestamp: new Date().toISOString()
-    })
 }

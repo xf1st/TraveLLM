@@ -1,19 +1,27 @@
-# CLAUDE.md — TraveLM AI Guide
+# CLAUDE.md — TraveLLM AI Guide
 
 ## Project Overview
 
-TraveLM — AI-powered travel planning app that generates personalized trip itineraries. Russian-language interface. Users create trips, get AI-generated day-by-day plans, view on maps, chat with AI assistant, share trips with friends.
+TraveLLM — AI-powered travel planning app that generates personalized trip itineraries. Russian-language interface. Users create trips, get AI-generated day-by-day plans, view on maps (2D/3D), chat with AI assistant, and share trips with friends.
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router), React 19, TypeScript 5
+- **Framework**: Next.js 16.1 (App Router), React 19.2, TypeScript 5
 - **Styling**: Tailwind CSS 4 + CSS variables, shadcn/ui (Radix UI + Lucide icons)
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions, RLS)
-- **AI**: DeepSeek (primary), OpenRouter/Qwen (fallback), Groq SDK
-- **Maps**: Leaflet + React-Leaflet (CARTO Dark tiles)
-- **Animation**: Framer Motion, Three.js, OGL (WebGL)
-- **Forms**: React Hook Form + Zod
-- **Charts**: Recharts
+- **AI**:
+  - **DeepSeek** (Primary: `deepseek-chat` / `deepseek-reasoner`)
+  - **Hugging Face / Cerebras** (Fast Inference: `GLM-4.7`, `Llama-3.3-70B`)
+  - **OpenRouter** (Fallback: Qwen 2.5)
+  - **Groq** (Fast Inference)
+- **Maps**:
+  - **Leaflet** (Standard 2D)
+  - **MapLibre GL** (Vector Maps, Dark Mode)
+  - **Cesium** (3D Globe / Terrain)
+  - **React-Globe.gl** (Holographic View)
+- **Animation**: Framer Motion, Three.js, OGL (WebGL), Lottie, `tailwindcss-animate`
+- **UI Components**: Sonner (Toasts), Vaul (Drawers), CMDK (Command Palette), Embla Carousel
+- **Data & APIs**: TravelPayouts (Flights), OpenWeather (Weather), Google Places (Reviews)
 
 ## Commands
 
@@ -24,96 +32,86 @@ npm run start    # Run production server
 npm run lint     # ESLint
 ```
 
-No test framework is configured.
-
 ## Project Structure
 
 ```
-app/                    # Next.js App Router pages & API routes
-  api/                  # API routes (deepseek, trip-assistant, flights, gallery, etc.)
+app/                    # Next.js App Router pages
+  api/                  # API routes (deepseek, trip-assistant, flights, etc.)
+  admin/                # Admin panel & stats
+  dashboard/            # User dashboard
+  guide/                # AI guide chat
+  onboarding/           # User onboarding flow
   plan/                 # Trip creation form
   results/              # My trips listing
   trip/[id]/            # Trip detail page
-  guide/                # AI guide chat
-  profile/              # User profile
-  admin/                # Admin panel
-  auth/                 # OAuth callback
-components/             # React components (~64 files)
-  ui/                   # shadcn/ui primitives (Radix-based)
-  ItineraryChatWidget.tsx  # Main chat widget for trip modifications
-  TripMap.tsx           # Interactive Leaflet map
-  TripChat.tsx          # Group chat with real-time subscriptions
-  header.tsx            # Navigation header
-  app-sidebar.tsx       # Sidebar navigation
-lib/                    # Core utilities & services (~27 files)
-  deepseek.ts           # DeepSeek API client + token tracking
-  openrouter.ts         # OpenRouter fallback client
-  supabase.ts           # Supabase auth helpers
-  prompt-builder.ts     # AI prompt construction with dynamic context
-  grounding.ts          # Ground truth data (closed airports, visa rules)
-  strict-rules.ts       # Trip generation rules
-  context/              # Dynamic context modules (flights, events, prices, trends)
-types/
-  database.types.ts     # Supabase auto-generated types
+  news/                 # Travel news/articles
+  auth/                 # keycloak/oauth callbacks
+components/             # React components
+  ui/                   # shadcn/ui primitives
+  travel/               # Map engines (Cesium, MapLibre, Globe), Flight prices
+  itinerary/            # Trip timeline, activities
+  social/               # Chat, Share modal, Achievements
+  admin/                # Admin specific components
+  Aurora.tsx            # Background shader effects
+  PlaceGallery.tsx      # Location image gallery
+  ViralSpotCard.tsx     # Trending location display
+lib/                    # Core logic
+  cerebras.ts           # Hugging Face/Cerebras inference client
+  deepseek.ts           # DeepSeek API client
+  openrouter.ts         # Qwen/OpenRouter fallback
+  prompt-builder.ts     # AI Context injection
+  travelpayouts.ts      # Flight price API
+  weather.ts            # Weather data fetching
+  supabase.ts           # Auth & DB helpers
+  strict-rules.ts       # JSON generation constraints
+types/                  # TypeScript definitions
+  database.types.ts     # Supabase generated types
 supabase/
-  migrations/           # Database migrations
-docs/                   # GitBook documentation
-middleware.ts           # Admin subdomain auth middleware
+  migrations/           # SQL migrations
 ```
 
 ## Key Architecture Patterns
 
 ### Components
-- All components are `"use client"` (client-side React)
-- Supabase real-time subscriptions for live updates (chat, trip sharing)
-- `cn()` utility from `clsx` + `tailwind-merge` for className merging
-- Dark mode via `next-themes`
 
-### API Routes
-- All in `app/api/*/route.ts` (Next.js App Router convention)
-- Server-side AI calls, JSON request/response
-- Pattern: validate input -> call AI/external API -> store in Supabase -> return JSON
+- **Client-First**: Most components are `"use client"` for interactivity.
+- **Real-Time**: Heavy use of Supabase Realtime for chat, cursors, and state sync.
+- **Hybrid Maps**: context-aware switching between Leaflet (lightweight), MapLibre (detailed), and Cesium (immersive).
+- **Theming**: Deep dark mode using OKLCH colors and Tailwind v4 variables.
 
 ### AI Pipeline
-- `prompt-builder.ts` combines system + user prompts with dynamic context
-- Context modules fetch flights, events, prices, trends in parallel
-- Model selection: `deepseek-chat` for trips <= 7 days, `deepseek-reasoner` for 8+ days
-- Fallback chain: DeepSeek -> OpenRouter (Qwen)
-- `grounding.ts` provides 2026 ground truth (closed airports, visa rules)
+
+1. **Context Assembly**: `prompt-builder.ts` aggregates user prefs, flight data, and local events.
+2. **Model Selection**:
+   - Complex planning -> DeepSeek Reasoner
+   - Quick chats/edits -> Cerebras (GLM-4.7) or Groq
+   - Fallback -> OpenRouter (Qwen)
+3. **Validation**: `strict-rules.ts` and `grounding.ts` ensure valid JSON and realistic constraints (e.g., operating hours).
 
 ### Database
-- Supabase PostgreSQL with Row-Level Security (RLS)
-- Main tables: `trips`, `trip_members`, `budget_expenses`, `voting_polls`
-- JSON columns for complex data: `itinerary`, `safety_info`, `visa_advice`
-- Types auto-generated in `types/database.types.ts`
 
-## Naming Conventions
-
-- **Components**: PascalCase, named exports
-- **Utilities**: camelCase functions in `lib/`
-- **API routes**: lowercase kebab-case directories (`api/feature-name/route.ts`)
-- **Types/Interfaces**: PascalCase
-- **Constants**: SCREAMING_SNAKE_CASE
-- **Path alias**: `@/*` maps to project root
+- **Supabase**: PostgreSQL with RLS.
+- **JSONB**: Extensive use of JSONB for storing flexible itinerary structures (`day_plans`, `activities`).
+- **Tables**: `trips`, `trip_members`, `messages`, `achievements`, `viral_spots`.
 
 ## Environment Variables
 
-Required:
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase connection
-- `DEEPSEEK_API_KEY` — Primary AI provider
+### Required
 
-Optional:
-- `OPENROUTER_API_KEY` — Fallback AI provider
-- `GROQ_API_KEY` — Fast inference
-- `HUGGING_FACE_TOKEN` — HuggingFace models
-- `TRAVELPAYOUTS_MARKER`, `TRAVELPAYOUTS_API_TOKEN` — Flight prices
-- `GOOGLE_PLACES_API_KEY` — Real reviews
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `DEEPSEEK_API_KEY`
 
-## Important Notes
+### Optional / Feature-Specific
 
-- `next.config.mjs` has `ignoreBuildErrors: true` — TypeScript errors do not block builds
-- `output: 'standalone'` for Docker deployment
-- Image optimization is disabled (`unoptimized: true`)
-- Admin panel is protected via subdomain middleware (`admin.*`) + Supabase role check
-- Maintenance mode controlled via `app_settings` table in Supabase
-- UI language is primarily Russian
+- `HUGGING_FACE_TOKEN` (for Cerebras/GLM-4.7)
+- `OPENROUTER_API_KEY`
+- `GROQ_API_KEY`
+- `TRAVELPAYOUTS_TOKEN` (Flights)
+- `GOOGLE_PLACES_API_KEY` (Reviews/Photos)
+- `OPENWEATHER_API_KEY`
+
+## Notes
+
+- **Styling**: Global CSS uses `@theme inline` from Tailwind v4.
+- **Deployment**: `output: 'standalone'` in `next.config.mjs` for Docker/Coolify.
+- **Language**: Optimization for Russian language prompt engineering.

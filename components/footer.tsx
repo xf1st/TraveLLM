@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator"
 
 export function Footer() {
     return (
-        <footer className="border-t border-white/5 bg-background/20 backdrop-blur-md py-8 mt-auto">
+        <footer className="border-t border-white/20 trip-glass py-8 mt-auto">
             <div className="container px-4 md:px-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="space-y-4 md:col-span-2">
@@ -28,7 +28,7 @@ export function Footer() {
                         <h4 className="font-semibold text-sm tracking-wider uppercase">Поддержка</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li><Link href="/support" className="hover:text-primary transition-colors">Центр поддержки</Link></li>
-                            <li><Link href="https://t.me/myszf" target="_blank" className="hover:text-primary transition-colors flex items-center gap-2">Telegram: @myszf</Link></li>
+                            <li><Link href="https://t.me/travellm_support_bot" target="_blank" className="hover:text-primary transition-colors flex items-center gap-2">Telegram: @travellm_support_bot</Link></li>
                             <li><Link href="/privacy" className="hover:text-primary transition-colors">Конфиденциальность</Link></li>
                             <li><Link href="/terms" className="hover:text-primary transition-colors">Условия использования</Link></li>
                         </ul>
@@ -38,7 +38,7 @@ export function Footer() {
                 <Separator className="my-8" />
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-                    <p>© {new Date().getFullYear()} TravelMind AI. Все права защищены.</p>
+                    <p>© {new Date().getFullYear()} TraveLLM AI. Все права защищены.</p>
                 </div>
             </div>
         </footer>

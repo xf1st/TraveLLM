@@ -49,8 +49,7 @@ import dynamic from "next/dynamic"
 import Stepper, { Step } from "@/components/ui/stepper"
 import { FloatingIcons } from "@/components/FloatingIcons"
 
-// Dynamic import for WebGL component
-const Aurora = dynamic(() => import('@/components/Aurora'), { ssr: false })
+
 
 export default function PlanPage() {
   const router = useRouter()
@@ -63,6 +62,7 @@ export default function PlanPage() {
   const [date, setDate] = useState<DateRange | undefined>()
   const abortControllerRef = useRef<AbortController | null>(null)
   const [travelStyle, setTravelStyle] = useState<string[]>([])
+  const [travelers, setTravelers] = useState<number>(2) // Default 2 travelers
   const [companions, setCompanions] = useState("couple")
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
   const [guideLanguage, setGuideLanguage] = useState(false)
@@ -265,7 +265,7 @@ export default function PlanPage() {
         guideLanguage,
         startDate: date?.from?.toISOString().split("T")[0],
         endDate: date?.to?.toISOString().split("T")[0],
-        travelersCount,
+        travelers: (companions === 'family' || companions === 'friends') ? travelers : (companions === 'solo' ? 1 : 2),
         aiCreativity
       }
 
@@ -318,7 +318,10 @@ export default function PlanPage() {
           viral_spots: routeData.viralSpots || [],
           flights: routeData.flights || [],
           hotels: routeData.hotels || [],
-          token_usage: routeData.tokenUsage || null
+          token_usage: routeData.tokenUsage || null,
+          travelers: requestPayload.travelers,
+          start_date: requestPayload.startDate || null,
+          end_date: requestPayload.endDate || null
         }
 
         const { data: insertedTrip, error } = await supabase
@@ -332,7 +335,7 @@ export default function PlanPage() {
         }
 
         if (error) {
-          console.error("Failed to save trip to database:", error)
+          console.error("Failed to save trip to database:", JSON.stringify(error, null, 2))
           // Fallback to localStorage on DB error
           const localId = `local-${Date.now()}`
           localStorage.setItem(`trip-${localId}`, JSON.stringify(routeData))
@@ -398,7 +401,10 @@ export default function PlanPage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout className="trip-bg">
+      <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
+        <FloatingIcons />
+      </div>
       <GeneratingModal open={loading} onCancel={handleCancelGeneration} />
       <ErrorModal
         open={errorModal.open}
@@ -411,17 +417,7 @@ export default function PlanPage() {
         details={errorModal.details}
       />
 
-      {/* Background */}
-      {/* Background */}
 
-      <div className="fixed inset-0 z-0">
-        <Aurora 
-          colorStops={resolvedTheme === 'light' ? ["#DBEAFE", "#BFDBFE", "#60A5FA"] : ["#3B82F6", "#1D4ED8", "#0F172A"]} 
-          amplitude={1.2} 
-          speed={0.4} 
-        />
-        <FloatingIcons />
-      </div>
 
       <div 
         className="container relative z-10 py-8 md:py-12 px-4 min-h-[calc(100vh-80px)] flex flex-col items-center justify-center"
@@ -766,6 +762,39 @@ export default function PlanPage() {
                   ))}
                 </RadioGroup>
               </div>
+
+
+
+
+
+              {/* Travelers count input for Family/Friends */}
+              {(companions === 'family' || companions === 'friends') && (
+                <div className="space-y-4 max-w-lg mx-auto w-full animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
+                    <Users className="h-4 w-4 text-pink-400" />
+                    Количество путешественников
+                  </Label>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setTravelers(Math.max(1, travelers - 1))}
+                      className="h-12 w-12 rounded-xl bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center hover:bg-white/80 dark:hover:bg-white/10 transition-colors text-xl font-bold"
+                    >
+                      -
+                    </button>
+                    <div className="h-12 flex-1 rounded-xl bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center font-bold text-lg">
+                      {travelers}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTravelers(Math.min(10, travelers + 1))}
+                      className="h-12 w-12 rounded-xl bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-center hover:bg-white/80 dark:hover:bg-white/10 transition-colors text-xl font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4 max-w-lg mx-auto w-full">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">

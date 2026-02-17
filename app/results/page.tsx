@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils"
 import { FloatingIcons } from "@/components/FloatingIcons"
 
 // Dynamic import for WebGL component (client-side only)
-const LightRays = dynamic(() => import('@/components/LightRays'), { ssr: false })
 
 const mockRecommendations = [
   // КЛАССИЧЕСКИЕ ПОПУЛЯРНЫЕ
@@ -216,7 +215,6 @@ function ResultsContent() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [hasMoreRoutes, setHasMoreRoutes] = useState(true)
   const [totalRoutes, setTotalRoutes] = useState(0)
-  const observerTarget = useRef(null)
   const isLoadingMoreRef = useRef(false)
   const PAGE_SIZE = 9
 
@@ -280,17 +278,6 @@ function ResultsContent() {
     fetchData()
   }, [])
 
-  // Infinite Scroll for "My Routes"
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore()
-      },
-      { threshold: 0.1 }
-    )
-    if (observerTarget.current) observer.observe(observerTarget.current)
-    return () => { if (observerTarget.current) observer.unobserve(observerTarget.current) }
-  }, [observerTarget])
 
   const loadMore = async () => {
     if (isLoadingMoreRef.current || !hasMoreRoutes || view !== "my") return
@@ -402,47 +389,44 @@ function ResultsContent() {
   const { resolvedTheme } = useTheme()
 
   return (
-    <AppLayout title={title} description={description}>
+    <AppLayout title={title} description={description} className="trip-bg">
       <div className="fixed inset-0 z-0 opacity-100 pointer-events-none">
-        <LightRays
-          raysOrigin="top-center"
-          raysColor={resolvedTheme === 'light' ? "#6366f1" : "#ffffff"}
-          raysSpeed={0.5}
-          lightSpread={0.6}
-          rayLength={4}
-          followMouse={true}
-          mouseInfluence={0.2}
-          className="custom-rays"
-          pulsating={true}
-        />
         <FloatingIcons />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-10 flex flex-col-reverse md:flex-row md:items-center justify-between gap-6">
-          <div className="bg-muted/30 p-1.5 rounded-2xl border border-border/30 dark:border-white/5 backdrop-blur-md inline-flex">
-            <Button
-              variant={view === "favorites" ? "default" : "ghost"}
-              onClick={() => setView("favorites")}
-              className={`px-8 rounded-xl transition-all ${view === 'favorites' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
-              aria-pressed={view === "favorites"}
-            >
-              Избранное
-            </Button>
-            <Button
-              variant={view === "my" ? "default" : "ghost"}
-              onClick={() => setView("my")}
-              className={`px-8 rounded-xl transition-all ${view === 'my' ? 'bg-primary shadow-lg shadow-primary/25' : 'hover:bg-muted/50 dark:hover:bg-white/5'}`}
-              aria-pressed={view === "my"}
-            >
-              Мои маршруты
-            </Button>
-          </div>
+          <div className="mb-10 flex flex-col-reverse md:flex-row md:items-center justify-between gap-6">
+            <div className="trip-glass p-1.5 rounded-2xl border border-white/20 backdrop-blur-md inline-flex">
+              <Button
+                variant="ghost"
+                onClick={() => setView("favorites")}
+                className={cn(
+                  "px-8 rounded-xl transition-all duration-300",
+                  view === 'favorites' 
+                    ? "bg-white/20 text-slate-800 dark:text-white shadow-lg border border-white/10" 
+                    : "text-slate-600 dark:text-white/60 hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                )}
+              >
+                Избранное
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setView("my")}
+                className={cn(
+                  "px-8 rounded-xl transition-all duration-300",
+                  view === 'my' 
+                    ? "bg-white/20 text-slate-800 dark:text-white shadow-lg border border-white/10" 
+                    : "text-slate-600 dark:text-white/60 hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                )}
+              >
+                Мои маршруты
+              </Button>
+            </div>
 
-          <div className="w-full md:w-auto">
-            <RouteSearch className="w-full md:w-[400px] shadow-lg border border-primary/20 bg-background/80 rounded-full" />
+            <div className="w-full md:w-auto">
+              <RouteSearch className="w-full md:w-[400px] shadow-xl border border-white/20 trip-glass rounded-full placeholder:text-slate-400 text-slate-800 dark:text-white" />
+            </div>
           </div>
-        </div>
 
         {loading ? (
           <div className="flex h-64 items-center justify-center">
@@ -457,7 +441,7 @@ function ResultsContent() {
                   return (
                     <FadeIn key={trip.id} delay={index * 50} className="h-full">
                       <Card
-                        className="group relative flex flex-col h-full overflow-hidden border border-border/50 dark:border-white/5 bg-card dark:bg-zinc-900 shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]"
+                        className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40"
                       >
                         {/* Image Section */}
                         <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
@@ -465,7 +449,8 @@ function ResultsContent() {
                             src={trip.image}
                             query={trip.destination || "travel"}
                             alt={trip.title}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            className="h-full w-full"
+                            imgClassName="transition-transform duration-700 group-hover:scale-105"
                           />
                           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-card via-card/80 to-transparent dark:from-zinc-900 dark:via-zinc-900/80" />
 
@@ -579,8 +564,18 @@ function ResultsContent() {
             </div>
 
             {hasMore && view === "my" && (
-              <div ref={observerTarget} className="flex justify-center py-8">
-                {isLoadingMore && <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />}
+              <div className="flex justify-center py-8">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="rounded-full px-8 py-3 h-auto font-semibold border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all"
+                >
+                  {isLoadingMore
+                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Загружаем...</>
+                    : <>Загрузить ещё маршруты</>
+                  }
+                </Button>
               </div>
             )}
           </div>

@@ -10,7 +10,59 @@ import { getRequestUserId } from "@/lib/ai-usage-events"
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
-import { getApplicableRules } from "@/lib/strict-rules"
+import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
+import { getFlightSearchLink } from "@/lib/travelpayouts"
+
+function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
+    if (!Array.isArray(routeData?.itinerary)) return routeData
+
+    let currentCity = origin
+    const days = routeData.itinerary
+
+    for (let i = 0; i < days.length; i++) {
+        const day = days[i]
+        if (!Array.isArray(day.activities)) continue
+
+        for (const act of day.activities) {
+            if (act.type === 'transport') {
+                const title = (act.title || "").toLowerCase()
+                const isFlight = /перелёт|перелет|рейс|вылет|прибытие|самолет|flight/i.test(title)
+                
+                if (isFlight) {
+                    // Detect destination city from title
+                    // e.g. "Перелет в Тбилиси" or "Тбилиси -> Батуми"
+                    let toCity = mainDestination
+                    const match = title.match(/(?:в|to|->|—)\s+([а-яёA-Z][а-яёa-z]+)/i)
+                    if (match && match[1]) {
+                        toCity = match[1]
+                    }
+
+                    // Determine Date
+                    let date = startDate
+                    if (startDate && i > 0) {
+                        const d = new Date(startDate)
+                        d.setDate(d.getDate() + i)
+                        date = d.toISOString().split('T')[0]
+                    }
+
+                    act.link = getFlightSearchLink({
+                        origin: currentCity,
+                        destination: toCity,
+                        departDate: date,
+                        subId: `ai_day_${i+1}`
+                    })
+                    // act.cost = "Поиск билетов"
+                    currentCity = toCity // Update current position
+                }
+            } else if (act.type === 'hotel' && act.placeName) {
+                // If hotel has a city in title/description, update currentCity?
+                // For now, assume transport does the heavy lifting
+            }
+        }
+    }
+
+    return routeData
+}
 
 function sanitizeClosedAirportLogistics(routeData: any) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
@@ -73,7 +125,81 @@ function sanitizeClosedAirportLogistics(routeData: any) {
     }
 
     routeData.itinerary = itinerary
+    routeData.itinerary = itinerary
     return routeData
+}
+
+function normalizeActivityTypes(routeData: any) {
+  if (!Array.isArray(routeData?.itinerary)) return routeData
+
+  for (const day of routeData.itinerary) {
+    if (!Array.isArray(day.activities)) continue
+
+    const newActivities = []
+    for (const act of day.activities) {
+      const text = `${act.title || ""} ${act.desc || ""} ${act.time || ""}`.toLowerCase()
+      
+      // Normalize "check-in" → "hotel" (old AI output format)
+      if (act.type === "check-in" || act.type === "checkin") {
+        act.type = "hotel"
+      }
+
+      // Auto-detect type if missing
+      if (!act.type) {
+        if (/перелёт|перелет|рейс|аэропорт|вылет|прибытие|трансфер|поезд/.test(text)) {
+          act.type = "transport"
+        } else if (/заселение|отель|hotel|check.?in|гостиница|хостел/.test(text)) {
+          act.type = "hotel"
+        } else if (/ресторан|кафе|завтрак|обед|ужин|бар|еда|кухня/.test(text)) {
+          act.type = "food"
+        } else {
+          act.type = "activity"
+        }
+      }
+
+      // SPLITTING LOGIC: If title looks combined (e.g. "Hotel and Dinner")
+      const title = (act.title || "").toLowerCase()
+      const hasHotel = /заселение|отель|hotel|гостиница/.test(title)
+      const hasFood = /ужин|обед|завтрак|ресторан|кафе/.test(title)
+      const hasActivity = /прогулка|экскурсия|музей|парк/.test(title)
+      
+      const isMerged = (hasHotel && (hasFood || hasActivity)) || (hasFood && hasActivity)
+      
+      if (isMerged && (title.includes(" и ") || title.includes(" + ") || title.includes(" with "))) {
+        const parts = act.title.split(/\s+(?:и|\+|\&|with)\s+/i)
+        if (parts.length >= 2) {
+            for (const part of parts) {
+                const partTitle = part.trim()
+                const pText = partTitle.toLowerCase()
+                let pType = "activity"
+                
+                if (/перелёт|перелет|рейс|вылет|прибытие|поезд/.test(pText)) pType = "transport"
+                else if (/заселение|отель|hotel|гостиница/.test(pText)) pType = "hotel"
+                else if (/ресторан|кафе|ужин|обед|завтрак/.test(pText)) pType = "food"
+                
+                newActivities.push({
+                    ...act,
+                    title: partTitle,
+                    type: pType,
+                    // If second part, maybe clear placeName if it doesn't fit?
+                    // For now keep it.
+                })
+            }
+            continue 
+        }
+      }
+
+      // Fix 0₽ prices on transport
+      if (act.type === "transport" && (!act.cost || act.cost === "0 ₽" || act.cost === "0₽")) {
+        act.cost = "Цену уточнять"
+      }
+
+      newActivities.push(act)
+    }
+    day.activities = newActivities
+  }
+
+  return routeData
 }
 
 export async function POST(req: Request) {
@@ -166,7 +292,8 @@ export async function POST(req: Request) {
             paymentMethods,
             requireRussianGuide,
             customDestination,
-            customBudget
+            customBudget,
+            travelers
         } = body
 
         // Apply profile preferences if fields are missing
@@ -267,7 +394,7 @@ export async function POST(req: Request) {
             ? destinations.length > 1
                 ? `Конкретные пункты назначения (${destinations.length}): ${destinations.map(parseDestination).join(', ')}`
                 : `Specific User Request: ${parseDestination(destinations[0])}`
-            : destinationType === 'mixed' ? 'Mixed (Russia + Abroad)' : destinationType === 'russia' ? 'Inside Russia' : 'Abroad'
+            : destinationType === 'mixed' ? 'Смешанный (Россия + зарубеж)' : destinationType === 'russia' ? 'ТОЛЬКО города России (РФ). ЗАПРЕЩЕНО: Грузия, Абхазия, Беларусь, Казахстан, Армения, Азербайджан и любые другие страны СНГ и зарубежья.' : 'За рубежом'
 
         // =====================================
         // REAL-TIME VALIDATION & CONTEXT
@@ -334,6 +461,7 @@ export async function POST(req: Request) {
 ИСХОДНЫЕ ДАННЫЕ:
 - Город отправления: ${departureCity}
 - Направление: ${targetDescription}
+${destinationType === 'russia' && !customDestination ? `⚠️ КРИТИЧНО: Маршрут ТОЛЬКО по России (РФ). Все города и места ОБЯЗАНЫ находиться на территории Российской Федерации. НЕЛЬЗЯ предлагать: Грузию, Батуми, Тбилиси, Беларусь, Казахстан, Армению, Азербайджан, Украину, любые страны СНГ и зарубежья.` : ''}
 - Количество стран/городов: ${destinations.length > 0 ? destinations.length : (countryCount === "more" ? 4 : parseInt(countryCount as string) || 1)}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
@@ -360,7 +488,8 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 - Если лето: фестивали (Sziget, Tomorrowland, Exit)
 
 - Стиль: ${travelStyle.join(', ')}
-- Компания: ${companions}
+- Стиль: ${travelStyle.join(', ')}
+- Компания: ${companions} (${travelers || ((companions === 'family' || companions === 'friends') ? 2 : (companions === 'solo' ? 1 : 2))} чел.)
 
 ПЕРСОНАЛИЗАЦИЯ:
 - Гражданство: ${preferences?.citizenship || 'Не указано'}
@@ -489,82 +618,53 @@ ${creativityInstruction}
    - Для поездов: "distance": "700 км", "duration": "4 ч (Сапсан)"
    - Для такси/автобуса: "distance": "35 км", "duration": "45 мин"
 
-JSON СХЕМА (строго следуй):
+JSON СХЕМА:
 {
-  "title": "Название маршрута (ДОЛЖНО соответствовать странам в countries[])",
-  "description": "Описание на 2-3 предложения",
+  "title": "Название маршрута",
+  "description": "Описание",
   "totalBudget": "150 000 ₽",
-  "budgetAnalysis": {
-    "avgAccommodation": "5 000 ₽/ночь",
-    "avgFood": "3 000 ₽/день",
-    "avgTransport": "10 000 ₽",
-    "avgActivities": "20 000 ₽",
-    "avgMisc": "5 000 ₽"
-  },
-  "visaAdvice": "Страна1: требования для граждан РФ. Страна2: требования. И т.д.",
-  "paymentAdvice": "Какие карты работают, где менять деньги (для каждой страны)",
-  "safetyInfo": { "rating": 8, "tips": "Советы по безопасности" },
-  "restrictions": "Текущие ограничения или null",
-  "countries": [{"name": "Название страны", "visaRequired": true, "visaType": "Шенген/национальная/безвиз"}],
-  "tags": ["культура", "еда", "природа"],
-  "coverImage": "",
-  "viralSpots": [
-    { "name": "Название", "desc": "Почему популярно", "mapLink": "https://..." }
+  "countries": [{"name": "Страна", "visaRequired": true}],
+  "flights": [
+    { "dayNumber": 1, "direction": "outbound", "departureCode": "MOW", "arrivalCode": "IST", "airline": "Aeroflot", "price": 25000, "duration": "4ч 30м" }
+  ],
+  "hotels": [
+    { "dayStart": 1, "dayEnd": 4, "hotelName": "Grand Hotel 4*", "city": "Стамбул", "pricePerNight": 8000, "totalPrice": 24000 }
   ],
   "itinerary": [
     {
-      "day": 1,
-      "title": "Прибытие в город",
-      "endCity": "Белград",
-      "dayTotal": "15 000 ₽",
+      "day": 1, "title": "Прибытие в Стамбул", "dayTotal": "46 500 ₽",
       "activities": [
-        {
-          "time": "Утро",
-          "placeName": "КОНКРЕТНОЕ название места",
-          "desc": "Подробное описание",
-          "cost": "500 ₽",
-          "ticketsRequired": false,
-          "mapLink": "https://www.google.com/maps/search/?api=1&query=Название+Места",
-          "link": "",
-          "contact": {
-            "phone": "+7 999 123-45-67",
-            "website": "https://example.com",
-            "bookingUrl": "https://example.com/book"
-          }
-        },
-        { "time": "День", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": true, "mapLink": "...", "link": "https://...", "contact": {} },
-        { "time": "Вечер", "placeName": "...", "desc": "...", "cost": "...", "ticketsRequired": false, "mapLink": "...", "link": "", "contact": {} }
-      ],
-      "logistics": {
-        "mode": "Самолёт",
-        "flightNumber": "SU1234",
-        "departureTime": "08:30",
-        "arrivalTime": "11:00",
-        "from": "Москва (SVO)",
-        "to": "Белград (BEG)",
-        "distance": "1800 км",
-        "duration": "3ч 30мин",
-        "price": "25000 ₽",
-        "bookingLink": "https://aviasales.ru/...",
-        "tips": "Рекомендуем прямой рейс Air Serbia"
-      }
+        { "time": "Утро", "type": "transport", "title": "Перелёт Москва (SVO) → Стамбул (IST)", "placeName": "Аэропорт Стамбул (IST)", "desc": "Прямой рейс Turkish Airlines TK414, 3.5 часа.", "cost": "15 000 ₽" },
+        { "time": "День", "type": "hotel", "title": "Заселение в Pera Palace Hotel 5*", "placeName": "Pera Palace Hotel 5*", "imageQuery": "Pera Palace Hotel Istanbul luxury exterior", "desc": "Легендарный отель в районе Бейоглу. Заселение с 14:00.", "cost": "12 000 ₽/ночь" },
+        { "time": "Вечер", "type": "food", "title": "Ужин в ресторане Mikla", "placeName": "Ресторан Mikla", "imageQuery": "Mikla rooftop restaurant Istanbul panoramic", "desc": "Панорамный ресторан на крыше с видом на Золотой Рог. Авторская турецкая кухня.", "cost": "5 000 ₽" }
+      ]
     }
   ]
 }
 
-КРИТИЧНО (ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ):
-- Ровно 3 активности в день: "Утро", "День", "Вечер"
-- placeName ОБЯЗАТЕЛЕН для КАЖДОЙ активности! Это нужно для галереи фото.
-  ПЛОХО: placeName: "" или без placeName
-  ХОРОШО: placeName: "Ресторан Noma", "Парк Гуэль", "Египетский музей"
-- mapLink ОБЯЗАТЕЛЕН — формат: https://www.google.com/maps/search/?api=1&query=Название+Места
-- logistics.distance и logistics.duration ОБЯЗАТЕЛЬНЫ для каждого дня
-- Все строки в двойных кавычках, включая теги
-- Ответ ТОЛЬКО JSON, без markdown
+Заполняй активности строго по шаблонам дней из системного промпта (ДЕНЬ ПРИБЫТИЯ, ОБЫЧНЫЙ ДЕНЬ, ДЕНЬ ПЕРЕЕЗДА, ПОСЛЕДНИЙ ДЕНЬ).
+
+ПОЛЕ imageQuery (ОБЯЗАТЕЛЬНО для hotel/food/activity):
+- Добавляй поле "imageQuery" для type=hotel, food, activity — поисковый запрос на АНГЛИЙСКОМ для Pexels.
+- Для transport — НЕ добавляй imageQuery.
+- ГЛАВНОЕ ПРАВИЛО: imageQuery должен быть ОПИСАТЕЛЬНЫМ, а НЕ собственным именем заведения.
+  Pexels ищет по смыслу слов — если написать "Question Mark restaurant" или "Hotel Moskva", Pexels найдёт знаки вопроса и виды Москвы вместо нужных фото.
+- Формат: [атмосфера/стиль] + [тип места] + [город или страна]
+  ✓ type=hotel → "grand historic hotel lobby Belgrade" (не "Hotel Moskva")
+  ✓ type=food → "traditional Serbian restaurant cozy interior" (не "Question Mark restaurant")
+  ✓ type=food → "rooftop restaurant panoramic Istanbul" (не "Mikla restaurant")
+  ✓ type=activity → "Kalemegdan fortress Belgrade park aerial view"
+  ✓ type=activity → "Zaryadye park Moscow winter landscape"
+  ✓ type=hotel → "luxury boutique hotel pool Antalya old town"
+  ✗ "Question Mark restaurant Belgrade" — буквально найдёт знаки вопроса
+  ✗ "Hotel Moskva Belgrade" — перепутает с Москвой
+  ✗ "Ресторан Микла Стамбул" — русский язык не работает в Pexels
 
 ЯЗЫК: Строго РУССКИЙ.`;
 
-        const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
+        const systemPrompt = `Ты — эксперт-планировщик путешествий TraveLLM для русских туристов. Отвечаешь ТОЛЬКО JSON. Будь конкретен.
+
+${ITINERARY_STRUCTURE}`
 
 
         // Helper to parse JSON from AI response
@@ -725,59 +825,25 @@ ${isLastChunk
 
 ПРАВИЛА ЛОГИСТИКИ:
 1. НЕТ ТЕЛЕПОРТАЦИИ: проверяй, где закончился предыдущий день
-2. Перелёты Россия↔Европа/США = только с пересадкой (Стамбул/Дубай)
-3. Время в пути должно быть реалистичным
-4. Расстояние < 600км = поезд вместо самолёта
-5. РЕАЛИЗМ ВРЕМЕНИ (КРИТИЧНО):
-   - Если logistics содержит перелёт → первая активность = "Прибытие и заселение"
-   - Перелёт 2-4ч: активности начинаются с "День", НЕ с "Утро"
-   - Перелёт 5+ч: день посвящён перелёту, активности только вечером
-   - ПЛОХО: logistics "Перелёт 4ч" + Утро: "Прогулка"
-   - ХОРОШО: logistics "Перелёт 4ч" + Утро: "Перелёт" + День: "Заселение" + Вечер: "Прогулка"
+2. Перелёты Россия↔Европа/США = только с пересадкой
+3. Утро первого дня после перелета = Трансфер/Отдых. НЕ АКТИВНОСТЬ.
 
-РЕАЛЬНОСТЬ 2026:
-- Закрытые аэропорты: ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
-- Ограничения: ${GROUNDING_DATA_2026.globalRestrictions[0]}
+Формат ответа — JSON массив. Следуй шаблонам дней из системного промпта.
+${isFirstChunk ? 'День 1 = ДЕНЬ ПРИБЫТИЯ (transport → hotel → food/activity).' : ''}
+${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → activity → transport обратно в ${departureCity}).` : ''}
 
-Формат ответа — JSON массив:
-[
-  {
-    "day": ${startDay},
-    "title": "Название дня",
-    "dayTotal": "X ₽",
-    "endCity": "Город на конец дня",
-    "activities": [
-      {
-        "time": "Утро",
-        "placeName": "КОНКРЕТНОЕ название",
-        "desc": "Описание",
-        "cost": "X ₽",
-        "ticketsRequired": false,
-        "mapLink": "https://www.google.com/maps/search/?api=1&query=...",
-        "link": ""
-      },
-      { "time": "День", ... },
-      { "time": "Вечер", ... }
-    ],
-    "logistics": {
-      "mode": "Самолёт/Поезд/Такси",
-      "from": "Откуда",
-      "to": "Куда",
-      "distance": "X км",
-      "duration": "X ч",
-      "price": "X ₽",
-      "bookingLink": "URL"
-    }
-  }
-]
+Пример одного дня:
+{
+  "day": ${startDay}, "title": "Название дня", "dayTotal": "25 000 ₽",
+  "activities": [
+    { "time": "Утро", "type": "food", "title": "Завтрак в кафе Nama", "placeName": "Кафе Nama", "desc": "Авторские завтраки и свежий кофе.", "cost": "800 ₽" },
+    { "time": "День", "type": "activity", "title": "Экскурсия по Старому городу", "placeName": "Старый город Котор", "desc": "Средневековые улочки, площадь Оружия, собор Святого Трифона.", "cost": "1 500 ₽" },
+    { "time": "Вечер", "type": "food", "title": "Ужин в ресторане Galion", "placeName": "Ресторан Galion", "desc": "Рыбный ресторан на набережной с видом на бухту.", "cost": "3 000 ₽" }
+  ]
+}
 
-КРИТИЧНО:
-- Ровно ${endDay - startDay + 1} дней (с ${startDay} по ${endDay})
-- 3 активности в день: Утро, День, Вечер
-- placeName = реальные названия мест
-- endCity = город, где заканчивается день (для следующего сегмента)
-- Ответ ТОЛЬКО JSON массив, без markdown
-- Язык: РУССКИЙ`;
+Ровно ${endDay - startDay + 1} дней. Все поля обязательны (time, type, title, placeName, desc, cost).
+Ответ ТОЛЬКО JSON массив, без markdown. Язык: РУССКИЙ.`;
 
             console.log(`Parallel: Generating days ${startDay}-${endDay} (start: ${startLocation})...`);
             const messages = [
@@ -909,7 +975,13 @@ ${isLastChunk
             // PRIMARY: DeepSeek with parallel generation
             try {
                 console.log("Using DeepSeek as primary provider...");
-                const generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
+                let generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
+                
+                // Post-processing: Normalization & Dates
+                generatedRouteData = normalizeActivityTypes(generatedRouteData);
+                generatedRouteData = enrichTransportLinks(generatedRouteData, departureCity, destinations[0] || "", startDate, endDate);
+                generatedRouteData.start_date = startDate;
+                generatedRouteData.end_date = endDate;
 
                 // Enrich with cover image
                 try {
@@ -938,7 +1010,13 @@ ${isLastChunk
                     { role: "user" as const, content: prompt }
                 ]
                 const raw = await openrouterInference(messages, { maxTokens: 30000, temperature: 0.6 });
-                const fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "OpenRouter"));
+                let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "OpenRouter"));
+
+                // Post-processing: Normalization & Dates
+                fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
+                fallbackRouteData = enrichTransportLinks(fallbackRouteData, departureCity, destinations[0] || "", startDate, endDate);
+                fallbackRouteData.start_date = startDate;
+                fallbackRouteData.end_date = endDate;
 
                 // Enrich cover image
                 try {

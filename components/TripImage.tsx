@@ -9,11 +9,12 @@ interface TripImageProps {
     src?: string
     alt: string
     className?: string
+    imgClassName?: string
     query: string
     priority?: boolean
 }
 
-export function TripImage({ src, alt, className, query, priority = false }: TripImageProps) {
+export function TripImage({ src, alt, className, imgClassName = "", query, priority = false }: TripImageProps) {
     const [currentSrc, setCurrentSrc] = useState<string | undefined>(src)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState(false)
@@ -92,7 +93,7 @@ export function TripImage({ src, alt, className, query, priority = false }: Trip
             <img
                 src={currentSrc}
                 alt={alt}
-                className={`w-full h-full object-cover transition-all duration-700 ${isLoading ? 'scale-105 blur-sm' : 'scale-100 blur-0'} ${error ? 'opacity-0' : 'opacity-100'}`}
+                className={`w-full h-full object-cover transition-all duration-700 ${isLoading ? 'scale-105 blur-sm' : 'scale-100 blur-0'} ${error ? 'opacity-0' : 'opacity-100'} ${imgClassName}`}
                 onLoad={() => setIsLoading(false)}
                 onError={handleError}
                 loading={priority ? "eager" : "lazy"}

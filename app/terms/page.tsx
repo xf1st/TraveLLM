@@ -4,12 +4,12 @@ import { Card } from "@/components/ui/card"
 
 export default function TermsPage() {
     return (
-        <AppLayout title="Условия использования" description="Правила использования сервиса TravelMind AI">
+        <AppLayout title="Условия использования" description="Правила использования сервиса TraveLLM">
             <div className="container py-12 max-w-4xl">
                 <Card className="p-8 space-y-6">
                     <h2 className="text-2xl font-bold">1. Принятие условий</h2>
                     <p>
-                        Используя сервис TravelMind AI, вы соглашаетесь с данными условиями. Сервис предоставляется "как есть".
+                        Используя сервис TraveLLM, вы соглашаетесь с данными условиями. Сервис предоставляется "как есть".
                     </p>
 
                     <h2 className="text-2xl font-bold">2. Ограничение ответственности</h2>

@@ -12,6 +12,7 @@ import { UserAccessGuard } from "@/components/admin/user-access-guard"
 import Script from "next/script"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth-provider"
+import { GlobalBackground } from "@/components/GlobalBackground"
 
 const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
@@ -26,17 +27,17 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "TraveLM — Ваш умный ИИ-гид для идеальных путешествий",
-  description: "Создавайте персональные маршруты за секунды с помощью ИИ. TraveLM поможет спланировать поездку, найти скрытые места и сэкономить время.",
+  title: "TraveLLM — Ваш умный ИИ-гид для идеальных путешествий",
+  description: "Создавайте персональные маршруты за секунды с помощью ИИ. TraveLLM поможет спланировать поездку, найти скрытые места и сэкономить время.",
   keywords: ["ИИ гид", "планировщик путешествий", "создать маршрут", "умный путеводитель", "travel ai", "отпуск 2024", "куда поехать"],
   verification: {
     yandex: "7b52a6c68729b348"
   },
   openGraph: {
-    title: "TraveLM — Ваш умный ИИ-гид по миру",
+    title: "TraveLLM — Ваш умный ИИ-гид по миру",
     description: "Персонализированные маршруты и умные советы для ваших приключений.",
-    url: "https://travelmind.ai",
-    siteName: "TraveLM",
+    url: "https://travellm.ru",
+    siteName: "TraveLLM",
     locale: "ru_RU",
     type: "website",
   },
@@ -54,6 +55,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+      </head>
       <body className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
@@ -73,6 +77,7 @@ export default function RootLayout({
           <CookieConsent />
           <Toaster position="top-center" />
           <Analytics />
+          <GlobalBackground />
         </ThemeProvider>
 
         {/* Ownership Verification Script */}

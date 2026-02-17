@@ -10,12 +10,16 @@ interface AppLayoutProps {
     title?: string
     /** Page description */
     description?: string
+    /** Custom class for the root element */
+    className?: string
 }
 
 import { useState, useEffect } from "react"
+import { cn } from "@/lib/utils"
 
-export function AppLayout({ children, title, description }: AppLayoutProps) {
+export function AppLayout({ children, title, description, className }: AppLayoutProps) {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
+    const [showScrollTop, setShowScrollTop] = useState(false)
 
     useEffect(() => {
         const checkSidebarState = () => {
@@ -23,16 +27,19 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
             setSidebarCollapsed(saved)
         }
 
-        // Initial check
         checkSidebarState()
-
-        // Listen for changes
         window.addEventListener('sidebar-change', checkSidebarState)
         return () => window.removeEventListener('sidebar-change', checkSidebarState)
     }, [])
 
+    useEffect(() => {
+        const onScroll = () => setShowScrollTop(window.scrollY > 400)
+        window.addEventListener('scroll', onScroll, { passive: true })
+        return () => window.removeEventListener('scroll', onScroll)
+    }, [])
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className={cn("min-h-screen", className?.includes("trip-bg") ? "" : "bg-background", className)}>
             {/* Mobile Header - visible on small screens */}
             <div className="lg:hidden">
                 <Header />
@@ -70,6 +77,17 @@ export function AppLayout({ children, title, description }: AppLayoutProps) {
                 </div>
                 <Footer />
             </main>
+
+            {/* Scroll to top button */}
+            {showScrollTop && (
+                <button
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="fixed bottom-6 right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-xl"
+                    aria-label="Наверх"
+                >
+                    <span className="material-symbols-outlined text-lg">arrow_upward</span>
+                </button>
+            )}
         </div>
     )
 }
