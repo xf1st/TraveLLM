@@ -14,6 +14,11 @@
 
 import { searchPexels } from "./pexels"
 import { searchUnsplash } from "./unsplash"
+import { createClient } from "@supabase/supabase-js"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null
 
 // --- In-memory cache ---
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -217,24 +222,51 @@ export async function getDestinationImage(query: string): Promise<string> {
     const cached = imageCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.url
 
+    // --- Persistency Check ---
+    if (supabase) {
+        try {
+            const { data } = await supabase
+                .from("image_cache")
+                .select("image_url")
+                .eq("query", cacheKey)
+                .maybeSingle()
+            if (data?.image_url) {
+                imageCache.set(cacheKey, { url: data.image_url, timestamp: Date.now() })
+                return data.image_url
+            }
+        } catch (e) {
+            console.error("[Image Cache] selective fetch failed:", e)
+        }
+    }
+
+    let result: string | null = null
+
     // 1. Unsplash (highest quality, landscape, CDN not blocked in Russia)
     const unsplashUrls = await searchUnsplash(query, 1)
     if (unsplashUrls.length > 0) {
-        imageCache.set(cacheKey, { url: unsplashUrls[0], timestamp: Date.now() })
-        return unsplashUrls[0]
+        result = unsplashUrls[0]
     }
 
     // 2. Wikimedia fallback (may be blocked on RU client, but works for non-RU)
-    const wikiImg = await searchWikimedia(query)
-    if (wikiImg) {
-        imageCache.set(cacheKey, { url: wikiImg, timestamp: Date.now() })
-        return wikiImg
+    if (!result) {
+        const wikiImg = await searchWikimedia(query)
+        if (wikiImg) result = wikiImg
     }
 
     // 3. Static Wikimedia map (last resort — blocked in RU but at least not empty)
-    const staticImg = getStaticFallback(query)
-    imageCache.set(cacheKey, { url: staticImg, timestamp: Date.now() })
-    return staticImg
+    if (!result) {
+        result = getStaticFallback(query)
+    }
+
+    // --- Persistency Save ---
+    if (supabase && result) {
+        supabase.from("image_cache")
+            .upsert({ query: cacheKey, image_url: result, updated_at: new Date().toISOString() }, { onConflict: "query" })
+            .then(({ error }) => error && console.error("[Image Cache] save error:", error))
+    }
+
+    imageCache.set(cacheKey, { url: result, timestamp: Date.now() })
+    return result
 }
 
 /**
@@ -258,6 +290,23 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
 
     const cached = galleryCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
+
+    // --- Persistency Check ---
+    if (supabase) {
+        try {
+            const { data } = await supabase
+                .from("image_cache")
+                .select("gallery_urls")
+                .eq("query", cacheKey)
+                .maybeSingle()
+            if (data?.gallery_urls && Array.isArray(data.gallery_urls)) {
+                galleryCache.set(cacheKey, { urls: data.gallery_urls, timestamp: Date.now() })
+                return data.gallery_urls
+            }
+        } catch (e) {
+            console.error("[Image Cache] gallery fetch failed:", e)
+        }
+    }
 
     try {
         const seen = new Set<string>()
@@ -297,6 +346,13 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
         // 4. Local fallback
         if (finalUrls.length === 0) {
             finalUrls.push("/tbilisi-old-town.jpg")
+        }
+
+        // --- Persistency Save ---
+        if (supabase && finalUrls.length > 0) {
+            supabase.from("image_cache")
+                .upsert({ query: cacheKey, gallery_urls: finalUrls, updated_at: new Date().toISOString() }, { onConflict: "query" })
+                .then(({ error }) => error && console.error("[Image Cache] gallery save error:", error))
         }
 
         galleryCache.set(cacheKey, { urls: finalUrls, timestamp: Date.now() })
