@@ -10,28 +10,59 @@ async function getSupportChatId(supabase: any) {
     return data?.telegram_support_chat_id
 }
 
+
+import { SUPPORT_KNOWLEDGE_BASE } from '@/lib/support-knowledge'
+import { deepseekInference } from '@/lib/deepseek'
+
+// ... (existing imports)
+
 async function forwardToSupport(msg: any, supabase: any) {
     const supportChatId = await getSupportChatId(supabase)
     const token = process.env.TELEGRAM_BOT_TOKEN_SUPPORT
     
-    if (!supportChatId) {
-        await sendTelegramMessage(msg.chat.id, "😔 Поддержка временно недоступна (не настроен чат операторов).", 'HTML', undefined, token)
-        return
+    // 1. Send to Admin Group (Human Oversight)
+    if (supportChatId) {
+        const senderName = [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')
+        const username = msg.from.username ? `@${msg.from.username}` : 'No username'
+        const text = msg.text || '(Без текста)'
+        const forwardText = `#SUPPORT\nUser ID: ${msg.chat.id}\nName: ${senderName}\nUsername: ${username}\n\n${text}`
+        
+        // Fire and forget to admin group to not delay AI reply
+        sendTelegramMessage(supportChatId, forwardText, 'HTML', undefined, token).catch(e => console.error('Failed to forward to admin:', e))
     }
 
-    const senderName = [msg.from.first_name, msg.from.last_name].filter(Boolean).join(' ')
-    const username = msg.from.username ? `@${msg.from.username}` : 'No username'
-    const text = msg.text || '(Без текста)'
+    // 2. AI Auto-Reply
+    try {
+        const userText = msg.text || ''
+        if (!userText) return // Don't reply to stickers/etc for now
 
-    // Format for easy parsing later
-    const forwardText = `#SUPPORT\nUser ID: ${msg.chat.id}\nName: ${senderName}\nUsername: ${username}\n\n${text}`
+        // Show "typing" action (optional, but good UX - Telegram API needed or just wait)
+        
+        const aiResponse = await deepseekInference([
+            { role: 'system', content: `Ты — полезный бот поддержки сервиса TraveLLM. Твоя задача — отвечать на вопросы пользователей, используя базу знаний.
+            
+База знаний:
+${SUPPORT_KNOWLEDGE_BASE}
 
-    // Send to Admin Group
-    await sendTelegramMessage(supportChatId, forwardText, 'HTML', undefined, token)
-    
-    // Ack to User
-    await sendTelegramMessage(msg.chat.id, "✅ Сообщение отправлено в поддержку. Мы скоро ответим.", 'HTML', undefined, token)
+Инструкции:
+- Отвечай вежливо и кратко.
+- Если ответа нет в базе, ответь: "Я пока не уверен, передал твой вопрос оператору."
+- Не придумывай функции, которых нет.` },
+            { role: 'user', content: userText }
+        ], { maxTokens: 1000, temperature: 0.5 })
+
+        await sendTelegramMessage(msg.chat.id, aiResponse, undefined, undefined, token)
+        
+        // Optional: Send the AI reply to Admin too so they know what was answered?
+        // Let's keep it simple for now. Admin sees the User Q in group. If they see no Human A, they assume AI handled it.
+        
+    } catch (error) {
+        console.error('AI Support Error:', error)
+        // Fallback message if AI fails
+        await sendTelegramMessage(msg.chat.id, "Сообщение получено. Оператор скоро ответит.", undefined, undefined, token)
+    }
 }
+
 
 async function handleSupportReply(message: any) {
     const replyTo = message.reply_to_message
