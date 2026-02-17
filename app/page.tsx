@@ -19,6 +19,22 @@ import { VideoText } from "@/components/ui/video-text"
 import { MorphingText } from "@/components/ui/morphing-text"
 
 // Dynamic imports for WebGL components (client-side only)
+const MapLibreView = dynamic(() => import("@/components/travel/MapLibreView"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-[500px] bg-black/5 animate-pulse rounded-[3rem]" />
+})
+
+// Sample points for the globe
+const globePoints = [
+  { id: 1, title: "Paris", lat: 48.8566, lng: 2.3522, type: "attraction" },
+  { id: 2, title: "New York", lat: 40.7128, lng: -74.0060, type: "attraction" },
+  { id: 3, title: "Tokyo", lat: 35.6762, lng: 139.6503, type: "attraction" },
+  { id: 4, title: "Dubai", lat: 25.2048, lng: 55.2708, type: "attraction" },
+  { id: 5, title: "Sydney", lat: -33.8688, lng: 151.2093, type: "attraction" },
+  { id: 6, title: "Rio de Janeiro", lat: -22.9068, lng: -43.1729, type: "attraction" },
+  { id: 7, title: "Cape Town", lat: -33.9249, lng: 18.4241, type: "attraction" },
+  { id: 8, title: "London", lat: 51.5074, lng: -0.1278, type: "attraction" },
+]
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
@@ -109,13 +125,13 @@ export default function LandingPage() {
               <motion.div
                 key={i}
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 0.6, scale: 1, y: [0, -20, 0] }}
+                animate={{ opacity: 1, scale: 1, y: [0, -20, 0] }}
                 transition={{
                   opacity: { duration: 1 },
                   scale: { duration: 1 },
                   y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: i * 1.2 }
                 }}
-                className={`absolute ${img.className} rounded-3xl overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl`}
+                className={`absolute ${img.className} rounded-3xl overflow-hidden shadow-2xl`}
               >
                 <TripImage
                   src={img.src}
@@ -135,7 +151,7 @@ export default function LandingPage() {
             className="w-full max-w-2xl relative z-30 mb-20"
           >
             <Link href="/plan" className="block group">
-              <div className="relative overflow-hidden rounded-full border border-white/20 trip-glass hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300 shadow-2xl shadow-primary/10 group-hover:shadow-primary/20 p-2 pl-6 flex items-center justify-between gap-4">
+              <div className="relative overflow-hidden rounded-full border border-white/20 trip-glass hover:bg-white/40 dark:hover:bg-black/40 transition-all duration-300 search-glow p-2 pl-6 flex items-center justify-between gap-4">
 
                 {/* Inputs Visual Mockup */}
                 <div className="flex items-center gap-6 flex-1 overflow-hidden">
@@ -175,7 +191,7 @@ export default function LandingPage() {
 
           {/* Popular Destinations Cards */}
           <div className="w-full relative z-20">
-            <h3 className="text-left text-lg font-medium text-muted-foreground mb-4 pl-1">Популярные направления:</h3>
+            <h3 className="text-center text-lg font-medium text-muted-foreground mb-4 pl-1">Популярные направления:</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {popularDestinations.map((dest, i) => (
                 <Link href={`/results?source=popular#${dest.slug}`} key={i} className="block group">
@@ -246,98 +262,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ===== FEATURED ROUTES SECTION ===== */}
-        <section className="w-full max-w-7xl mx-auto px-4 py-24 relative z-20">
-          <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">Популярные маршруты</Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">Вдохновитесь путешествиями</h2>
-            <p className="text-muted-foreground text-lg max-w-xl mx-auto">Лучшие направления, отобранные нашими экспертами и пользователями</p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[
-              { id: "pop-1", title: "Неделя в Ялте: Крымская классика", destination: "Крым, Россия", duration: "7 дней", tags: ["море", "пляж", "культура"], safetyLevel: 10, budget: "55 000 ₽", image: "https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?auto=format&fit=crop&q=80&w=800", description: "Ласточкино гнездо, Ливадийский дворец, Массандра. Идеальный пляжный отдых с историей." },
-              { id: "pop-3", title: "Турция: Анталья всё включено", destination: "Анталья, Турция", duration: "10 дней", tags: ["пляж", "релакс", "аквапарк"], safetyLevel: 9, budget: "120 000 ₽", image: "https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&q=80&w=800", description: "All-inclusive отели 5*, пляжи, экскурсия в Памуккале и Каппадокию." },
-              { id: "pop-5", title: "Тбилиси и Кахетия", destination: "Грузия", duration: "7 дней", tags: ["гастрономия", "культура", "вино"], safetyLevel: 9, budget: "75 000 ₽", image: "https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&q=80&w=800", description: "Хинкали, хачапури, вино в Кахетии. Серные бани и ночной Тбилиси." },
-              { id: "pop-6", title: "Алтай: Дикий и прекрасный", destination: "Алтай, Россия", duration: "10 дней", tags: ["природа", "активный", "горы"], safetyLevel: 9, budget: "110 000 ₽", image: "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&q=80&w=800", description: "Чуйский тракт, Телецкое озеро, Марсианские пейзажи. Для любителей природы." },
-              { id: "pop-7", title: "Узбекистан: Шёлковый путь", destination: "Узбекистан", duration: "8 дней", tags: ["история", "культура", "еда"], safetyLevel: 9, budget: "70 000 ₽", image: "https://images.unsplash.com/photo-1565967511849-76a60a516170?auto=format&fit=crop&q=80&w=800", description: "Самарканд, Бухара, Хива. Плов каждый день, мечети и медресе." },
-              { id: "pop-8", title: "ОАЭ: Дубай за 5 дней", destination: "Дубай, ОАЭ", duration: "5 дней", tags: ["шопинг", "развлечения", "пляж"], safetyLevel: 10, budget: "150 000 ₽", image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&q=80&w=800", description: "Бурдж Халифа, Palm Jumeirah, Dubai Mall. Прямой рейс 5ч." }
-            ].map((trip, index) => (
-              <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40">
-                  {/* Image */}
-                  <div className="relative h-48 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
-                    <TripImage
-                      src={trip.image}
-                      query={trip.destination}
-                      alt={trip.title}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card via-card/80 to-transparent dark:from-zinc-900 dark:via-zinc-900/80" />
-                    {/* Safety Badge */}
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-emerald-500/90 text-white px-2 py-0.5 shadow-lg border border-emerald-400/30">
-                      <Sparkles className="h-3 w-3" />
-                      <span className="text-[10px] font-bold">{trip.safetyLevel}/10</span>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex flex-1 flex-col p-5 pt-0 relative z-10 -mt-10">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground/90">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                      {trip.destination}
-                      <span className="h-1 w-1 rounded-full bg-border dark:bg-white/20" />
-                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                      {trip.duration}
-                    </div>
-
-                    <h3 className="text-lg font-bold text-foreground dark:text-white mb-2 leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                      {trip.title}
-                    </h3>
-
-                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground dark:text-zinc-400 line-clamp-2">
-                      {trip.description}
-                    </p>
-
-                    <div className="mb-4 flex flex-wrap gap-1.5 mt-auto">
-                      {trip.tags.map((tag) => (
-                        <span key={tag} className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide bg-black/5 dark:bg-white/10 text-muted-foreground">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-0 mt-auto">
-                      <span className="text-lg font-black text-foreground dark:text-white tracking-tight">
-                        {trip.budget}
-                      </span>
-                      <Button asChild className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-6 h-10 shadow-lg transition-all hover:scale-105 group/btn">
-                        <Link href={`/trip/${trip.id}`}>
-                          Открыть
-                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link href="/results">
-              <Button variant="outline" className="rounded-full px-8 py-6 text-lg border-black/15 dark:border-white/20 hover:bg-black/5 dark:hover:bg-white/10">
-                Посмотреть все маршруты <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-          </div>
-        </section>
+       
 
         {/* ===== FINAL CTA ===== */}
         <section className="w-full relative py-32 overflow-hidden">

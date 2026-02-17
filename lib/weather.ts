@@ -47,17 +47,16 @@ export async function getWeatherForLocation(lat: number, lon: number, startDate:
   try {
     const startStr = startDate.toISOString().split('T')[0]
     const endStr = endDate.toISOString().split('T')[0]
+    const start = new Date(startDate)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(endDate)
+    end.setHours(0, 0, 0, 0)
+    
     const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-    // Determine if we need forecast or historical data
-    // Open-Meteo Forecast is good for 16 days. If longer, we probably need Climate API or just generic historical.
-    // Logic:
-    // 1. If dates are in the past -> Archive API
-    // 2. If dates are within next 14 days -> Forecast API
-    // 3. If dates are far in the future -> Archive API for same dates last year (approximation)
-
-    const isPast = endDate < today
-    const isNearFuture = startDate > today && (startDate.getTime() - today.getTime()) < 14 * 24 * 60 * 60 * 1000
+    const isPast = end < today
+    const isNearFuture = start >= today && (start.getTime() - today.getTime()) <= 14 * 24 * 60 * 60 * 1000
 
     let url = ''
 

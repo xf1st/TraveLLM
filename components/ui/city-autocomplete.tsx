@@ -126,15 +126,15 @@ export function CityAutocomplete({
     }
 
     return (
-        <div className={cn("relative w-full", className)}>
+        <div className="relative w-full">
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost" 
                         role="combobox"
                         aria-expanded={open}
-                        className={cn("w-full justify-between text-left font-normal h-auto min-h-[48px] py-3 text-base", !value && "text-muted-foreground")}
+                        className={cn("w-full justify-between text-left font-normal h-auto min-h-[48px] py-3 text-base border", !value && "text-muted-foreground", className)}
                         disabled={disabled}
                     >
                         <div className="flex flex-wrap gap-2 items-center">

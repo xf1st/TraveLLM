@@ -14,46 +14,6 @@ import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
 
-const DESTINATIONS = [
-  { flag: "🗼", name: "Париж" },
-  { flag: "🏔", name: "Алтай" },
-  { flag: "🌴", name: "Мальдивы" },
-  { flag: "🕌", name: "Стамбул" },
-  { flag: "⛩️", name: "Токио" },
-  { flag: "🏛️", name: "Рим" },
-  { flag: "🌅", name: "Бали" },
-  { flag: "🎡", name: "Дубай" },
-]
-
-const FLOAT_POSITIONS = [
-  { x: 8, y: 12, delay: 0.2 },
-  { x: 58, y: 8, delay: 0.7 },
-  { x: 20, y: 55, delay: 1.1 },
-  { x: 62, y: 48, delay: 0.4 },
-  { x: 40, y: 78, delay: 0.9 },
-  { x: 72, y: 72, delay: 1.4 },
-]
-
-function FloatingChip({ dest, pos }: { dest: typeof DESTINATIONS[0]; pos: typeof FLOAT_POSITIONS[0] }) {
-  return (
-    <motion.div
-      className="absolute flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-sm font-medium shadow-lg select-none pointer-events-none"
-      style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{
-        opacity: [0, 1, 1, 0.85, 1],
-        y: [0, -10, 0, -6, 0],
-      }}
-      transition={{
-        opacity: { delay: pos.delay, duration: 0.8 },
-        y: { delay: pos.delay, duration: 4 + pos.delay, repeat: Infinity, ease: "easeInOut" },
-      }}
-    >
-      <span className="text-base">{dest.flag}</span>
-      <span className="text-sm">{dest.name}</span>
-    </motion.div>
-  )
-}
 
 function AuthContent() {
   const router = useRouter()
@@ -83,7 +43,8 @@ function AuthContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase.from("profiles").select("preferences").eq("id", user.id).single()
-        router.push(profile?.preferences ? defaultRedirect : "/onboarding")
+        const next = searchParams.get("next")
+        router.push(next || (profile?.preferences ? defaultRedirect : "/onboarding"))
       } else {
         router.push("/onboarding")
       }
@@ -121,45 +82,46 @@ function AuthContent() {
     s === 1 ? "bg-red-500" : s === 2 ? "bg-orange-400" : s === 3 ? "bg-yellow-400" : "bg-emerald-500"
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      {/* ── MOBILE background photo + overlay ── */}
+      <div
+        className="absolute inset-0 bg-cover bg-center lg:hidden"
+        style={{ backgroundImage: "url('/auth-bg2.png')" }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/45 to-black/75 lg:hidden" />
+
       {/* ── LEFT PANEL — always dark, branded ── */}
       <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative overflow-hidden flex-col bg-[#060612]">
-        {/* Gradient blobs */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-indigo-700/25 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-5%] right-[5%] w-[400px] h-[400px] bg-violet-700/20 rounded-full blur-[100px]" />
-          <div className="absolute top-[55%] left-[30%] w-[300px] h-[300px] bg-blue-600/15 rounded-full blur-[80px]" />
-        </div>
+        {/* Background photo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/auth-bg2.png')" }}
+        />
+        {/* Bottom gradient for text readability */}
+        <div className="absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 
-        {/* Dot grid */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none [background-image:radial-gradient(rgba(255,255,255,0.15)_1px,transparent_1px)] [background-size:32px_32px]" />
 
-        {/* Floating destination chips */}
-        {FLOAT_POSITIONS.map((pos, i) => (
-          <FloatingChip key={i} dest={DESTINATIONS[i]} pos={pos} />
-        ))}
-
-        {/* Main content */}
-        <div className="relative z-10 flex flex-col justify-center flex-1 px-12 xl:px-20">
+        {/* Main content — pinned to bottom */}
+        <div className="relative z-10 mt-auto px-10 xl:px-14 pb-12">
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           >
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/25 text-primary text-xs font-semibold mb-10 tracking-wide uppercase">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-semibold mb-6 tracking-wide uppercase">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
               AI Travel Assistant
             </div>
 
             {/* Heading */}
-            <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.08] tracking-tight mb-6">
+            <h1 className="text-4xl xl:text-5xl font-black text-white leading-[1.08] tracking-tight mb-4">
               Откройте мир<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-400 via-violet-400 to-indigo-300">
+              <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-300 via-blue-500 to-indigo-200">
                 с AI‑гидом
               </span>
             </h1>
-            <p className="text-lg xl:text-xl text-white/55 leading-relaxed mb-14 max-w-sm">
+            <p className="text-base xl:text-lg text-white/75 leading-relaxed mb-8 max-w-sm">
               Персональные маршруты с реальными ценами на авиабилеты и отели — за секунды.
             </p>
 
@@ -170,29 +132,29 @@ function AuthContent() {
                 { num: "50+", label: "стран" },
                 { num: "4.9★", label: "рейтинг" },
               ].map((s) => (
-                <div key={s.num} className="text-center p-4 rounded-2xl bg-white/5 border border-white/8 backdrop-blur-sm">
-                  <div className="text-xl font-black text-white">{s.num}</div>
-                  <div className="text-[11px] text-white/45 mt-0.5">{s.label}</div>
+                <div key={s.num} className="text-center p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-sm">
+                  <div className="text-lg font-black text-white">{s.num}</div>
+                  <div className="text-[11px] text-white/55 mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
           </motion.div>
-        </div>
 
-        {/* Bottom brand */}
-        <div className="relative z-10 px-12 xl:px-20 pb-8 flex items-center gap-3">
-          <Logo size={24} />
-          <span className="text-white/30 text-xs">TravelLM · ваш AI-путеводитель</span>
+          {/* Bottom brand */}
+          <div className="flex items-center gap-3 mt-8">
+            <Logo size={22} />
+            <span className="text-white/35 text-xs">TraveLLM · ваш AI-путеводитель</span>
+          </div>
         </div>
       </div>
 
-      {/* ── RIGHT PANEL — theme-aware ── */}
-      <div className="flex-1 flex flex-col bg-background min-h-screen">
+      {/* ── RIGHT PANEL — theme-aware desktop / glass mobile ── */}
+      <div className="flex-1 flex flex-col relative z-10 lg:bg-background min-h-screen">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 sm:px-10 pt-6">
+        <div className="flex items-center justify-between px-6 sm:px-8 pt-6">
           <div className="flex items-center gap-2 lg:hidden">
             <Logo size={28} />
-            <span className="font-black text-lg text-foreground">TravelLM</span>
+            <span className="font-black text-lg text-white">TraveLLM</span>
           </div>
           <div className="lg:ml-auto">
             <ModeToggle />
@@ -200,12 +162,16 @@ function AuthContent() {
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-8">
-          <div className="w-full max-w-[400px]">
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8">
+          {/* Glass card on mobile, plain on desktop */}
+          <div className="w-full max-w-[400px] rounded-3xl p-6 sm:p-8
+            bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl
+            lg:p-0 lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:shadow-none">
+
             {/* Logo on desktop */}
             <div className="hidden lg:flex items-center gap-2.5 mb-8">
               <Logo size={32} />
-              <span className="font-black text-xl text-foreground">TravelLM</span>
+              <span className="font-black text-xl text-foreground">TraveLLM</span>
             </div>
 
             {/* Dynamic heading */}
@@ -214,12 +180,12 @@ function AuthContent() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="mb-8"
+              className="mb-6"
             >
-              <h2 className="text-2xl sm:text-3xl font-black text-foreground">
+              <h2 className="text-2xl sm:text-3xl font-black text-white lg:text-foreground">
                 {activeTab === "login" ? "С возвращением!" : "Добро пожаловать!"}
               </h2>
-              <p className="text-muted-foreground mt-1.5 text-sm sm:text-base">
+              <p className="text-white/70 lg:text-muted-foreground mt-1.5 text-sm sm:text-base">
                 {activeTab === "login"
                   ? "Продолжите путешествие там, где остановились"
                   : "Создайте аккаунт и спланируйте первый маршрут"}
@@ -229,7 +195,9 @@ function AuthContent() {
             {/* Google button */}
             <Button
               variant="outline"
-              className="w-full h-11 gap-3 font-semibold rounded-xl border-border hover:bg-accent transition-all mb-5"
+              className="w-full h-11 gap-3 font-semibold rounded-xl mb-5 transition-all
+                bg-white/15 border-white/30 text-white hover:bg-white/25
+                lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
               onClick={handleGoogleLogin}
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
@@ -244,10 +212,12 @@ function AuthContent() {
             {/* Divider */}
             <div className="relative mb-5">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
+                <span className="w-full border-t border-white/20 lg:border-border" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-background px-3 text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
+                <span className="px-3 text-[11px] uppercase tracking-widest font-medium
+                  bg-transparent text-white/50
+                  lg:bg-background lg:text-muted-foreground">
                   или через email
                 </span>
               </div>
@@ -255,16 +225,21 @@ function AuthContent() {
 
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-5 h-10 rounded-xl bg-muted p-1">
+              <TabsList className="grid w-full grid-cols-2 mb-5 h-10 rounded-xl p-1
+                bg-white/15 lg:bg-muted">
                 <TabsTrigger
                   value="login"
-                  className="rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="rounded-lg text-sm font-semibold text-white/70
+                    data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
+                    lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
                   Войти
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
-                  className="rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                  className="rounded-lg text-sm font-semibold text-white/70
+                    data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
+                    lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
                   Регистрация
                 </TabsTrigger>
@@ -274,9 +249,9 @@ function AuthContent() {
               <TabsContent value="login" className="space-y-4 mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="login-email" className="text-sm font-medium">Email адрес</Label>
+                    <Label htmlFor="login-email" className="text-sm font-medium text-white/80 lg:text-foreground">Email адрес</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Mail className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
                         id="login-email"
                         type="email"
@@ -284,19 +259,21 @@ function AuthContent() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="pl-10 h-11 rounded-xl"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-sm font-medium">Пароль</Label>
-                      <Link href="/auth/reset-password" className="text-xs text-primary hover:underline underline-offset-4">
+                      <Label htmlFor="login-password" className="text-sm font-medium text-white/80 lg:text-foreground">Пароль</Label>
+                      <Link href="/auth/reset-password" className="text-xs text-white/60 hover:text-white underline-offset-4 hover:underline lg:text-primary lg:hover:text-primary/80">
                         Забыли пароль?
                       </Link>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Lock className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
                         id="login-password"
                         type="password"
@@ -304,16 +281,14 @@ function AuthContent() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="pl-10 h-11 rounded-xl"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>Войти <ArrowRight className="ml-2 h-4 w-4" /></>
-                    )}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Войти <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                 </form>
               </TabsContent>
@@ -322,23 +297,25 @@ function AuthContent() {
               <TabsContent value="signup" className="space-y-4 mt-0">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-name" className="text-sm font-medium">Как вас зовут?</Label>
+                    <Label htmlFor="signup-name" className="text-sm font-medium text-white/80 lg:text-foreground">Как вас зовут?</Label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <User className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
                         id="signup-name"
                         placeholder="Иван"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="pl-10 h-11 rounded-xl"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-email" className="text-sm font-medium">Email адрес</Label>
+                    <Label htmlFor="signup-email" className="text-sm font-medium text-white/80 lg:text-foreground">Email адрес</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Mail className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
                         id="signup-email"
                         type="email"
@@ -346,14 +323,16 @@ function AuthContent() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="pl-10 h-11 rounded-xl"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-password" className="text-sm font-medium">Пароль</Label>
+                    <Label htmlFor="signup-password" className="text-sm font-medium text-white/80 lg:text-foreground">Пароль</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Lock className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
                         id="signup-password"
                         type="password"
@@ -361,7 +340,9 @@ function AuthContent() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="pl-10 h-11 rounded-xl"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
                     {password && (
@@ -372,31 +353,27 @@ function AuthContent() {
                             return (
                               <div
                                 key={level}
-                                className={`flex-1 rounded-full transition-all duration-300 ${s >= level ? strengthColor(s) : "bg-muted"}`}
+                                className={`flex-1 rounded-full transition-all duration-300 ${s >= level ? strengthColor(s) : "bg-white/20 lg:bg-muted"}`}
                               />
                             )
                           })}
                         </div>
-                        <p className="text-xs text-right text-muted-foreground">
+                        <p className="text-xs text-right text-white/50 lg:text-muted-foreground">
                           {strengthLabel(passwordStrength(password))}
                         </p>
                       </div>
                     )}
                   </div>
                   <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>Создать аккаунт <ArrowRight className="ml-2 h-4 w-4" /></>
-                    )}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Создать аккаунт <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
+            <p className="mt-5 text-center text-xs text-white/45 lg:text-muted-foreground">
               Продолжая, вы соглашаетесь с{" "}
-              <Link href="#" className="underline underline-offset-4 hover:text-foreground transition-colors">
+              <Link href="#" className="underline underline-offset-4 text-white/60 hover:text-white lg:text-muted-foreground lg:hover:text-foreground transition-colors">
                 условиями использования
               </Link>
             </p>
@@ -405,7 +382,7 @@ function AuthContent() {
 
         {/* Footer */}
         <div className="px-6 pb-6 text-center">
-          <p className="text-xs text-muted-foreground/60">Privacy Policy · Terms of Service</p>
+          <p className="text-xs text-white/30 lg:text-muted-foreground/60">Privacy Policy · Terms of Service</p>
         </div>
       </div>
     </div>

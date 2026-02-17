@@ -71,6 +71,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // 3. Protected Routes for Main Domain
+  const protectedPaths = ['/dashboard', '/plan', '/results', '/profile', '/onboarding', '/guide']
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+
+  if (isProtectedPath && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth'
+    url.searchParams.set('next', pathname) // Optional: redirect back after login
+    return NextResponse.redirect(url)
+  }
+
   return response
 }
 

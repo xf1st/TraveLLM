@@ -100,7 +100,7 @@ export default function OnboardingPage() {
         <div className="container max-w-2xl px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo size={24} />
-            <span className="font-black text-sm text-foreground hidden sm:block">TravelLM</span>
+            <span className="font-black text-sm text-foreground hidden sm:block">TraveLLM</span>
           </div>
 
           {/* Step dots */}

@@ -3,9 +3,13 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-    const { searchParams, origin, host } = new URL(request.url)
+    const { searchParams, origin: requestOrigin, host } = new URL(request.url)
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/'
+
+    // Use NEXT_PUBLIC_SITE_URL in production to avoid issues behind reverse proxies
+    // where request.url may contain the internal container URL instead of the public domain
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || requestOrigin
 
     if (code) {
         const cookieStore = await cookies()
@@ -44,25 +48,25 @@ export async function GET(request: Request) {
                 const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
                 if (isAdminSubdomain && isAdmin) {
-                    return NextResponse.redirect(`${origin}/admin`)
+                    return NextResponse.redirect(`${siteUrl}/admin`)
                 }
 
                 if (!profile?.preferences) {
-                    return NextResponse.redirect(`${origin}/onboarding`)
+                    return NextResponse.redirect(`${siteUrl}/onboarding`)
                 }
 
                 if (next !== '/') {
-                    return NextResponse.redirect(`${origin}${next}`)
+                    return NextResponse.redirect(`${siteUrl}${next}`)
                 }
 
                 // Default redirect
-                return NextResponse.redirect(`${origin}/plan`)
+                return NextResponse.redirect(`${siteUrl}/plan`)
             }
 
-            return NextResponse.redirect(`${origin}/plan`)
+            return NextResponse.redirect(`${siteUrl}/plan`)
         }
     }
 
     // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+    return NextResponse.redirect(`${siteUrl}/auth/auth-code-error`)
 }

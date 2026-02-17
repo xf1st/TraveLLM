@@ -271,6 +271,19 @@
     box-shadow: 0 0 20px -5px var(--primary);
   }
 
+  /* Search bar hover glow effect */
+  .search-glow {
+    box-shadow: 0 20px 40px -12px color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  .group:hover .search-glow {
+    border-color: color-mix(in oklch, var(--primary) 65%, transparent);
+    box-shadow:
+      0 0 0 2px color-mix(in oklch, var(--primary) 55%, transparent),
+      0 0 30px color-mix(in oklch, var(--primary) 35%, transparent),
+      0 0 60px color-mix(in oklch, var(--primary) 15%, transparent);
+  }
+
   /* Custom Scrollbar Utilities */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

@@ -39,3 +39,7 @@ TraveLM ui 3.0/7dacbae4-6bb3-464a-ac73-0d6c61d7b1a7.png
 .claude/settings.local.json
 nul
 /supabase/migrations/
+/.claude
+/.agent
+desktop.ini
+nul

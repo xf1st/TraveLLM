@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { getWeatherForLocation, WeatherData, getWeatherDescription } from "@/lib/weather"
 import { getCoordinates } from "@/lib/geocoding"
 import { Cloud, CloudRain, Sun, CloudSnow, Moon, Thermometer } from "lucide-react"
@@ -19,21 +19,31 @@ export function TripWeatherWidget({ destination, startDate, endDate, className }
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Default to next 5 days if no dates provided
-  const targetStartDate = startDate ? new Date(startDate) : new Date()
-  if (!startDate) targetStartDate.setDate(targetStartDate.getDate() + 1) // Start tomorrow if no date
-  
-  const targetEndDate = endDate ? new Date(endDate) : new Date(targetStartDate)
-  if (!endDate) targetEndDate.setDate(targetStartDate.getDate() + 4) // 5 days total
+  // Calculate dates only once or when props change
+  const { targetStartDate, targetEndDate } = useMemo(() => {
+      const start = startDate ? new Date(startDate) : new Date()
+      if (!startDate) start.setDate(start.getDate() + 1)
+      
+      const end = endDate ? new Date(endDate) : new Date(start)
+      if (!endDate) end.setDate(start.getDate() + 4)
+      
+      return { targetStartDate: start, targetEndDate: end }
+  }, [startDate, endDate])
 
   useEffect(() => {
-    async function flm() {
+    let mounted = true
+
+    async function fetchWeather() {
       if (!destination) return
 
       try {
         setLoading(true)
+        setError(null)
+        
         // 1. Get Coordinates
         const coords = await getCoordinates(destination)
+        if (!mounted) return
+        
         if (!coords) {
           setError("Координаты не найдены")
           return
@@ -41,18 +51,21 @@ export function TripWeatherWidget({ destination, startDate, endDate, className }
 
         // 2. Get Weather
         const data = await getWeatherForLocation(coords.lat, coords.lng, targetStartDate, targetEndDate)
+        if (!mounted) return
         
         setWeather(data)
       } catch (err) {
         console.error(err)
-        setError("Ошибка загрузки погоды")
+        if (mounted) setError("Ошибка загрузки погоды")
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
-    flm()
-  }, [destination, startDate, endDate, targetStartDate, targetEndDate])
+    fetchWeather()
+    
+    return () => { mounted = false }
+  }, [destination, targetStartDate, targetEndDate])
 
 
 

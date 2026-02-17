@@ -1,7 +1,10 @@
-"use client"
-
 import { useMemo, useState } from "react"
-import { TravelMap } from "./travel/TravelMap"
+import dynamic from "next/dynamic"
+
+const MapLibreView = dynamic(() => import("./travel/MapLibreView"), {
+    ssr: false,
+    loading: () => <div className="w-full h-full bg-black/10 animate-pulse" />
+})
 
 interface TripMapProps {
     places: any[]
@@ -100,12 +103,20 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
     }
 
     return (
-        <TravelMap
-            points={points}
-            arcs={arcs}
-            viewState={viewState}
-            onViewStateChange={setViewState}
-            onPointClick={handlePointClick}
-        />
+        <div className="relative w-full h-full bg-zinc-900 rounded-2xl overflow-hidden border border-white/10">
+            <MapLibreView 
+                points={points}
+                arcs={arcs}
+                settings={{
+                    showGlobe: true,
+                    mapStyle: "dark",
+                    showLabels: true,
+                    showSocialLayer: false,
+                    show3DBuildings: false
+                }}
+                onPointClick={handlePointClick}
+                flyTo={points.length > 0 && points[0].lat ? { lat: points[0].lat, lng: points[0].lng, altitude: 4 } : undefined}
+            />
+        </div>
     )
 }

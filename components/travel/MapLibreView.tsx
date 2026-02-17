@@ -6,8 +6,8 @@ import "maplibre-gl/dist/maplibre-gl.css"
 import { DEFAULT_TRAVEL_IMAGE } from "@/lib/image-utils"
 
 interface MapLibreViewProps {
-  points: any[]
-  arcs: any[]
+  points?: any[]
+  arcs?: any[]
   refreshToken?: string | number
   flyTo?: { lat: number; lng: number; altitude?: number } | null
   fitToPoints?: {
@@ -29,12 +29,15 @@ interface MapLibreViewProps {
     show3DBuildings: boolean
     showSocialLayer: boolean
     showGlobe: boolean
+    autoRotate?: boolean
     mapStyle: "dark" | "satellite" | "street"
   }
   nearbyPoints?: any[]
+  onPointClick?: (point: any) => void
+  className?: string
 }
 
-export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToPoints, routingLine, settings, nearbyPoints = [] }: MapLibreViewProps) {
+export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToPoints, routingLine, settings, nearbyPoints = [], onPointClick, className }: MapLibreViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const currentSettingsRef = useRef(settings)
@@ -46,6 +49,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
   const appliedProjectionRef = useRef<"globe" | "mercator" | null>(null)
   const socialDataRef = useRef<any[]>([])
   const socialFetchAbortRef = useRef<AbortController | null>(null)
+  const isInteracting = useRef(false)
   const socialFetchKeyRef = useRef<string>("")
   const socialFetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -649,7 +653,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
   const bindPointPopupEvents = () => {
     if (!map.current) return
 
-    const onPointClick = (e: any) => {
+    const handleClick = (e: any) => {
       const features = map.current?.queryRenderedFeatures(e.point, { layers: ["route-points", "nearby-points", "social-pois"] })
       if (!features || features.length === 0) return
 
@@ -664,6 +668,18 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
           .sort((a: any, b: any) => (priorityByLayer[b?.layer?.id] || 0) - (priorityByLayer[a?.layer?.id] || 0))[0] || features[0]
       const layerId = feature?.layer?.id
       const props = feature.properties || {}
+      
+      // If parent provided onPointClick, prioritize it for route points
+      if (layerId === "route-points" && onPointClick) {
+        // Construct a point object similar to what TripMap expects
+        const pointData = {
+          ...props,
+          lat: (feature.geometry as any).coordinates[1],
+          lng: (feature.geometry as any).coordinates[0],
+          data: { id: String(props.day || 0) } // Minimal data for TripMap compatibility
+        }
+        onPointClick(pointData)
+      }
       const coords = (feature.geometry as any)?.coordinates?.slice?.() || []
       if (!coords || coords.length < 2 || Number.isNaN(coords[0]) || Number.isNaN(coords[1])) return
 
@@ -763,9 +779,9 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
       })
     }
 
-    map.current.on("click", "route-points", onPointClick)
-    map.current.on("click", "nearby-points", onPointClick)
-    map.current.on("click", "social-pois", onPointClick)
+    map.current.on("click", "route-points", handleClick)
+    map.current.on("click", "nearby-points", handleClick)
+    map.current.on("click", "social-pois", handleClick)
     map.current.on("mouseenter", "route-points", () => {
       if (map.current) map.current.getCanvas().style.cursor = "pointer"
     })
@@ -829,10 +845,50 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
     })
     map.current.on("moveend", handleMoveEnd)
 
+    // Auto-rotation logic
+    let rotationFrameId: number
+
+    const startRotation = () => {
+       const rotateCamera = (timestamp: number) => {
+          if (!isInteracting.current && currentSettingsRef.current?.autoRotate && currentSettingsRef.current?.showGlobe && map.current) {
+             // Rotate at ~2 degrees per second (adjust divisor for speed)
+             map.current.rotateTo((timestamp / 50) % 360, { duration: 0 })
+             rotationFrameId = requestAnimationFrame(rotateCamera)
+          } else if (currentSettingsRef.current?.autoRotate) {
+             // Keep loop running to resume if interaction stops (optional, or just stop)
+             // For now, let's stop on interaction and essentially "hand over" control
+             // To resume, we'd need a timeout. Let's just stop for now to be safe.
+             if (rotationFrameId) cancelAnimationFrame(rotationFrameId)
+          }
+       }
+       rotationFrameId = requestAnimationFrame(rotateCamera)
+    }
+
+    // Start rotation on load
+    map.current.on("load", () => {
+       startRotation()
+    })
+    
+    // Stop rotation on user interaction
+    const stopRotation = () => {
+        isInteracting.current = true
+        if (rotationFrameId) cancelAnimationFrame(rotationFrameId)
+    }
+    
+    map.current.on("mousedown", stopRotation)
+    map.current.on("touchstart", stopRotation)
+    map.current.on("wheel", stopRotation)
+    map.current.on("dragstart", stopRotation)
+
     return () => {
+      if (rotationFrameId) cancelAnimationFrame(rotationFrameId)
       if (socialFetchTimerRef.current) clearTimeout(socialFetchTimerRef.current)
       socialFetchAbortRef.current?.abort()
       map.current?.off("moveend", handleMoveEnd)
+      map.current?.off("mousedown", stopRotation)
+      map.current?.off("touchstart", stopRotation)
+      map.current?.off("wheel", stopRotation)
+      map.current?.off("dragstart", stopRotation)
       map.current?.remove()
       map.current = null
     }
@@ -989,5 +1045,5 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken])
 
-  return <div ref={mapContainer} className="w-full h-full absolute inset-0 z-0 bg-black" />
+  return <div ref={mapContainer} className={`w-full h-full absolute inset-0 z-0 ${className || 'bg-black'}`} />
 }

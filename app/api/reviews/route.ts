@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import Groq from "groq-sdk"
+import { deepseekInference } from "@/lib/deepseek"
 import { getRequestUserId } from "@/lib/ai-usage-events"
 
 /**
@@ -20,7 +20,6 @@ import { getRequestUserId } from "@/lib/ai-usage-events"
  */
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY
-const GROQ_API_KEY = process.env.GROQ_API_KEY
 
 interface Review {
   author: string
@@ -41,14 +40,8 @@ interface PlaceReviews {
   source: "google" | "ai"
 }
 
-// Генерация AI-отзывов через Groq (быстро и бесплатно)
+// Генерация AI-отзывов через DeepSeek
 async function generateAIReviews(placeName: string, city: string): Promise<PlaceReviews> {
-  if (!GROQ_API_KEY) {
-    throw new Error("GROQ_API_KEY not configured")
-  }
-
-  const groq = new Groq({ apiKey: GROQ_API_KEY })
-
   const prompt = `Ты эксперт по путешествиям. Создай реалистичную сводку отзывов для места "${placeName}" в городе ${city}.
 
 ВАЖНО: Основывайся на своих знаниях о реальных отзывах и характеристиках этого места. Если не знаешь конкретное место - создай правдоподобную оценку на основе типа заведения.
@@ -90,16 +83,12 @@ async function generateAIReviews(placeName: string, city: string): Promise<Place
 
 Верни ТОЛЬКО JSON без markdown.`
 
-  const response = await groq.chat.completions.create({
-    model: "llama-3.1-70b-versatile",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-    max_tokens: 1000
-  })
-
-  const content = response.choices[0]?.message?.content || ""
-
   try {
+    const content = await deepseekInference([
+        { role: "system", content: "Генератор отзывов." },
+        { role: "user", content: prompt }
+    ], { maxTokens: 1000, temperature: 0.7 })
+
     // Парсим JSON из ответа
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error("No JSON in response")

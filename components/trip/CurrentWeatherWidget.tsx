@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { getWeatherForLocation, WeatherData, getWeatherDescription } from "@/lib/weather"
 import { getCoordinates } from "@/lib/geocoding"
 import { Cloud, CloudRain, Sun, CloudSnow, Moon, Thermometer, Wind } from "lucide-react"
@@ -17,26 +17,31 @@ export function CurrentWeatherWidget({ destination, date, className }: CurrentWe
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const targetDate = useMemo(() => date ? new Date(date) : new Date(), [date])
+
   useEffect(() => {
+    let mounted = true
+
     async function fetchWeather() {
       if (!destination) return
 
       try {
         setLoading(true)
+        setError(null)
+        
         // 1. Get Coordinates
         const coords = await getCoordinates(destination)
+        if (!mounted) return
+        
         if (!coords) {
           setError("Координаты не найдены")
           return
         }
 
-        // 2. Determine Date
-        // If no date provided, use today.
-        const targetDate = date ? new Date(date) : new Date()
-        
         // 3. Get Weather for that single day
         // We pass same start and end date to get 1 day
         const data = await getWeatherForLocation(coords.lat, coords.lng, targetDate, targetDate)
+        if (!mounted) return
         
         if (data && data.length > 0) {
             setWeather(data[0])
@@ -45,14 +50,16 @@ export function CurrentWeatherWidget({ destination, date, className }: CurrentWe
         }
       } catch (err) {
         console.error(err)
-        setError("Ошибка")
+        if (mounted) setError("Ошибка")
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
     fetchWeather()
-  }, [destination, date])
+    
+    return () => { mounted = false }
+  }, [destination, targetDate])
 
   // Loading State
   if (loading) return (
