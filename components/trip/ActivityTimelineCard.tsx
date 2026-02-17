@@ -315,7 +315,6 @@ export function ActivityTimelineCard({
             <div className="mb-4">
               <PlaceGallery
                 query={activity.imageQuery || `${activity.placeName} ${destination}`}
-                specificQuery={activity.placeName ? `${activity.placeName} ${destination}` : undefined}
                 displayTitle={activity.title || activity.placeName}
                 count={theme === "hotel" ? 3 : 4}
                 showProviderBadge={process.env.NODE_ENV === "development"}

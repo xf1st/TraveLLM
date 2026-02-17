@@ -10,10 +10,8 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ images: [] }, { status: 400 });
     }
 
-    const specific = searchParams.get("specific") || undefined;
-
     try {
-        const images = await getGalleryImages(query, count, specific);
+        const images = await getGalleryImages(query, count);
         return NextResponse.json({ images }, {
             headers: { "Cache-Control": "public, max-age=86400, s-maxage=604800" }
         });

@@ -14,7 +14,6 @@
 
 import { searchPexels } from "./pexels"
 import { searchUnsplash } from "./unsplash"
-import { searchGooglePlacesPhotos } from "./google-places"
 
 // --- In-memory cache ---
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -242,34 +241,22 @@ export async function getDestinationImage(query: string): Promise<string> {
  * Activity / place gallery (multiple images).
  *
  * Waterfall:
- *   1. Google Places (specific)  — real photos of the exact place from Google Maps
- *   2. Pexels (descriptive)      — stock photos matching the activity theme
- *   3. Pexels retry              — simplified/latin query if first Pexels call returns nothing
- *   4. Wikimedia                 — encyclopedia photos as supplement
- *   5. Local fallback            — always succeeds
+ *   1. Pexels (descriptive)      — stock photos matching the activity theme
+ *   2. Pexels retry              — simplified/latin query if first Pexels call returns nothing
+ *   3. Wikimedia                 — encyclopedia photos as supplement
+ *   4. Local fallback            — always succeeds
  *
- * @param query    Descriptive English query for Pexels (e.g. "rooftop restaurant Istanbul")
- * @param count    Max number of images
- * @param specific Exact place name + city for Google Places (e.g. "Советская площадь Ставрополь")
+ * @param query  Descriptive English query for Pexels (e.g. "rooftop restaurant Istanbul")
+ * @param count  Max number of images
  */
-export async function getGalleryImages(query: string, count: number = 4, specific?: string): Promise<string[]> {
-    const cacheKey = `gallery:${(specific || query).toLowerCase().trim()}:${count}`
+export async function getGalleryImages(query: string, count: number = 4): Promise<string[]> {
+    const cacheKey = `gallery:${query.toLowerCase().trim()}:${count}`
 
     const cached = galleryCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
 
     try {
-        // 1. Google Places — real photos of the specific location
-        if (specific) {
-            const placesUrls = await searchGooglePlacesPhotos(specific, count)
-            if (placesUrls.length > 0) {
-                const urls = placesUrls.slice(0, count)
-                galleryCache.set(cacheKey, { urls, timestamp: Date.now() })
-                return urls
-            }
-        }
-
-        // 2. Pexels with descriptive query
+        // 1. Pexels with descriptive query
         let pexelsUrls = await searchPexels(query, count)
 
         // 3. Pexels retry with Latin-only or shortened query (helps with Cyrillic)

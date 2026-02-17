@@ -8,7 +8,6 @@ import { ExternalLink, Maximize2, X, Camera, ChevronRight } from "lucide-react"
 
 interface PlaceGalleryProps {
     query: string
-    specificQuery?: string
     count?: number
     showProviderBadge?: boolean
     displayTitle?: string
@@ -22,7 +21,7 @@ function detectProvider(url: string): { label: string; color: string } {
     return { label: "local", color: "bg-slate-500" }
 }
 
-export function PlaceGallery({ query, specificQuery, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
+export function PlaceGallery({ query, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
     const [images, setImages] = useState<string[]>([])
     const [loading, setLoading] = useState(true)
     const [activeIndex, setActiveIndex] = useState(0)
@@ -41,8 +40,7 @@ export function PlaceGallery({ query, specificQuery, count = 4, showProviderBadg
         const fetchImages = async () => {
             setLoading(true)
             try {
-                const specificParam = specificQuery ? `&specific=${encodeURIComponent(specificQuery)}` : ""
-                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}${specificParam}`)
+                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}`)
                 const data = await res.json()
                 if (data.images && data.images.length > 0) {
                     setImages(data.images)
