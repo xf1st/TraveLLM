@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
@@ -172,6 +172,19 @@ export default function TripDetailPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
+  const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+
+  useEffect(() => {
+    // Auto-scroll active day into view in the horizontal selector
+    const activeBtn = dayRefs.current[activeDay]
+    if (activeBtn) {
+      activeBtn.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      })
+    }
+  }, [activeDay])
 
   // Parallax
   const { scrollY } = useScroll()
@@ -745,6 +758,7 @@ export default function TripDetailPage() {
                 return (
                   <button
                     key={day.day}
+                    ref={(el) => { if (dayRefs.current) dayRefs.current[day.day] = el }}
                     onClick={() => setActiveDay(day.day)}
                     className={cn(
                       "flex-shrink-0 rounded-full transition-all flex flex-col items-center relative border",
