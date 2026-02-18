@@ -18,7 +18,52 @@ import { createClient } from "@supabase/supabase-js"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null
+const supabaseAdmin = (supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null
+
+async function uploadToStorage(url: string, prefix: string): Promise<string | null> {
+    if (!supabaseAdmin) return null;
+    try {
+        // 1. Download image
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const buffer = await response.arrayBuffer();
+
+        // 2. Generate filename (hash of URL to avoid duplicates)
+        const encoder = new TextEncoder();
+        const data = encoder.encode(url);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+        const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
+        const filename = `${prefix}_${hashHex}.${ext}`;
+
+        // 3. Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from("destination-images")
+            .upload(filename, buffer, {
+                contentType: response.headers.get("content-type") || "image/jpeg",
+                upsert: true
+            });
+
+        if (uploadError) {
+            console.error("[Storage Upload] Error:", uploadError);
+            return null;
+        }
+
+        // 4. Get public URL
+        const { data: { publicUrl } } = supabaseAdmin.storage
+            .from("destination-images")
+            .getPublicUrl(filename);
+
+        return publicUrl;
+    } catch (e) {
+        console.error("[Storage Upload] Exception:", e);
+        return null;
+    }
+}
 
 // --- In-memory cache ---
 const imageCache = new Map<string, { url: string; timestamp: number }>()
@@ -260,6 +305,12 @@ export async function getDestinationImage(query: string): Promise<string> {
 
     // --- Persistency Save ---
     if (supabase && result) {
+        // If it's an external URL, try to cache it in our storage
+        if (result.startsWith("http") && !result.includes(supabaseUrl)) {
+            const storageUrl = await uploadToStorage(result, "hero");
+            if (storageUrl) result = storageUrl;
+        }
+
         supabase.from("image_cache")
             .upsert({ query: cacheKey, image_url: result, updated_at: new Date().toISOString() }, { onConflict: "query" })
             .then(({ error }) => error && console.error("[Image Cache] save error:", error))
@@ -350,9 +401,23 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
 
         // --- Persistency Save ---
         if (supabase && finalUrls.length > 0) {
+            // Upload images to our storage to bypass blocks
+            const storedUrls = await Promise.all(
+                finalUrls.map(async (u) => {
+                    if (u.startsWith("http") && !u.includes(supabaseUrl)) {
+                        return await uploadToStorage(u, "gallery") || u;
+                    }
+                    return u;
+                })
+            );
+
             supabase.from("image_cache")
-                .upsert({ query: cacheKey, gallery_urls: finalUrls, updated_at: new Date().toISOString() }, { onConflict: "query" })
+                .upsert({ query: cacheKey, gallery_urls: storedUrls, updated_at: new Date().toISOString() }, { onConflict: "query" })
                 .then(({ error }) => error && console.error("[Image Cache] gallery save error:", error))
+            
+            // Return stored URLs for the caller
+            galleryCache.set(cacheKey, { urls: storedUrls, timestamp: Date.now() })
+            return storedUrls
         }
 
         galleryCache.set(cacheKey, { urls: finalUrls, timestamp: Date.now() })

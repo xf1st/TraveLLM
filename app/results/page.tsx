@@ -264,12 +264,14 @@ function ResultsContent() {
       }
 
       // Local Last Generated Request (only if strict match)
-      const stored = localStorage.getItem("lastGeneratedRoute")
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored)
-          setAiRoute(parsed)
-        } catch (e) { }
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem("lastGeneratedRoute")
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored)
+            setAiRoute(parsed)
+          } catch (e) { }
+        }
       }
 
       setLoading(false)

@@ -19,6 +19,7 @@ const STEPS = [
 interface GeneratingModalProps {
     open: boolean
     destination?: string
+    onCancel?: () => void
 }
 
 export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps & { onCancel?: () => void }) {

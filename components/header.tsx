@@ -78,12 +78,18 @@ export function Header({ floating = false }: HeaderProps) {
     }
     window.addEventListener('profile_updated', handleProfileUpdate)
 
+    // Debounced scroll handler for better mobile performance
+    let scrollTimer: NodeJS.Timeout
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
+      clearTimeout(scrollTimer)
+      scrollTimer = setTimeout(() => {
+        setIsScrolled(window.scrollY > 10)
+      }, 50)
     }
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
 
     return () => {
+      clearTimeout(scrollTimer)
       window.removeEventListener("scroll", handleScroll)
       window.removeEventListener('profile_updated', handleProfileUpdate)
     }

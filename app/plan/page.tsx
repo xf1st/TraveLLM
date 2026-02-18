@@ -94,8 +94,19 @@ export default function PlanPage() {
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
     checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    
+    // Debounced resize handler
+    let resizeTimer: NodeJS.Timeout
+    const handleResize = () => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => checkMobile(), 150)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      clearTimeout(resizeTimer)
+    }
   }, [])
 
   // Page leave warning
@@ -111,17 +122,20 @@ export default function PlanPage() {
   }, [departureCity, date, destination])
 
   useEffect(() => {
+    let isMounted = true
+    const abortController = new AbortController()
+    
     const fetchProfile = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession()
-        if (sessionData?.session?.user) {
+        if (sessionData?.session?.user && !abortController.signal.aborted) {
           const { data: profileData } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", sessionData.session.user.id)
             .single()
 
-          if (profileData) {
+          if (profileData && isMounted) {
             setProfile(profileData)
             const prefs = profileData.preferences || {}
             if (prefs.departureCity && !departureCity) setDepartureCity(prefs.departureCity)
@@ -129,16 +143,23 @@ export default function PlanPage() {
             if (prefs.autoFavorites !== undefined) setAutoFavorites(prefs.autoFavorites)
 
             setAccessMode(profileData.access_mode || "active")
-            if (profileData.access_mode === "full_blocked") {
+            if (profileData.access_mode === "full_blocked" && !abortController.signal.aborted) {
               router.push("/blocked")
             }
           }
         }
       } catch (e) {
-        console.error("Error fetching profile:", e)
+        if (!abortController.signal.aborted) {
+          console.error("Error fetching profile:", e)
+        }
       }
     }
     fetchProfile()
+    
+    return () => {
+      isMounted = false
+      abortController.abort()
+    }
   }, [router])
 
   // Safe localStorage helpers

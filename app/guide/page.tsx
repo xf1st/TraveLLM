@@ -94,53 +94,68 @@ function GuidePageContent() {
         "Нью-Йорк": [40.7128, -74.0060], "Бангкок": [13.7563, 100.5018], "Бали": [-8.3405, 115.0920]
     }
 
-    // Effect for Demo Loop
+    // Effect for Demo Loop - optimized with requestAnimationFrame
     useEffect(() => {
         if (!isDemoPlaying || places.length < 2) return
 
-        const interval = setInterval(() => {
-            // Find current target place
-            const target = places[demoTargetIndex]
-            if (!target) {
-                setDemoTargetIndex(0) // Loop back
-                return
+        let animationFrameId: number
+        let lastTime = performance.now()
+        const interval = 200 // 5 FPS instead of 10 - better mobile performance
+
+        const updatePosition = (currentTime: number) => {
+            if (currentTime - lastTime >= interval) {
+                lastTime = currentTime
+                
+                // Find current target place
+                const target = places[demoTargetIndex]
+                if (!target) {
+                    setDemoTargetIndex(0) // Loop back
+                    animationFrameId = requestAnimationFrame(updatePosition)
+                    return
+                }
+
+                // Get target coords (mock if missing)
+                let targetCoords = target.coords
+                if (!targetCoords) {
+                    // Try to find
+                    const foundCity = Object.keys(CITY_COORDS_MOCK).find(c => target.name.includes(c) || target.description?.includes(c))
+                    if (foundCity) targetCoords = CITY_COORDS_MOCK[foundCity]
+                    else targetCoords = [55.7558 + (Math.random() * 0.1), 37.6173 + (Math.random() * 0.1)] // Random near Moscow default
+                }
+
+                if (!userLocation) {
+                    setUserLocation(targetCoords)
+                    animationFrameId = requestAnimationFrame(updatePosition)
+                    return
+                }
+
+                // Move towards target
+                const [lat, lng] = userLocation
+                const [tLat, tLng] = targetCoords!
+
+                const dist = Math.sqrt(Math.pow(tLat - lat, 2) + Math.pow(tLng - lng, 2))
+
+                if (dist < 0.005) { // Arrived
+                    setActivePlaceId(target.id) // UI Update
+                    setDemoTargetIndex(prev => (prev + 1) % places.length) // Next target
+                } else {
+                    // Interpolate
+                    const step = 0.02 // Speed
+                    const angle = Math.atan2(tLng - lng, tLat - lat)
+                    setUserLocation([
+                        lat + Math.cos(angle) * step,
+                        lng + Math.sin(angle) * step
+                    ])
+                }
             }
+            animationFrameId = requestAnimationFrame(updatePosition)
+        }
 
-            // Get target coords (mock if missing)
-            let targetCoords = target.coords
-            if (!targetCoords) {
-                // Try to find
-                const foundCity = Object.keys(CITY_COORDS_MOCK).find(c => target.name.includes(c) || target.description?.includes(c))
-                if (foundCity) targetCoords = CITY_COORDS_MOCK[foundCity]
-                else targetCoords = [55.7558 + (Math.random() * 0.1), 37.6173 + (Math.random() * 0.1)] // Random near Moscow default
-            }
+        animationFrameId = requestAnimationFrame(updatePosition)
 
-            if (!userLocation) {
-                setUserLocation(targetCoords)
-                return
-            }
-
-            // Move towards target
-            const [lat, lng] = userLocation
-            const [tLat, tLng] = targetCoords!
-
-            const dist = Math.sqrt(Math.pow(tLat - lat, 2) + Math.pow(tLng - lng, 2))
-
-            if (dist < 0.005) { // Arrived
-                setActivePlaceId(target.id) // UI Update
-                setDemoTargetIndex(prev => (prev + 1) % places.length) // Next target
-            } else {
-                // Interpolate
-                const step = 0.02 // Speed
-                const angle = Math.atan2(tLng - lng, tLat - lat)
-                setUserLocation([
-                    lat + Math.cos(angle) * step,
-                    lng + Math.sin(angle) * step
-                ])
-            }
-        }, 100) // 10 FPS
-
-        return () => clearInterval(interval)
+        return () => {
+            cancelAnimationFrame(animationFrameId)
+        }
     }, [isDemoPlaying, places, demoTargetIndex, userLocation])
 
     // Parse places when trip data changes
@@ -209,7 +224,7 @@ function GuidePageContent() {
 
     useEffect(() => {
         const checkSidebar = () => {
-            const saved = localStorage.getItem('sidebar-collapsed') === 'true'
+            const saved = typeof window !== 'undefined' && localStorage.getItem('sidebar-collapsed') === 'true'
             setIsSidebarCollapsed(saved)
         }
 

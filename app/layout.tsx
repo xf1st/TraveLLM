@@ -9,6 +9,7 @@ import { NotificationPrompt } from "@/components/NotificationPrompt"
 import { CookieConsent } from "@/components/CookieConsent"
 import { MaintenanceGuard } from "@/components/admin/maintenance-guard"
 import { UserAccessGuard } from "@/components/admin/user-access-guard"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import Script from "next/script"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth-provider"
@@ -68,7 +69,9 @@ export default function RootLayout({
           <AuthProvider>
             <MaintenanceGuard>
               <UserAccessGuard>
-                {children}
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
               </UserAccessGuard>
             </MaintenanceGuard>
           </AuthProvider>

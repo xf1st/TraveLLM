@@ -20,6 +20,21 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
     const [error, setError] = useState(false)
     const [retryCount, setRetryCount] = useState(0)
     const [isProxied, setIsProxied] = useState(false)
+    const [imageCache, setImageCache] = useState<Record<string, string>>({})
+
+    // Load image cache from localStorage on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('trip-image-cache')
+                if (cached) {
+                    setImageCache(JSON.parse(cached))
+                }
+            } catch (e) {
+                console.warn('Failed to load image cache:', e)
+            }
+        }
+    }, [])
 
     // Check if initial src is invalid (blocked domain or empty)
     useEffect(() => {
@@ -43,6 +58,14 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
         setIsLoading(true);
         setError(false);
         try {
+            // Check cache first
+            const cacheKey = `${query}-${alt}`;
+            if (imageCache[cacheKey] && !isProbablyBlockedImage(imageCache[cacheKey])) {
+                setCurrentSrc(imageCache[cacheKey]);
+                setIsLoading(false);
+                return;
+            }
+
             const res = await fetch(`/api/image?query=${encodeURIComponent(buildImageQuery(query, alt))}`);
             const data = await res.json();
             if (data.url && !isProbablyBlockedImage(data.url)) {
@@ -51,6 +74,12 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
                     setCurrentSrc(`/api/proxy-image?url=${encodeURIComponent(data.url)}`);
                 } else {
                     setCurrentSrc(data.url);
+                    // Cache the new URL
+                    if (typeof window !== 'undefined') {
+                        const newCache = { ...imageCache, [cacheKey]: data.url };
+                        setImageCache(newCache);
+                        localStorage.setItem('trip-image-cache', JSON.stringify(newCache));
+                    }
                 }
             } else {
                 setCurrentSrc(DEFAULT_TRAVEL_IMAGE);
