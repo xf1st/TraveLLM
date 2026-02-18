@@ -6,7 +6,7 @@ import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Users, ArrowRight, Search, Sparkles, Plane, Map as MapIcon } from "lucide-react"
+import { MapPin, Calendar, Users, ArrowRight, Plane } from "lucide-react"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -17,24 +17,8 @@ import { TripImage } from "@/components/TripImage"
 import { FloatingIcons } from "@/components/FloatingIcons"
 import { VideoText } from "@/components/ui/video-text"
 import { MorphingText } from "@/components/ui/morphing-text"
-
-// Dynamic imports for WebGL components (client-side only)
-const MapLibreView = dynamic(() => import("@/components/travel/MapLibreView"), { 
-  ssr: false,
-  loading: () => <div className="w-full h-[500px] bg-black/5 animate-pulse rounded-[3rem]" />
-})
-
-// Sample points for the globe
-const globePoints = [
-  { id: 1, title: "Paris", lat: 48.8566, lng: 2.3522, type: "attraction" },
-  { id: 2, title: "New York", lat: 40.7128, lng: -74.0060, type: "attraction" },
-  { id: 3, title: "Tokyo", lat: 35.6762, lng: 139.6503, type: "attraction" },
-  { id: 4, title: "Dubai", lat: 25.2048, lng: 55.2708, type: "attraction" },
-  { id: 5, title: "Sydney", lat: -33.8688, lng: 151.2093, type: "attraction" },
-  { id: 6, title: "Rio de Janeiro", lat: -22.9068, lng: -43.1729, type: "attraction" },
-  { id: 7, title: "Cape Town", lat: -33.9249, lng: 18.4241, type: "attraction" },
-  { id: 8, title: "London", lat: 51.5074, lng: -0.1278, type: "attraction" },
-]
+import { BentoInsights } from "@/components/itinerary/BentoInsights"
+import { TravelJournal } from "@/components/itinerary/TravelJournal"
 
 export default function LandingPage() {
   const [user, setUser] = useState<any>(null)
@@ -51,28 +35,6 @@ export default function LandingPage() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
-
-  // Popular destinations data - 3 most popular real routes
-  const popularDestinations = [
-    {
-      title: "Ялта: 7 дней у моря",
-      desc: "Ласточкино гнездо, пляжи, вино",
-      image: "https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?auto=format&fit=crop&q=80&w=800",
-      slug: "pop-1"
-    },
-    {
-      title: "Анталья: всё включено",
-      desc: "10 дней пляжного отдыха",
-      image: "https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&q=80&w=800",
-      slug: "pop-3"
-    },
-    {
-      title: "Тбилиси: Гастро-тур",
-      desc: "Вино, хинкали, серные бани",
-      image: "https://images.unsplash.com/photo-1565008576549-57569a49371d?auto=format&fit=crop&q=80&w=800",
-      slug: "pop-5"
-    }
-  ]
 
   // Floating cards data
   const floatingImages = [
@@ -116,8 +78,6 @@ export default function LandingPage() {
               <span className="bg-gradient-to-r from-sky-500 via-violet-500 to-rose-400 bg-clip-text text-transparent">следующее приключение</span>
             </h1>
           </motion.div>
-
-
 
           {/* Floating Images (Decorative) */}
           <div className="absolute inset-0 pointer-events-none z-0">
@@ -189,76 +149,158 @@ export default function LandingPage() {
             </Link>
           </motion.div>
 
-          {/* Popular Destinations Cards */}
-          <div className="w-full relative z-20">
-            <h3 className="text-center text-lg font-medium text-muted-foreground mb-4 pl-1">Популярные направления:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {popularDestinations.map((dest, i) => (
-                <Link href={`/results?source=popular#${dest.slug}`} key={i} className="block group">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 + (i * 0.1) }}
-                    className="relative h-24 rounded-2xl overflow-hidden border border-white/20 trip-glass group-hover:border-primary/50 transition-colors shadow-lg"
-                  >
-                    {/* Background Image */}
-                    <TripImage
-                      src={dest.image}
-                      query={dest.title}
-                      alt={dest.title}
-                      className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent" />
-
-                    {/* Content */}
-                    <div className="absolute inset-0 p-4 flex flex-col justify-center text-left">
-                      <h4 className="text-lg font-bold text-white group-hover:text-primary transition-colors">{dest.title}</h4>
-                      <p className="text-xs text-gray-400 max-w-[80%] truncate">{dest.desc}</p>
-                    </div>
-
-                    {/* Arrow Icon */}
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all">
-                      <ArrowRight className="h-5 w-5 text-primary" />
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
         </section>
 
+        {/* ===== NEW STYLISH BLOCKS ===== */}
+        <section className="w-full max-w-7xl mx-auto px-4 py-24 border-t border-black/5 dark:border-white/5 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4 border-violet-500/50 text-violet-500 bg-violet-500/10 uppercase tracking-widest">Инсайты AI</Badge>
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter">Спроектировано для <span className="text-primary italic">впечатлений</span></h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">Мы превращаем сухие данные в живой сценарий вашего отпуска</p>
+          </div>
+          
+          <BentoInsights 
+            tripData={{
+              tags: ["Футуристичный тур", "Гастрономия"],
+              destination: "Токио",
+              mainImageUrl: "https://yandex-images.clstorage.net/ZTsL50184/39b513dEG/nL8QE5nkMrJqZ9P2x4OjLQ9k_-nTyqJfeSCZSB6_Tw1yJ7jkFgx0U3GuqnquBkXsmPGrTs_RckJ1u0x5rd3Zb9WGdSL88UuuanOC2u6zyx1PMc-c35-qO2k9_XgHJ77ctr9RBY6hjbqp0-cb23dthYXAGu6TcP_fZbJtNfWosHZ4j9gfJZBTGrY3Sh5Hux8Ju0Ff-cOnIkJJiFil-_ueMCKnnZ0aZbWSgbvnN3PLQCF5oDKDO9BXn8FWnXVJ2LTSFEMwH4F0Tx7q337299ez2Qcxm4Hvr472YWzcLYNnnoCa43k13t2hWrU_2zefZyyNKVDu37-gV-9t4t05AaCkhjijKBOJnGuWiucy2veTO2mfAQf5zzf-qh08LHHnG0ZwqitxnXqpgV49C0sDQ1ecIYFw4ndLzEebYaK9tc2ocO6oz6wDAXBnvkLXzg7jr8vVcxV7mZ87slrZXKh1V38iTCrXfbGKlVFWtVPHD4OLHCkRhA47p2h_s73-KfFtsASmMGPMh5mkMw76WxbGEyPPDaOpw7VvA4ryoUy4EZdT2lCeg_Wlfm0BDjVnM6-Dg0S5xTx-r69Ikwcl8j2JecyEjgTXWCNRsO8GAldaxncvxzEXKQ99ry8Gvm2wgJGHC2pQWnvh2coB-YKJO4vjny-YcUlMWlsbaFtvEZ6ZPf00aJqs9xzPAezfUpJnLibnD9fpj23_HfP_ilbNnJjpj29ybOJvxSEimQ0CLfdTS3tPTHGJLP67G2ybLz3y3f0RRFymuP9UoxEwax62y17qL2cz9Ye967F7gzZWyZBgOWvTIjyS-6khnh1dxnX7S-9HK5SxGVSyz8tojwdpKrUFNbAIpojj3NMtFPs2umvafvO7jxU3XZs584dW0uE81JH7-wbQdhNtfW6dsaLVIy-3e7cs7X0EetMnIBOjGQYlrXFcTF6gA6wnhSDzwjbzipJ7V_OZo51P4VsvOprJwKy1k-PQ",
+              foodImageUrl: "https://avatars.mds.yandex.net/i?id=c9a5f9228f5fcad01c627efab3a64e48_l-11907031-images-thumbs&n=13",
+              itinerary: [
+                { day: 1, tips: "Посетите район Акихабара вечером — неоновые огни создают атмосферу киберпанка." },
+                { day: 2 }, { day: 3 }, { day: 4 }, { day: 5 }, { day: 6 }, { day: 7 }
+              ]
+            }}
+            className="mb-20"
+          />
+
+          <TravelJournal 
+            moments={[
+              { 
+                day: 1, 
+                title: "Shibuya Crossing Tokyo", 
+                description: "Самый оживленный перекресток мира встретил нас неоновыми огнями и бесконечным потоком людей. Настоящее сердце Токио!",
+                imageQuery: "shibuya crossing",
+                imageUrl: "https://images.unsplash.com/photo-15420518418c7-a53eccaea7df?auto=format&fit=crop&q=80&w=1000"
+              },
+              { 
+                day: 2, 
+                title: "Ueno Park Cherry Blossom", 
+                description: "Утренний туман над озером Синобадзу и цветение сакуры — моменты абсолютного спокойствия в мегаполисе.",
+                imageQuery: "ueno park sakura",
+                imageUrl: "https://images.unsplash.com/photo-1522383225653-ed111181a951?auto=format&fit=crop&q=80&w=1000"
+              },
+              { 
+                day: 3, 
+                title: "Tsukiji Outer Market", 
+                description: "Запах свежей рыбы и вкус лучшего суши в нашей жизни. Гастрономический экстаз.",
+                imageQuery: "tsukiji market food",
+                imageUrl: "https://images.unsplash.com/photo-1504416284471-3fd46bbbb1ad?auto=format&fit=crop&q=80&w=1000"
+              }
+            ]}
+          />
+        </section>
         {/* ===== ABOUT / FEATURES SECTION ===== */}
-        <section className="w-full max-w-7xl mx-auto px-4 py-24 relative z-20 border-t border-black/5 dark:border-white/5">
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <Badge variant="outline" className="mb-4 border-primary/50 text-primary bg-primary/10">О проекте</Badge>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60 dark:from-white dark:to-white/60">
+        <section className="w-full max-w-7xl mx-auto px-4 py-32 relative z-20">
+          <div className="text-center mb-20 max-w-3xl mx-auto">
+            <Badge variant="outline" className="mb-6 border-primary/40 text-primary bg-primary/5 px-4 py-1 rounded-full uppercase tracking-[0.2em] text-[10px] font-bold">О технологии TraveLLM</Badge>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/60">
               Путешествия, созданные <br />
             </h2>
-            <div className="h-24">
-              <MorphingText className="text-3xl md:text-5xl" texts={["AI", "нейросетями", "алгоритмами", "с любовью"]} />
+            <div className="h-20 mb-4">
+              <MorphingText className="text-4xl md:text-6xl font-black" texts={["Интеллектом", "Нейросетями", "Алгоритмами", "Для вас"]} />
             </div>
-            <p className="text-muted-foreground text-lg">
-              TraveLLM анализирует тысячи вариантов и создаёт идеальный маршрут за секунды
+            <p className="text-muted-foreground text-xl max-w-2xl mx-auto leading-relaxed">
+              Мы объединили мощь DeepSeek и реальные данные, чтобы ваше планирование стало искусством, а не рутиной.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="trip-glass border-white/20 p-6 hover:border-primary/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-primary/5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 dark:bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">🧠</div>
-              <h3 className="text-xl font-bold mb-2">Умное планирование</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">ИИ учитывает ваш стиль путешествия, интересы, бюджет и даже темп прогулок.</p>
-            </Card>
-            <Card className="trip-glass border-white/20 p-6 hover:border-blue-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-blue-500/5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 dark:bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">✈️</div>
-              <h3 className="text-xl font-bold mb-2">Реальные данные</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">Актуальные цены на билеты и отели, ссылки на бронирование напрямую.</p>
-            </Card>
-            <Card className="trip-glass border-white/20 p-6 hover:border-pink-500/50 transition-all hover:-translate-y-1 group rounded-[2rem] shadow-lg shadow-rose-500/5">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 dark:bg-pink-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform text-2xl">📍</div>
-              <h3 className="text-xl font-bold mb-2">Детальные маршруты</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">Почасовой план на каждый день с адресами, временем работы и секретными местами.</p>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-primary/20 transition-all duration-500 border-none">
+                <div className="absolute inset-0 z-0">
+                  <TripImage 
+                    src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000"
+                    alt="AI Intelligence" 
+                    query="futuristic neural network city abstract" 
+                    className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                </div>
+                
+                <div className="relative z-10 h-full p-10 flex flex-col justify-end">
+                   <div className="h-16 w-16 rounded-3xl bg-violet-500/20 backdrop-blur-xl border border-violet-500/30 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+                     <span className="text-3xl">🧠</span>
+                   </div>
+                   <h3 className="text-2xl font-black mb-4 tracking-tighter uppercase italic">Когнитивный Интеллект</h3>
+                   <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                     Наш ИИ не просто предлагает места — он понимает контекст, сезонность и ваши личные пожелания, создавая симфонию впечатлений.
+                   </p>
+                </div>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-sky-500/20 transition-all duration-500 border-none">
+                <div className="absolute inset-0 z-0">
+                  <TripImage 
+                    src="https://images.unsplash.com/photo-1436491865332-7a61a109c0f3?auto=format&fit=crop&q=80&w=1000"
+                    alt="Real Data" 
+                    query="cinematic airplane wing above clouds sunset" 
+                    className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                </div>
+                
+                <div className="relative z-10 h-full p-10 flex flex-col justify-end">
+                   <div className="h-16 w-16 rounded-3xl bg-sky-500/20 backdrop-blur-xl border border-sky-500/30 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
+                     <span className="text-3xl">✈️</span>
+                   </div>
+                   <h3 className="text-2xl font-black mb-4 tracking-tighter uppercase italic">Абсолютная Точность</h3>
+                   <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                     Интеграция с крупнейшими агрегаторами авиабилетов и отелей для получения самых актуальных цен в режиме реального времени.
+                   </p>
+                </div>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-pink-500/20 transition-all duration-500 border-none">
+                <div className="absolute inset-0 z-0">
+                  <TripImage 
+                    src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=1000"
+                    alt="Detailed Itinerary" 
+                    query="minimalist aesthetic map travel pin landscape" 
+                    className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+                </div>
+                
+                <div className="relative z-10 h-full p-10 flex flex-col justify-end">
+                   <div className="h-16 w-16 rounded-3xl bg-rose-500/20 backdrop-blur-xl border border-rose-500/30 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                     <span className="text-3xl">📍</span>
+                   </div>
+                   <h3 className="text-2xl font-black mb-4 tracking-tighter uppercase italic">Бесшовный Маршрут</h3>
+                   <p className="text-muted-foreground text-sm leading-relaxed font-medium">
+                     Консистентный план передвижений, оптимизированный под ваш темп жизни, чтобы вы наслаждались каждой минутой своего отдыха.
+                   </p>
+                </div>
+              </Card>
+            </motion.div>
           </div>
         </section>
 

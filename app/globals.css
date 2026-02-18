@@ -423,6 +423,15 @@
     border-left-color: rgba(255, 255, 255, 0.2);
   }
 
+  /* Mobile: smaller timeline spacing */
+  @media (max-width: 640px) {
+    .trip-timeline::before {
+      left: 19px;
+      top: 2.5rem;
+      bottom: 1.5rem;
+    }
+  }
+
   /* Trip activity icon glow variants */
   .trip-icon-transport {
     background: rgba(56, 189, 248, 0.15);

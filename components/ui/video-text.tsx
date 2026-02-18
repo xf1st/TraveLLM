@@ -81,6 +81,7 @@ export function VideoText({
     as: Component = "div",
 }: VideoTextProps) {
     const [svgMask, setSvgMask] = useState("")
+    const [isLoaded, setIsLoaded] = useState(false)
     const content = React.Children.toArray(children).join("")
 
     useEffect(() => {
@@ -99,10 +100,10 @@ export function VideoText({
     const dataUrlMask = `url("data:image/svg+xml,${encodeURIComponent(svgMask)}")`
 
     return (
-        <Component className={cn(`relative size-full`, className)}>
-            {/* Create a container that masks the video to only show within text */}
+        <Component className={cn(`relative size-full overflow-hidden`, className)}>
+            {/* Video layer with mask - shows video only in text shape */}
             <div
-                className="absolute inset-0 flex items-center justify-center"
+                className="absolute inset-0 z-10"
                 style={{
                     maskImage: dataUrlMask,
                     WebkitMaskImage: dataUrlMask,
@@ -115,20 +116,33 @@ export function VideoText({
                 }}
             >
                 <video
-                    className="h-full w-full object-cover"
+                    key={src}
+                    className="absolute inset-0 h-full w-full object-cover"
                     autoPlay={autoPlay}
                     muted={muted}
                     loop={loop}
                     preload={preload}
                     playsInline
+                    onLoadedData={() => setIsLoaded(true)}
                 >
-                    <source src={src} />
-                    Your browser does not support the video tag.
+                    <source src={src} type="video/webm" />
                 </video>
             </div>
 
-            {/* Add a backup text element for SEO/accessibility */}
-            <span className="sr-only">{content}</span>
+            {/* Fallback text - visible while video loads or if mask fails */}
+            <div
+                className={cn(
+                    "absolute inset-0 flex items-center justify-center font-black",
+                    !isLoaded ? "opacity-100" : "opacity-0"
+                )}
+                style={{
+                    fontSize: typeof fontSize === "number" ? `${fontSize}vw` : fontSize,
+                    fontWeight,
+                    fontFamily,
+                }}
+            >
+                {content}
+            </div>
         </Component>
     )
 }

@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -76,6 +77,8 @@ export default function PlanPage() {
   const [autoFavorites, setAutoFavorites] = useState(false)
   const [stepperKey, setStepperKey] = useState(0)
   const [filterByDocuments, setFilterByDocuments] = useState(false)
+  const [tripHighlight, setTripHighlight] = useState("")
+  const [highlightError, setHighlightError] = useState<string | null>(null)
 
   // Error Modal State
   const [errorModal, setErrorModal] = useState<{
@@ -189,6 +192,37 @@ export default function PlanPage() {
       .slice(0, 500)
   }
 
+  // Content filter for "Изюминка поездки"
+  const FORBIDDEN_STEMS = [
+    'хуй', 'хуе', 'хуи', 'хуя', 'пизд',
+    'ебал', 'ебать', 'ебан', 'ёбал', 'ёбать', 'ёбан', 'наебал',
+    'блять', 'блядь', 'мудак', 'залупа', 'суках', 'сукин',
+    'наркотик', 'героин', 'кокаин', 'метамфет', 'амфетамин',
+    'проститут', 'бордел', 'стриптиз', 'порнo', 'порно',
+    'ignore previous', 'system prompt', 'jailbreak', 'dan mode',
+    'забудь всё', 'забудь все', 'respond only', 'act as an ai',
+  ]
+  const validateHighlight = (text: string): string | null => {
+    if (!text.trim()) return null
+    const lower = text.toLowerCase()
+    for (const stem of FORBIDDEN_STEMS) {
+      if (lower.includes(stem)) {
+        return "Напишите пожелание в приличной форме 😊"
+      }
+    }
+    if (/\b(ты теперь|ты являешься|ты — это)\b/i.test(lower)) {
+      return "Это похоже на попытку обмануть AI. Просто опишите своё желание!"
+    }
+    return null
+  }
+
+  const HIGHLIGHT_SUGGESTIONS = [
+    { label: "🐱 Котики", value: "Хочу встретить котиков" },
+    { label: "🍜 Стрит-фуд", value: "Найти лучший уличный стрит-фуд" },
+    { label: "🌅 Рассвет", value: "Встретить рассвет в особом месте" },
+    { label: "🏛️ Скрытые места", value: "Побывать в местах, куда не ходят туристы" },
+  ]
+
   // Validate form before submission
   const validateForm = (): string[] => {
     const errors: string[] = []
@@ -218,6 +252,9 @@ export default function PlanPage() {
     }
     if (budget === "custom" && (!customBudget || parseInt(customBudget) < 10000)) {
       errors.push("Минимальный бюджет — 10 000 ₽")
+    }
+    if (tripHighlight.trim() && validateHighlight(tripHighlight)) {
+      errors.push("Поле «Изюминка поездки» содержит недопустимый контент")
     }
 
     return errors
@@ -290,6 +327,7 @@ export default function PlanPage() {
         travelers: (companions === 'family' || companions === 'friends') ? travelers : (companions === 'solo' ? 1 : 2),
         aiCreativity,
         filterByDocuments,
+        tripHighlight: tripHighlight.trim() ? sanitizeInput(tripHighlight) : undefined,
         preferences: profile?.preferences ? {
           citizenship: profile.preferences.citizenship || profile.citizenship,
           languages: profile.preferences.languages || profile.languages,
@@ -461,13 +499,13 @@ export default function PlanPage() {
         } as React.CSSProperties : undefined}
       >
         {/* Header */}
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white/30 dark:bg-black/10 backdrop-blur-sm p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-sm">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-3">
+        <div className="text-center mb-6 sm:mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white/30 dark:bg-black/10 backdrop-blur-sm p-4 sm:p-6 rounded-3xl border border-white/20 dark:border-white/5 shadow-sm">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight mb-2 sm:mb-3">
             <span className="bg-gradient-to-r from-blue-900 via-indigo-800 to-blue-900 dark:from-sky-400 dark:via-blue-500 dark:to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
               Создайте идеальное путешествие
             </span>
           </h1>
-          <p className="text-slate-900 dark:text-muted-foreground text-sm md:text-base max-w-md mx-auto font-medium">
+          <p className="text-slate-900 dark:text-muted-foreground text-xs sm:text-sm md:text-base max-w-md mx-auto font-medium">
             AI спланирует маршрут под ваши предпочтения за несколько секунд
           </p>
         </div>
@@ -485,16 +523,19 @@ export default function PlanPage() {
           stepLabels={["Откуда", "Куда", "Бюджет", "Детали"]}
           isNextDisabled={!getStepValidity(currentStep)}
           className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200"
+          stepContainerClassName="py-4 px-4 md:px-16 md:py-10"
+          contentClassName="px-4 md:px-16"
+          footerClassName="pb-5 md:pb-12 px-4 md:px-16"
         >
           {/* Step 1: Departure & Dates */}
           <Step>
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 mb-3 border border-blue-500/10 shadow-lg shadow-blue-500/10">
-                  <Plane className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 mb-2 sm:mb-3 border border-blue-500/10 shadow-lg shadow-blue-500/10">
+                  <Plane className="h-6 w-6 sm:h-7 sm:w-7 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight">Откуда и когда?</h2>
-                <p className="text-sm text-muted-foreground mt-1">Укажите город вылета и даты поездки</p>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight">Откуда и когда?</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Укажите город вылета и даты поездки</p>
               </div>
 
               <div className="space-y-2 max-w-lg mx-auto">
@@ -682,13 +723,13 @@ export default function PlanPage() {
 
           {/* Step 3: Budget & Interests */}
           <Step>
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 mb-3 border border-amber-500/10 shadow-lg shadow-amber-500/10">
-                  <CreditCard className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 mb-2 sm:mb-3 border border-amber-500/10 shadow-lg shadow-amber-500/10">
+                  <CreditCard className="h-6 w-6 sm:h-7 sm:w-7 text-amber-600 dark:text-amber-400" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight">Бюджет и интересы</h2>
-                <p className="text-sm text-muted-foreground mt-1">Выберите уровень комфорта и стиль</p>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight">Бюджет и интересы</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">Выберите уровень комфорта и стиль</p>
               </div>
 
               <div className="space-y-4 max-w-lg mx-auto w-full">
@@ -795,13 +836,13 @@ export default function PlanPage() {
 
           {/* Step 4: Companions & Payment */}
           <Step>
-            <div className="space-y-6">
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 mb-3 border border-pink-500/10 shadow-lg shadow-pink-500/10">
-                  <Users className="h-7 w-7 text-pink-600 dark:text-pink-400" />
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 mb-2 sm:mb-3 border border-pink-500/10 shadow-lg shadow-pink-500/10">
+                  <Users className="h-6 w-6 sm:h-7 sm:w-7 text-pink-600 dark:text-pink-400" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight">Последние детали</h2>
-                <p className="text-sm text-muted-foreground mt-1">С кем едете и способ оплаты</p>
+                <h2 className="text-lg sm:text-xl font-bold tracking-tight">Последние детали</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">С кем едете и способ оплаты</p>
               </div>
 
               <div className="space-y-4 max-w-lg mx-auto w-full">
@@ -902,6 +943,67 @@ export default function PlanPage() {
                     )
                   })}
                 </RadioGroup>
+              </div>
+
+              {/* ✨ Изюминка поездки */}
+              <div className="space-y-2 max-w-lg mx-auto w-full pt-2">
+                <div className="flex items-center gap-2 flex-wrap ml-1">
+                  <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                    <Sparkles className="h-4 w-4 text-violet-400" />
+                    Изюминка поездки
+                  </Label>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 border border-violet-500/20 font-semibold leading-tight">
+                    ✨ лично для тебя
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/50 ml-auto">необязательно</span>
+                </div>
+
+                <div className={cn(
+                  "rounded-2xl border transition-all overflow-hidden",
+                  highlightError
+                    ? "border-red-400/50 bg-red-500/5"
+                    : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 focus-within:border-violet-400/40 focus-within:bg-white/70 dark:focus-within:bg-white/8"
+                )}>
+                  <Textarea
+                    placeholder="Хочу встретить котиков... найти лучший уличный стрит-фуд... попасть на местный рынок..."
+                    value={tripHighlight}
+                    onChange={(e) => {
+                      const value = e.target.value.slice(0, 300)
+                      setTripHighlight(value)
+                      setHighlightError(value.length > 0 ? validateHighlight(value) : null)
+                    }}
+                    className="min-h-[76px] max-h-[120px] resize-none bg-transparent border-0 text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/40 leading-relaxed"
+                  />
+                  <div className="flex items-center justify-between px-4 pb-3 gap-2">
+                    {highlightError ? (
+                      <span className="text-xs text-red-400">⚠️ {highlightError}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground/50">AI обязательно включит это в маршрут</span>
+                    )}
+                    <span className={cn(
+                      "text-xs tabular-nums shrink-0",
+                      tripHighlight.length > 250 ? "text-amber-400" : "text-muted-foreground/35"
+                    )}>
+                      {tripHighlight.length}/300
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick suggestion chips */}
+                {!tripHighlight && (
+                  <div className="flex flex-wrap gap-2 pt-0.5">
+                    {HIGHLIGHT_SUGGESTIONS.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => setTripHighlight(s.value)}
+                        className="text-xs px-3 py-1.5 rounded-full bg-white/40 dark:bg-white/5 border border-black/10 dark:border-white/10 text-muted-foreground hover:bg-white/70 dark:hover:bg-white/10 hover:text-foreground active:scale-95 transition-all"
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </Step>

@@ -21,7 +21,9 @@
       "Bash(claude mcp add --transport stdio supabase -- cmd /c npx -y @supabase/mcp-server-supabase@latest --access-token sbp_965a461f39869bed60e114619bb520909079043f)",
       "Bash(claude mcp:*)",
       "Bash(python3:*)",
-      "Bash(node -e \"const d=require\\(''/tmp/pexels_result.json''\\); d.photos.forEach\\(p=>console.log\\(p.id, p.src.large2x\\)\\)\")"
+      "Bash(node -e \"const d=require\\(''/tmp/pexels_result.json''\\); d.photos.forEach\\(p=>console.log\\(p.id, p.src.large2x\\)\\)\")",
+      "Bash(claude install:*)",
+      "Bash(echo:*)"
     ]
   }
 }

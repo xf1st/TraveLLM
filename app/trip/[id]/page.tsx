@@ -60,7 +60,7 @@ import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/A
 import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 
 import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
-import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
+import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
 
 
@@ -184,6 +184,9 @@ export default function TripDetailPage() {
         inline: "center",
       })
     }
+
+    // Scroll page to top (beginning of the day)
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }, [activeDay])
 
   // Parallax
@@ -421,7 +424,11 @@ export default function TripDetailPage() {
     return null
   })()
 
-  const dayHotels = route.hotels?.filter((h: any) => Number(h.dayStart) === Number(activeDay)) || []
+  const dayHotels = route.hotels?.filter((h: any) => {
+    const start = Number(h.dayStart)
+    const nights = Number(h.nights) || 1
+    return start <= Number(activeDay) && (start + nights) > Number(activeDay)
+  }) || []
   const apiHotel = dayHotels[0] || null
 
   // Build sidebar hotel: AI activity data takes priority, API data fills gaps
@@ -472,18 +479,18 @@ export default function TripDetailPage() {
   const enrichedDayActivities = dayActivities.map((activity: any) => {
     const theme = getActivityColorTheme(activity)
     if (theme === "transport") {
-      // Find matching flight (heuristic: first available flight for the day since usually 1 per day)
+      // Find matching flight for this day
       const flight = flightsToShow?.[0]
 
       if (flight) {
-        const fDate = flight.departureDate ? new Date(flight.departureDate) : (tripStartDate ? addDays(tripStartDate, (flight.dayNumber || 1) - 1) : undefined)
-        const origin = flight.departureCode || "MOW"
-        const dest = flight.arrivalCode || (flight.direction === "return" ? "MOW" : (route.destinationIata || getIataCode(destinationName) || ""))
-        
-        const url = getFlightSearchLink({
-          origin,
-          destination: dest,
-          departDate: fDate,
+        // Use bookingUrl already computed by extractLogisticsFromItinerary (has correct IATA/dates)
+        const url = flight.bookingUrl || getFlightSearchLink({
+          originIata: flight.departureCode,
+          destination: flight.arrivalCity || flight.arrivalCode || destinationName,
+          destinationIata: flight.arrivalCode,
+          departDate: flight.departureDate
+            ? new Date(flight.departureDate)
+            : (tripStartDate ? addDays(tripStartDate, (flight.dayNumber || 1) - 1) : undefined),
           adults: route.travelers || 2,
           subId: "timeline_btn"
         })
@@ -494,6 +501,28 @@ export default function TripDetailPage() {
           ticketsRequired: true,
           link: url
         }
+      }
+
+      // No flight in route.flights for this day — build link from day logistics (handles old trips)
+      const lg = currentDay?.logistics
+      if (lg && /перелёт|перелет|самолет|самолёт|рейс|вылет|flight|авиа/i.test(lg.mode || "")) {
+        const fromP = parseCityIata(lg.from || "")
+        const toP = parseCityIata(lg.to || "")
+        const fromIata = fromP.iata || getIataCode(fromP.city || lg.from || "") || ""
+        const toIata = toP.iata || getIataCode(toP.city || lg.to || "") || ""
+        const dayDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
+
+        const url = getFlightSearchLink({
+          originIata: fromIata,
+          origin: fromP.city || lg.from || "",
+          destination: toP.city || lg.to || destinationName,
+          destinationIata: toIata,
+          departDate: dayDate,
+          adults: route.travelers || 2,
+          subId: "logistics_day"
+        })
+
+        return { ...activity, ticketsRequired: true, link: url }
       }
     }
     return activity
@@ -508,26 +537,58 @@ export default function TripDetailPage() {
     const fDate = f.departureDate ? new Date(f.departureDate) : (tripStartDate ? addDays(tripStartDate, (f.dayNumber || 1) - 1) : undefined)
     const origin = f.departureCode || "MOW"
     const dest = f.arrivalCode || (f.direction === "return" ? "MOW" : (route.destinationIata || getIataCode(destinationName) || ""))
-    
-    // Only add if we have valid date/dates
+
     if (fDate) {
+      const url = f.bookingUrl || getFlightSearchLink({
+        originIata: origin,
+        destination: f.arrivalCity || dest,
+        destinationIata: dest,
+        departDate: fDate,
+        adults: route.travelers || 2,
+        subId: "timeline_btn_synthetic"
+      })
+
+      finalDayActivities.unshift({
+        time: f.departureTime || "Утро",
+        title: `Перелёт ${origin} → ${dest}`,
+        desc: `${f.airline || "Авиаперелет"} ${f.duration ? `• ${f.duration}` : ""}`,
+        cost: f.price ? `${f.price.toLocaleString("ru-RU")} ₽` : undefined,
+        type: "transport",
+        ticketsRequired: true,
+        link: url
+      })
+    }
+  } else if (!hasTransport) {
+    // No route.flights for this day — try logistics for synthetic card
+    const lg = currentDay?.logistics
+    if (lg && /перелёт|перелет|самолет|самолёт|рейс|вылет|flight|авиа/i.test(lg.mode || "")) {
+      const fromP = parseCityIata(lg.from || "")
+      const toP = parseCityIata(lg.to || "")
+      const fromIata = fromP.iata || getIataCode(fromP.city || lg.from || "") || ""
+      const toIata = toP.iata || getIataCode(toP.city || lg.to || "") || ""
+      const dayDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
+
+      if (dayDate) {
         const url = getFlightSearchLink({
-            origin,
-            destination: dest,
-            departDate: fDate,
-            adults: route.travelers || 2,
-            subId: "timeline_btn_synthetic"
+          originIata: fromIata,
+          origin: fromP.city || lg.from || "",
+          destination: toP.city || lg.to || destinationName,
+          destinationIata: toIata,
+          departDate: dayDate,
+          adults: route.travelers || 2,
+          subId: "logistics_synthetic"
         })
 
         finalDayActivities.unshift({
-            time: f.departureTime || "Утро",
-            title: `Перелёт ${origin} -> ${dest}`,
-            desc: `${f.airline || "Авиаперелет"} ${f.duration ? `• ${f.duration}` : ""}`,
-            cost: f.price ? `${f.price.toLocaleString("ru-RU")} ₽` : undefined,
-            type: "transport",
-            ticketsRequired: true,
-            link: url
+          time: lg.departureTime || "Утро",
+          title: `Перелёт ${fromP.city || lg.from || fromIata} → ${toP.city || lg.to || toIata}`,
+          desc: `${lg.airline || "Авиаперелет"} ${lg.duration ? `• ${lg.duration}` : ""}`,
+          cost: undefined,
+          type: "transport",
+          ticketsRequired: true,
+          link: url
         })
+      }
     }
   }
 
@@ -612,7 +673,7 @@ export default function TripDetailPage() {
 
       <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}
-        <div className="relative w-full h-[420px] sm:h-[520px] shrink-0 overflow-hidden">
+        <div className="relative w-full min-h-[480px] sm:min-h-[600px] shrink-0 overflow-hidden">
           <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
             <TripImage
               src={heroImage}
@@ -625,27 +686,27 @@ export default function TripDetailPage() {
 
           {/* Gradient overlays — lighter to show image */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent h-1/3" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent h-1/2" />
 
           {/* ===== Floating Header Bar (all screens) ===== */}
-          <div className="absolute top-3 sm:top-6 left-3 sm:left-8 right-3 sm:right-8 z-40">
-            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-2xl">
+          <div className="absolute top-6 sm:top-8 left-3 sm:left-8 right-3 sm:right-8 z-50">
+            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-2xl backdrop-blur-xl bg-black/20 border-white/10 border">
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <button
                   onClick={() => router.back()}
-                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-sm"
+                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
                 >
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                 </button>
-                <div className="min-w-0">
-                  <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white tracking-tight truncate">{route.title}</h1>
-                  <div className="hidden sm:flex items-center text-sm text-slate-600 dark:text-blue-100/80 gap-4 mt-1 font-medium">
+                <div className="min-w-0 flex flex-col justify-center">
+                  <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-white tracking-tight truncate drop-shadow-md pr-2">{route.title}</h1>
+                  <div className="hidden sm:flex items-center text-xs sm:text-sm text-white/90 gap-4 mt-0.5 font-medium drop-shadow-sm">
                     <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-base">calendar_month</span>
+                      <span className="material-symbols-outlined text-sm sm:text-base">calendar_month</span>
                       {formatDateRange(tripStartDate, tripEndDate) || `${tripDurationDays} дней`}
                     </span>
                     <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-base">person</span>
+                      <span className="material-symbols-outlined text-sm sm:text-base">person</span>
                       {route.travelers || 2} путешественника
                     </span>
                   </div>
@@ -653,21 +714,21 @@ export default function TripDetailPage() {
               </div>
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                 <button onClick={() => setShowBudgetModal(true)} className="hidden sm:block text-right group cursor-pointer">
-                  <p className="text-xs text-slate-500 dark:text-blue-200/70 font-medium uppercase tracking-wide">Общий бюджет</p>
-                  <p className="text-xl font-bold text-slate-800 dark:text-white group-hover:text-sky-600 dark:group-hover:text-blue-300 transition-colors">{route.totalBudget}</p>
+                  <p className="text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide">Общий бюджет</p>
+                  <p className="text-base sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors">{route.totalBudget}</p>
                 </button>
-                <div className="hidden sm:block h-10 w-px bg-slate-300 dark:bg-white/10" />
+                <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
                 <div className="flex items-center gap-1.5 sm:gap-3">
                   <button
                     onClick={handleShare}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors bg-white/30 dark:bg-white/5 backdrop-blur-sm"
+                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
                   >
                     <span className="material-symbols-outlined text-lg sm:text-xl">share</span>
                   </button>
                   <button
                     onClick={handleToggleFavorite}
                     disabled={favoriteLoading}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-slate-200 dark:border-white/10 text-slate-600 dark:text-white hover:bg-white/60 dark:hover:bg-white/10 transition-colors bg-white/30 dark:bg-white/5 backdrop-blur-sm"
+                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
                   >
                     <Heart className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "")} />
                   </button>
@@ -678,7 +739,7 @@ export default function TripDetailPage() {
           </div>
 
           {/* ===== Bottom Overlay (tags + title + description) ===== */}
-          <div className="absolute bottom-6 sm:bottom-10 left-4 sm:left-8 right-4 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-6 z-30">
+          <div className="absolute bottom-8 sm:bottom-12 left-4 sm:left-8 right-4 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-6 z-30">
             <div className="max-w-3xl">
               {/* Colored Tags with icons */}
               <div className="flex items-center flex-wrap gap-2 mb-4">
@@ -836,37 +897,37 @@ export default function TripDetailPage() {
         </div>
 
         {/* ===== MAIN CONTENT GRID ===== */}
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 pb-20 relative z-30">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mt-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-20 relative z-30">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start mt-3 sm:mt-4">
 
             {/* ===== LEFT COLUMN: Timeline ===== */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 space-y-3 sm:space-y-4 lg:space-y-6">
               {currentDay && (
                 <>
                   {/* Day title bar */}
-                  <div className="flex items-center justify-between trip-glass p-4 rounded-3xl shadow-lg">
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm">
+                  <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-lg">
+                    <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm">
                       День {currentDay.day}: {currentDay.title || "Продолжение приключения"}
                     </h3>
                     <button
                       onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
-                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-5 py-2.5 rounded-full transition-all flex items-center gap-2 shadow-lg shadow-sky-500/30 dark:shadow-blue-600/30 border border-sky-400/20 dark:border-blue-400/50 shrink-0"
+                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-sky-500/30 dark:shadow-blue-600/30 border border-sky-400/20 dark:border-blue-400/50 shrink-0"
                     >
-                      <span className="material-symbols-outlined text-sm">view_in_ar</span> 3D-карта
+                      <span className="material-symbols-outlined text-sm">view_in_ar</span> <span className="hidden sm:inline">3D-карта</span>
                     </button>
                   </div>
 
                   {/* Logistics bar */}
                   {currentDay.logistics && currentDay.logistics.mode !== "None" && (
-                    <div className="trip-glass rounded-2xl p-4 flex items-center gap-4 text-sm text-slate-600 dark:text-blue-100/80 font-medium">
-                      <TransportIcon className="h-5 w-5 text-sky-500 dark:text-blue-400" />
-                      <span>
+                    <div className="trip-glass rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 font-medium">
+                      <TransportIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 dark:text-blue-400" />
+                      <span className="truncate">
                         {modeTranslations[currentDay.logistics.mode] || currentDay.logistics.mode}: {currentDay.logistics.from} → {currentDay.logistics.to}
                         {currentDay.logistics.distance && ` (${currentDay.logistics.distance}`}
                         {currentDay.logistics.duration && `, ~${currentDay.logistics.duration})`}
                       </span>
                       {currentDay.logistics.price && (
-                        <Badge variant="secondary" className="ml-auto">{currentDay.logistics.price}</Badge>
+                        <Badge variant="secondary" className="ml-auto text-xs">{currentDay.logistics.price}</Badge>
                       )}
                     </div>
                   )}
@@ -878,7 +939,7 @@ export default function TripDetailPage() {
                   {/* Hotel cards — hidden by design */}
 
                   {/* ===== Activity Timeline ===== */}
-                  <div className="trip-timeline relative space-y-6 pl-4">
+                  <div className="trip-timeline relative space-y-3 sm:space-y-4 lg:space-y-6 pl-0 sm:pl-2">
                     {finalDayActivities.map((activity: any, i: number) => (
                       <ActivityTimelineCard
                         key={`act-${activeDay}-${i}`}
@@ -904,7 +965,7 @@ export default function TripDetailPage() {
             </div>
 
             {/* ===== RIGHT COLUMN: Sticky Sidebar ===== */}
-            <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+            <div className="lg:col-span-5 space-y-3 sm:space-y-4 lg:space-y-6 lg:sticky lg:top-20">
 
               {/* Weather Widget - REMOVED (Moved to grid below) */}
 
@@ -953,15 +1014,15 @@ export default function TripDetailPage() {
               </AnimatePresence>
 
               {/* Weather + Tips Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 {/* Weather Card */}
-                <CurrentWeatherWidget 
-                    destination={destinationName} 
-                    date={undefined} 
+                <CurrentWeatherWidget
+                    destination={destinationName}
+                    date={undefined}
                 />
 
                 {/* Tips Card */}
-                <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
+                <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-3 sm:p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 sm:h-32 lg:h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="bg-white/60 dark:bg-white/5 p-2.5 rounded-2xl shadow-sm dark:shadow-inner backdrop-blur-md border border-white/40 dark:border-white/5">
                       <span className="material-symbols-outlined text-amber-500 dark:text-amber-300">lightbulb</span>
@@ -984,10 +1045,10 @@ export default function TripDetailPage() {
 
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
-                <div className="trip-glass p-6 rounded-[2rem] shadow-lg hover:shadow-xl transition-colors">
-                  <h4 className="text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-4 opacity-80">Проживание</h4>
-                  <div className="flex items-center gap-5">
-                    <div className="w-20 h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
+                <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-xl transition-colors">
+                  <h4 className="text-[10px] sm:text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-3 sm:mb-4 opacity-80">Проживание</h4>
+                  <div className="flex items-center gap-3 sm:gap-5">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
                       <TripImage
                         query={`${sidebarHotel.hotelName} ${destinationName} hotel`}
                         alt={sidebarHotel.hotelName}
@@ -995,21 +1056,21 @@ export default function TripDetailPage() {
                       />
                     </div>
                     <div>
-                      <h5 className="font-bold text-slate-800 dark:text-white text-lg">{sidebarHotel.hotelName}</h5>
-                      <div className="flex items-center text-xs text-yellow-500 dark:text-yellow-300 mt-1 font-bold">
+                      <h5 className="font-bold text-slate-800 dark:text-white text-sm sm:text-lg truncate">{sidebarHotel.hotelName}</h5>
+                      <div className="flex items-center text-[10px] sm:text-xs text-yellow-500 dark:text-yellow-300 mt-0.5 sm:mt-1 font-bold">
                         <span className="material-symbols-outlined text-sm text-yellow-400 mr-1">star</span>
                         <span>{sidebarHotel.stars || sidebarHotel.rating || "5.0"}</span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-blue-100/70 mt-1.5 font-medium">
+                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-blue-100/70 mt-1 font-medium truncate">
                         Заселение: {sidebarHotel.checkIn || "14:00"}
                       </p>
                       {sidebarHotel.cost && (
-                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-1">{sidebarHotel.cost}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-0.5 sm:mt-1">{sidebarHotel.cost}</p>
                       )}
                     </div>
                   </div>
-                  <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center">
-                    <span className="px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
+                  <div className="mt-3 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center">
+                    <span className="px-2 sm:px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[9px] sm:text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
                       Подтверждено
                     </span>
                     <button
@@ -1026,7 +1087,7 @@ export default function TripDetailPage() {
                         })
                         window.open(link, "_blank")
                       }}
-                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-4 py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
+                      className="text-[10px] sm:text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
                     >
                       Бронирование
                     </button>

@@ -11,33 +11,54 @@ import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-val
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
 import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
-import { getFlightSearchLink } from "@/lib/travelpayouts"
+import { getFlightSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 
 function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
     if (!Array.isArray(routeData?.itinerary)) return routeData
 
-    let currentCity = origin
+    // Resolve origin IATA upfront
+    const originParsed = parseCityIata(origin)
+    if (!originParsed.iata) originParsed.iata = getIataCode(origin) || ""
+
+    let currentIata = originParsed.iata
+    let currentCity = originParsed.city || origin
     const days = routeData.itinerary
 
     for (let i = 0; i < days.length; i++) {
         const day = days[i]
         if (!Array.isArray(day.activities)) continue
 
+        // Prefer logistics.to for reliable city/IATA (AI outputs "Тбилиси (TBS)" format)
+        const logistics = day.logistics
+        let dayToIata = ""
+        let dayToCity = ""
+        if (logistics?.to) {
+            const toP = parseCityIata(logistics.to)
+            dayToIata = toP.iata
+            dayToCity = toP.city || logistics.to
+        }
+
         for (const act of day.activities) {
             if (act.type === 'transport') {
                 const title = (act.title || "").toLowerCase()
                 const isFlight = /перелёт|перелет|рейс|вылет|прибытие|самолет|flight/i.test(title)
-                
+
                 if (isFlight) {
-                    // Detect destination city from title
-                    // e.g. "Перелет в Тбилиси" or "Тбилиси -> Батуми"
-                    let toCity = mainDestination
-                    const match = title.match(/(?:в|to|->|—)\s+([а-яёA-Z][а-яёa-z]+)/i)
-                    if (match && match[1]) {
-                        toCity = match[1]
+                    // Prefer IATA from logistics (reliable "City (IATA)" format)
+                    let toIata = dayToIata
+                    let toCity = dayToCity || mainDestination
+
+                    // Fallback: try to resolve IATA from destination name
+                    if (!toIata) {
+                        toIata = getIataCode(toCity) || getIataCode(mainDestination) || ""
+                        if (!toIata) {
+                            // Try extracting from activity title (nominative form only)
+                            const match = title.match(/(?:в|to|->|—)\s+([а-яёA-Z][а-яёa-z]+)/i)
+                            if (match?.[1]) toIata = getIataCode(match[1]) || ""
+                        }
                     }
 
-                    // Determine Date
+                    // Determine date for this day
                     let date = startDate
                     if (startDate && i > 0) {
                         const d = new Date(startDate)
@@ -46,17 +67,18 @@ function enrichTransportLinks(routeData: any, origin: string, mainDestination: s
                     }
 
                     act.link = getFlightSearchLink({
+                        originIata: currentIata,
                         origin: currentCity,
                         destination: toCity,
+                        destinationIata: toIata,
                         departDate: date,
-                        subId: `ai_day_${i+1}`
+                        subId: `flight_day_${i+1}`
                     })
-                    // act.cost = "Поиск билетов"
-                    currentCity = toCity // Update current position
+
+                    // Advance position tracker
+                    if (toIata) currentIata = toIata
+                    if (toCity) currentCity = toCity
                 }
-            } else if (act.type === 'hotel' && act.placeName) {
-                // If hotel has a city in title/description, update currentCity?
-                // For now, assume transport does the heavy lifting
             }
         }
     }
@@ -294,8 +316,29 @@ export async function POST(req: Request) {
             customDestination,
             customBudget,
             travelers,
-            filterByDocuments
+            filterByDocuments,
+            tripHighlight
         } = body
+
+        // Server-side content filter for tripHighlight
+        if (tripHighlight && typeof tripHighlight === 'string') {
+            const highlightLower = tripHighlight.toLowerCase()
+            const FORBIDDEN_STEMS = [
+                'хуй', 'хуе', 'хуи', 'хуя', 'пизд',
+                'ебал', 'ебать', 'ебан', 'ёбал', 'ёбать', 'ёбан',
+                'блять', 'блядь', 'мудак', 'залупа',
+                'наркотик', 'героин', 'кокаин', 'метамфет',
+                'проститут', 'бордел', 'стриптиз', 'порно',
+                'ignore previous', 'system prompt', 'jailbreak', 'dan mode',
+                'забудь всё', 'забудь все', 'respond only',
+            ]
+            for (const stem of FORBIDDEN_STEMS) {
+                if (highlightLower.includes(stem)) {
+                    return NextResponse.json({ error: 'Недопустимый контент в поле «Изюминка поездки»' }, { status: 400 })
+                }
+            }
+        }
+        const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
 
         // Apply profile preferences if fields are missing
         if (!departureCity && preferences?.departureCity) {
@@ -589,6 +632,10 @@ ${filterByDocuments && toArray(preferences?.documents).length > 0 ? (() => {
 - ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
+${safeHighlight ? `✨ ОСОБОЕ ЛИЧНОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ (ПРИОРИТЕТ — ОБЯЗАТЕЛЬНО УЧЕСТЬ!):
+Пользователь написал: "${safeHighlight}"
+ПРАВИЛО: Добавь в маршрут хотя бы ОДНУ конкретную активность, напрямую связанную с этим пожеланием. В поле "title" или "desc" этой активности добавь пометку "(✨ специально для тебя)". Это важнее стандартных достопримечательностей — воплоти пожелание творчески и буквально!
+` : ''}
 ПРАВИЛА ГЕНЕРАЦИИ:
 
 ${creativityInstruction}

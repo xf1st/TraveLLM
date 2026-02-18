@@ -43,3 +43,6 @@ nul
 /.agent
 desktop.ini
 nul
+QWEN.md
+taskcal.md
+.claude/settings.local.json

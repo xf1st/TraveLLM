@@ -229,30 +229,30 @@ export function ActivityTimelineCard({
 
   return (
     <>
-      <div className="relative pl-14 group/card">
+      <div className="relative pl-10 sm:pl-14 group/card">
         <div
           className={cn(
-            "absolute left-0 top-1 w-12 h-12 rounded-full backdrop-blur-md flex items-center justify-center z-10 border",
+            "absolute left-0 top-1 w-10 h-10 sm:w-12 sm:h-12 rounded-full backdrop-blur-md flex items-center justify-center z-10 border",
             config.iconClass
           )}
         >
-          <span className={cn("material-symbols-outlined text-xl", iconTextColors[theme])}>{iconName}</span>
+          <span className={cn("material-symbols-outlined text-lg sm:text-xl", iconTextColors[theme])}>{iconName}</span>
         </div>
 
         <div
           className={cn(
-            "trip-glass p-6 rounded-[2rem] transition-all duration-300",
+            "trip-glass p-4 sm:p-6 rounded-[2rem] transition-all duration-300",
             isPlaceholder
               ? "border-dashed !border-slate-300 dark:!border-white/20 hover:!border-solid hover:shadow-lg group-hover/card:!border-indigo-300 dark:group-hover/card:!border-indigo-400/50"
               : "hover:shadow-lg trip-glass-hover"
           )}
         >
-          <div className="flex justify-between items-start mb-3">
+          <div className="flex justify-between items-start mb-2 sm:mb-3">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
                 <span
                   className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm",
+                    "px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wide border shadow-sm",
                     config.badgeBg,
                     config.badgeText,
                     theme === "transport"
@@ -269,25 +269,25 @@ export function ActivityTimelineCard({
                   {config.categoryLabel}
                 </span>
                 {activity.time && (
-                  <span className="text-xs font-bold text-slate-500 dark:text-blue-200/70 uppercase tracking-wide bg-white/40 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-white/30 dark:border-transparent">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-blue-200/70 uppercase tracking-wide bg-white/40 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-white/30 dark:border-transparent">
                     {activity.time}
                   </span>
                 )}
               </div>
-              <h3 className="font-bold text-slate-800 dark:text-white text-xl">{displayTitle}</h3>
+              <h3 className="font-bold text-slate-800 dark:text-white text-base sm:text-xl">{displayTitle}</h3>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {activity.cost && (
-                <span className="text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
                   {activity.cost}
                 </span>
               )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white transition-colors p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full">
-                    <span className="material-symbols-outlined">more_horiz</span>
+                  <button className="text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full">
+                    <span className="material-symbols-outlined text-lg sm:text-xl">more_horiz</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="rounded-xl p-1.5">
@@ -308,11 +308,11 @@ export function ActivityTimelineCard({
           </div>
 
           {activity.desc && (
-            <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed mb-5 font-medium">{activity.desc}</p>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed mb-3 sm:mb-5 font-medium">{activity.desc}</p>
           )}
 
           {!isPlaceholder && theme !== "transport" && (activity.imageQuery || activity.placeName) && (
-            <div className="mb-4">
+            <div className="mb-3 sm:mb-4">
               <PlaceGallery
                 query={activity.imageQuery || `${activity.placeName} ${destination}`}
                 displayTitle={activity.title || activity.placeName}
@@ -323,8 +323,8 @@ export function ActivityTimelineCard({
           )}
 
           {!isPlaceholder ? (
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200/50 dark:border-white/5">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-200/50 dark:border-white/5">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {theme === "transport" ? (
                   <a
                     href={activity.link || "https://www.aviasales.ru/"}
@@ -340,7 +340,7 @@ export function ActivityTimelineCard({
                     {activity.placeName && (
                       <button
                         onClick={handleOpenMap}
-                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
                       >
                         <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">map</span>
                         Карта
@@ -351,7 +351,7 @@ export function ActivityTimelineCard({
                         href={activity.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
                       >
                         <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">confirmation_number</span>
                         Билеты
@@ -363,24 +363,25 @@ export function ActivityTimelineCard({
 
               <button
                 onClick={() => setIsDetailsOpen(true)}
-                className="text-xs font-bold text-sky-600 dark:text-blue-300 hover:text-sky-800 dark:hover:text-white flex items-center gap-1 bg-white/40 dark:bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 transition-colors border border-white/30 dark:border-transparent"
+                className="text-xs font-bold text-sky-600 dark:text-blue-300 hover:text-sky-800 dark:hover:text-white flex items-center gap-1 bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 transition-colors border border-white/30 dark:border-transparent"
               >
                 Подробнее <span className="material-symbols-outlined text-sm">chevron_right</span>
               </button>
             </div>
           ) : (
-            <div className="flex justify-between items-start mt-2 gap-3">
-              <p className="text-sm text-slate-600 dark:text-blue-200/70 leading-relaxed font-medium">
+            <div className="flex justify-between items-start mt-2 gap-2 sm:gap-3">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-blue-200/70 leading-relaxed font-medium">
                 {activity.desc || "Свободное время для отдыха или прогулки по городу."}
               </p>
 
               <button
                 onClick={() => onGenerateExtraActivity?.(dayNumber)}
                 disabled={isGeneratingExtra}
-                className="text-white text-xs font-bold bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded-full border border-indigo-400/20 transition-colors flex items-center gap-1 backdrop-blur-sm shadow-md shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                className="text-white text-xs font-bold bg-indigo-500 hover:bg-indigo-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-indigo-400/20 transition-colors flex items-center gap-1 backdrop-blur-sm shadow-md shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
-                {isGeneratingExtra ? "Генерация..." : "Сгенерировать"}
+                <span className="hidden sm:inline">{isGeneratingExtra ? "Генерация..." : "Сгенерировать"}</span>
+                <span className="sm:hidden">{isGeneratingExtra ? "..." : "+"}</span>
               </button>
             </div>
           )}
