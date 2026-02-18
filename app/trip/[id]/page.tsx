@@ -194,17 +194,61 @@ export default function TripDetailPage() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150])
   const heroScale = useTransform(scrollY, [0, 500], [1, 1.15])
 
-  // Memoized places for map
+  // Memoized places for map — includes all fields needed by MapLibreView popup
   const mapPlaces = useMemo(
     () =>
       route?.itinerary?.flatMap((day: any, dayIdx: number) =>
-        day.activities?.map((activity: any, actIdx: number) => ({
-          id: `${dayIdx}-${actIdx}`,
-          name: activity.placeName || activity.desc?.split(".")[0] || `День ${day.day}`,
-          description: activity.desc,
-          status: activeDay === day.day ? "active" : dayIdx === 0 ? "visited" : "pending",
-          day: day.day,
-        })) || []
+        day.activities?.map((activity: any, actIdx: number) => {
+          // Try to extract IATA codes for transport activities from logistics
+          const lg = day.logistics
+          let lat: number | undefined
+          let lng: number | undefined
+          let originIata: string | undefined
+          let destIata: string | undefined
+
+          if (activity.type === "transport" && lg?.from) {
+            const fromMatch = String(lg.from).match(/\(([A-Z]{3})\)/)
+            if (fromMatch) originIata = fromMatch[1]
+          }
+          if (activity.type === "transport" && lg?.to) {
+            const toMatch = String(lg.to).match(/\(([A-Z]{3})\)/)
+            if (toMatch) destIata = toMatch[1]
+          }
+          // Also parse IATA from activity title: "Перелёт Москва (SVO) → Вена (VIE)"
+          if (activity.type === "transport") {
+            const titleOrigin = String(activity.title || "").match(/^[^→]+\(([A-Z]{3})\)/)
+            if (titleOrigin && !originIata) originIata = titleOrigin[1]
+            const titleDest = String(activity.title || "").match(/→[^(]+\(([A-Z]{3})\)/)
+            if (titleDest && !destIata) destIata = titleDest[1]
+          }
+
+          // Explicit coords from activity (if geocoded) — skip for transport (AI puts destination coords)
+          const isTransport = activity.type === "transport"
+          if (!isTransport && activity.lat && activity.lng) {
+            lat = Number(activity.lat)
+            lng = Number(activity.lng)
+          }
+
+          return {
+            id: `${dayIdx}-${actIdx}`,
+            name: activity.title || activity.placeName || activity.desc?.split(".")[0] || `День ${day.day}`,
+            description: activity.desc,
+            status: activeDay === day.day ? "active" : dayIdx === 0 ? "visited" : "pending",
+            day: day.day,
+            // Fields for popup
+            image: activity.image || activity.photo || (Array.isArray(activity.photos) ? activity.photos[0] : undefined),
+            time: activity.time,
+            price: activity.cost,
+            bookingLink: activity.link,
+            type: activity.type,
+            // Explicit coords (if available)
+            lat,
+            lng,
+            // IATA data for TripMap coordinate resolution
+            originIata,
+            destIata,
+          }
+        }) || []
       ) || [],
     [route, activeDay]
   )

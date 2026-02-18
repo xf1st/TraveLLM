@@ -689,13 +689,34 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
       const day = Number.isFinite(dayRaw) && dayRaw > 0 ? dayRaw : null
       const time = String(props.time || (layerId === "social-pois" ? "Рядом" : "День"))
       const price = String(props.price || "")
-      const description = String(props.description || "Интересное место")
       const image = String(props.image || "")
       const canOpenDetails = layerId === "route-points"
       const source = layerId === "nearby-points" ? "nearby" : layerId === "social-pois" ? "social" : "route"
       const category = String(props.category || "")
       const distanceRaw = Number(props.distanceKm)
       const distanceKm = Number.isFinite(distanceRaw) ? distanceRaw : null
+
+      // Build description: for nearby/social show first sentence + distance; for route show full desc
+      const rawDesc = String(props.description || "")
+      let description: string
+      if (layerId === "nearby-points" || layerId === "social-pois") {
+        // Show first meaningful sentence only (description can be very long)
+        const firstSentence = rawDesc.split(/[.!?]/)[0]?.trim() || rawDesc
+        description = firstSentence.length > 5 ? firstSentence : (category ? category : "Место рядом")
+      } else {
+        description = rawDesc || "Интересное место"
+      }
+
+      // Meta badge text
+      let metaText: string
+      if (layerId === "nearby-points") {
+        metaText = distanceKm !== null ? `~ ${distanceKm} км` : "Рядом"
+      } else if (layerId === "social-pois") {
+        metaText = category || "Место"
+      } else {
+        const dayTimeLabel = day ? "День " + day + (time ? " · " + time : "") : time
+        metaText = price ? price + " | " + dayTimeLabel : dayTimeLabel
+      }
 
       popupNode.innerHTML = [
         '<div class="w-[260px] max-w-[calc(100vw-32px)] bg-neutral-900/95 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border border-white/10 font-sans">',
@@ -705,7 +726,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
         '    <div class="map-popup-meta absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] uppercase font-bold text-emerald-400 border border-white/10 shadow-lg"></div>',
         '  </div>',
         '  <div class="p-4 relative -mt-6 z-10">',
-        '    <h3 class="map-popup-title font-bold text-sm text-white leading-tight mb-1.5 truncate pr-2 drop-shadow-md"></h3>',
+        '    <h3 class="map-popup-title font-bold text-sm text-white leading-tight mb-1.5 pr-2 drop-shadow-md" style="overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical"></h3>',
         '    <div class="map-popup-description text-xs text-gray-300 line-clamp-2 leading-relaxed mb-3 min-h-[2.5em]"></div>',
         '    <div class="flex gap-2">',
         '      <button class="map-popup-left-action flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border text-center cursor-pointer"></button>',
@@ -725,11 +746,8 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
         }
       }
 
-      const dayTimeLabel = day ? "День " + day + " - " + time : time
       const metaEl = popupNode.querySelector<HTMLDivElement>(".map-popup-meta")
-      if (metaEl) {
-        metaEl.textContent = price ? price + " | " + dayTimeLabel : dayTimeLabel
-      }
+      if (metaEl) metaEl.textContent = metaText
 
       const titleEl = popupNode.querySelector<HTMLHeadingElement>(".map-popup-title")
       if (titleEl) titleEl.textContent = title

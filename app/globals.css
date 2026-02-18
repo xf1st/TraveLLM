@@ -488,22 +488,7 @@
     box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
   }
 
-  /* Dark mode decorative background stripes */
-  .dark .trip-bg::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background:
-      repeating-linear-gradient(
-        -45deg,
-        transparent,
-        transparent 80px,
-        rgba(59, 130, 246, 0.03) 80px,
-        rgba(59, 130, 246, 0.03) 82px
-      );
-  }
+  /* Dark mode decorative background stripes - removed as requested */
 
   /* Material Symbols sizing helper */
   .material-symbols-outlined {

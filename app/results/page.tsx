@@ -526,7 +526,6 @@ function ResultsContent() {
                                 <Wallet className="h-5 w-5 text-blue-400" />
                               </div>
                               <span className="text-xl font-black text-foreground dark:text-white tracking-tight">
-                                {/* Budget formatting */}
                                 {typeof trip.budget === 'number' ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(trip.budget) : (trip.budget ? trip.budget.toString().replace('₽', ' ₽') : "Цена не указана")}
                               </span>
                             </div>
