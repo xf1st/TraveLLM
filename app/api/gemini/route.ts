@@ -1,6 +1,6 @@
-// DeepSeek (Primary) -> Gemini (Fallback)
-import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/deepseek"
-import { geminiInference } from "@/lib/gemini"
+// Gemini (Primary) -> DeepSeek (Fallback)
+import { geminiInference, getGeminiSessionUsage, resetGeminiSessionUsage } from "@/lib/gemini"
+import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
@@ -925,8 +925,8 @@ CRITICAL:
                 { role: "user" as const, content: metaPrompt }
             ]
 
-            const raw = await deepseekInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3 });
-            return parseJsonResponse(raw, "DeepSeek-Meta");
+            const raw = await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3 });
+            return parseJsonResponse(raw, "Gemini-Meta");
         }
 
         // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
@@ -993,7 +993,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             ]
 
             const tokensNeeded = (endDay - startDay + 1) * 1800;
-            const raw = await deepseekInference(messages, {
+            const raw = await geminiInference(messages, {
                 maxTokens: Math.min(tokensNeeded, 8000),
                 temperature: aiTemperature,
                 tripDays: endDay - startDay + 1
@@ -1019,8 +1019,8 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }
                 ]
-                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: aiTemperature, tripDays: durationDays });
-                routeData = parseJsonResponse(raw, "DeepSeek");
+                const raw = await geminiInference(messages, { maxTokens: 8000, temperature: aiTemperature, tripDays: durationDays });
+                routeData = parseJsonResponse(raw, "Gemini");
             } else {
                 // Long trip - split into chunks + metadata
                 console.log(`Long trip (${durationDays} days) - using sequential chunks`);
@@ -1111,11 +1111,11 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
         try {
             // Reset token usage counter at start of generation
-            resetSessionUsage();
+            resetGeminiSessionUsage();
 
-            // PRIMARY: DeepSeek with parallel generation
+            // PRIMARY: Gemini with parallel generation
             try {
-                console.log("Using DeepSeek as primary provider...");
+                console.log("Using Gemini as primary provider...");
                 let generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
                 
                 // Post-processing: Normalization & Dates
@@ -1135,23 +1135,23 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 }
 
                 // Attach token usage statistics to response
-                const usage = getSessionUsage();
+                const usage = getGeminiSessionUsage();
                 generatedRouteData.tokenUsage = usage;
 
-                console.log("Success with DeepSeek")
-                console.log(`DeepSeek session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                console.log("Success with Gemini")
+                console.log(`Gemini session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
                 return NextResponse.json(generatedRouteData)
-            } catch (deepseekError: any) {
-                console.error("DeepSeek failed:", deepseekError.message)
+            } catch (geminiError: any) {
+                console.error("Gemini failed:", geminiError.message)
 
-                // FALLBACK: Gemini (single request)
-                console.log("Falling back to Gemini...");
+                // FALLBACK: DeepSeek (single request)
+                console.log("Falling back to DeepSeek...");
                 const messages = [
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }
                 ]
-                const raw = await geminiInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
-                let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "Gemini-Fallback"));
+                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
+                let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "DeepSeek-Fallback"));
 
                 // Post-processing: Normalization & Dates
                 fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
@@ -1167,23 +1167,23 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     }
                 } catch { }
 
-                // Estimated token usage for fallback (Gemini Flash pricing)
+                // Estimated token usage for fallback (DeepSeek pricing)
                 const estimatedOutputTokens = Math.round(raw.length / 4);
                 const estimatedInputTokens = Math.round((systemPrompt.length + prompt.length) / 4);
-                const estimatedCostUsd = (estimatedInputTokens * 0.0000001) + (estimatedOutputTokens * 0.0000004);
+                const estimatedCostUsd = (estimatedInputTokens * 0.00000014) + (estimatedOutputTokens * 0.00000028);
 
                 fallbackRouteData.tokenUsage = {
                     promptTokens: estimatedInputTokens,
                     completionTokens: estimatedOutputTokens,
                     totalTokens: estimatedInputTokens + estimatedOutputTokens,
                     promptCacheHitTokens: 0,
-                    model: 'gemini-fallback',
+                    model: 'deepseek-fallback',
                     costUsd: estimatedCostUsd,
                     costRub: estimatedCostUsd * 90
                 };
 
-                console.log("Success with Gemini fallback")
-                console.log(`Gemini fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
+                console.log("Success with DeepSeek fallback")
+                console.log(`DeepSeek fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
                 return NextResponse.json(fallbackRouteData)
             }
         } catch (finalError: any) {

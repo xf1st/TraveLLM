@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText } from "lucide-react"
+import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText, Lightbulb } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -1534,6 +1534,27 @@ function ProfileContent() {
                           <Button variant="outline" className="w-full justify-start hover:bg-primary/10 hover:text-primary" onClick={() => window.location.href = "/onboarding"}>
                             <RotateCcw className="h-4 w-4 mr-2" />
                             Перепройти опрос предпочтений
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/30"
+                            onClick={() => {
+                              try {
+                                localStorage.removeItem("travellm_welcome_seen")
+                                const keysToRemove: string[] = []
+                                for (let i = 0; i < localStorage.length; i++) {
+                                  const key = localStorage.key(i)
+                                  if (key?.startsWith("travellm_hint_")) keysToRemove.push(key)
+                                }
+                                keysToRemove.forEach((k) => localStorage.removeItem(k))
+                              } catch {}
+                              toast.success("Подсказки сброшены", {
+                                description: "Приветственный экран и все подсказки появятся снова при следующем посещении.",
+                              })
+                            }}
+                          >
+                            <Lightbulb className="h-4 w-4 mr-2" />
+                            Сбросить подсказки и приветствие
                           </Button>
                         </Card>
 

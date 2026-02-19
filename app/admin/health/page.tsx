@@ -99,10 +99,10 @@ export default function AdminHealthPage() {
       })
     }
 
-    // 4. DeepSeek API Check
+    // 4. AI Generation API Check
     const deepseekStart = Date.now()
     try {
-      const response = await fetch("/api/deepseek", {
+      const response = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

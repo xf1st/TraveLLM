@@ -49,6 +49,7 @@ import { supabase } from "@/lib/supabase"
 import dynamic from "next/dynamic"
 import Stepper, { Step } from "@/components/ui/stepper"
 import { FloatingIcons } from "@/components/FloatingIcons"
+import { TourHint } from "@/components/TourHint"
 
 
 
@@ -348,7 +349,7 @@ export default function PlanPage() {
       if (abortControllerRef.current) abortControllerRef.current.abort()
       abortControllerRef.current = new AbortController()
 
-      const endpoint = "/api/deepseek"
+      const endpoint = "/api/gemini"
       const response = await fetch(endpoint, {
         signal: abortControllerRef.current.signal,
         method: "POST",
@@ -538,19 +539,32 @@ export default function PlanPage() {
                 <p className="text-xs sm:text-sm text-muted-foreground mt-1">Укажите город вылета и даты поездки</p>
               </div>
 
-              <div className="space-y-2 max-w-lg mx-auto">
-                <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
-                  <MapPin className="h-4 w-4 text-blue-400" />
-                  Город отправления
-                </Label>
-                <CityAutocomplete
-                  placeholder="Например: Москва"
-                  value={departureCity}
-                  onValueChange={setDepartureCity}
-                  className="h-12 rounded-xl text-base px-4 bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 focus:bg-white/80 dark:focus:bg-white/10 transition-all hover:bg-white/60 dark:hover:bg-white/10"
-                />
-              </div>
+              <TourHint
+                id="plan_departure_city"
+                title="Город отправления"
+                description="AI учтёт доступные рейсы из вашего города и подберёт оптимальный маршрут с реальными ценами."
+                side="right"
+              >
+                <div className="space-y-2 max-w-lg mx-auto">
+                  <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
+                    <MapPin className="h-4 w-4 text-blue-400" />
+                    Город отправления
+                  </Label>
+                  <CityAutocomplete
+                    placeholder="Например: Москва"
+                    value={departureCity}
+                    onValueChange={setDepartureCity}
+                    className="h-12 rounded-xl text-base px-4 bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 focus:bg-white/80 dark:focus:bg-white/10 transition-all hover:bg-white/60 dark:hover:bg-white/10"
+                  />
+                </div>
+              </TourHint>
 
+              <TourHint
+                id="plan_dates"
+                title="Даты поездки"
+                description="AI учтёт сезонность, праздники и загруженность направления — это влияет на цены и рекомендации."
+                side="right"
+              >
               <div className="space-y-2 max-w-lg mx-auto">
                 <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground ml-1">
                   <CalendarIcon className="h-4 w-4 text-blue-400" />
@@ -601,6 +615,7 @@ export default function PlanPage() {
                   </PopoverContent>
                 </Popover>
               </div>
+              </TourHint>
             </div>
           </Step>
 

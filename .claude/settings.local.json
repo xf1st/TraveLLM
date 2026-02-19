@@ -24,7 +24,9 @@
       "Bash(node -e \"const d=require\\(''/tmp/pexels_result.json''\\); d.photos.forEach\\(p=>console.log\\(p.id, p.src.large2x\\)\\)\")",
       "Bash(claude install:*)",
       "Bash(echo:*)",
-      "Bash(node_modules/.bin/tsc:*)"
+      "Bash(node_modules/.bin/tsc:*)",
+      "WebFetch(domain:pricepertoken.com)",
+      "WebFetch(domain:openrouter.ai)"
     ]
   }
 }
