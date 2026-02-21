@@ -40,6 +40,7 @@ interface GeminiOptions {
     maxTokens?: number;
     temperature?: number;
     tripDays?: number;
+    responseFormat?: "json_object" | "text";
 }
 
 interface ChatMessage {
@@ -102,18 +103,24 @@ async function runGeminiInference(
 
     console.log(`Gemini (OR): ${model} | ${tripDays}d trip | max ${cappedMaxTokens} tokens`);
 
+    const bodyPayload: any = {
+        model,
+        messages,
+        max_tokens: cappedMaxTokens,
+        temperature,
+    };
+
+    if (options.responseFormat === "json_object") {
+        bodyPayload.response_format = { type: "json_object" };
+    }
+
     const response = await fetch(OPENROUTER_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         },
-        body: JSON.stringify({
-            model,
-            messages,
-            max_tokens: cappedMaxTokens,
-            temperature,
-        }),
+        body: JSON.stringify(bodyPayload),
     });
 
     if (!response.ok) {

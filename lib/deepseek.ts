@@ -32,6 +32,7 @@ interface DeepSeekOptions {
     maxTokens?: number;
     temperature?: number;
     tripDays?: number; // Smart model selection based on trip length
+    responseFormat?: "json_object" | "text";
 }
 
 // Token usage statistics
@@ -136,19 +137,25 @@ async function runDeepseekInference(
 
     console.log(`DeepSeek: Using ${model} for ${tripDays} days trip (max ${cappedMaxTokens} tokens)`);
 
+    const bodyPayload: any = {
+        model,
+        messages,
+        max_tokens: cappedMaxTokens,
+        temperature,
+        stream: false,
+    };
+
+    if (options.responseFormat === "json_object") {
+        bodyPayload.response_format = { type: "json_object" };
+    }
+
     const response = await fetch("https://api.deepseek.com/chat/completions", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         },
-        body: JSON.stringify({
-            model,
-            messages,
-            max_tokens: cappedMaxTokens,
-            temperature,
-            stream: false,
-        }),
+        body: JSON.stringify(bodyPayload),
     });
 
     if (!response.ok) {

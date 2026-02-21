@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Send, Bot, User, MapPin, Sparkles } from "lucide-react"
+import { Send, Bot, User, MapPin, Sparkles, ExternalLink } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { useChat } from "@/lib/context/chat-context"
+import { useRouter } from "next/navigation"
 
 interface Message {
+    id?: string
     role: "user" | "assistant"
     content: string
 }
@@ -24,12 +27,20 @@ interface GuideChatWidgetProps {
 }
 
 export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
-    const [messages, setMessages] = useState<Message[]>([
+    const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
+    const router = useRouter()
+    
+    // Find a session matching this trip
+    const existingSession = sessions.find(s => s.draftTrip?.title === tripContext.title || s.title === tripContext.title)
+    
+    const messages = existingSession ? existingSession.messages : [
         {
-            role: "assistant",
+            id: "initial-welcome",
+            role: "assistant" as const,
             content: `Привет! Я твой ИИ-гид по маршруту "${tripContext.title}". \n\nМы сейчас на ${tripContext.currentDay || 1}-м дне. ${tripContext.currentLocation ? `Вы находитесь в районе: ${tripContext.currentLocation}.` : ""} \n\nСпрашивай что угодно: где поесть, исторические факты или как добраться до следующей точки!`
         }
-    ])
+    ]
+
     const [input, setInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -45,9 +56,23 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
     const handleSend = async () => {
         if (!input.trim() || isLoading) return
 
+        let sessionId = existingSession?.id
+        if (!sessionId) {
+            sessionId = createSession(input)
+            updateSession(sessionId, { title: tripContext.title, draftTrip: tripContext })
+        }
+        
+        // This makes sure if user navigates to /chat, this session is active
+        setActiveSessionId(sessionId)
+
         const userMsg = input
         setInput("")
-        setMessages(prev => [...prev, { role: "user", content: userMsg }])
+        
+        // Use a temporary ID if we don't have a session yet (which shouldn't happen)
+        if (sessionId) {
+           addMessage(sessionId, { role: "user", content: userMsg })
+        }
+        
         setIsLoading(true)
 
         try {
@@ -57,7 +82,7 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
                 body: JSON.stringify({
                     message: userMsg,
                     context: tripContext,
-                    mode // Pass mode to API
+                    mode
                 })
             })
 
@@ -67,10 +92,14 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
             }
 
             const data = await response.json()
-            setMessages(prev => [...prev, { role: "assistant", content: data.reply }])
+            if (sessionId) {
+                addMessage(sessionId, { role: "assistant", content: data.reply })
+            }
         } catch (error) {
             console.error(error)
-            setMessages(prev => [...prev, { role: "assistant", content: "Прости, я немного потерялся. Спроси еще раз, пожалуйста!" }])
+            if (sessionId) {
+                addMessage(sessionId, { role: "assistant", content: "Прости, я немного потерялся. Спроси еще раз, пожалуйста!" })
+            }
         } finally {
             setIsLoading(false)
         }

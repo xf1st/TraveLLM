@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { useChat } from "@/lib/context/chat-context"
+import { useRouter } from "next/navigation"
 
 type Message = {
   role: "user" | "assistant"
@@ -43,13 +45,26 @@ export function ItineraryChatWidget({
   className,
 }: ItineraryChatWidgetProps & { className?: string }) {
   const [isOpen, setIsOpen] = useState(embedded)
-  const [messages, setMessages] = useState<Message[]>([
+  
+  const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
+  const router = useRouter()
+  
+  const tripTitle = tripDetails?.title || itinerary?.title || "Мой маршрут (планирование)"
+  const existingSession = sessions.find(s => s.draftTrip?.title === tripTitle || s.title === tripTitle || s.tripId === tripId)
+  
+  const messages: Message[] = existingSession ? existingSession.messages.map(m => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+    isModification: m.metadata?.isModification,
+    bookingData: m.metadata?.bookingData
+  })) : [
     {
       role: "assistant",
       content:
         "Привет! Я ваш AI-помощник по маршруту.\n\nЗадайте вопрос или попросите изменить маршрут:\n• \"Какая погода будет?\"\n• \"Замени музей на кафе в день 2\"\n• \"Нужна ли виза?\"",
     },
-  ])
+  ]
+
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -83,9 +98,21 @@ export function ItineraryChatWidget({
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
+    let sessionId = existingSession?.id
+    if (!sessionId) {
+        sessionId = createSession(input)
+        updateSession(sessionId, { title: tripTitle, draftTrip: tripDetails || { itinerary }, tripId })
+    }
+    
+    setActiveSessionId(sessionId)
+
     const userMessage = input
     setInput("")
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }])
+    
+    if (sessionId) {
+      addMessage(sessionId, { role: "user", content: userMessage })
+    }
+    
     setIsLoading(true)
     onModifying?.(true)
 
@@ -108,35 +135,35 @@ export function ItineraryChatWidget({
       const data = await response.json()
 
       if (data.error) {
-        setMessages((prev) => [...prev, { role: "assistant", content: `Ошибка: ${data.error}` }])
+        if (sessionId) {
+          addMessage(sessionId, { role: "assistant", content: `Ошибка: ${data.error}` })
+        }
       } else if (data.type === "modification" && data.modifications?.length > 0 && onItineraryUpdate) {
         applyModifications(data.modifications, data.metadataUpdates)
-        setMessages((prev) => [
-          ...prev,
-          {
+        if (sessionId) {
+          addMessage(sessionId, {
             role: "assistant",
             content: data.reply,
-            isModification: true,
-          },
-        ])
+            metadata: { isModification: true },
+          })
+        }
       } else {
-        setMessages((prev) => [
-          ...prev,
-          {
+        if (sessionId) {
+          addMessage(sessionId, {
             role: "assistant",
             content: data.reply || "Не удалось обработать запрос.",
-          },
-        ])
+            metadata: { bookingData: data.bookingData },
+          })
+        }
       }
     } catch (error: any) {
       console.error("Chat widget error:", error)
-      setMessages((prev) => [
-        ...prev,
-        {
+      if (sessionId) {
+        addMessage(sessionId, {
           role: "assistant",
           content: `Произошла ошибка: ${error.message || "Попробуйте позже."}`,
-        },
-      ])
+        })
+      }
     } finally {
       setIsLoading(false)
       onModifying?.(false)
@@ -205,7 +232,9 @@ export function ItineraryChatWidget({
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span className="text-[10px] font-medium text-slate-500 dark:text-white/50 uppercase tracking-wider">Онлайн</span>
           </div>
-          <span className="text-[9px] text-slate-400 dark:text-white/30">DeepSeek</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-slate-400 dark:text-white/30">DeepSeek</span>
+          </div>
         </div>
 
         <div

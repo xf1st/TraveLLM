@@ -258,21 +258,46 @@ export function AppSidebar() {
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    const isCreateTrip = item.href === '/plan'
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
                             title={isCollapsed ? item.title : undefined}
                             className={cn(
-                                "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200",
+                                "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-300 group",
                                 isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3",
-                                isActive
-                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                isCreateTrip
+                                    ? "relative hover:scale-[1.02] hover:bg-accent/50 text-foreground shadow-sm hover:shadow-md"
+                                    : isActive
+                                        ? "bg-accent/80 text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             )}
                         >
-                            <item.icon className="h-5 w-5 shrink-0" />
-                            {!isCollapsed && item.title}
+                            {isCreateTrip && (
+                                <>
+                                    <div 
+                                        className="absolute inset-0 rounded-xl pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                                        style={{
+                                            padding: '1.5px',
+                                            background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)',
+                                            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                            WebkitMaskComposite: 'xor',
+                                            maskComposite: 'exclude'
+                                        } as React.CSSProperties}
+                                    />
+                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-300 -z-10 pointer-events-none" />
+                                </>
+                            )}
+                            <item.icon className={cn("h-5 w-5 shrink-0 z-10 relative", isCreateTrip && "text-indigo-500 animate-pulse")} />
+                            {!isCollapsed && (
+                                <span className={cn(
+                                    "z-10 relative",
+                                    isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
+                                )}>
+                                    {item.title}
+                                </span>
+                            )}
                         </Link>
                     )
                 })}

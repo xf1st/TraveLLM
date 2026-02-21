@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu, Shield, History, X } from "lucide-react"
+import { Map, User, LogOut, Settings, Menu, Shield, History, X, Compass } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import {
@@ -119,10 +119,8 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
-    // { href: "/guide", label: "AI Гид" }, // Hidden - preserved for future mobile app
     { href: "/results", label: "Маршруты" },
     { href: "/dashboard", label: "3D Карта β" },
-    // { href: "/news", label: "Лента" },
     { href: "/plan", label: "Спланировать" },
   ]
 
@@ -141,20 +139,38 @@ export function Header({ floating = false }: HeaderProps) {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
-                  pathname === link.href
-                    ? "text-foreground bg-accent"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isCreateTrip = link.href === '/plan'
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 group",
+                    isCreateTrip
+                      ? "relative hover:scale-[1.05] hover:bg-accent/50 shadow-sm flex items-center gap-2"
+                      : pathname === link.href
+                        ? "text-foreground bg-accent"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  )}
+                >
+                  {isCreateTrip && (
+                    <>
+                      <div className="absolute inset-0 rounded-lg pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
+                           style={{ padding: '2px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 blur-md opacity-10 group-hover:opacity-30 transition-opacity duration-300 -z-10 pointer-events-none" />
+                    </>
+                  )}
+                  {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
+                  <span className={cn(
+                    "z-10 relative",
+                    isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
+                  )}>
+                    {link.label}
+                  </span>
+                </Link>
+              )
+            })}
           </nav>
 
           {/* Actions */}
@@ -170,13 +186,33 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
                   <DropdownMenuLabel>Меню</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {navLinks.map((link) => (
-                    <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                      <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
-                        {link.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
+                  {navLinks.map((link) => {
+                    const isCreateTrip = link.href === '/plan'
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                        <Link href={link.href} className={cn(
+                          "w-full cursor-pointer flex items-center justify-between group transition-all duration-300",
+                          isCreateTrip 
+                            ? "relative hover:bg-accent/50 shadow-sm" 
+                            : (pathname === link.href ? "bg-accent/50 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium")
+                        )}>
+                          {isCreateTrip && (
+                            <>
+                              <div className="absolute inset-0 rounded-[inherit] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
+                                   style={{ padding: '1.5px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
+                            </>
+                          )}
+                          <span className={cn(
+                            "z-10 relative",
+                            isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
+                          )}>
+                            {link.label}
+                          </span>
+                          {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
+                        </Link>
+                      </DropdownMenuItem>
+                    )
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -264,20 +300,38 @@ export function Header({ floating = false }: HeaderProps) {
 
         {/* Navigation - Desktop */}
         <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
-                pathname === link.href
-                  ? "text-foreground bg-accent"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isCreateTrip = link.href === '/plan'
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 group",
+                  isCreateTrip
+                    ? "relative hover:scale-[1.05] hover:bg-accent/50 shadow-sm flex items-center gap-2"
+                    : pathname === link.href
+                      ? "text-foreground bg-accent"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                )}
+              >
+                {isCreateTrip && (
+                  <>
+                    <div className="absolute inset-0 rounded-lg pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
+                         style={{ padding: '2px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 blur-md opacity-10 group-hover:opacity-30 transition-opacity duration-300 -z-10 pointer-events-none" />
+                  </>
+                )}
+                {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
+                <span className={cn(
+                  "z-10 relative",
+                  isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
+                )}>
+                  {link.label}
+                </span>
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Actions & Mobile Menu */}
@@ -293,13 +347,33 @@ export function Header({ floating = false }: HeaderProps) {
               <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
                 <DropdownMenuLabel>Меню</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {navLinks.map((link) => (
-                  <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                    <Link href={link.href} className={cn("w-full cursor-pointer", pathname === link.href && "bg-accent/50")}>
-                      {link.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                {navLinks.map((link) => {
+                  const isCreateTrip = link.href === '/plan'
+                  return (
+                    <DropdownMenuItem key={link.href} asChild className="rounded-lg">
+                      <Link href={link.href} className={cn(
+                        "w-full cursor-pointer flex items-center justify-between group transition-all duration-300",
+                        isCreateTrip 
+                          ? "relative hover:bg-accent/50 shadow-sm" 
+                          : (pathname === link.href ? "bg-accent/50 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium")
+                      )}>
+                        {isCreateTrip && (
+                          <>
+                            <div className="absolute inset-0 rounded-[inherit] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
+                                 style={{ padding: '1.5px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
+                          </>
+                        )}
+                        <span className={cn(
+                          "z-10 relative",
+                          isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
+                        )}>
+                          {link.label}
+                        </span>
+                        {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
+                      </Link>
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

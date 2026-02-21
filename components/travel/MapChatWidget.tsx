@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, Sparkles, X } from "lucide-react"
+import { Send, Sparkles, X, ExternalLink } from "lucide-react"
 import { Drawer } from "vaul"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
+import { useChat } from "@/lib/context/chat-context"
+import { useRouter } from "next/navigation"
 
 interface Message {
   role: "user" | "assistant"
@@ -118,18 +120,40 @@ function ChatBody({
 
 export function MapChatWidget({ onClose, userLocation, currentActivity, currentDay, tripContext, className }: MapChatWidgetProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)")
-  const [messages, setMessages] = useState<Message[]>([
+  
+  const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
+  const router = useRouter()
+  
+  const tripTitle = tripContext?.title || "Мой маршрут (карта)"
+  const existingSession = sessions.find(s => s.draftTrip?.title === tripTitle || s.title === tripTitle)
+  
+  const messages: Message[] = existingSession ? existingSession.messages.map(m => ({
+    role: m.role as "user" | "assistant",
+    content: m.content
+  })) : [
     { role: "assistant", content: "Привет! Я ваш гид. Спрашивайте по текущему месту или активности." },
-  ])
+  ]
+
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
+    
+    let sessionId = existingSession?.id
+    if (!sessionId) {
+      sessionId = createSession(input)
+      updateSession(sessionId, { title: tripTitle, draftTrip: tripContext })
+    }
+    setActiveSessionId(sessionId)
 
     const userMessage = input
     setInput("")
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }])
+    
+    if (sessionId) {
+        addMessage(sessionId, { role: "user", content: userMessage })
+    }
+    
     setIsLoading(true)
 
     try {
@@ -163,21 +187,19 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
       if (!response.ok) throw new Error("Network error")
 
       const data = await response.json()
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.reply || "Извините, сейчас не могу ответить.",
-        },
-      ])
+      if (sessionId) {
+         addMessage(sessionId, {
+           role: "assistant",
+           content: data.reply || "Извините, сейчас не могу ответить.",
+         })
+      }
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Ошибка связи. Попробуйте ещё раз.",
-        },
-      ])
+      if (sessionId) {
+         addMessage(sessionId, {
+           role: "assistant",
+           content: "Ошибка связи. Попробуйте ещё раз.",
+         })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -190,9 +212,11 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="font-medium text-sm text-white">AI Гид</span>
         </div>
-        <button onClick={onClose} className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-white/60 transition-colors">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={onClose} className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-white/60 transition-colors" title="Закрыть">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <ChatBody
@@ -238,9 +262,11 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
                 <Sparkles className="h-4 w-4 text-emerald-400" />
                 <span className="text-sm font-semibold">AI Гид</span>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-zinc-400 hover:text-white">
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-zinc-400 hover:text-red-400" title="Закрыть">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="flex-1 rounded-t-2xl overflow-hidden bg-black/40 backdrop-blur-2xl border-t border-white/10 flex flex-col">
               <ChatBody

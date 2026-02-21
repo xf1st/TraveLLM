@@ -7,6 +7,7 @@ import { MeshGradient } from "@paper-design/shaders-react"
 import GradientText from "@/components/GradientText"
 import { MorphingText } from "@/components/ui/morphing-text"
 import { motion } from "framer-motion"
+import { LottieLoader } from "@/components/ui/LottieLoader"
 
 const STEPS = [
     { icon: Plane, text: "Подбираем рейсы..." },
@@ -82,54 +83,9 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                         {/* Plane Animation */}
                         <div className="relative h-48 w-48 mx-auto flex items-center justify-center">
                             {/* Glow behind plane */}
-                            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full -z-10 animate-pulse" />
-
-                            {/* Cloud trails */}
-                            {[0, 1, 2].map((i) => (
-                                <motion.div
-                                    key={i}
-                                    className="absolute rounded-full bg-white/20 dark:bg-white/10 blur-sm"
-                                    style={{
-                                        width: 40 - i * 10,
-                                        height: 14 - i * 3,
-                                        top: `calc(50% + ${(i - 1) * 12}px)`,
-                                        left: `calc(50% - ${70 + i * 18}px)`,
-                                    }}
-                                    animate={{ opacity: [0.6, 0.1, 0.6], scaleX: [1, 1.3, 1] }}
-                                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
-                                />
-                            ))}
-
-                            {/* Main plane icon */}
-                            <motion.div
-                                animate={{
-                                    y: [0, -10, 0, 8, 0],
-                                    rotate: [-2, 3, -2, 1, -2],
-                                }}
-                                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                                className="relative z-10"
-                            >
-                                <div className="relative">
-                                    {/* Outer glow ring */}
-                                    <motion.div
-                                        className="absolute inset-[-16px] rounded-full border-2 border-primary/20"
-                                        animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.1, 0.4] }}
-                                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                                    />
-                                    {/* Icon container */}
-                                    <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-600/30 border border-white/10 dark:border-white/10 flex items-center justify-center shadow-2xl shadow-blue-500/20 backdrop-blur-sm">
-                                        <Plane className="h-12 w-12 text-white drop-shadow-lg" strokeWidth={1.5} />
-                                    </div>
-                                </div>
-                            </motion.div>
-
-                            {/* Orbit dot */}
-                            <motion.div
-                                className="absolute w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                                style={{ transformOrigin: "0 60px", left: "50%", top: "50%" }}
-                            />
+                            <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
+                            
+                            <LottieLoader type="plane" className="h-[120%] w-[120%] relative z-10" />
                         </div>
 
                         {/* Text Content */}
