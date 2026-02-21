@@ -512,13 +512,14 @@ export async function POST(req: Request) {
 - Направление: ${targetDescription}
 ${destinationType === 'russia' && !customDestination ? `⚠️ КРИТИЧНО: Маршрут ТОЛЬКО по России (РФ). Все города и места ОБЯЗАНЫ находиться на территории Российской Федерации. НЕЛЬЗЯ предлагать: Грузию, Батуми, Тбилиси, Беларусь, Казахстан, Армению, Азербайджан, Украину, любые страны СНГ и зарубежья.` : ''}
 - Количество стран/городов: ${destinations.length > 0 ? destinations.length : (countryCount === "more" ? 4 : parseInt(countryCount as string) || 1)}
+- ПРАВИЛО КОЛИЧЕСТВА СТРАН: Если количество > 1, ты ОБЯЗАН выбрать РАЗНЫЕ подходящие страны и обеспечить логистику (перелёты/поезда) между ними. Не ограничивайся одной страной.
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
 - Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
 - Бюджет: ${budgetDesc}. СТРОГИЙ ЛИМИТ: ${budgetCap} ₽. НЕ ПРЕВЫШАЙ.
 
 ${destinations.length > 1 ? `КРИТИЧНО — ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
-Маршрут ДОЛЖЕН включать ВСЕ указанные ниже места. НЕ ПРОПУСКАЙ НИ ОДНО!
+Маршрут ДОЛЖЕН включать ВСЕ указанные ниже места. НЕ ПРОПУСКАЙ НИ ОДНО! ПРИОРИТЕТ ВЫШЕ ЧЕМ У "КОЛИЧЕСТВО СТРАН".
 ${destinations.map((d, i) => `${i + 1}. ${parseDestination(d)}`).join('\n')}
 Распредели время равномерно между всеми пунктами!` : ''}
 
@@ -637,9 +638,13 @@ ${filterByDocuments && toArray(preferences?.documents).length > 0 ? (() => {
 - ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
-${safeHighlight ? `✨ ОСОБОЕ ЛИЧНОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ (ПРИОРИТЕТ — ОБЯЗАТЕЛЬНО УЧЕСТЬ!):
+${safeHighlight ? `✨ ОСОБОЕ ЛИЧНОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ (КРИТИЧЕСКИЙ ПРИОРИТЕТ!):
 Пользователь написал: "${safeHighlight}"
-ПРАВИЛО: Добавь в маршрут хотя бы ОДНУ конкретную активность, напрямую связанную с этим пожеланием. В поле "title" или "desc" этой активности добавь пометку "(✨ специально для тебя)". Это важнее стандартных достопримечательностей — воплоти пожелание творчески и буквально!
+ПРАВИЛА УЧЕТА ПОЖЕЛАНИЯ:
+1. ВЫБОР СТРАНЫ: Если пожелание явно связано с конкретным регионом (например, «сакура» -> Япония, «пирамиды» -> Египет, «кенгуру» -> Австралия, «фьорды» -> Норвегия), ты ОБЯЗАН выбрать именно эту страну в качестве одной из основных.
+2. КОНКРЕТНАЯ АКТИВНОСТЬ: Добавь в маршрут хотя бы ОДНУ конкретную активность, напрямую связанную с этим пожеланием.
+3. МАРКИРОВКА: В поле "title" или "desc" этой активности добавь пометку "(✨ специально для тебя)". 
+Это твой главный приоритет — воплоти пожелание творчески и буквально!
 ` : ''}
 ПРАВИЛА ГЕНЕРАЦИИ:
 
@@ -648,9 +653,9 @@ ${creativityInstruction}
 0. ВЫБОР НАПРАВЛЕНИЯ (КРИТИЧНО):
    - Если пользователь выбрал "За границу" (Abroad) без конкретной страны:
      - НЕ ПРЕДЛАГАЙ ТУРЦИЮ, ЕГИПЕТ или ОАЭ каждый раз! Это банально.
-     - Предлагай РАЗНООБРАЗНЫЕ направления: Таиланд, Вьетнам, Сербия, Китай, Марокко, ЮАР, Латинская Америка, Мальдивы, Шри-Ланка, Узбекистан.
+     - Предлагай РАЗНООБРАЗНЫЕ направления: Япония (особенно если упомянута сакура, суши, аниме), Таиланд, Вьетнам, Сербия, Китай, Марокко, ЮАР, Латинская Америка, Мальдивы, Шри-Ланка, Узбекистан.
      - Используй "Internal Random Seed" чтобы каждый раз предлагать что-то новое.
-     - Выбирай направление, идеально подходящее под "${travelStyle.join(', ')}". (Например, "Релакс" -> Мальдивы, "Приключения" -> Вьетнам).
+     - Выбирай направление, идеально подходящее под "${travelStyle.join(', ')}" и "${safeHighlight}".
 
 0.1. ТЕГИ (СТРОГО):
    - Генерируй теги ТОЛЬКО если они соответствуют ВЫБРАННЫМ интересам (${travelStyle.join(', ')}).
@@ -882,11 +887,13 @@ DEPARTURE: ${departureCity}
 DURATION: ${durationDays} days
 BUDGET: ${budgetDesc} (max ${budgetCap} RUB)
 STYLE: ${travelStyle.join(', ')}
+⚠️ MANDATORY COUNTRIES COUNT: ${countryCount === "more" ? "4+" : (countryCount || "1")} — countries[] MUST contain EXACTLY ${countryCount === "more" ? "4 or more" : (countryCount || "1")} entries. ${parseInt(String(countryCount)) > 1 ? `Even if primary wish (e.g. sakura→Japan) leads to one country, you MUST add ${parseInt(String(countryCount)) - 1} more complementary country. Example: Japan + South Korea, or Japan + China. Returning fewer countries than requested is a CRITICAL ERROR.` : ""}
 PACE: ${preferences?.pace || 'moderate'}
 VISITED: ${toArray(preferences?.visitedCountries).join(', ') || 'None'}
 PAYMENT METHODS: ${toArray(paymentMethods).join(', ') || 'Not specified'}
 PERSONALIZATION: ${toArray(preferences?.interestsDetailed).join(', ') || 'General'}
 DIETARY: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'None'}
+${safeHighlight ? `SPECIAL USER WISH: "${safeHighlight}" — если пожелание намекает на страну (сакура→Япония, пирамиды→Египет, фьорды→Норвегия), ВЫБЕРИ именно эту страну!` : ''}
 
 CURRENT REALITY (JAN 2026):
 - Restrictions: ${GROUNDING_DATA_2026.globalRestrictions.join(' ')}
@@ -898,10 +905,12 @@ CRITICAL RULES:
 1. Title MUST match the destination countries (if going to Bulgaria, don't call it "Beijing trip")
 2. visaAdvice MUST include requirements for EACH country separately
 3. countries[] must have visaRequired and visaType for each
+4. COUNTRIES COUNT must be respected — if user wants 2 countries, put 2 DIFFERENT countries in countries[]
+5. If SPECIAL USER WISH hints at a country (сакура→Japan, пирамиды→Egypt, кенгуру→Australia), CHOOSE that country
 
 Output VALID JSON only (all strings must be in double quotes):
 {
-  "title": "Название маршрута (ДОЛЖНО соответствовать направлению: ${targetDescription})",
+  "title": "Название маршрута (ДОЛЖНО соответствовать направлению: ${targetDescription}${safeHighlight ? `, учитывая пожелание: ${safeHighlight}` : ''})",
   "description": "Краткое описание на 2-3 предложения",
   "totalBudget": "${budgetCap} ₽",
   "budgetAnalysis": {
@@ -919,6 +928,11 @@ Output VALID JSON only (all strings must be in double quotes):
   "tags": ["вино", "горы", "море"],
   "viralSpots": [
     { "name": "Название места", "desc": "Почему это хайпово (TikTok/Insta)", "mapLink": "https://..." }
+  ],
+  "tripPlan": [
+    { "startDay": 1, "endDay": 4, "city": "Токио", "country": "Япония" },
+    { "startDay": 5, "endDay": 8, "city": "Тбилиси", "country": "Грузия" },
+    { "startDay": 9, "endDay": ${durationDays}, "city": "Стамбул", "country": "Турция" }
   ]
 }
 
@@ -927,7 +941,11 @@ CRITICAL:
 - ALL values must be in double quotes (including tags like "#tag")
 - NEVER use unquoted hashtags in the JSON
 - Fill ALL fields with REAL data for this destination!
-- Title MUST reflect the actual destination, NOT random cities!`;
+- Title MUST reflect the actual destination, NOT random cities!
+- tripPlan MUST cover ALL ${durationDays} days (no gaps, no overlaps)
+- tripPlan MUST visit EACH country in countries[] exactly ONCE — no returning to already-visited cities
+- Last entry in tripPlan should end on day ${durationDays} (return day)
+- Distribute days EVENLY: if 11 days and 3 countries, roughly 4+4+3 — NOT 2+3+3+3 with repeats!`;
 
             console.log("Parallel: Generating metadata...");
             const messages = [
@@ -944,12 +962,23 @@ CRITICAL:
             startDay: number,
             endDay: number,
             destination: string,
-            previousContext?: { lastCity: string; visitedPlaces: string[] }
+            previousContext?: { lastCity: string; visitedPlaces: string[] },
+            tripPlan?: Array<{ startDay: number; endDay: number; city: string; country: string }>
         ): Promise<any[]> {
             const isFirstChunk = startDay === 1
             const isLastChunk = endDay === durationDays
             const startLocation = previousContext?.lastCity || effectiveDepartureCity
             const visitedPlaces = previousContext?.visitedPlaces || []
+
+            // Find which city/country this chunk covers according to the plan
+            const chunkSegments = (tripPlan || []).filter(s => s.startDay <= endDay && s.endDay >= startDay)
+            const planForChunk = chunkSegments.length > 0
+                ? chunkSegments.map(s => {
+                    const dayFrom = Math.max(s.startDay, startDay)
+                    const dayTo = Math.min(s.endDay, endDay)
+                    return `Дни ${dayFrom}-${dayTo}: ${s.city} (${s.country})`
+                }).join('\n  ')
+                : null
 
             const chunkPrompt = `
 Сгенерируй ДНИ ${startDay}-${endDay} из ${durationDays}-дневного маршрута.
@@ -962,6 +991,11 @@ CRITICAL:
 - Диета: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'Без ограничений'}
 - Бюджет: ${budgetDesc}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
+${safeHighlight ? `- ОСОБОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ: "${safeHighlight}" — ОБЯЗАТЕЛЬНО добавь хотя бы одну активность, напрямую связанную с этим пожеланием, с пометкой "(✨ специально для тебя)" в поле desc.` : ''}
+
+${planForChunk ? `⚠️ ПЛАН МАРШРУТА (СТРОГО СЛЕДУЙ — НЕ ОТСТУПАЙ):
+  ${planForChunk}
+Ты ОБЯЗАН генерировать активности ТОЛЬКО в указанных городах. НЕ возвращайся в уже посещённые города. НЕ добавляй лишние города.` : ""}
 
 КРИТИЧНО — КОНТИНУИТЕТ МАРШРУТА:
 ${isFirstChunk
@@ -1039,6 +1073,21 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 // 1. Metadata (Parallel)
                 const metadata = await generateMetadata();
 
+                // Use the AI-chosen destination from metadata for day chunks (prevents title/content mismatch)
+                const resolvedDestination = metadata.countries?.length > 0
+                    ? metadata.countries.map((c: any) => c.name).join(', ')
+                    : targetDescription;
+                console.log(`Metadata chose destination: ${resolvedDestination}`);
+
+                // Extract the trip plan (day → city mapping) from metadata
+                const tripPlan: Array<{ startDay: number; endDay: number; city: string; country: string }> =
+                    Array.isArray(metadata.tripPlan) ? metadata.tripPlan : [];
+                if (tripPlan.length > 0) {
+                    console.log(`Trip plan: ${tripPlan.map(s => `days ${s.startDay}-${s.endDay} → ${s.city}`).join(', ')}`);
+                } else {
+                    console.log('No tripPlan in metadata — chunks will self-navigate');
+                }
+
                 // 2. Chunks (Sequential)
                 const chunks = [];
                 for (let i = 1; i <= durationDays; i += CHUNK_SIZE) {
@@ -1062,15 +1111,20 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     const chunkDays = await generateDayChunk(
                         chunks[i].start,
                         chunks[i].end,
-                        targetDescription,
-                        previousContext
+                        resolvedDestination,
+                        previousContext,
+                        tripPlan
                     );
                     allDays.push(...chunkDays);
 
-                    // Update context for next chunk
+                    // Update context for next chunk — prefer tripPlan city over AI guess
+                    const nextChunkStart = chunks[i + 1]?.start;
+                    const nextPlanSegment = nextChunkStart
+                        ? tripPlan.find(s => s.startDay <= nextChunkStart && s.endDay >= nextChunkStart)
+                        : undefined;
                     const lastDay = chunkDays[chunkDays.length - 1];
                     previousContext = {
-                        lastCity: lastDay?.endCity || lastDay?.logistics?.to || targetDescription,
+                        lastCity: nextPlanSegment?.city || lastDay?.endCity || lastDay?.logistics?.to || resolvedDestination,
                         visitedPlaces: [
                             ...previousContext.visitedPlaces,
                             ...chunkDays.flatMap((day: any) =>

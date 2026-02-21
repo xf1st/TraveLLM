@@ -58,6 +58,7 @@ import { LottieLoader } from "@/components/ui/LottieLoader"
 import { toggleFavorite } from "@/app/actions/favorites"
 import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/ActivityTimelineCard"
 import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
+import { TripTooltips } from "@/components/trip/TripTooltips"
 
 import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
@@ -714,6 +715,7 @@ export default function TripDetailPage() {
   return (
     <div className="min-h-screen trip-bg relative">
       <AppSidebar />
+      <TripTooltips userId={user?.id} />
 
       <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}

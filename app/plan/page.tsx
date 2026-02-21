@@ -1046,7 +1046,7 @@ export default function PlanPage() {
         </Stepper>
 
         <p className="mt-6 text-center text-xs text-muted-foreground animate-in fade-in duration-1000 delay-500">
-          Бесплатно доступно 3 генерации маршрутов
+          Бесплатно доступна 1 генерация маршрута.
         </p>
       </div>
     </AppLayout>

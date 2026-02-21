@@ -22,6 +22,22 @@ import { toast } from "sonner"
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 
 /**
+ * Extract markdown links from text, returning clean text and link list.
+ * Handles: [label](https://...) patterns
+ */
+function extractMarkdownLinks(text: string): { cleanText: string; links: Array<{ label: string; url: string }> } {
+  const links: Array<{ label: string; url: string }> = []
+  const cleanText = text
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, (_, label, url) => {
+      links.push({ label: label.trim(), url })
+      return ""
+    })
+    .replace(/\s{2,}/g, " ")
+    .trim()
+  return { cleanText, links }
+}
+
+/**
  * Extract IATA codes from flight activity title or desc.
  * Handles patterns like: "SVO→IST", "(MOW)→(DXB)", "Москва (SVO) → Стамбул (IST)"
  */
@@ -226,6 +242,12 @@ export function ActivityTimelineCard({
   const rawTitle = activity.title || activity.placeName || "Активность"
   const displayTitle = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1)
 
+  // Parse markdown links out of desc so they're shown as chips, not raw syntax
+  const rawDesc = activity.desc || ""
+  const { cleanText: cleanDesc, links: descLinks } = extractMarkdownLinks(
+    rawDesc.replace("(✨ специально для тебя)", "").trim()
+  )
+
   const handleOpenMap = () => {
     const query =
       activity.mapLink ||
@@ -335,7 +357,7 @@ export function ActivityTimelineCard({
           {activity.desc && (
             <div className="space-y-2 mb-3 sm:mb-5">
               <p className="text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed font-medium">
-                {activity.desc.replace("(✨ специально для тебя)", "").trim()}
+                {cleanDesc}
               </p>
               {(activity.desc.includes("(✨ специально для тебя)") || (activity.title && activity.title.includes("(✨ специально для тебя)"))) && (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20 w-fit animate-pulse">
@@ -392,6 +414,18 @@ export function ActivityTimelineCard({
                         Билеты
                       </a>
                     )}
+                    {descLinks.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors max-w-[140px]"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300 shrink-0">open_in_new</span>
+                        <span className="truncate">{link.label}</span>
+                      </a>
+                    ))}
                   </>
                 )}
               </div>
@@ -441,7 +475,23 @@ export function ActivityTimelineCard({
             {activity.desc && (
               <div>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">Описание</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">{activity.desc}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{cleanDesc}</p>
+                {descLinks.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {descLinks.map((link, i) => (
+                      <a
+                        key={i}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-sky-700 dark:text-sky-300 font-semibold bg-sky-500/10 px-2.5 py-1.5 rounded-xl border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
