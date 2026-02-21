@@ -40,23 +40,28 @@ function enrichTransportLinks(routeData: any, origin: string, mainDestination: s
 
         for (const act of day.activities) {
             if (act.type === 'transport') {
-                const title = (act.title || "").toLowerCase()
-                const isFlight = /перелёт|перелет|рейс|вылет|прибытие|самолет|flight/i.test(title)
+                const originalTitle = act.title || ""
+                const titleLower = originalTitle.toLowerCase()
+                const isFlight = /перелёт|перелет|рейс|вылет|прибытие|самолет|flight/i.test(titleLower)
 
                 if (isFlight) {
-                    // Prefer IATA from logistics (reliable "City (IATA)" format)
-                    let toIata = dayToIata
+                    // Strategy 1: Extract IATA codes directly from title brackets
+                    // Handles: "Перелёт Москва (SVO) → Стамбул (IST)"
+                    const titleIataMatch = originalTitle.match(/\b([A-Z]{3})\b[^A-Z]*\b([A-Z]{3})\b/)
+                    let fromIataFromTitle = titleIataMatch?.[1] || ""
+                    let toIataFromTitle = titleIataMatch?.[2] || ""
+
+                    // Strategy 2: IATA from logistics.to ("Стамбул (IST)" format)
+                    let toIata = dayToIata || toIataFromTitle
                     let toCity = dayToCity || mainDestination
 
-                    // Fallback: try to resolve IATA from destination name
+                    // Strategy 3: Dictionary lookup fallback
                     if (!toIata) {
                         toIata = getIataCode(toCity) || getIataCode(mainDestination) || ""
-                        if (!toIata) {
-                            // Try extracting from activity title (nominative form only)
-                            const match = title.match(/(?:в|to|->|—)\s+([а-яёA-Z][а-яёa-z]+)/i)
-                            if (match?.[1]) toIata = getIataCode(match[1]) || ""
-                        }
                     }
+
+                    // Use origin IATA from title if currentIata is empty
+                    const origIata = currentIata || fromIataFromTitle
 
                     // Determine date for this day
                     let date = startDate
@@ -67,7 +72,7 @@ function enrichTransportLinks(routeData: any, origin: string, mainDestination: s
                     }
 
                     act.link = getFlightSearchLink({
-                        originIata: currentIata,
+                        originIata: origIata,
                         origin: currentCity,
                         destination: toCity,
                         destinationIata: toIata,
@@ -735,7 +740,12 @@ ${creativityInstruction}
    - Для безвизовых: "Турция: безвизовый въезд до 60 дней"
 
 9. РАБОЧИЕ ССЫЛКИ НА БРОНИРОВАНИЕ (КРИТИЧНО):
-   - Авиабилеты: https://www.aviasales.ru/
+   - Авиабилеты: ВСЕГДА используй формат https://www.aviasales.ru/search/{ORIG}{DDMM}{DEST}1
+     где {ORIG} и {DEST} — IATA коды аэропортов (3 буквы), {DDMM} — дата вылета
+     ПРИМЕР: Москва(MOW) → Дубай(DXB) 15 февраля = https://www.aviasales.ru/search/MOW1502DXB1
+     Если дата неизвестна, используй: https://www.aviasales.ru/search/{ORIG}{DEST}1
+   - В title транспортной активности ВСЕГДА указывай IATA коды в скобках:
+     ПРИМЕР: "Перелёт Москва (MOW) → Стамбул (IST)"
    - Поезда РЖД: https://ticket.rzd.ru/
    - Отели: https://ostrovok.ru/ или https://www.booking.com/
    - НЕ ВЫДУМЫВАЙ URL - используй только реальные сайты бронирования

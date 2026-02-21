@@ -312,44 +312,51 @@ function GuidePageContent() {
         }
     }
 
-    // Helper to generate smart booking links with Travelpayouts partner markers
-    const getSmartLinks = () => {
-        // Try to get destination from trip metadata or first city in itinerary
-        let destination = trip?.destination
+    const [smartLinks, setSmartLinks] = useState({
+        aviasales: "https://www.aviasales.ru",
+        ostrovok: "https://ostrovok.ru",
+        cherehapa: "https://www.cherehapa.ru"
+    })
 
-        if (!destination && tripData?.itinerary?.length > 0) {
-            // Extract first city from title "City: Activity" or similar
-            const firstDayTitle = tripData.itinerary[0].title
-            if (firstDayTitle) {
-                destination = firstDayTitle.split(':')[0].trim()
+    useEffect(() => {
+        const fetchLinks = async () => {
+            try {
+                // Try to get destination from trip metadata or first city in itinerary
+                let destination = trip?.destination
+
+                if (!destination && tripData?.itinerary?.length > 0) {
+                    // Extract first city from title "City: Activity" or similar
+                    const firstDayTitle = tripData.itinerary[0].title
+                    if (firstDayTitle) {
+                        destination = firstDayTitle.split(':')[0].trim()
+                    }
+                }
+
+                if (!destination) return
+
+                // Используем Travelpayouts партнёрские ссылки
+                const bookingLinks = await generateTripBookingLinks({
+                    origin: trip?.origin,
+                    destination,
+                    startDate: trip?.start_date,
+                    endDate: trip?.end_date,
+                    travelers: trip?.travelers || 1
+                })
+
+                setSmartLinks({
+                    aviasales: bookingLinks.flights,
+                    ostrovok: bookingLinks.hotels,
+                    cherehapa: bookingLinks.insurance
+                })
+            } catch (error) {
+                console.error("Error generating booking links:", error);
             }
         }
-
-        if (!destination) {
-            return {
-                aviasales: "https://www.aviasales.ru",
-                ostrovok: "https://ostrovok.ru",
-                cherehapa: "https://www.cherehapa.ru"
-            }
+        
+        if (trip || tripData) {
+            fetchLinks()
         }
-
-        // Используем Travelpayouts партнёрские ссылки
-        const bookingLinks = generateTripBookingLinks({
-            origin: trip?.origin,
-            destination,
-            startDate: trip?.start_date,
-            endDate: trip?.end_date,
-            travelers: trip?.travelers || 1
-        })
-
-        return {
-            aviasales: bookingLinks.flights,
-            ostrovok: bookingLinks.hotels,
-            cherehapa: bookingLinks.insurance
-        }
-    }
-
-    const smartLinks = getSmartLinks()
+    }, [trip, tripData])
 
     const updateBooking = async (key: keyof typeof bookings) => {
         const newStatus = !bookings[key]
@@ -919,7 +926,6 @@ function GuidePageContent() {
                                 places={places}
                                 activePlaceId={activePlaceId || undefined}
                                 onPlaceSelect={handlePlaceSelect}
-                                userLocation={userLocation}
                             />
                             {/* Current Place Overlay */}
                             {activePlace && (

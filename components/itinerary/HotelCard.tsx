@@ -136,7 +136,7 @@ export function HotelCard({
     const calculatedTotal = totalPrice || (nights ? pricePerNight * nights : pricePerNight)
 
     // Build booking URL
-    const buyUrl = bookingUrl || "https://ostrovok.ru/"
+    const buyUrl = bookingUrl || `https://travel.yandex.ru/hotels/?marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""}`
 
     // Detect if we have real price/rating data
     const hasPriceData = pricePerNight > 0

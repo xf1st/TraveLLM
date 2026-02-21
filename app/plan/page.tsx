@@ -222,6 +222,13 @@ export default function PlanPage() {
     { label: "🍜 Стрит-фуд", value: "Найти лучший уличный стрит-фуд" },
     { label: "🌅 Рассвет", value: "Встретить рассвет в особом месте" },
     { label: "🏛️ Скрытые места", value: "Побывать в местах, куда не ходят туристы" },
+    { label: "🎨 Стрит-арт", value: "Увидеть самый крутой стрит-арт и граффити" },
+    { label: "🍷 Вино и виды", value: "Посетить винный бар с лучшим видом на город" },
+    { label: "📸 Фотосессия", value: "Найти идеальный спот для фото в Instagram" },
+    { label: "🕰️ Антиквариат", value: "Зайти на местный блошиный рынок или антикварную лавку" },
+    { label: "🏃 Утренняя пробежка", value: "Маршрут для пробежки по красивым набережным" },
+    { label: "🎸 Живая музыка", value: "Вечер в атмосферном месте с живой музыкой" },
+    { label: "☕ Спешелти кофе", value: "Найти лучшие кофейни третьей волны" },
   ]
 
   // Validate form before submission
@@ -947,64 +954,92 @@ export default function PlanPage() {
               </div>
 
               {/* ✨ Изюминка поездки */}
-              <div className="space-y-2 max-w-lg mx-auto w-full pt-2">
-                <div className="flex items-center gap-2 flex-wrap ml-1">
-                  <Label className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                    <Sparkles className="h-4 w-4 text-violet-400" />
-                    Изюминка поездки
-                  </Label>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 border border-violet-500/20 font-semibold leading-tight">
-                    ✨ лично для тебя
-                  </span>
-                  <span className="text-[10px] text-muted-foreground/50 ml-auto">необязательно</span>
-                </div>
+              <div className="space-y-4 max-w-lg mx-auto w-full pt-4">
+                <div className="relative group">
+                  {/* Decorative glow background */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-blue-500/20 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                  
+                  <div className={cn(
+                    "relative rounded-[2rem] border transition-all duration-500 overflow-hidden shadow-sm",
+                    highlightError
+                      ? "border-red-400/50 bg-red-500/5"
+                      : "bg-white/40 dark:bg-black/20 backdrop-blur-xl border-black/5 dark:border-white/10 group-focus-within:border-violet-400/50 group-focus-within:shadow-2xl group-focus-within:shadow-violet-500/10"
+                  )}>
+                    <div className="flex items-center justify-between px-5 pt-4 pb-1">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-violet-500/10 dark:bg-violet-500/20">
+                          <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        <Label className="text-sm font-bold tracking-tight text-foreground/80">
+                          Изюминка поездки
+                        </Label>
+                        <div className="px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-[9px] text-white font-black uppercase tracking-wider shadow-sm animate-pulse">
+                          Personal
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/40 font-medium">необязательно</span>
+                    </div>
 
-                <div className={cn(
-                  "rounded-2xl border transition-all overflow-hidden",
-                  highlightError
-                    ? "border-red-400/50 bg-red-500/5"
-                    : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 focus-within:border-violet-400/40 focus-within:bg-white/70 dark:focus-within:bg-white/8"
-                )}>
-                  <Textarea
-                    placeholder="Хочу встретить котиков... найти лучший уличный стрит-фуд... попасть на местный рынок..."
-                    value={tripHighlight}
-                    onChange={(e) => {
-                      const value = e.target.value.slice(0, 300)
-                      setTripHighlight(value)
-                      setHighlightError(value.length > 0 ? validateHighlight(value) : null)
-                    }}
-                    className="min-h-[76px] max-h-[120px] resize-none bg-transparent border-0 text-sm p-4 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/40 leading-relaxed"
-                  />
-                  <div className="flex items-center justify-between px-4 pb-3 gap-2">
-                    {highlightError ? (
-                      <span className="text-xs text-red-400">⚠️ {highlightError}</span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground/50">AI обязательно включит это в маршрут</span>
-                    )}
-                    <span className={cn(
-                      "text-xs tabular-nums shrink-0",
-                      tripHighlight.length > 250 ? "text-amber-400" : "text-muted-foreground/35"
-                    )}>
-                      {tripHighlight.length}/300
-                    </span>
+                    <Textarea
+                      placeholder="Например: 'Хочу найти лучший рамен' или 'Устроить пикник на закате'..."
+                      value={tripHighlight}
+                      onChange={(e) => {
+                        const value = e.target.value.slice(0, 300)
+                        setTripHighlight(value)
+                        setHighlightError(value.length > 0 ? validateHighlight(value) : null)
+                      }}
+                      className="min-h-[100px] max-h-[160px] resize-none bg-transparent border-0 text-base p-5 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/30 leading-relaxed font-medium"
+                    />
+                    
+                    <div className="flex items-center justify-between px-5 pb-4 gap-3 bg-black/5 dark:bg-white/5 border-t border-black/5 dark:border-white/5">
+                      {highlightError ? (
+                        <span className="text-xs text-red-500 font-semibold flex items-center gap-1">
+                          <span className="text-sm">⚠️</span> {highlightError}
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="text-[11px] text-muted-foreground/60 font-medium">AI воплотит это в маршруте</span>
+                        </div>
+                      )}
+                      <div className={cn(
+                        "text-[10px] font-bold px-2 py-1 rounded-md transition-colors",
+                        tripHighlight.length > 250 ? "bg-amber-500/20 text-amber-600" : "bg-black/5 dark:bg-white/10 text-muted-foreground/50"
+                      )}>
+                        {tripHighlight.length} <span className="opacity-40">/</span> 300
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Quick suggestion chips */}
-                {!tripHighlight && (
-                  <div className="flex flex-wrap gap-2 pt-0.5">
-                    {HIGHLIGHT_SUGGESTIONS.map((s) => (
-                      <button
-                        key={s.value}
-                        type="button"
-                        onClick={() => setTripHighlight(s.value)}
-                        className="text-xs px-3 py-1.5 rounded-full bg-white/40 dark:bg-white/5 border border-black/10 dark:border-white/10 text-muted-foreground hover:bg-white/70 dark:hover:bg-white/10 hover:text-foreground active:scale-95 transition-all"
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div className="space-y-2 px-1">
+                  {!tripHighlight && (
+                    <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      {HIGHLIGHT_SUGGESTIONS.map((s, idx) => (
+                        <button
+                          key={s.value}
+                          type="button"
+                          onClick={() => setTripHighlight(s.value)}
+                          className="group relative overflow-hidden text-xs px-4 py-2 rounded-2xl bg-white/60 dark:bg-white/5 border border-black/5 dark:border-white/10 text-muted-foreground hover:border-violet-500/30 hover:text-foreground active:scale-95 transition-all duration-300"
+                        >
+                          <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <span className="relative flex items-center gap-1.5">
+                            {s.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {tripHighlight && (
+                    <button 
+                      onClick={() => setTripHighlight("")}
+                      className="text-[10px] font-bold text-violet-500 hover:text-violet-600 dark:hover:text-violet-400 flex items-center gap-1 transition-colors px-1"
+                    >
+                      <span>✕</span> Очистить пожелание
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </Step>

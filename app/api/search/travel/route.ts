@@ -75,11 +75,10 @@ export async function POST(req: Request) {
             destinationIata: destIata || undefined,
             departDate: startDate,
             returnDate: endDate,
-            adults: passengers,
-            subId: "search_api"
+            adults: passengers
         })
 
-        const hotelBookingUrl = getHotelSearchLink({
+        const hotelBookingUrl = await getHotelSearchLink({
             destination: destinationCity,
             checkIn: startDate,
             checkOut: endDate,
@@ -89,9 +88,6 @@ export async function POST(req: Request) {
         })
 
         const searchPrompt = `
-You are a real-time travel data search engine. Search the web NOW for ACTUAL available flights and hotels.
-
-SEARCH PARAMETERS:
 - From: ${departureCity} (${originIata || "unknown IATA"})
 - To: ${destinationCity} (${destIata || "unknown IATA"})
 - Departure: ${startDate}

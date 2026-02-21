@@ -1118,12 +1118,12 @@ export default function TripDetailPage() {
                       Подтверждено
                     </span>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const checkInDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
                         const checkOutDate = checkInDate ? addDays(checkInDate, 1) : undefined
 
-                        const link = sidebarHotel.bookingUrl || getHotelSearchLink({
-                             destination: sidebarHotel.hotelName,
+                        const link = sidebarHotel.bookingUrl || await getHotelSearchLink({
+                             destination: sidebarHotel.city || destinationName,
                              checkIn: checkInDate,
                              checkOut: checkOutDate,
                              adults: route.travelers || 2,

@@ -292,8 +292,8 @@ export function ItineraryChatWidget({
                       onClick={() => {
                         const url =
                           msg.bookingData!.type === "flight"
-                            ? `https://www.aviasales.ru/search?destination=${encodeURIComponent(msg.bookingData!.destination || "")}`
-                            : `https://ostrovok.ru/search/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
+                            ? `https://www.aviasales.ru/search/${encodeURIComponent(msg.bookingData!.destination || "")}`
+                            : `https://search.hotellook.com/?q=${encodeURIComponent(msg.bookingData!.destination || "")}`
                         window.open(url, "_blank")
                       }}
                     >

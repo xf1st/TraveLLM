@@ -21,6 +21,31 @@ import { toast } from "sonner"
 
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 
+/**
+ * Extract IATA codes from flight activity title or desc.
+ * Handles patterns like: "SVO→IST", "(MOW)→(DXB)", "Москва (SVO) → Стамбул (IST)"
+ */
+function extractFlightIata(text: string): { orig: string; dest: string } | null {
+  if (!text) return null
+  const match = text.match(/\b([A-Z]{3})\b.*?\b([A-Z]{3})\b/)
+  if (match && match[1] !== match[2]) return { orig: match[1], dest: match[2] }
+  return null
+}
+
+/**
+ * Build a smart Aviasales deep link for a transport activity.
+ * Prefers activity.link if available. Falls back to IATA extraction or generic search.
+ */
+function buildFlightLink(activity: { link?: string; title?: string; desc?: string }): string {
+  if (activity.link && !activity.link.endsWith("aviasales.ru/")) return activity.link
+  const textToSearch = `${activity.title || ""} ${activity.desc || ""}`
+  const iata = extractFlightIata(textToSearch)
+  if (iata) {
+    return `https://www.aviasales.ru/search/${iata.orig}${iata.dest}1`
+  }
+  return "https://www.aviasales.ru/"
+}
+
 const transportKeywords = [
   "transport",
   "transfer",
@@ -308,7 +333,17 @@ export function ActivityTimelineCard({
           </div>
 
           {activity.desc && (
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed mb-3 sm:mb-5 font-medium">{activity.desc}</p>
+            <div className="space-y-2 mb-3 sm:mb-5">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed font-medium">
+                {activity.desc.replace("(✨ специально для тебя)", "").trim()}
+              </p>
+              {(activity.desc.includes("(✨ специально для тебя)") || (activity.title && activity.title.includes("(✨ специально для тебя)"))) && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-300 border border-amber-500/20 w-fit animate-pulse">
+                  <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Специально для тебя</span>
+                </div>
+              )}
+            </div>
           )}
 
           {!isPlaceholder && theme !== "transport" && (activity.imageQuery || activity.placeName) && (
@@ -327,7 +362,7 @@ export function ActivityTimelineCard({
               <div className="flex items-center gap-2 sm:gap-3">
                 {theme === "transport" ? (
                   <a
-                    href={activity.link || "https://www.aviasales.ru/"}
+                    href={buildFlightLink(activity)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm"

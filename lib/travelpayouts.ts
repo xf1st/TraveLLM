@@ -357,6 +357,11 @@ interface FlightSearchParams {
  * })
  * // => https://www.aviasales.ru/search/MOW1503PAR2203economy?marker=...
  */
+/**
+ * Генерация партнёрской ссылки на поиск авиабилетов (Aviasales)
+ * Формат: /search/{ORIG}{DDMM}{DEST}{DDMM_return}{N}?marker=...
+ * Пример: /search/MOW2202IST1?marker=698017
+ */
 export function getFlightSearchLink(params: FlightSearchParams): string {
   const {
     origin,
@@ -366,60 +371,48 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
     departDate,
     returnDate,
     adults = 1,
-    tripClass = "economy",
     subId
   } = params
 
-  // Определяем IATA коды
-  const destIata = destinationIata || getIataCode(destination) || ""
   const origIata = originIata || (origin ? getIataCode(origin) : null) || ""
+  const destIata = destinationIata || (destination ? getIataCode(destination) : null) || ""
 
-  // Формат Aviasales path: /search/{ORIG}{DDMM}{DEST}{DDMM_return}{passengers}
-  // Пример: /search/MOW0702DXB13022 = MOW→DXB, вылет 07.02, обратно 13.02, 2 чел
-  const baseUrl = "https://www.aviasales.ru/search"
+  const marker = subId
+    ? `${TRAVELPAYOUTS_MARKER}.${subId}`
+    : TRAVELPAYOUTS_MARKER
+
+  // Формат DDMM из даты YYYY-MM-DD
+  const toDDMM = (dateStr: string): string => {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return ""
+    const dd = String(d.getUTCDate()).padStart(2, "0")
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0")
+    return `${dd}${mm}`
+  }
 
   if (origIata && destIata && departDate) {
-    const dStr = formatDate(departDate)
-    const dDate = new Date(dStr)
-    const dd = String(dDate.getUTCDate()).padStart(2, "0")
-    const dm = String(dDate.getUTCMonth() + 1).padStart(2, "0")
+    const departStr = formatDate(departDate)
+    const d1 = toDDMM(departStr)
+    if (!d1) {
+      // Дата непарсируется - фолбек без даты
+      return `https://www.aviasales.ru/search/${origIata}${destIata}${adults}?marker=${marker}`
+    }
 
-    let path = `${origIata}${dd}${dm}${destIata}`
+    let path = `${origIata}${d1}${destIata}`
 
     if (returnDate) {
-      const rStr = formatDate(returnDate)
-      const rDate = new Date(rStr)
-      const rd = String(rDate.getUTCDate()).padStart(2, "0")
-      const rm = String(rDate.getUTCMonth() + 1).padStart(2, "0")
-      path += `${rd}${rm}`
+      const returnStr = formatDate(returnDate)
+      const d2 = toDDMM(returnStr)
+      if (d2) path += d2
     }
 
     path += adults.toString()
 
-    const searchParams = new URLSearchParams()
-    if (TRAVELPAYOUTS_MARKER) {
-      const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
-      searchParams.set("marker", marker)
-    }
-
-    const qs = searchParams.toString()
-    return qs ? `${baseUrl}/${path}?${qs}` : `${baseUrl}/${path}`
+    return `https://www.aviasales.ru/search/${path}?marker=${marker}`
   }
 
-  // Fallback: query params если нет IATA/даты
-  const searchParams = new URLSearchParams()
-  if (TRAVELPAYOUTS_MARKER) {
-    const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
-    searchParams.set("marker", marker)
-  }
-  if (origIata) searchParams.set("origin_iata", origIata)
-  if (destIata) searchParams.set("destination_iata", destIata)
-  if (departDate) searchParams.set("depart_date", formatDate(departDate))
-  if (returnDate) searchParams.set("return_date", formatDate(returnDate))
-  searchParams.set("adults", adults.toString())
-  searchParams.set("with_request", "true")
-
-  return `${baseUrl}?${searchParams.toString()}`
+  // Fallback без IATA: хотя бы открываем авиасейлс с правильным маркером
+  return `https://www.aviasales.ru/?marker=${marker}`
 }
 
 interface HotelSearchParams {
@@ -432,10 +425,105 @@ interface HotelSearchParams {
   subId?: string
 }
 
+/** Resolve a city name (Russian or English, possibly hotel name) to IATA code + English name */
+export async function resolveCityInfo(city: string): Promise<{ iata: string; name: string; nameEn: string } | null> {
+  if (!city?.trim()) return null;
+
+  // On the client-side, proxy through our Next.js API route to avoid CORS
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(`/api/iata?city=${encodeURIComponent(city.trim())}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (data.error) return null;
+      return { iata: data.iata || "", name: data.name || city, nameEn: data.nameEn || city };
+    } catch (error) {
+      console.error("resolveCityInfo (client) error:", error);
+      return null;
+    }
+  }
+
+  // On the server-side, call Travelpayouts directly (no CORS restriction)
+  const searchCityLocales = async (term: string) => {
+    try {
+      const encoded = encodeURIComponent(term);
+      const [resRu, resEn] = await Promise.all([
+        fetch(`https://autocomplete.travelpayouts.com/places2?term=${encoded}&locale=ru&types[]=city`),
+        fetch(`https://autocomplete.travelpayouts.com/places2?term=${encoded}&locale=en&types[]=city`)
+      ]);
+      if (!resRu.ok || !resEn.ok) return { dataRu: null as any, dataEn: null as any };
+      return { dataRu: await resRu.json(), dataEn: await resEn.json() };
+    } catch {
+      return { dataRu: null as any, dataEn: null as any };
+    }
+  };
+
+  try {
+    let { dataRu, dataEn } = await searchCityLocales(city);
+
+    // Fallback 1: "в/in CITY"
+    if (!dataRu || dataRu.length === 0) {
+      const inMatch = city.match(/(?:в|in)\s+([А-Яа-яA-Za-z\-]+)/i);
+      if (inMatch?.[1]) {
+        const fb = await searchCityLocales(inMatch[1]);
+        if (fb.dataRu?.length > 0) { dataRu = fb.dataRu; dataEn = fb.dataEn; }
+      }
+    }
+
+    // Fallback 2: Comma-separated e.g. "The Marmara Pera, Istanbul"
+    if ((!dataRu || dataRu.length === 0) && city.includes(",")) {
+      const parts = city.split(",").map(p => p.trim()).filter(p => p.length > 0);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const fb = await searchCityLocales(parts[i]);
+        if (fb.dataRu?.length > 0) { dataRu = fb.dataRu; dataEn = fb.dataEn; break; }
+      }
+    }
+
+    // Fallback 3: Last word
+    if (!dataRu || dataRu.length === 0) {
+      const words = city.split(/\s+/).filter(w => w.length > 2);
+      if (words.length > 1) {
+        const fb = await searchCityLocales(words[words.length - 1]);
+        if (fb.dataRu?.length > 0) { dataRu = fb.dataRu; dataEn = fb.dataEn; }
+      }
+    }
+
+    if (dataRu && dataRu.length > 0) {
+      const enCity = dataEn?.find((c: any) => c.code === dataRu[0].code) || dataEn?.[0] || {};
+      return {
+        iata: dataRu[0].code || "",
+        name: dataRu[0].name || city,
+        nameEn: enCity.name || dataRu[0].name || city,
+      };
+    }
+  } catch (error) {
+    console.error("resolveCityInfo (server) error:", error);
+  }
+  return null;
+}
+
+
+export function createYandexSlug(englishName: string): string {
+  if (!englishName) return "";
+  return englishName
+    .toLowerCase()
+    .trim()
+    .replace(/['"`]/g, "") // Remove quotes/apostrophes
+    .replace(/[^a-z0-9]+/g, "-") // Replace spaces and special chars with hyphens
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
 /**
- * Генерация партнёрской ссылки на поиск отелей (Hotellook)
+ * Генерация партнёрской ссылки на поиск отелей (Yandex Travel)
  */
-export function getHotelSearchLink(params: HotelSearchParams): string {
+/**
+ * Генерация партнёрской ссылки на поиск отелей (Yandex Travel)
+ * 
+ * CRITICAL: destination должен быть названием ГОРОДА, а не отеля!
+ * Формат: https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=...&checkoutDate=...&adults=N&marker=...
+ * Пример: https://travel.yandex.ru/hotels/istanbul/?checkinDate=2026-02-22&checkoutDate=2026-02-23&adults=2&marker=698017
+ */
+export async function getHotelSearchLink(params: HotelSearchParams): Promise<string> {
   const {
     destination,
     checkIn,
@@ -444,22 +532,33 @@ export function getHotelSearchLink(params: HotelSearchParams): string {
     subId
   } = params
 
-  const baseUrl = "https://search.hotellook.com"
+  const marker = subId
+    ? `${TRAVELPAYOUTS_MARKER}.${subId}`
+    : TRAVELPAYOUTS_MARKER
 
-  const searchParams = new URLSearchParams()
+  // Разрешаем город через Travelpayouts autocomplete API
+  // resolveCityInfo умеет работать с названием отеля в формате "Hotel Name, City" -B вытаскивает город
+  const cityInfo = await resolveCityInfo(destination)
+  const englishName = cityInfo?.nameEn || ""
 
-  if (TRAVELPAYOUTS_MARKER) {
-    const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
-    searchParams.set("marker", marker)
+  if (!englishName) {
+    // Если не нашли город - открываем базовый поиск с маркером
+    const params2 = new URLSearchParams()
+    if (marker) params2.set("marker", marker)
+    if (checkIn) params2.set("checkinDate", formatDate(checkIn))
+    if (checkOut) params2.set("checkoutDate", formatDate(checkOut))
+    params2.set("adults", adults.toString())
+    return `https://travel.yandex.ru/hotels/?${params2.toString()}`
   }
 
-  searchParams.set("destination", destination)
-  searchParams.set("adults", adults.toString())
+  const slug = createYandexSlug(englishName)
+  const qp = new URLSearchParams()
+  if (checkIn) qp.set("checkinDate", formatDate(checkIn))
+  if (checkOut) qp.set("checkoutDate", formatDate(checkOut))
+  qp.set("adults", adults.toString())
+  if (marker) qp.set("marker", marker)
 
-  if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
-  if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
-
-  return `${baseUrl}?${searchParams.toString()}`
+  return `https://travel.yandex.ru/hotels/${slug}/?${qp.toString()}`
 }
 
 /**
@@ -502,11 +601,16 @@ interface TrainSearchParams {
 /**
  * Ссылка на поиск ЖД билетов (Tutu.ru через Travelpayouts)
  */
-export function getTrainSearchLink(params: TrainSearchParams): string {
+export async function getTrainSearchLink(params: TrainSearchParams): Promise<string> {
   const { origin, destination, departDate, subId } = params
 
-  const baseUrl = "https://www.tutu.ru/poezda/rasp_d.php"
+  const originInfo = await resolveCityInfo(origin);
+  const origSlug = createYandexSlug(originInfo?.nameEn || origin) || "unknown";
 
+  const destInfo = await resolveCityInfo(destination);
+  const destSlug = createYandexSlug(destInfo?.nameEn || destination) || "unknown";
+
+  const baseUrl = `https://travel.yandex.ru/trains/${origSlug}--${destSlug}/`
   const searchParams = new URLSearchParams()
 
   if (TRAVELPAYOUTS_MARKER) {
@@ -514,11 +618,8 @@ export function getTrainSearchLink(params: TrainSearchParams): string {
     searchParams.set("marker", marker)
   }
 
-  searchParams.set("st1", origin)
-  searchParams.set("st2", destination)
-
   if (departDate) {
-    searchParams.set("date", formatDate(departDate))
+    searchParams.set("when", formatDate(departDate))
   }
 
   return `${baseUrl}?${searchParams.toString()}`
@@ -547,7 +648,7 @@ export function getInsuranceLink(destination: string, departDate?: Date | string
 /**
  * Генерация всех партнёрских ссылок для маршрута
  */
-export function generateTripBookingLinks(tripData: {
+export async function generateTripBookingLinks(tripData: {
   origin?: string
   destination: string
   startDate?: string
@@ -555,6 +656,22 @@ export function generateTripBookingLinks(tripData: {
   travelers?: number
 }) {
   const { origin, destination, startDate, endDate, travelers = 1 } = tripData
+
+  const [hotels, trains] = await Promise.all([
+    getHotelSearchLink({
+      destination,
+      checkIn: startDate,
+      checkOut: endDate,
+      adults: travelers,
+      subId: "trip_page"
+    }),
+    origin ? getTrainSearchLink({
+      origin,
+      destination,
+      departDate: startDate,
+      subId: "trip_page"
+    }) : Promise.resolve(null)
+  ]);
 
   return {
     flights: getFlightSearchLink({
@@ -565,13 +682,7 @@ export function generateTripBookingLinks(tripData: {
       adults: travelers,
       subId: "trip_page"
     }),
-    hotels: getHotelSearchLink({
-      destination,
-      checkIn: startDate,
-      checkOut: endDate,
-      adults: travelers,
-      subId: "trip_page"
-    }),
+    hotels,
     hotellook: getHotellookLink({
       destination,
       checkIn: startDate,
@@ -580,12 +691,7 @@ export function generateTripBookingLinks(tripData: {
       subId: "trip_page"
     }),
     insurance: getInsuranceLink(destination, startDate, endDate),
-    trains: origin ? getTrainSearchLink({
-      origin,
-      destination,
-      departDate: startDate,
-      subId: "trip_page"
-    }) : null
+    trains
   }
 }
 
@@ -1592,13 +1698,7 @@ export async function groupHotelStays(
       checkOut: coStr,
       nights,
       dayStart: startDay,
-      bookingUrl: getHotelSearchLink({
-        destination: cityName,
-        checkIn: ciStr,
-        checkOut: coStr,
-        adults: travelers,
-        subId: `hotel_${stays.length}`
-      }),
+      bookingUrl: "", // Will be assigned asynchronously later
       hotelName: `Отели в ${cityName}`,
       stars: 4,
       rating: 0,
@@ -1657,12 +1757,25 @@ export async function groupHotelStays(
   // Fetch real hotel data for each stay from Hotellook
   const enrichedStays: HotelStay[] = []
 
-  const hotelFetches = stays.map(stay =>
-    searchHotelsForCity(stay.city, stay.checkIn, stay.checkOut, stay.guests, 10)
-      .then(realHotels => ({ stay, realHotels }))
-      .catch(() => ({ stay, realHotels: [] as HotelStay[] }))
-  )
+  const hotelFetches = stays.map(async (stay, index) => {
+    // Dynamically assign async bookingUrl
+    stay.bookingUrl = await getHotelSearchLink({
+      destination: stay.city,
+      checkIn: stay.checkIn,
+      checkOut: stay.checkOut,
+      adults: travelers,
+      subId: `hotel_${index}`
+    });
 
+    try {
+      const realHotels = await searchHotelsForCity(stay.city, stay.checkIn, stay.checkOut, stay.guests, 10);
+      return { stay, realHotels };
+    } catch {
+      return { stay, realHotels: [] as HotelStay[] };
+    }
+  })
+
+  // Wait for all async property updates and API fetches
   const results = await Promise.all(hotelFetches)
 
   for (const { stay, realHotels } of results) {
