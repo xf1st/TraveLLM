@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
-import { deepseekInference } from "@/lib/deepseek"
+import { geminiInferenceWithUsage } from "@/lib/gemini"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { checkChatLimit } from "@/lib/subscription"
 
 // Helper to extract city from day title
 function extractCity(title: string): string {
@@ -24,6 +25,17 @@ export async function POST(req: Request) {
 
         if (!tripData || !userMessage) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+
+        // Check chat limit
+        if (tripId) {
+            const chatCheck = await checkChatLimit(userId, tripId)
+            if (!chatCheck.allowed) {
+                return NextResponse.json({
+                    error: `Лимит сообщений для этого маршрута исчерпан (${chatCheck.used}/${chatCheck.limit}). Обновите подписку на странице /subscribe.`,
+                    code: 'CHAT_LIMIT_EXCEEDED'
+                }, { status: 429 })
+            }
         }
 
         // Handle both array (just itinerary) and object (full trip) formats
@@ -54,10 +66,12 @@ export async function POST(req: Request) {
 Верни ТОЛЬКО JSON:
 {"intent": "MODIFY" или "QUESTION"}`
 
-        const classifyRaw = await deepseekInference([
+        const classifyRawResponse = await geminiInferenceWithUsage([
             { role: "system", content: "Классификатор намерений." },
             { role: "user", content: classifyPrompt }
         ], { maxTokens: 100, temperature: 0.1 })
+        
+        const classifyRaw = classifyRawResponse.content
 
         let intent = "QUESTION" // Default to question
         try {
@@ -95,10 +109,12 @@ ${itineraryContext}
 
 Верни JSON без markdown!`
 
-            const parseRaw = await deepseekInference([
+            const parseRawResponse = await geminiInferenceWithUsage([
                 { role: "system", content: "Анализатор запросов на изменение маршрутов." },
                 { role: "user", content: parsePrompt }
             ], { maxTokens: 500, temperature: 0.3 })
+            
+            const parseRaw = parseRawResponse.content
 
             let parsedRequest
             try {
@@ -142,10 +158,12 @@ ${itineraryContext}
   "link": ""
 }`
 
-                const activityRaw = await deepseekInference([
+                const activityRawResponse = await geminiInferenceWithUsage([
                     { role: "system", content: "Генератор туристических активностей." },
                     { role: "user", content: activityPrompt }
                 ], { maxTokens: 400, temperature: 0.7 })
+                
+                const activityRaw = activityRawResponse.content
 
                 let newActivity
                 try {
@@ -195,6 +213,17 @@ ${itineraryContext}
                     return { ...day, activities: updatedActivities, dayTotal: `${dayTotal.toLocaleString("ru-RU")} ₽` }
                 })
 
+                // Aggregate usage from all three calls
+                const totalUsage = {
+                    promptTokens: (classifyRawResponse.usage?.promptTokens || 0) + (parseRawResponse.usage?.promptTokens || 0) + (activityRawResponse.usage?.promptTokens || 0),
+                    completionTokens: (classifyRawResponse.usage?.completionTokens || 0) + (parseRawResponse.usage?.completionTokens || 0) + (activityRawResponse.usage?.completionTokens || 0),
+                    totalTokens: (classifyRawResponse.usage?.totalTokens || 0) + (parseRawResponse.usage?.totalTokens || 0) + (activityRawResponse.usage?.totalTokens || 0),
+                    costUsd: (classifyRawResponse.usage?.costUsd || 0) + (parseRawResponse.usage?.costUsd || 0) + (activityRawResponse.usage?.costUsd || 0),
+                    costRub: (classifyRawResponse.usage?.costRub || 0) + (parseRawResponse.usage?.costRub || 0) + (activityRawResponse.usage?.costRub || 0),
+                    model: classifyRawResponse.usage?.model || "gemini"
+                }
+                
+                await recordAiUsageEvent({ userId, source: "trip-assistant", tripId, provider: "gemini", usage: totalUsage })
                 return NextResponse.json({
                     type: "modification",
                     reply: `✅ ${parsedRequest.explanation || `Обновил день ${dayNumber}`}`,
@@ -250,11 +279,24 @@ ${safetyWarning}
 
 Ответ:`
 
-        const reply = await deepseekInference([
+        const replyResponse = await geminiInferenceWithUsage([
             { role: "system", content: "Ты полезный ассистент по путешествиям." },
             { role: "user", content: answerPrompt }
         ], { maxTokens: 400, temperature: 0.7 })
+        
+        const reply = replyResponse.content
 
+        // Aggregate usage from classification and reply
+        const totalUsage = {
+            promptTokens: (classifyRawResponse.usage?.promptTokens || 0) + (replyResponse.usage?.promptTokens || 0),
+            completionTokens: (classifyRawResponse.usage?.completionTokens || 0) + (replyResponse.usage?.completionTokens || 0),
+            totalTokens: (classifyRawResponse.usage?.totalTokens || 0) + (replyResponse.usage?.totalTokens || 0),
+            costUsd: (classifyRawResponse.usage?.costUsd || 0) + (replyResponse.usage?.costUsd || 0),
+            costRub: (classifyRawResponse.usage?.costRub || 0) + (replyResponse.usage?.costRub || 0),
+            model: replyResponse.usage?.model || "gemini"
+        }
+        
+        await recordAiUsageEvent({ userId, source: "trip-assistant", tripId, provider: "gemini", usage: totalUsage })
         return NextResponse.json({
             type: "message",
             reply: reply.trim()

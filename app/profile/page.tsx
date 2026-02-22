@@ -5,7 +5,9 @@ import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText } from "lucide-react"
+import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText, CreditCard } from "lucide-react"
+import { SubscriptionBadge } from "@/components/SubscriptionBadge"
+import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -537,6 +539,7 @@ function ProfileContent() {
     { id: "achievements", label: "Поездки и достижения" },
     { id: "preferences", label: "Предпочтения" },
     { id: "history", label: "История генераций" },
+    { id: "subscription", label: "Подписка" },
     { id: "settings", label: "Настройки" }
   ]
 
@@ -1375,6 +1378,79 @@ function ProfileContent() {
                             )}
                           </div>
                         </Card>
+                      )
+                    })()}
+
+                    {activeTab === "subscription" && (() => {
+                      const tier = (profile?.subscription_tier || 'free') as SubscriptionTier
+                      const baseLimits = TIER_LIMITS[tier] || TIER_LIMITS.free
+                      const genLimit = profile?.gen_limit_override ?? (isFinite(baseLimits.genPerMonth) ? baseLimits.genPerMonth : 999999)
+                      const chatLimit = profile?.chat_limit_override ?? (isFinite(baseLimits.chatPerTrip) ? baseLimits.chatPerTrip : 999999)
+                      const genUsed = profile?.monthly_gen_used ?? 0
+                      const genPercent = Math.min(100, (genUsed / Math.max(genLimit, 1)) * 100)
+                      const expiresAt = profile?.subscription_expires_at
+
+                      return (
+                        <div className="max-w-2xl mx-auto space-y-6 pb-20">
+                          <Card className="p-6 trip-glass border-white/20 space-y-5">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                              <CreditCard className="h-5 w-5" /> Подписка
+                            </h3>
+
+                            <div className="flex items-center gap-3">
+                              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Zap className="h-6 w-6 text-primary" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-lg capitalize">{tier === 'free' ? 'Бесплатный' : tier === 'pro' ? 'Pro' : tier === 'max' ? 'Max' : 'Dev'}</span>
+                                  <SubscriptionBadge tier={tier} />
+                                </div>
+                                {expiresAt && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Действует до: {new Date(expiresAt).toLocaleDateString('ru-RU')}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">Генерации маршрутов</span>
+                                  <span className="font-medium">{genUsed} / {isFinite(genLimit) ? genLimit : '∞'} в месяц</span>
+                                </div>
+                                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${genPercent > 80 ? 'bg-destructive' : 'bg-primary'}`}
+                                    style={{ width: `${genPercent}%` }}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Сообщений AI-ассистента</span>
+                                <span className="font-medium">{isFinite(chatLimit) ? chatLimit : '∞'} на маршрут</span>
+                              </div>
+                            </div>
+                          </Card>
+
+                          {tier === 'free' && (
+                            <Card className="p-6 trip-glass border-yellow-400/20 space-y-4">
+                              <h3 className="font-bold flex items-center gap-2">
+                                <Zap className="h-5 w-5 text-yellow-400" /> Поддержи проект
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                Подписка Pro даёт 50 генераций и 25 сообщений на маршрут в месяц, плюс значок в профиле.
+                              </p>
+                              <a href="/subscribe">
+                                <Button className="w-full bg-yellow-400 text-black hover:bg-yellow-300 rounded-xl">
+                                  Узнать о подписке →
+                                </Button>
+                              </a>
+                            </Card>
+                          )}
+                        </div>
                       )
                     })()}
 

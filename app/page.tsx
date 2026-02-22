@@ -6,7 +6,7 @@ import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MapPin, Calendar, Users, ArrowRight, Plane } from "lucide-react"
+import { MapPin, Calendar, Users, ArrowRight, Plane, Check, Heart, Zap, Crown } from "lucide-react"
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import Image from "next/image"
@@ -305,6 +305,103 @@ export default function LandingPage() {
         </section>
 
        
+
+        {/* ===== PRICING SECTION ===== */}
+        <section className="w-full max-w-5xl mx-auto px-4 py-24 relative z-20">
+          <div className="text-center mb-14">
+            <Badge variant="outline" className="mb-4 border-rose-500/50 text-rose-400 bg-rose-500/10 uppercase tracking-widest text-[10px]">
+              <Heart className="h-3 w-3 mr-1" /> Поддержать проект
+            </Badge>
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tight">Планы и цены</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">TraveLLM работает на пожертвованиях. Подписка помогает оплачивать AI-сервисы и серверы.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Free",
+                price: "Бесплатно",
+                gen: 25,
+                chat: 10,
+                badge: null,
+                icon: null,
+                highlight: false,
+                colorClass: "border-border/50",
+                cta: null,
+              },
+              {
+                name: "Pro",
+                price: "399 ₽/мес",
+                gen: 50,
+                chat: 25,
+                badge: { label: "Pro", colorClass: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
+                icon: Zap,
+                highlight: true,
+                colorClass: "border-yellow-400/40",
+                cta: "/subscribe",
+              },
+              {
+                name: "Max",
+                price: "Скоро",
+                gen: 100,
+                chat: 50,
+                badge: { label: "Max", colorClass: "text-purple-400 bg-purple-400/10 border-purple-400/30" },
+                icon: Crown,
+                highlight: false,
+                colorClass: "border-purple-400/30",
+                cta: null,
+              },
+            ].map((tier, i) => (
+              <motion.div
+                key={tier.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={`relative rounded-2xl border p-6 bg-card/40 backdrop-blur-sm flex flex-col ${tier.colorClass} ${tier.highlight ? 'ring-1 ring-yellow-400/40 shadow-lg shadow-yellow-400/5' : ''}`}
+              >
+                {tier.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-yellow-400 text-black text-xs font-bold px-3">Популярный</Badge>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 mb-3">
+                  {tier.icon && <tier.icon className="h-5 w-5 text-yellow-400" />}
+                  <span className="font-bold text-lg">{tier.name}</span>
+                  {tier.badge && (
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold border leading-none ${tier.badge.colorClass}`}>
+                      {tier.badge.label}
+                    </span>
+                  )}
+                </div>
+                <div className="text-2xl font-black mb-5">{tier.price}</div>
+                <ul className="space-y-2 mb-6 flex-1 text-sm">
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400 shrink-0" />{tier.gen} генераций/месяц</li>
+                  <li className="flex items-center gap-2"><Check className="h-4 w-4 text-green-400 shrink-0" />{tier.chat} сообщений AI на маршрут</li>
+                </ul>
+                {tier.cta ? (
+                  <Link href={tier.cta}>
+                    <Button className="w-full rounded-xl bg-yellow-400 text-black hover:bg-yellow-300">
+                      Поддержать <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button disabled className="w-full rounded-xl opacity-40">
+                    {tier.name === 'Free' ? 'Базовый план' : 'Скоро'}
+                  </Button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="text-center text-xs text-muted-foreground/60 mt-8">
+            После оплаты напишите в{" "}
+            <a href="https://t.me/myszf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Telegram @myszf
+            </a>{" "}
+            — активируем вручную в течение 24 часов.
+          </p>
+        </section>
 
         {/* ===== FINAL CTA ===== */}
         <section className="w-full relative py-32 overflow-hidden">

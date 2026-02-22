@@ -65,10 +65,6 @@ export function MaintenanceGuard({ children }: MaintenanceGuardProps) {
     }
   }, [])
 
-  if (loading) {
-    return null
-  }
-
   // If maintenance mode is on and user is not admin (or bypass disabled)
   if (maintenanceMode && (!isAdmin || !allowBypass)) {
     return (

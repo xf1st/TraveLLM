@@ -21,7 +21,8 @@ import {
     Sparkles,
     Users,
     Shield,
-    Globe
+    Globe,
+    CreditCard
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -45,6 +46,8 @@ import { useTheme } from "next-themes"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
+import { SubscriptionBadge } from "@/components/SubscriptionBadge"
+import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 
 const navItems = [
     {
@@ -85,6 +88,9 @@ export function AppSidebar() {
     const { setTheme, resolvedTheme } = useTheme()
     const [isAdmin, setIsAdmin] = useState(false)
     const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
+    const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
+    const [genUsed, setGenUsed] = useState(0)
+    const [genLimit, setGenLimit] = useState(25)
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
@@ -106,7 +112,7 @@ export function AppSidebar() {
                 // Check if user is admin
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role, full_name, avatar_url')
+                    .select('role, full_name, avatar_url, subscription_tier, monthly_gen_used, gen_limit_override')
                     .eq('id', user.id)
                     .maybeSingle()
 
@@ -116,6 +122,11 @@ export function AppSidebar() {
                         full_name: profile.full_name || user.user_metadata?.full_name,
                         avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
                     })
+                    const tier = (profile.subscription_tier || 'free') as SubscriptionTier
+                    setSubscriptionTier(tier)
+                    setGenUsed(profile.monthly_gen_used ?? 0)
+                    const baseLimit = TIER_LIMITS[tier]?.genPerMonth ?? 25
+                    setGenLimit(profile.gen_limit_override ?? (isFinite(baseLimit) ? baseLimit : 999999))
                 } else {
                     setUserData({
                         full_name: user.user_metadata?.full_name,
@@ -440,9 +451,12 @@ export function AppSidebar() {
                                     </Avatar>
                                     {!isCollapsed && (
                                         <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-sm font-medium truncate">
-                                                {userData?.full_name || user.user_metadata?.full_name || "Путешественник"}
-                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="text-sm font-medium truncate">
+                                                    {userData?.full_name || user.user_metadata?.full_name || "Путешественник"}
+                                                </p>
+                                                <SubscriptionBadge tier={subscriptionTier} />
+                                            </div>
                                             <p className="text-xs text-muted-foreground truncate">
                                                 {user.email}
                                             </p>
@@ -452,9 +466,24 @@ export function AppSidebar() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
                                 <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
-                                    <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-semibold text-primary">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                                    <div className="flex flex-col space-y-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-semibold text-primary">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                                            <SubscriptionBadge tier={subscriptionTier} />
+                                        </div>
                                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                        <div className="space-y-1 pt-1">
+                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                                <span>Генерации</span>
+                                                <span>{genUsed}/{genLimit}</span>
+                                            </div>
+                                            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-primary/70 rounded-full transition-all"
+                                                    style={{ width: `${Math.min(100, (genUsed / Math.max(genLimit, 1)) * 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuGroup className="space-y-1">
@@ -468,6 +497,15 @@ export function AppSidebar() {
                                         <Link href="/profile?tab=settings" className="w-full flex items-center py-2.5 px-3">
                                             <Settings className="mr-3 h-4 w-4" />
                                             Настройки
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-yellow-500/10 focus:text-yellow-400 transition-colors">
+                                        <Link href="/subscribe" className="w-full flex items-center py-2.5 px-3">
+                                            <CreditCard className="mr-3 h-4 w-4 text-yellow-400" />
+                                            <span className="flex-1">Подписка</span>
+                                            {subscriptionTier !== 'free' && (
+                                                <SubscriptionBadge tier={subscriptionTier} />
+                                            )}
                                         </Link>
                                     </DropdownMenuItem>
                                     {isAdmin && (

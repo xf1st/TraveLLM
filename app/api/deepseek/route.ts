@@ -6,6 +6,7 @@ import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { createClient } from '@supabase/supabase-js'
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkGenerationLimit, incrementGenerationCount } from "@/lib/subscription"
 // Real-time validation imports
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
@@ -304,6 +305,15 @@ export async function POST(req: Request) {
                     { status: 403 }
                 )
             }
+        }
+
+        // Check generation limit
+        const limitCheck = await checkGenerationLimit(userId)
+        if (!limitCheck.allowed) {
+            return NextResponse.json({
+                error: `Лимит генераций исчерпан (${limitCheck.used}/${limitCheck.limit} в этом месяце). Обновите подписку на странице /subscribe.`,
+                code: 'GENERATION_LIMIT_EXCEEDED'
+            }, { status: 429 })
         }
 
         const body = await req.json()
@@ -943,6 +953,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                 console.log("Success with DeepSeek")
                 console.log(`DeepSeek session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                await incrementGenerationCount(userId)
                 return NextResponse.json(generatedRouteData)
             } catch (deepseekError: any) {
                 console.error("DeepSeek failed:", deepseekError.message)
@@ -987,6 +998,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                 console.log("Success with Gemini fallback")
                 console.log(`Gemini fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
+                await incrementGenerationCount(userId)
                 return NextResponse.json(fallbackRouteData)
             }
         } catch (finalError: any) {

@@ -107,7 +107,7 @@ export async function GET(req: Request) {
         if (usageEventsError && usageEventsError.code !== "42P01") {
             console.warn("[AI Stats] Failed to fetch ai_usage_events, fallback to trips only:", usageEventsError.message)
         }
-        const mapEvents = usageEvents || []
+        const mapEvents = (usageEvents || []).filter((e: any) => !e.source?.startsWith("route-generation"))
 
         // Find first trip with token usage for debugging
         const firstTripWithUsage = trips?.find(t => t.token_usage && Object.keys(t.token_usage).length > 0)

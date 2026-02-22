@@ -309,7 +309,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Cpu className="h-5 w-5 text-primary" />
-                Статистика DeepSeek AI
+                Статистика Gemini AI
               </h2>
               <div className="flex gap-2">
                 {(["today", "week", "month", "all"] as const).map((period) => (

@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { MapPin, Search, ExternalLink, Calendar } from "lucide-react"
+import { MapPin, Search, ExternalLink, Calendar, Sparkles, Bot } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -24,6 +24,7 @@ type TokenUsage = {
   completionTokens?: number
   costUsd?: number
   costRub?: number
+  model?: string
 }
 
 type Trip = {
@@ -69,6 +70,7 @@ const normalizeTokenUsage = (value: unknown): TokenUsage | null => {
     completionTokens: toNum(parsed.completionTokens),
     costUsd: toNum(parsed.costUsd),
     costRub: toNum(parsed.costRub),
+    model: typeof parsed.model === "string" ? parsed.model : undefined,
   }
 }
 
@@ -266,9 +268,18 @@ export default function AdminTripsPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {typeof tokenUsage?.totalTokens === "number"
-                              ? tokenUsage.totalTokens.toLocaleString("ru-RU")
-                              : "-"}
+                            {typeof tokenUsage?.totalTokens === "number" ? (
+                              <div className="flex items-center gap-1.5" title={tokenUsage.model || "Unknown model"}>
+                                <span>{tokenUsage.totalTokens.toLocaleString("ru-RU")}</span>
+                                {tokenUsage.model?.toLowerCase().includes("gemini") ? (
+                                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                                ) : tokenUsage.model?.toLowerCase().includes("deepseek") ? (
+                                  <Bot className="h-3.5 w-3.5 text-indigo-500" />
+                                ) : null}
+                              </div>
+                            ) : (
+                              "-"
+                            )}
                           </TableCell>
                           <TableCell>
                             {typeof tokenUsage?.costRub === "number" ? `${tokenUsage.costRub.toFixed(2)} ₽` : "-"}

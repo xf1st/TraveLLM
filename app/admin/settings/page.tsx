@@ -14,6 +14,7 @@ import { toast } from "sonner"
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [settingsId, setSettingsId] = useState<string | null>(null)
   const [settings, setSettings] = useState({
     maintenance_mode: false,
     maintenance_message: "",
@@ -35,6 +36,7 @@ export default function AdminSettingsPage() {
       if (error) throw error
 
       if (data) {
+        setSettingsId(data.id)
         setSettings({
           maintenance_mode: data.maintenance_mode || false,
           maintenance_message: data.maintenance_message || "",
@@ -60,6 +62,7 @@ export default function AdminSettingsPage() {
 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Не авторизован")
+      if (!settingsId) throw new Error("Настройки не загружены")
 
       const updateData: any = {
         maintenance_mode: settings.maintenance_mode,
@@ -76,7 +79,7 @@ export default function AdminSettingsPage() {
         updateData.maintenance_eta = null
       }
 
-      const { error } = await supabase.from("app_settings").update(updateData).eq("id", "id")
+      const { error } = await supabase.from("app_settings").update(updateData).eq("id", settingsId)
 
       if (error) throw error
 

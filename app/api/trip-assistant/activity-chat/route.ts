@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { deepseekInference } from "@/lib/deepseek"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import { geminiInferenceWithUsage } from "@/lib/gemini"
+import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -44,11 +44,22 @@ Give actionable tips and keep answers short.`
       { role: "user" as const, content: userMessage },
     ]
 
-    const reply = await deepseekInference(messages, {
+    const replyResponse = await geminiInferenceWithUsage(messages, {
       maxTokens: 450,
       temperature: 0.5,
       tripDays: 3,
     })
+
+    const reply = replyResponse.content
+
+    if (replyResponse.usage) {
+      await recordAiUsageEvent({
+        userId,
+        source: "activity-chat",
+        provider: "gemini",
+        usage: replyResponse.usage
+      })
+    }
 
     return NextResponse.json({ reply: reply.trim() })
   } catch (error: any) {

@@ -21,6 +21,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
+import { SubscriptionBadge } from "@/components/SubscriptionBadge"
 
 interface HeaderProps {
   /** Floating pill-shaped header style for landing pages */
@@ -32,6 +33,7 @@ export function Header({ floating = false }: HeaderProps) {
   const { user } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
   const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
@@ -45,13 +47,14 @@ export function Header({ floating = false }: HeaderProps) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, full_name, avatar_url')
+          .select('role, full_name, avatar_url, subscription_tier')
           .eq('id', user.id)
           .maybeSingle()
 
         if (profile) {
           // console.log("Header: Profile loaded", profile)
           setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
+          setSubscriptionTier(profile.subscription_tier || 'free')
           setUserData({
             full_name: profile.full_name || user.user_metadata?.full_name,
             avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
@@ -233,7 +236,10 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                        <SubscriptionBadge tier={subscriptionTier} />
+                      </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
@@ -395,7 +401,10 @@ export function Header({ floating = false }: HeaderProps) {
               <DropdownMenuContent className="w-56 rounded-xl p-2" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal p-3">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
+                      <SubscriptionBadge tier={subscriptionTier} />
+                    </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </DropdownMenuLabel>

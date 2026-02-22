@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Shield, AlertTriangle } from "lucide-react"
@@ -15,7 +15,11 @@ export function UserAccessGuard({ children, allowAiBlocked = false }: UserAccess
   const [loading, setLoading] = useState(true)
   const [accessMode, setAccessMode] = useState<string | null>(null)
   const [blockReason, setBlockReason] = useState<string | null>(null)
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+
+  const isAdminRoute = pathname?.startsWith('/admin')
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -59,6 +63,20 @@ export function UserAccessGuard({ children, allowAiBlocked = false }: UserAccess
     checkAccess()
   }, [])
 
+  useEffect(() => {
+    // Sync with sidebar state
+    const checkSidebarState = () => {
+      try {
+        const saved = localStorage.getItem('sidebar-collapsed') === 'true'
+        setSidebarCollapsed(saved)
+      } catch (e) {}
+    }
+
+    checkSidebarState()
+    window.addEventListener('sidebar-change', checkSidebarState)
+    return () => window.removeEventListener('sidebar-change', checkSidebarState)
+  }, [])
+
   if (loading) {
     return null
   }
@@ -89,11 +107,15 @@ export function UserAccessGuard({ children, allowAiBlocked = false }: UserAccess
   if (accessMode === 'ai_blocked' && !allowAiBlocked) {
     return (
       <>
-        <div className="sticky top-0 z-40 w-full bg-yellow-500/20 border-b border-yellow-500/50 px-4 py-2">
-          <div className="flex items-center gap-2 text-yellow-200 text-sm">
+        <div className={`sticky top-0 z-40 w-full bg-blue-500/10 border-b border-blue-500/30 px-4 py-2.5 backdrop-blur-md transition-all duration-300 ${
+          isAdminRoute 
+            ? 'lg:pl-64' // Admin sidebar is roughly 60 units (240px)
+            : isSidebarCollapsed ? 'lg:pl-[72px]' : 'lg:pl-64'
+        }`}>
+          <div className="flex items-center gap-2 text-blue-300 text-sm font-medium">
             <AlertTriangle className="h-4 w-4" />
             <span>Генерация маршрутов временно недоступна для вашего аккаунта.</span>
-            {blockReason && <span className="ml-2">({blockReason})</span>}
+            {blockReason && <span className="opacity-70 ml-1">({blockReason})</span>}
           </div>
         </div>
         {children}

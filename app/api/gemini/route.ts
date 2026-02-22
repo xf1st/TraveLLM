@@ -5,7 +5,8 @@ import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { createClient } from '@supabase/supabase-js'
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { checkGenerationLimit, incrementGenerationCount } from "@/lib/subscription"
 // Real-time validation imports
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
@@ -303,6 +304,15 @@ export async function POST(req: Request) {
                     { status: 403 }
                 )
             }
+        }
+
+        // Check generation limit
+        const limitCheck = await checkGenerationLimit(userId)
+        if (!limitCheck.allowed) {
+            return NextResponse.json({
+                error: `Лимит генераций исчерпан (${limitCheck.used}/${limitCheck.limit} в этом месяце). Обновите подписку на странице /subscribe.`,
+                code: 'GENERATION_LIMIT_EXCEEDED'
+            }, { status: 429 })
         }
 
         const body = await req.json()
@@ -1204,6 +1214,16 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                 console.log("Success with Gemini")
                 console.log(`Gemini session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                await incrementGenerationCount(userId)
+                
+                // Record the AI usage event
+                await recordAiUsageEvent({
+                    userId,
+                    source: "route-generation",
+                    provider: "gemini",
+                    usage: usage
+                })
+                
                 return NextResponse.json(generatedRouteData)
             } catch (geminiError: any) {
                 console.error("Gemini failed:", geminiError.message)
@@ -1248,6 +1268,16 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                 console.log("Success with DeepSeek fallback")
                 console.log(`DeepSeek fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
+                await incrementGenerationCount(userId)
+                
+                // Record the AI usage event for fallback
+                await recordAiUsageEvent({
+                    userId,
+                    source: "route-generation-fallback",
+                    provider: "deepseek",
+                    usage: fallbackRouteData.tokenUsage
+                })
+                
                 return NextResponse.json(fallbackRouteData)
             }
         } catch (finalError: any) {

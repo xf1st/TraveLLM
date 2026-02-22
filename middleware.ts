@@ -82,6 +82,35 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // 4. Site Access Gate — redirect to /waitlist or /blocked
+  if (user) {
+    // We don't want to run this for /auth, /blocked, /waitlist or static/api routes (api already excluded in matcher)
+    const bypassPaths = ['/auth', '/blocked', '/waitlist', '/onboarding', '/terms', '/privacy', '/support']
+    const isBypassPath = bypassPaths.some(path => pathname.startsWith(path))
+
+    if (!isBypassPath) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('site_access, access_mode')
+        .eq('id', user.id)
+        .single()
+
+      // High priority: Global block
+      if (profile?.access_mode === 'full_blocked') {
+        const url = request.nextUrl.clone()
+        url.pathname = '/blocked'
+        return NextResponse.redirect(url)
+      }
+
+      // Site access gate: no profile OR site_access=false → /waitlist (protected paths only)
+      if (isProtectedPath && (!profile || profile.site_access === false)) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/waitlist'
+        return NextResponse.redirect(url)
+      }
+    }
+  }
+
   return response
 }
 

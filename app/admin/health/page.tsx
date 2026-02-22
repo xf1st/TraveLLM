@@ -133,14 +133,14 @@ export default function AdminHealthPage() {
 
       // Don't wait for full response, just check if it starts
       results.push({
-        name: "AI API (DeepSeek)",
+        name: "AI API (Gemini)",
         status: "success",
         message: "API отвечает (тестовый запрос)",
         duration,
       })
     } catch (error: any) {
       results.push({
-        name: "AI API (DeepSeek)",
+        name: "AI API (Gemini)",
         status: "error",
         message: error.message || "Ошибка запроса к AI API",
         duration: Date.now() - deepseekStart,
