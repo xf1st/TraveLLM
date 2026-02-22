@@ -55,7 +55,7 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
   }
 }
 
-export async function checkGenerationLimit(userId: string): Promise<{ allowed: boolean; used: number; limit: number }> {
+export async function checkGenerationLimit(userId: string): Promise<{ allowed: boolean; used: number; limit: number; tier: SubscriptionTier }> {
   const supabase = getServiceClient()
 
   const { data, error } = await supabase
@@ -65,14 +65,14 @@ export async function checkGenerationLimit(userId: string): Promise<{ allowed: b
     .single()
 
   if (error || !data) {
-    return { allowed: true, used: 0, limit: TIER_LIMITS.free.genPerMonth }
+    return { allowed: true, used: 0, limit: TIER_LIMITS.free.genPerMonth, tier: "free" }
   }
 
   const tier = (data.subscription_tier as SubscriptionTier) || "free"
 
   // Dev tier: unlimited
   if (tier === "dev") {
-    return { allowed: true, used: data.monthly_gen_used ?? 0, limit: 999999 }
+    return { allowed: true, used: data.monthly_gen_used ?? 0, limit: 999999, tier }
   }
 
   // Auto-reset if gen_reset_at is before the start of the current month
@@ -98,6 +98,7 @@ export async function checkGenerationLimit(userId: string): Promise<{ allowed: b
     allowed: genUsed < limit,
     used: genUsed,
     limit,
+    tier
   }
 }
 
@@ -118,7 +119,7 @@ export async function incrementGenerationCount(userId: string): Promise<void> {
     .eq("id", userId)
 }
 
-export async function checkChatLimit(userId: string, tripId: string): Promise<{ allowed: boolean; used: number; limit: number }> {
+export async function checkChatLimit(userId: string, tripId: string): Promise<{ allowed: boolean; used: number; limit: number; tier: SubscriptionTier }> {
   const supabase = getServiceClient()
 
   const { data: profileData } = await supabase
@@ -131,7 +132,7 @@ export async function checkChatLimit(userId: string, tripId: string): Promise<{ 
 
   // Dev tier: unlimited
   if (tier === "dev") {
-    return { allowed: true, used: 0, limit: 999999 }
+    return { allowed: true, used: 0, limit: 999999, tier }
   }
 
   const baseLimit = TIER_LIMITS[tier].chatPerTrip
@@ -151,5 +152,6 @@ export async function checkChatLimit(userId: string, tripId: string): Promise<{ 
     allowed: used < limit,
     used,
     limit,
+    tier,
   }
 }

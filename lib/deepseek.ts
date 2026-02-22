@@ -45,6 +45,7 @@ export interface TokenUsage {
     model: string;
     costUsd: number;
     costRub: number; // Approximate at ~80 RUB/USD
+    generationTimeMs?: number; // Time taken for API call
 }
 
 export interface DeepSeekInferenceResult {
@@ -62,6 +63,7 @@ let sessionUsage: TokenUsage = {
     model: "mixed",
     costUsd: 0,
     costRub: 0,
+    generationTimeMs: 0,
 };
 
 export function getSessionUsage(): TokenUsage {
@@ -78,10 +80,11 @@ export function resetSessionUsage(): void {
         model: "mixed",
         costUsd: 0,
         costRub: 0,
+        generationTimeMs: 0,
     };
 }
 
-function buildCallUsage(rawUsage: any, model: string): TokenUsage | null {
+function buildCallUsage(rawUsage: any, model: string, generationTimeMs = 0): TokenUsage | null {
     if (!rawUsage) return null;
 
     const pricing = PRICING[model as keyof typeof PRICING];
@@ -104,6 +107,7 @@ function buildCallUsage(rawUsage: any, model: string): TokenUsage | null {
         model,
         costUsd: totalCostUsd,
         costRub: totalCostUsd * 80,
+        generationTimeMs,
     };
 }
 
@@ -115,6 +119,7 @@ function applyUsageToSession(callUsage: TokenUsage): void {
     sessionUsage.promptCacheMissTokens = (sessionUsage.promptCacheMissTokens || 0) + (callUsage.promptCacheMissTokens || 0);
     sessionUsage.costUsd += callUsage.costUsd || 0;
     sessionUsage.costRub += callUsage.costRub || 0;
+    sessionUsage.generationTimeMs = (sessionUsage.generationTimeMs || 0) + (callUsage.generationTimeMs || 0);
 }
 
 async function runDeepseekInference(
@@ -149,6 +154,8 @@ async function runDeepseekInference(
         bodyPayload.response_format = { type: "json_object" };
     }
 
+    const startTime = Date.now();
+
     const response = await fetch("https://api.deepseek.com/chat/completions", {
         method: "POST",
         headers: {
@@ -165,7 +172,8 @@ async function runDeepseekInference(
     }
 
     const result = await response.json();
-    const callUsage = buildCallUsage(result?.usage, model);
+    const generationTimeMs = Date.now() - startTime;
+    const callUsage = buildCallUsage(result?.usage, model, generationTimeMs);
 
     if (callUsage) {
         applyUsageToSession(callUsage);

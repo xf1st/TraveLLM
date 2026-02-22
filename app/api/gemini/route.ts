@@ -1,6 +1,6 @@
 // Gemini (Primary) -> DeepSeek (Fallback)
 import { geminiInference, getGeminiSessionUsage, resetGeminiSessionUsage } from "@/lib/gemini"
-import { deepseekInference } from "@/lib/deepseek"
+import { deepseekInference, getSessionUsage as getDeepSeekSessionUsage, resetSessionUsage as resetDeepSeekSessionUsage } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
@@ -314,6 +314,10 @@ export async function POST(req: Request) {
                 code: 'GENERATION_LIMIT_EXCEEDED'
             }, { status: 429 })
         }
+
+        // Determine AI engine by tier
+        const aiEngine = limitCheck.tier === 'free' ? 'deepseek' : 'gemini';
+        console.log(`Using AI Engine: ${aiEngine} for tier: ${limitCheck.tier}`);
 
         const body = await req.json()
         const {
@@ -963,8 +967,11 @@ CRITICAL:
                 { role: "user" as const, content: metaPrompt }
             ]
 
-            const raw = await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3 });
-            return parseJsonResponse(raw, "Gemini-Meta");
+            const raw = aiEngine === 'deepseek'
+                ? await deepseekInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3, responseFormat: "json_object" })
+                : await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature, tripDays: 3 });
+            
+            return parseJsonResponse(raw, `${aiEngine}-Meta`);
         }
 
         // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
@@ -1047,11 +1054,15 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             ]
 
             const tokensNeeded = (endDay - startDay + 1) * 1800;
-            const raw = await geminiInference(messages, {
+            const inferenceParams = {
                 maxTokens: Math.min(tokensNeeded, 8000),
                 temperature: aiTemperature,
                 tripDays: endDay - startDay + 1
-            });
+            };
+            
+            const raw = aiEngine === 'deepseek'
+                ? await deepseekInference(messages, { ...inferenceParams, responseFormat: "json_object" })
+                : await geminiInference(messages, inferenceParams);
 
             let clean = raw.match(/\[[\s\S]*\]/)?.[0] || raw;
             return JSON.parse(clean);
@@ -1073,8 +1084,13 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     { role: "system" as const, content: systemPrompt },
                     { role: "user" as const, content: prompt }
                 ]
-                const raw = await geminiInference(messages, { maxTokens: 8000, temperature: aiTemperature, tripDays: durationDays });
-                routeData = parseJsonResponse(raw, "Gemini");
+                
+                const inferenceParams = { maxTokens: 8000, temperature: aiTemperature, tripDays: durationDays };
+                const raw = aiEngine === 'deepseek'
+                    ? await deepseekInference(messages, { ...inferenceParams, responseFormat: "json_object" })
+                    : await geminiInference(messages, inferenceParams);
+                    
+                routeData = parseJsonResponse(raw, aiEngine === 'deepseek' ? "DeepSeek" : "Gemini");
             } else {
                 // Long trip - split into chunks + metadata
                 console.log(`Long trip (${durationDays} days) - using sequential chunks`);
@@ -1186,6 +1202,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
         try {
             // Reset token usage counter at start of generation
             resetGeminiSessionUsage();
+            resetDeepSeekSessionUsage();
 
             // PRIMARY: Gemini with parallel generation
             try {
@@ -1209,18 +1226,18 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 }
 
                 // Attach token usage statistics to response
-                const usage = getGeminiSessionUsage();
+                const usage = aiEngine === 'deepseek' ? getDeepSeekSessionUsage() : getGeminiSessionUsage();
                 generatedRouteData.tokenUsage = usage;
 
-                console.log("Success with Gemini")
-                console.log(`Gemini session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                console.log(`Success with ${aiEngine}`)
+                console.log(`${aiEngine} session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
                 await incrementGenerationCount(userId)
                 
                 // Record the AI usage event
                 await recordAiUsageEvent({
                     userId,
                     source: "route-generation",
-                    provider: "gemini",
+                    provider: aiEngine,
                     usage: usage
                 })
                 

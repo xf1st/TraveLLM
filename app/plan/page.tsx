@@ -46,6 +46,7 @@ import {
 import { GeneratingModal } from "@/components/GeneratingModal"
 import { ErrorModal } from "@/components/ErrorModal"
 import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 import dynamic from "next/dynamic"
 import Stepper, { Step } from "@/components/ui/stepper"
 import { FloatingIcons } from "@/components/FloatingIcons"

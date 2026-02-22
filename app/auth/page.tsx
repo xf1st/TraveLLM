@@ -72,6 +72,14 @@ function AuthContent() {
     if (error) toast.error(error.message)
   }
 
+  const handleYandexLogin = () => {
+    window.location.href = "/api/auth/yandex"
+  }
+
+  const handleVkLogin = () => {
+    window.location.href = "/api/auth/vk"
+  }
+
   const passwordStrength = (p: string) =>
     p.length > 8 ? (/[A-Z]/.test(p) && /[0-9]/.test(p) ? 4 : 3) : p.length > 5 ? 2 : 1
 
@@ -192,22 +200,54 @@ function AuthContent() {
               </p>
             </motion.div>
 
-            {/* Google button */}
-            <Button
-              variant="outline"
-              className="w-full h-11 gap-3 font-semibold rounded-xl mb-5 transition-all
-                bg-white/15 border-white/30 text-white hover:bg-white/25
-                lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
-              onClick={handleGoogleLogin}
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              Войти через Google
-            </Button>
+            {/* OAuth buttons */}
+            <div className="flex flex-col gap-3 mb-5">
+              <Button
+                variant="outline"
+                className="w-full h-11 gap-3 font-semibold rounded-xl transition-all
+                  bg-white/15 border-white/30 text-white hover:bg-white/25
+                  lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
+                onClick={handleGoogleLogin}
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                Войти через Google
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-11 gap-3 font-semibold rounded-xl transition-all
+                  bg-[#ffcc00]/20 border-[#ffcc00]/40 text-white hover:bg-[#ffcc00]/30
+                  lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
+                onClick={handleYandexLogin}
+              >
+                <div className="h-5 w-5 shrink-0 rounded-full flex items-center justify-center bg-[#FF0000] text-white">
+                  <span className="font-bold text-sm leading-none pt-[1px] font-sans pr-[1px]">Я</span>
+                </div>
+                Войти через Яндекс
+              </Button>
+
+              {/*
+              <Button
+                variant="outline"
+                className="w-full h-11 gap-3 font-semibold rounded-xl transition-all
+                  bg-[#0077FF]/20 border-[#0077FF]/40 text-white hover:bg-[#0077FF]/30
+                  lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
+                onClick={handleVkLogin}
+              >
+                <div className="h-5 w-5 shrink-0 rounded-[4px] flex items-center justify-center bg-[#0077FF] text-white">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13.162 18.994c.609 0 .858-.406.851-.915-.031-1.917.714-2.949 2.059-1.604 1.488 1.488 1.796 2.519 3.603 2.519h3.2c.808 0 1.126-.26 1.126-.668 0-.863-1.421-2.386-2.625-3.504-1.686-1.543-1.724-1.6-1.02-2.813 2.06-3.486 3.384-4.67 3.141-5.469-.253-.836-1.3-.464-4.269-.464-1.42 0-1.924.915-2.22 1.573-.259.575-1.253 2.86-2.259 4.825-1.522 2.96-2.228 3.14-2.561 2.967-.333-.173-.273-1.036-.266-4.339.006-3.238-.458-3.98-1.421-4.232-.572-.15-1.002-.246-2.583-.284-2.022-.05-3.693.02-4.664.444-.805.35-1.365 1.134-1.009 1.19.464.073 1.293.284 1.765 1.054.493.805.474 2.56.474 2.56s.2 3.106-.576 3.538c-.775.433-1.908-1.122-4.14-5.01-.84-1.464-1.46-3.085-1.583-3.401-.176-.453-.418-1.528-1.844-1.528H.35C.13 5.422.015 5.568.005 5.76c-.012.235.19.658 2.073 3.606 3.841 6.012 7.724 9.628 11.084 9.628z"/>
+                  </svg>
+                </div>
+                Войти через ВКонтакте
+              </Button>
+              */}
+            </div>
 
             {/* Divider */}
             <div className="relative mb-5">

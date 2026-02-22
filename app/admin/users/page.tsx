@@ -73,6 +73,13 @@ function ProviderIcon({ provider }: { provider: string }) {
       </svg>
     )
   }
+  if (provider === "yandex") {
+    return (
+      <div className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#FF0000] text-white" aria-label="Yandex">
+        <span className="font-bold text-[9px] leading-none pt-[1px] font-sans pr-[1px]">Я</span>
+      </div>
+    )
+  }
   // Default: email icon
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block opacity-50" aria-label="Email">
@@ -468,7 +475,7 @@ export default function AdminUsersPage() {
                           <span>{user.email}</span>
                           <span className="flex items-center gap-0.5 shrink-0">
                             {(providerMap[user.id] || []).map((p) => (
-                              <span key={p} title={p === "google" ? "Google" : p === "github" ? "GitHub" : "Email/Пароль"}>
+                              <span key={p} title={p === "google" ? "Google" : p === "github" ? "GitHub" : p === "yandex" ? "Yandex" : "Email/Пароль"}>
                                 <ProviderIcon provider={p} />
                               </span>
                             ))}

@@ -29,6 +29,7 @@ export interface TokenUsage {
     model: string;
     costUsd: number;
     costRub: number;
+    generationTimeMs?: number;
 }
 
 export interface GeminiInferenceResult {
@@ -141,7 +142,9 @@ async function runGeminiInference(
         const totalTokens      = raw.total_tokens      || 0;
 
         const pricing = PRICING[GEMINI_FLASH];
-        const costUsd = promptTokens * pricing.input + completionTokens * pricing.output;
+        // OpenRouter charges base web search costs for Gemini Flash ~$0.02
+        const baseCost = 0.02;
+        const costUsd = (promptTokens * pricing.input) + (completionTokens * pricing.output) + baseCost;
 
         usage = {
             promptTokens,
@@ -152,6 +155,7 @@ async function runGeminiInference(
             model,
             costUsd,
             costRub: costUsd * 90,
+            generationTimeMs: result.generation_time_ms || 0
         };
 
         applyUsageToSession(usage);

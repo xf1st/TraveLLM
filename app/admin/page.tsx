@@ -27,6 +27,7 @@ interface AIStats {
     totalCostRub: number
     avgTokensPerRequest: number
     avgCostPerRequest: number
+    avgGenerationTimeMs?: number
     cacheHitRate: string
   }
   dailyStats: {
@@ -309,7 +310,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
                 <Cpu className="h-5 w-5 text-primary" />
-                Статистика Gemini AI
+                Статистика AI
               </h2>
               <div className="flex gap-2">
                 {(["today", "week", "month", "all"] as const).map((period) => (
@@ -341,9 +342,14 @@ export default function AdminDashboard() {
                     <div className="text-2xl font-bold text-blue-400">
                       {aiStats?.summary.totalRequests || 0}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      ~{aiStats?.summary.avgTokensPerRequest?.toLocaleString() || 0} токенов/запрос
-                    </p>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <p className="text-xs text-muted-foreground">
+                        ~{aiStats?.summary.avgTokensPerRequest?.toLocaleString() || 0} токенов/запрос
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ~{aiStats?.summary.avgGenerationTimeMs ? (aiStats.summary.avgGenerationTimeMs / 1000).toFixed(1) : 0} сек/генерацию
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 

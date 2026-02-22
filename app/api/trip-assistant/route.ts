@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import { geminiInferenceWithUsage } from "@/lib/gemini"
+import { deepseekInferenceWithUsage } from "@/lib/deepseek"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
-import { checkChatLimit } from "@/lib/subscription"
+import { checkChatLimit, getUserSubscription } from "@/lib/subscription"
 
 // Helper to extract city from day title
 function extractCity(title: string): string {
@@ -28,15 +29,23 @@ export async function POST(req: Request) {
         }
 
         // Check chat limit
+        let userTier = "free";
         if (tripId) {
             const chatCheck = await checkChatLimit(userId, tripId)
+            userTier = chatCheck.tier;
             if (!chatCheck.allowed) {
                 return NextResponse.json({
                     error: `Лимит сообщений для этого маршрута исчерпан (${chatCheck.used}/${chatCheck.limit}). Обновите подписку на странице /subscribe.`,
                     code: 'CHAT_LIMIT_EXCEEDED'
                 }, { status: 429 })
             }
+        } else {
+            const sub = await getUserSubscription(userId);
+            userTier = sub.tier;
         }
+
+        const aiEngine = userTier === "free" ? "deepseek" : "gemini";
+        const inferenceFn = aiEngine === "deepseek" ? deepseekInferenceWithUsage : geminiInferenceWithUsage;
 
         // Handle both array (just itinerary) and object (full trip) formats
         const itinerary = Array.isArray(tripData) ? tripData : (tripData.itinerary || [])
@@ -66,10 +75,10 @@ export async function POST(req: Request) {
 Верни ТОЛЬКО JSON:
 {"intent": "MODIFY" или "QUESTION"}`
 
-        const classifyRawResponse = await geminiInferenceWithUsage([
+        const classifyRawResponse = await inferenceFn([
             { role: "system", content: "Классификатор намерений." },
             { role: "user", content: classifyPrompt }
-        ], { maxTokens: 100, temperature: 0.1 })
+        ], { maxTokens: 100, temperature: 0.1, responseFormat: "json_object" })
         
         const classifyRaw = classifyRawResponse.content
 
@@ -109,10 +118,10 @@ ${itineraryContext}
 
 Верни JSON без markdown!`
 
-            const parseRawResponse = await geminiInferenceWithUsage([
+            const parseRawResponse = await inferenceFn([
                 { role: "system", content: "Анализатор запросов на изменение маршрутов." },
                 { role: "user", content: parsePrompt }
-            ], { maxTokens: 500, temperature: 0.3 })
+            ], { maxTokens: 500, temperature: 0.3, responseFormat: "json_object" })
             
             const parseRaw = parseRawResponse.content
 
@@ -158,10 +167,10 @@ ${itineraryContext}
   "link": ""
 }`
 
-                const activityRawResponse = await geminiInferenceWithUsage([
+                const activityRawResponse = await inferenceFn([
                     { role: "system", content: "Генератор туристических активностей." },
                     { role: "user", content: activityPrompt }
-                ], { maxTokens: 400, temperature: 0.7 })
+                ], { maxTokens: 400, temperature: 0.7, responseFormat: "json_object" })
                 
                 const activityRaw = activityRawResponse.content
 
@@ -279,7 +288,7 @@ ${safetyWarning}
 
 Ответ:`
 
-        const replyResponse = await geminiInferenceWithUsage([
+        const replyResponse = await inferenceFn([
             { role: "system", content: "Ты полезный ассистент по путешествиям." },
             { role: "user", content: answerPrompt }
         ], { maxTokens: 400, temperature: 0.7 })
@@ -293,10 +302,10 @@ ${safetyWarning}
             totalTokens: (classifyRawResponse.usage?.totalTokens || 0) + (replyResponse.usage?.totalTokens || 0),
             costUsd: (classifyRawResponse.usage?.costUsd || 0) + (replyResponse.usage?.costUsd || 0),
             costRub: (classifyRawResponse.usage?.costRub || 0) + (replyResponse.usage?.costRub || 0),
-            model: replyResponse.usage?.model || "gemini"
+            model: replyResponse.usage?.model || aiEngine
         }
         
-        await recordAiUsageEvent({ userId, source: "trip-assistant", tripId, provider: "gemini", usage: totalUsage })
+        await recordAiUsageEvent({ userId, source: "trip-assistant", tripId, provider: aiEngine, usage: totalUsage })
         return NextResponse.json({
             type: "message",
             reply: reply.trim()

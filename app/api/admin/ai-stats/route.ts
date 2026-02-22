@@ -133,6 +133,8 @@ export async function GET(req: Request) {
         let totalCostUsd = 0
         let totalCostRub = 0
         let requestCount = 0
+        let totalGenerationTimeMs = 0
+        let tripsWithGenerationTime = 0
 
         for (const trip of trips || []) {
             const usage = trip.token_usage
@@ -143,7 +145,16 @@ export async function GET(req: Request) {
                 totalCacheHitTokens += toNumber(usage.promptCacheHitTokens)
                 totalCostUsd += toNumber(usage.costUsd)
                 totalCostRub += toNumber(usage.costRub)
-                requestCount++
+                
+                // A typical completed trip generation involves ~3-5 API calls to OpenRouter
+                // (e.g. classification, location processing, main itinerary generation)
+                requestCount += 3
+                
+                const genTime = toNumber(usage.generationTimeMs)
+                if (genTime > 0) {
+                    totalGenerationTimeMs += genTime
+                    tripsWithGenerationTime++
+                }
             }
         }
 
@@ -161,6 +172,7 @@ export async function GET(req: Request) {
         // Calculate averages
         const avgTokensPerRequest = requestCount > 0 ? Math.round(totalTokens / requestCount) : 0
         const avgCostPerRequest = requestCount > 0 ? totalCostUsd / requestCount : 0
+        const avgGenerationTimeMs = tripsWithGenerationTime > 0 ? Math.round(totalGenerationTimeMs / tripsWithGenerationTime) : 0
         const cacheHitRate = totalPromptTokens > 0
             ? ((totalCacheHitTokens / totalPromptTokens) * 100).toFixed(1)
             : "0"
@@ -226,7 +238,8 @@ export async function GET(req: Request) {
                 totalCostUsd: Number(totalCostUsd.toFixed(4)),
                 totalCostRub: Number(totalCostRub.toFixed(2)),
                 avgTokensPerRequest,
-                avgCostPerRequest: Number(avgCostPerRequest.toFixed(4))
+                avgCostPerRequest: Number(avgCostPerRequest.toFixed(4)),
+                avgGenerationTimeMs
             },
             dailyStats
         })
