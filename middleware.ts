@@ -72,8 +72,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // 3. Protected Routes for Main Domain
-  const protectedPaths = ['/dashboard', '/plan', '/results', '/profile', '/onboarding', '/guide']
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+  // Note: /profile/[username] is public (user profiles), only /profile itself is protected
+  const protectedPaths = ['/dashboard', '/plan', '/results', '/onboarding', '/guide']
+  const isOwnProfile = pathname === '/profile' || pathname.startsWith('/profile?') || pathname.startsWith('/profile/')
+  const isPublicProfilePath = /^\/profile\/[^/]+$/.test(pathname)
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path)) || (isOwnProfile && !isPublicProfilePath)
 
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()
@@ -124,6 +127,6 @@ export const config = {
      * - public folder
      * - api routes (handled separately)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 }

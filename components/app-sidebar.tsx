@@ -18,6 +18,7 @@ import {
     ChevronRight,
     ChevronDown,
     MapPin,
+    Map,
     Sparkles,
     Users,
     Shield,
@@ -48,6 +49,7 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { SubscriptionBadge } from "@/components/SubscriptionBadge"
 import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
+import { GlobalSearch } from "@/components/GlobalSearch"
 
 const navItems = [
     {
@@ -58,7 +60,7 @@ const navItems = [
     {
         title: "Мои маршруты",
         href: "/results",
-        icon: Search,
+        icon: Map,
     },
     {
         title: "3D Карта β",
@@ -91,6 +93,7 @@ export function AppSidebar() {
     const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
     const [genUsed, setGenUsed] = useState(0)
     const [genLimit, setGenLimit] = useState(25)
+    const [searchOpen, setSearchOpen] = useState(false)
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
@@ -183,6 +186,17 @@ export function AppSidebar() {
         }
     }, [tripId])
 
+    useEffect(() => {
+        const handleSearchKey = (e: KeyboardEvent) => {
+            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault()
+                setSearchOpen((prev) => !prev)
+            }
+        }
+        document.addEventListener("keydown", handleSearchKey)
+        return () => document.removeEventListener("keydown", handleSearchKey)
+    }, [])
+
     const handleLogout = async () => {
         try {
             const { error } = await signOut()
@@ -267,6 +281,26 @@ export function AppSidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                {/* Search Button */}
+                <button
+                    onClick={() => setSearchOpen(true)}
+                    title={isCollapsed ? "Поиск (⌘K)" : undefined}
+                    className={cn(
+                        "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-muted-foreground hover:bg-accent hover:text-foreground mb-1",
+                        isCollapsed ? "justify-center px-2 py-3" : "px-4 py-2.5"
+                    )}
+                >
+                    <Search className="h-5 w-5 shrink-0" />
+                    {!isCollapsed && (
+                        <>
+                            <span className="flex-1 text-left">Поиск...</span>
+                            <kbd className="flex h-5 select-none items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground/70">
+                                ⌘K
+                            </kbd>
+                        </>
+                    )}
+                </button>
+
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                     const isCreateTrip = item.href === '/plan'
@@ -531,6 +565,8 @@ export function AppSidebar() {
                     </Button>
                 )}
             </div>
+
+            <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
         </aside>
     )
 }

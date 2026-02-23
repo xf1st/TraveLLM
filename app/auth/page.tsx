@@ -218,6 +218,7 @@ function AuthContent() {
                 Войти через Google
               </Button>
 
+              {/*
               <Button
                 variant="outline"
                 className="w-full h-11 gap-3 font-semibold rounded-xl transition-all
@@ -230,6 +231,7 @@ function AuthContent() {
                 </div>
                 Войти через Яндекс
               </Button>
+              */}
 
               {/*
               <Button

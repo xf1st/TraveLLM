@@ -55,25 +55,40 @@ function ChatBody({
   return (
     <>
       {activityTitle && (
-        <div className="mx-3 mt-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10">
-          <div className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold">День {currentDay || 1} • Контекст активности</div>
-          <div className="text-sm text-white font-semibold mt-1">{activityTitle}</div>
-          {currentActivity?.time && <div className="text-xs text-emerald-200/80 mt-1">{currentActivity.time}</div>}
+        <div className="mx-4 mt-4 p-4 rounded-2xl relative overflow-hidden group smooth-transition hover-lift shadow-lg border border-white/20 bg-emerald-500/10 backdrop-blur-3xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-transparent opacity-60 pointer-events-none" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shrink-0">
+               <Sparkles className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <div className="text-[10px] uppercase tracking-widest text-emerald-300 font-bold">Текущая локация (День {currentDay || 1})</div>
+              </div>
+              <div className="text-[15px] text-white font-bold leading-tight truncate">{activityTitle}</div>
+              {currentActivity?.time && (
+                <div className="text-[11px] text-white/60 mt-1 flex items-center gap-1">
+                  <span className="opacity-70">🕒</span> {currentActivity.time}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
       >
         {messages.map((msg, i) => (
           <div key={i} className={cn("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div
               className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                "max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm transition-all duration-300",
                 msg.role === "user"
-                  ? "bg-emerald-600 text-white rounded-br-sm"
-                  : "bg-white/10 text-white/90 rounded-bl-sm backdrop-blur-md border border-white/5",
+                  ? "bg-emerald-600 text-white rounded-br-none shadow-emerald-900/20"
+                  : "bg-white/10 text-white/90 rounded-bl-none backdrop-blur-md border border-white/10 hover:bg-white/15",
               )}
             >
               {msg.content}
@@ -82,33 +97,48 @@ function ChatBody({
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white/5 rounded-2xl px-4 py-3 rounded-bl-sm flex gap-1">
-              <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="bg-white/5 rounded-2xl px-4 py-3 rounded-bl-none flex gap-1.5 items-center border border-white/5 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 bg-emerald-400/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 bg-emerald-400/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 bg-emerald-400/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           </div>
         )}
       </div>
 
-      <div className="p-3 bg-black/20 border-t border-white/5">
+      <div className="p-4 bg-black/40 border-t border-white/10 flex flex-col gap-4 backdrop-blur-3xl">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {["Где поесть рядом?", "Интересный факт", "Где лучшие фото?", "Что тут кроется?"].map((action) => (
+                <button
+                    key={action}
+                    onClick={() => {
+                        setInput(action);
+                        setTimeout(() => handleSend(), 50);
+                    }}
+                    disabled={isLoading}
+                    className="shrink-0 px-4 py-2 text-[11px] font-bold uppercase tracking-wider rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/15 hover:text-white transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
+                >
+                    {action}
+                </button>
+            ))}
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault()
             handleSend()
           }}
-          className="relative flex items-center"
+          className="relative flex items-center group"
         >
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Спросите о месте..."
-            className="bg-white/5 border-white/10 rounded-xl pr-10 focus:ring-emerald-500/50 text-white placeholder:text-white/30"
+            placeholder="Спросите меня о локации..."
+            className="h-12 bg-white/5 border-white/10 rounded-2xl pl-4 pr-12 focus:ring-emerald-500/50 text-white placeholder:text-white/30 transition-all group-hover:bg-white/10"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 p-1.5 bg-emerald-500 rounded-lg text-white hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2 w-8 h-8 flex items-center justify-center bg-emerald-500 rounded-xl text-white hover:bg-emerald-400 focus:scale-95 disabled:opacity-30 disabled:grayscale transition-all shadow-lg shadow-emerald-500/20"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -131,7 +161,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
     role: m.role as "user" | "assistant",
     content: m.content
   })) : [
-    { role: "assistant", content: "Привет! Я ваш гид. Спрашивайте по текущему месту или активности." },
+    { role: "assistant", content: "Привет! 👋 Я твой локал-гид. Спрашивай что угодно про место, где мы сейчас, или жми быстрые вопросы внизу!" },
   ]
 
   const [input, setInput] = useState("")
@@ -207,13 +237,20 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
 
   const chatInner = (
     <>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-white/5">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium text-sm text-white">AI Гид</span>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-20" />
+          </div>
+          <span className="font-bold text-sm tracking-tight text-white uppercase opacity-90">Локал Гид</span>
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={onClose} className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-white/60 transition-colors" title="Закрыть">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-xl text-white/60 hover:text-white transition-all" 
+            title="Закрыть"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -234,9 +271,9 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
   const chatPanel = (
     <Card
       className={cn(
-        "w-full md:w-[380px] h-[50vh] md:h-[500px]",
-        "bg-black/40 backdrop-blur-2xl border-t md:border border-white/10",
-        "shadow-2xl md:rounded-2xl rounded-t-2xl flex flex-col",
+        "w-full md:w-[420px] h-[50vh] md:h-[620px]",
+        "bg-black/60 backdrop-blur-3xl border-t md:border border-white/20",
+        "shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:rounded-[2.5rem] rounded-t-[2rem] flex flex-col overflow-hidden",
       )}
     >
       {chatInner}
@@ -244,31 +281,31 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
   )
 
   if (isDesktop) {
-    return <div className={cn("fixed z-50 bottom-0 right-0 md:bottom-8 md:right-8", className)}>{chatPanel}</div>
+    return <div className={cn("fixed z-50 bottom-0 right-0 md:bottom-10 md:right-10", className)}>{chatPanel}</div>
   }
 
   return (
     <Drawer.Root open onOpenChange={(open) => !open && onClose()}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" />
-        <Drawer.Content className="bg-zinc-950/95 border-t border-white/10 flex flex-col rounded-t-[20px] h-[85vh] fixed bottom-0 left-0 right-0 z-50 outline-none pb-[env(safe-area-inset-bottom)]">
+        <Drawer.Overlay className="fixed inset-0 bg-black/80 z-50 backdrop-blur-md" />
+        <Drawer.Content className="bg-zinc-950/98 border-t border-white/20 flex flex-col rounded-t-[2.5rem] h-[88vh] fixed bottom-0 left-0 right-0 z-50 outline-none pb-[env(safe-area-inset-bottom)]">
           <Drawer.Title className="sr-only">AI Гид</Drawer.Title>
           <Drawer.Description className="sr-only">Чат-помощник по маршруту и текущим активностям.</Drawer.Description>
 
-          <div className="p-2 flex-1 flex flex-col min-h-0">
-            <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-zinc-800 mb-2 mt-1" />
-            <div className="px-2 pb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
-                <span className="text-sm font-semibold">AI Гид</span>
+          <div className="p-4 flex-1 flex flex-col min-h-0">
+            <div className="mx-auto w-16 h-1.5 flex-shrink-0 rounded-full bg-zinc-800 mb-6 mt-1" />
+            <div className="px-2 pb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-white">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20">
+                  <Sparkles className="h-4 w-4 text-emerald-400" />
+                </div>
+                <span className="text-lg font-bold tracking-tight">AI Локал Гид</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-zinc-400 hover:text-red-400" title="Закрыть">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 rounded-2xl bg-white/5 text-zinc-400 hover:text-red-400" title="Закрыть">
+                <X className="h-5 w-5" />
+              </Button>
             </div>
-            <div className="flex-1 rounded-t-2xl overflow-hidden bg-black/40 backdrop-blur-2xl border-t border-white/10 flex flex-col">
+            <div className="flex-1 rounded-[2rem] overflow-hidden bg-black/40 backdrop-blur-2xl border border-white/10 flex flex-col shadow-2xl overflow-hidden min-h-0">
               <ChatBody
                 messages={messages}
                 isLoading={isLoading}

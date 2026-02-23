@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Map, User, LogOut, Settings, Menu, Shield, History, X, Compass } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
+import { GlobalSearch, SearchTriggerDesktop, SearchTriggerMobile } from "@/components/GlobalSearch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +35,7 @@ export function Header({ floating = false }: HeaderProps) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
   const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
+  const [searchOpen, setSearchOpen] = useState(false)
 
   // -- Fix: Hydration Mismatch --
   const [isScrolled, setIsScrolled] = useState(false)
@@ -81,6 +83,15 @@ export function Header({ floating = false }: HeaderProps) {
     }
     window.addEventListener('profile_updated', handleProfileUpdate)
 
+    // Global Ctrl+K / Cmd+K search shortcut
+    const handleSearchKey = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setSearchOpen((prev) => !prev)
+      }
+    }
+    document.addEventListener("keydown", handleSearchKey)
+
     // Debounced scroll handler for better mobile performance
     let scrollTimer: NodeJS.Timeout
     const handleScroll = () => {
@@ -95,6 +106,7 @@ export function Header({ floating = false }: HeaderProps) {
       clearTimeout(scrollTimer)
       window.removeEventListener("scroll", handleScroll)
       window.removeEventListener('profile_updated', handleProfileUpdate)
+      document.removeEventListener("keydown", handleSearchKey)
     }
   }, [user])
 
@@ -178,6 +190,10 @@ export function Header({ floating = false }: HeaderProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Search triggers */}
+            <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
+            <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
+
             {/* Mobile Navigation Menu */}
             <div className="md:hidden">
               <DropdownMenu>
@@ -280,6 +296,8 @@ export function Header({ floating = false }: HeaderProps) {
             )}
           </div>
         </header>
+
+        <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
     )
   }
@@ -342,6 +360,10 @@ export function Header({ floating = false }: HeaderProps) {
 
         {/* Actions & Mobile Menu */}
         <div className="flex items-center gap-2">
+          {/* Search triggers */}
+          <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
+          <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
+
           {/* Mobile Navigation Trigger */}
           <div className="md:hidden">
             <DropdownMenu>
@@ -454,6 +476,8 @@ export function Header({ floating = false }: HeaderProps) {
           )}
         </div>
       </header>
+
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   )
 }

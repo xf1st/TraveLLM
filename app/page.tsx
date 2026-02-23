@@ -356,9 +356,8 @@ export default function LandingPage() {
                 key={tier.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className={`relative rounded-2xl border p-6 bg-card/40 backdrop-blur-sm flex flex-col ${tier.colorClass} ${tier.highlight ? 'ring-1 ring-yellow-400/40 shadow-lg shadow-yellow-400/5' : ''}`}
+                className={`relative rounded-2xl border p-6 bg-card/40 backdrop-blur-sm flex flex-col smooth-transition hover-lift ${tier.colorClass} ${tier.highlight ? 'ring-1 ring-yellow-400/40 shadow-lg shadow-yellow-400/5' : ''}`}
               >
                 {tier.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">

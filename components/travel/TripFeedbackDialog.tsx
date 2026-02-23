@@ -23,7 +23,7 @@ interface TripFeedbackDialogProps {
   onOpenChange: (open: boolean) => void
   tripId: string
   tripTitle?: string
-  source?: "profile" | "completed_page"
+  source?: "profile" | "completed_page" | "memory_board"
   initialFeedback?: TripFeedbackRecord | null
   onSubmitted?: (feedback: TripFeedbackRecord) => void
 }

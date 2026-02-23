@@ -14,6 +14,7 @@ import { NearbyPlacesPanel } from "./NearbyPlacesPanel"
 import { fetchRoute, type RouteGeometry, type RouteResult, type RoutingProfile } from "@/lib/routing"
 import { PoiDrawer, type PoiDrawerPoint } from "./PoiDrawer"
 import { DEFAULT_TRAVEL_IMAGE, buildImageQuery, isProbablyBlockedImage } from "@/lib/image-utils"
+import { WeatherWidget } from "./WeatherWidget"
 
 const MapLibreView = dynamic(() => import("./MapLibreView"), {
   ssr: false,
@@ -694,8 +695,10 @@ export default function TravelDashboard() {
       let lng = centerLng
       let foundNormalized = false
 
+      const isTransport = act.type === "transport" || !!String(title).match(/\(([A-Z]{3})\)/)
+
       const normalizedPoints = normalizedDayPoints[dayNum]
-      if (normalizedPoints) {
+      if (normalizedPoints && !isTransport) {
         const norm =
           normalizedPoints.find((p: any) => p.title === title) ||
           normalizedPoints.find((p: any) => p.title?.includes(title) || title.includes(p.title)) ||
@@ -1206,6 +1209,10 @@ export default function TravelDashboard() {
     activeActivity === null ? 0 : Math.min(Math.max(activeActivity, 0), Math.max(selectedDayActivities.length - 1, 0))
   const currentActivityData = selectedDayActivities[boundedActivityIndex] || null
 
+  const activeDayCenter = useMemo(() => {
+    return findDayCenter(trip?.itinerary?.[activeDay - 1])
+  }, [findDayCenter, trip?.itinerary, activeDay])
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black text-white">
       <div
@@ -1249,6 +1256,16 @@ export default function TravelDashboard() {
       </div>
 
       <div className="absolute inset-0 pointer-events-none z-20">
+        {viewState === "ACTIVE" && trip && (
+          <div className="absolute top-6 right-4 md:top-8 md:right-8 z-50 pointer-events-auto">
+            <WeatherWidget 
+              lat={activeDayCenter?.lat} 
+              lng={activeDayCenter?.lng} 
+              city={trip.destination}
+            />
+          </div>
+        )}
+
         <div className="absolute top-6 left-6 z-50 pointer-events-auto">
           <div className="relative">
             <button
@@ -1380,7 +1397,7 @@ export default function TravelDashboard() {
             currentActivity={currentActivityData}
             currentDay={activeDay}
             tripContext={trip}
-            className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-50 w-full md:w-[380px] h-[50vh] md:h-[500px] pointer-events-auto"
+            className="pointer-events-auto"
           />
         )}
       </div>

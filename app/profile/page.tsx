@@ -188,6 +188,8 @@ function ProfileContent() {
     aiCreativity: "balanced",
     autoFavorites: false,
     publicProfile: false,
+    username: "",
+    bio: "",
     defaultTripDuration: "7",
   })
 
@@ -301,6 +303,8 @@ function ProfileContent() {
             aiCreativity: prefs.aiCreativity || "balanced",
             autoFavorites: prefs.autoFavorites || false,
             publicProfile: data.public_profile || false,
+            username: data.username || "",
+            bio: data.bio || "",
             defaultTripDuration: prefs.defaultTripDuration || "7",
           })
         }
@@ -487,6 +491,34 @@ function ProfileContent() {
       window.dispatchEvent(new Event('profile_updated'))
     }
     setLoading(false)
+  }
+
+  const [savingPublicProfile, setSavingPublicProfile] = useState(false)
+
+  const handleSavePublicProfile = async () => {
+    if (!user) return
+    const usernameValue = editForm.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "")
+    if (usernameValue && (usernameValue.length < 3 || usernameValue.length > 20)) {
+      toast.error("Username должен быть от 3 до 20 символов")
+      return
+    }
+    setSavingPublicProfile(true)
+    const { error } = await supabase.from("profiles").update({
+      username: usernameValue || null,
+      public_profile: editForm.publicProfile,
+      bio: editForm.bio || null,
+    }).eq("id", user.id)
+    setSavingPublicProfile(false)
+    if (error) {
+      if (error.code === "23505") {
+        toast.error("Этот username уже занят, выберите другой")
+      } else {
+        toast.error("Ошибка при сохранении: " + error.message)
+      }
+    } else {
+      setProfile((p: any) => ({ ...p, username: usernameValue || null, public_profile: editForm.publicProfile, bio: editForm.bio || null }))
+      toast.success("Публичный профиль сохранён")
+    }
   }
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1602,6 +1634,63 @@ function ProfileContent() {
                                 </SelectContent>
                               </Select>
                             </div>
+                          </div>
+                        </Card>
+
+                        {/* Public Profile Section */}
+                        <Card className="p-6 trip-glass border-white/20 space-y-5">
+                          <h3 className="font-bold text-lg flex items-center gap-2"><Globe className="h-5 w-5" /> Публичный профиль</h3>
+
+                          <div className="space-y-2">
+                            <label className="font-medium text-sm">Username</label>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground font-mono">@</span>
+                              <Input
+                                value={editForm.username}
+                                onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                                placeholder="username"
+                                maxLength={20}
+                                className="bg-background/50 font-mono"
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">От 3 до 20 символов: a–z, 0–9, _ Ваш профиль будет доступен по адресу /profile/@username</p>
+                            {editForm.username && (
+                              <p className="text-xs text-sky-500">travellm.ru/profile/{editForm.username}</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="font-medium text-sm">О себе</label>
+                            <textarea
+                              value={editForm.bio}
+                              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                              placeholder="Расскажите о себе..."
+                              maxLength={200}
+                              rows={3}
+                              className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                            />
+                            <p className="text-xs text-muted-foreground">{editForm.bio.length}/200</p>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label className="font-medium">Публичный профиль</label>
+                              <p className="text-sm text-muted-foreground">Другие смогут посетить вашу страницу и видеть публичные поездки</p>
+                            </div>
+                            <Checkbox
+                              checked={editForm.publicProfile}
+                              onCheckedChange={(checked) => setEditForm({ ...editForm, publicProfile: !!checked })}
+                            />
+                          </div>
+
+                          <div className="pt-2">
+                            <Button
+                              onClick={handleSavePublicProfile}
+                              disabled={savingPublicProfile}
+                              className="w-full sm:w-auto"
+                            >
+                              {savingPublicProfile ? "Сохранение..." : "Сохранить изменения"}
+                            </Button>
                           </div>
                         </Card>
 

@@ -9,6 +9,80 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
+            profiles: {
+                Row: {
+                    id: string
+                    email: string | null
+                    full_name: string | null
+                    avatar_url: string | null
+                    role: string
+                    access_mode: string
+                    block_reason: string | null
+                    blocked_until: string | null
+                    last_seen_at: string | null
+                    subscription_tier: string
+                    subscription_expires_at: string | null
+                    site_access: boolean
+                    monthly_gen_used: number
+                    gen_reset_at: string | null
+                    gen_limit_override: number | null
+                    chat_limit_override: number | null
+                    username: string | null
+                    public_profile: boolean
+                    bio: string | null
+                    preferences: Json | null
+                    created_at: string
+                    updated_at: string | null
+                }
+                Insert: {
+                    id: string
+                    email?: string | null
+                    full_name?: string | null
+                    avatar_url?: string | null
+                    role?: string
+                    access_mode?: string
+                    block_reason?: string | null
+                    blocked_until?: string | null
+                    last_seen_at?: string | null
+                    subscription_tier?: string
+                    subscription_expires_at?: string | null
+                    site_access?: boolean
+                    monthly_gen_used?: number
+                    gen_reset_at?: string | null
+                    gen_limit_override?: number | null
+                    chat_limit_override?: number | null
+                    username?: string | null
+                    public_profile?: boolean
+                    bio?: string | null
+                    preferences?: Json | null
+                    created_at?: string
+                    updated_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    email?: string | null
+                    full_name?: string | null
+                    avatar_url?: string | null
+                    role?: string
+                    access_mode?: string
+                    block_reason?: string | null
+                    blocked_until?: string | null
+                    last_seen_at?: string | null
+                    subscription_tier?: string
+                    subscription_expires_at?: string | null
+                    site_access?: boolean
+                    monthly_gen_used?: number
+                    gen_reset_at?: string | null
+                    gen_limit_override?: number | null
+                    chat_limit_override?: number | null
+                    username?: string | null
+                    public_profile?: boolean
+                    bio?: string | null
+                    preferences?: Json | null
+                    created_at?: string
+                    updated_at?: string | null
+                }
+            }
             budget_expenses: {
                 Row: {
                     amount: number
@@ -119,6 +193,8 @@ export interface Database {
                     destination: string
                     end_date: string | null
                     id: string
+                    invite_code: string | null
+                    is_public: boolean
                     itinerary: Json | null
                     payment_advice: Json | null
                     restrictions: Json | null
@@ -142,6 +218,8 @@ export interface Database {
                     destination: string
                     end_date?: string | null
                     id?: string
+                    invite_code?: string | null
+                    is_public?: boolean
                     itinerary?: Json | null
                     payment_advice?: Json | null
                     restrictions?: Json | null
@@ -165,6 +243,8 @@ export interface Database {
                     destination?: string
                     end_date?: string | null
                     id?: string
+                    invite_code?: string | null
+                    is_public?: boolean
                     itinerary?: Json | null
                     payment_advice?: Json | null
                     restrictions?: Json | null

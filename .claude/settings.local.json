@@ -31,7 +31,9 @@
       "mcp__claude_ai_Notion__notion-fetch",
       "mcp__claude_ai_Notion__notion-update-page",
       "mcp__claude_ai_Notion__notion-move-pages",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(head:*)",
+      "Bash(grep:*)"
     ]
   }
 }

@@ -15,8 +15,8 @@ interface MapControlsProps {
 
 export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, onOpenSettings }: MapControlsProps) {
   const buttons = [
-    { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-blue-400", show: viewState === "ACTIVE" },
-    { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-emerald-400", show: true },
+    { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE" },
+    { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-blue-400", show: true },
     { icon: Navigation, label: "Рядом", onClick: onOpenNearby, color: "text-amber-400", show: viewState === "ACTIVE" },
     { icon: Settings, label: "Настройки", onClick: onOpenSettings, color: "text-gray-400", show: true },
   ].filter((b) => b.show)
@@ -31,7 +31,11 @@ export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, on
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-12 w-12 md:h-12 md:w-12 rounded-full bg-black/40 backdrop-blur-md border border-white/10 hover:bg-white/10 shadow-lg hover:scale-110 transition-all font-bold group"
+                  className={`h-12 w-12 md:h-12 md:w-12 rounded-full backdrop-blur-md border hover:scale-110 transition-all font-bold group shadow-lg ${
+                    btn.label === "AI-гид"
+                      ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)] animate-[pulse_3s_ease-in-out_infinite]"
+                      : "bg-black/40 border-white/10 hover:bg-white/10"
+                  }`}
                   onClick={btn.onClick}
                 >
                   <btn.icon className={`h-6 w-6 ${btn.color} group-hover:text-white transition-colors`} />

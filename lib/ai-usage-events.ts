@@ -52,6 +52,7 @@ export async function getRequestUserId(): Promise<string | null> {
   } = await authClient.auth.getUser();
 
   if (error) {
+    console.error("[getRequestUserId] Auth error:", error.message);
     return null;
   }
 

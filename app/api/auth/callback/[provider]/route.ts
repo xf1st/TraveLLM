@@ -128,7 +128,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (verifyError) {
       console.error("Verify OTP failed:", verifyError);
-      return NextResponse.redirect(`${siteUrl}/auth?error=LoginFailed`);
+      return NextResponse.redirect(`${siteUrl}/auth?error=LoginFailed_${encodeURIComponent(verifyError.message)}`);
     }
 
     // Update app_metadata to track provider (optional but good for admin panel)

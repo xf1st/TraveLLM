@@ -1,9 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Drawer } from "vaul"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Calendar, ChevronDown, ChevronUp, LocateFixed, CheckCircle2 } from "lucide-react"
+import { X, Calendar, ChevronDown, ChevronUp, LocateFixed, CheckCircle2, MessageSquare, Save, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
@@ -110,6 +110,77 @@ export function RouteDrawer({
   )
 }
 
+function DiaryEntry({
+  tripId,
+  dayIndex,
+  activityIndex,
+  initialValue = "",
+}: {
+  tripId: string
+  dayIndex: number
+  activityIndex: number
+  initialValue?: string
+}) {
+  const [value, setValue] = useState(initialValue)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaved, setLastSaved] = useState<string | null>(null)
+
+  const handleSave = async (text: string) => {
+    if (!tripId) return
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/trip-diary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripId,
+          dayIndex,
+          activityIndex,
+          content: text,
+        }),
+      })
+      if (res.ok) {
+        setLastSaved(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }))
+      }
+    } catch (e) {
+      console.error("Failed to save diary entry", e)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Use a simple debounce for autosave
+  useEffect(() => {
+    if (value === initialValue) return
+    const timer = setTimeout(() => {
+      handleSave(value)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [value, initialValue])
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-white/5 pt-4">
+      <div className="flex items-center justify-between px-1">
+        <label className="text-[10px] uppercase font-bold text-zinc-500 flex items-center gap-1.5">
+          <MessageSquare className="w-3 h-3 text-emerald-400/70" />
+          Дневник путешественника
+        </label>
+        {isSaving ? (
+          <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" />
+        ) : lastSaved ? (
+          <span className="text-[9px] text-zinc-600">Сохранено {lastSaved}</span>
+        ) : null}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Ваши впечатления, мысли или заметки об этом месте..."
+        className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 min-h-[80px] transition-colors resize-none"
+      />
+    </div>
+  )
+}
+
 function RouteContent({
   route,
   activeDay,
@@ -130,6 +201,26 @@ function RouteContent({
   isCompletingTrip: boolean
 }) {
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
+  const [diaryData, setDiaryData] = useState<Record<string, string>>({})
+
+  const tripId = route?.id
+
+  // Load diary entries on mount
+  useEffect(() => {
+    if (!tripId) return
+    fetch(`/api/trip-diary?tripId=${tripId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.entries) {
+          const mapped: Record<string, string> = {}
+          data.entries.forEach((e: any) => {
+            mapped[`${e.day_index}-${e.activity_index}`] = e.content
+          })
+          setDiaryData(mapped)
+        }
+      })
+      .catch((e) => console.error("Failed to load diary entries", e))
+  }, [tripId])
 
   if (!route?.itinerary || !Array.isArray(route.itinerary)) {
     return <div className="text-muted-foreground px-4">Нет данных маршрута</div>
@@ -254,10 +345,19 @@ function RouteContent({
                     <div className="mt-3 p-3 rounded-xl bg-black/30 border border-white/10 text-xs text-zinc-300 space-y-2">
                       <div>{desc || "Описание отсутствует."}</div>
                       {(act.contact || act.phone || act.address) && <div className="text-zinc-400">{[act.contact, act.phone, act.address].filter(Boolean).join(" • ")}</div>}
-                      {(act.bookingLink || act.link) && (
+                      {act.bookingLink || act.link ? (
                         <a href={act.bookingLink || act.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-emerald-400 hover:text-emerald-300 underline">
                           Ссылка на бронь
                         </a>
+                      ) : null}
+                      
+                      {tripId && (
+                        <DiaryEntry 
+                          tripId={tripId} 
+                          dayIndex={safeDay} 
+                          activityIndex={actIdx} 
+                          initialValue={diaryData[cardKey] || ""} 
+                        />
                       )}
                     </div>
                   )}

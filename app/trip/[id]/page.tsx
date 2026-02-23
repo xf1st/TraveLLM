@@ -28,6 +28,9 @@ import {
   Mountain,
   Ticket,
   Building,
+  Globe,
+  Lock,
+  Eye,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { MeshGradient } from "@paper-design/shaders-react"
@@ -169,6 +172,7 @@ export default function TripDetailPage() {
   const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
@@ -297,11 +301,6 @@ export default function TripDetailPage() {
         const { data: { user: currentUser } } = await supabase.auth.getUser()
         setUser(currentUser)
 
-        if (isUuid && !currentUser) {
-          router.push(`/auth?next=/trip/${id}`)
-          return
-        }
-
         let data = null
         let error = null
 
@@ -315,6 +314,12 @@ export default function TripDetailPage() {
             .single()
           data = result.data
           error = result.error
+
+          // If access denied (RLS) and not logged in — redirect to auth
+          if (error && !currentUser) {
+            router.push(`/auth?next=/trip/${id}`)
+            return
+          }
         } else if (isLocal || id === "ai-last") {
           const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
           const stored = safeLocalStorage.getItem(key)
@@ -355,6 +360,9 @@ export default function TripDetailPage() {
           })
 
           if (currentUser && data.id) {
+            const tripOwner = data.user_id === currentUser.id
+            setIsOwner(tripOwner)
+
             const { data: memberData } = await supabase
               .from("trip_members")
               .select("id")
@@ -640,6 +648,21 @@ export default function TripDetailPage() {
 
 
   // ===== Handlers =====
+  const handleTogglePublic = async () => {
+    if (!route?.id) return
+    const newValue = !route.is_public
+    const { error } = await supabase
+      .from("trips")
+      .update({ is_public: newValue })
+      .eq("id", route.id)
+    if (error) {
+      toast.error("Не удалось изменить видимость поездки")
+      return
+    }
+    setRoute((r: any) => ({ ...r, is_public: newValue }))
+    toast.success(newValue ? "Поездка опубликована — доступна по ссылке" : "Поездка скрыта")
+  }
+
   const handleShare = async () => {
     const url = window.location.href
     try {
@@ -717,6 +740,17 @@ export default function TripDetailPage() {
       <AppSidebar />
       <TripTooltips userId={user?.id} />
 
+      {/* Read-only banner for non-owners viewing someone else's public trip */}
+      {!isOwner && !loading && route?.id && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-sky-600/95 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
+          <Eye className="w-4 h-4 flex-shrink-0" />
+          <span>Вы просматриваете чужую поездку в режиме чтения</span>
+          {!user && (
+            <a href={`/auth?next=/trip/${route.id}`} className="ml-2 underline font-medium hover:text-sky-200">Войти</a>
+          )}
+        </div>
+      )}
+
       <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}
         <div className="relative w-full min-h-[480px] sm:min-h-[600px] shrink-0 overflow-hidden">
@@ -765,6 +799,23 @@ export default function TripDetailPage() {
                 </button>
                 <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
                 <div className="flex items-center gap-1.5 sm:gap-3">
+                  {isOwner && (
+                    <button
+                      onClick={handleTogglePublic}
+                      title={route.is_public ? "Публичная поездка — нажмите чтобы скрыть" : "Приватная поездка — нажмите чтобы опубликовать"}
+                      className={cn(
+                        "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all backdrop-blur-md",
+                        route.is_public
+                          ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200 hover:bg-emerald-500/30"
+                          : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
+                      )}
+                    >
+                      {route.is_public
+                        ? <><Globe className="w-3.5 h-3.5" /> Публичная</>
+                        : <><Lock className="w-3.5 h-3.5" /> Приватная</>
+                      }
+                    </button>
+                  )}
                   <button
                     onClick={handleShare}
                     className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
@@ -1015,8 +1066,8 @@ export default function TripDetailPage() {
 
               {/* Weather Widget - REMOVED (Moved to grid below) */}
 
-              {/* AI Assistant Button */}
-              <div className="hidden lg:block trip-glass rounded-[2rem] shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
+              {/* AI Assistant Button — owner only */}
+              {isOwner && <div className="hidden lg:block trip-glass rounded-[2rem] shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
                 <button
                   onClick={() => setIsAIChatOpen(!isAIChatOpen)}
                   className="w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-xl border border-white/50 dark:border-white/10 flex items-center justify-between group/btn hover:bg-white dark:hover:bg-[#0B1121]/90 transition-colors"
@@ -1034,10 +1085,10 @@ export default function TripDetailPage() {
                     <span className="material-symbols-outlined text-sm">arrow_forward</span>
                   </div>
                 </button>
-              </div>
+              </div>}
 
-              {/* AI Chat Widget (toggleable on desktop) — longer */}
-              <AnimatePresence>
+              {/* AI Chat Widget (toggleable on desktop) — owner only */}
+              {isOwner && <AnimatePresence>
                 {isAIChatOpen && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -1057,7 +1108,7 @@ export default function TripDetailPage() {
                     />
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </AnimatePresence>}
 
               {/* Weather + Tips Grid */}
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
@@ -1349,8 +1400,8 @@ export default function TripDetailPage() {
           )}
         </AnimatePresence>
 
-        {/* ===== MOBILE AI CHAT BOTTOM SHEET ===== */}
-        <AnimatePresence>
+        {/* ===== MOBILE AI CHAT BOTTOM SHEET — owner only ===== */}
+        {isOwner && <AnimatePresence>
           {isMobileAIChatOpen && (
             <motion.div
               className="lg:hidden fixed inset-0 z-[60]"
@@ -1391,7 +1442,7 @@ export default function TripDetailPage() {
               </motion.div>
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence>}
 
         {/* ===== DESKTOP MAP MODAL ===== */}
         <AnimatePresence>
