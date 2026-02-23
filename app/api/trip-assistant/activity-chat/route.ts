@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { geminiInferenceWithUsage } from "@/lib/gemini"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 type ChatMessage = {
   role: "user" | "assistant"
@@ -14,10 +15,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const rl = checkRateLimit(userId, "activity-chat", 20)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const { activity, day, destination, userMessage, history = [] } = await req.json()
 
-    if (!userMessage || typeof userMessage !== "string") {
-      return NextResponse.json({ error: "Missing userMessage" }, { status: 400 })
+    if (!userMessage || typeof userMessage !== "string" || userMessage.length > 2000) {
+      return NextResponse.json({ error: "Missing or invalid userMessage" }, { status: 400 })
     }
 
     const safeHistory: ChatMessage[] = Array.isArray(history)

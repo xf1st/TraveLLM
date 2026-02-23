@@ -4,6 +4,7 @@ import { deepseekInferenceWithUsage } from "@/lib/deepseek"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
 import { checkChatLimit, getUserSubscription } from "@/lib/subscription"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 // Helper to extract city from day title
 function extractCity(title: string): string {
@@ -22,10 +23,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const rl = checkRateLimit(userId, "trip-assistant", 15)
+        if (!rl.allowed) return rateLimitResponse(rl)
+
         const { tripData, userMessage, tripId, userLocation: reqUserLocation } = await req.json()
 
         if (!tripData || !userMessage) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+
+        if (typeof userMessage !== "string" || userMessage.length > 2000) {
+            return NextResponse.json({ error: "Invalid userMessage" }, { status: 400 })
         }
 
         // Check chat limit

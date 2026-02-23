@@ -39,7 +39,6 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
 
     useEffect(() => {
         fetchExpenses()
-        fetchAiAdvice()
 
         const channel = supabase
             .channel('expenses-' + tripId)
@@ -50,7 +49,6 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                 filter: `trip_id=eq.${tripId}` 
             }, () => {
                 fetchExpenses()
-                fetchAiAdvice()
             })
             .subscribe()
 
@@ -195,7 +193,7 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                                         <SelectTrigger className="rounded-2xl bg-white/5 border-white/10">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-white/10 bg-zinc-900">
+                                        <SelectContent className="rounded-xl border-white/10 bg-zinc-900 z-[10000]">
                                             <SelectItem value="RUB">RUB (₽)</SelectItem>
                                             <SelectItem value="USD">USD ($)</SelectItem>
                                             <SelectItem value="EUR">EUR (€)</SelectItem>
@@ -209,7 +207,7 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                                     <SelectTrigger className="rounded-2xl bg-white/5 border-white/10">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-white/10 bg-zinc-900">
+                                    <SelectContent className="rounded-xl border-white/10 bg-zinc-900 z-[10000]">
                                         <SelectItem value="food">🍱 Еда</SelectItem>
                                         <SelectItem value="transport">🚕 Транспорт</SelectItem>
                                         <SelectItem value="hotel">🏨 Отель</SelectItem>
@@ -277,8 +275,8 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                 </div>
 
                 {/* AI Economist Advice */}
-                <AnimatePresence>
-                    {advice && (
+                <AnimatePresence mode="wait">
+                    {advice ? (
                         <motion.div 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -287,17 +285,45 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                             <div className="p-3 rounded-2xl bg-white/10 h-fit">
                                 <Bot className="h-5 w-5" />
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1 w-full relative">
                                 <div className="flex items-center gap-2">
                                     <span className="font-black text-sm uppercase tracking-tight">{advice.message}</span>
                                     <Sparkles className="h-3 w-3 animate-pulse" />
                                 </div>
                                 <p className="text-xs font-medium leading-relaxed opacity-80">{advice.advice}</p>
-                                <div className="mt-2 text-[10px] font-bold uppercase opacity-50 flex items-center gap-1">
-                                    <AlertCircle className="h-3 w-3" />
-                                    {advice.burnRate}
+                                <div className="mt-2 flex items-center justify-between">
+                                    <div className="text-[10px] font-bold uppercase opacity-50 flex items-center gap-1">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {advice.burnRate}
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        className="h-6 text-[10px] uppercase font-bold px-2 rounded-full hover:bg-white/10"
+                                        onClick={fetchAiAdvice}
+                                        disabled={loadingAdvice}
+                                    >
+                                        {loadingAdvice ? 'Анализ...' : 'Обновить анализ'}
+                                    </Button>
                                 </div>
                             </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            <Button 
+                                variant="outline" 
+                                className="w-full h-14 rounded-3xl border-white/10 bg-transparent hover:bg-white/5 flex items-center gap-3 text-emerald-400 hover:text-emerald-300"
+                                onClick={fetchAiAdvice}
+                                disabled={loadingAdvice}
+                            >
+                                <Bot className={`h-5 w-5 ${loadingAdvice ? 'animate-pulse' : ''}`} />
+                                <span className="font-black uppercase tracking-tight">
+                                    {loadingAdvice ? 'Изучаю ваши траты...' : 'Анализ расходов от AI-экономиста'}
+                                </span>
+                            </Button>
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -346,7 +372,7 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                                 <div className="flex items-center gap-3">
                                     <div className="text-right">
                                         <span className="font-black text-white block">
-                                            {Number(expense.amount).toLocaleString('ru-RU')}
+                                            - {Number(expense.amount).toLocaleString('ru-RU')}
                                         </span>
                                         <span className="text-[10px] font-bold text-emerald-500 block">
                                             {expense.currency}

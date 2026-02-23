@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { deepseekInference } from "@/lib/deepseek"
 import { openrouterInference } from "@/lib/openrouter"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const maxDuration = 60 // Allow longer timeout for enrichment
 
@@ -14,10 +15,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const rl = checkRateLimit(userId, "enrich-trip", 3)
+        if (!rl.allowed) return rateLimitResponse(rl)
+
         const { tripId, itinerary } = await req.json()
 
-        if (!itinerary) {
+        if (!itinerary || !Array.isArray(itinerary)) {
             return NextResponse.json({ error: "Itinerary is required" }, { status: 400 })
+        }
+
+        if (itinerary.length > 60) {
+            return NextResponse.json({ error: "Itinerary too large" }, { status: 400 })
         }
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

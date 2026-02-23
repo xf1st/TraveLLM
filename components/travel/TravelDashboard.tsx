@@ -1258,7 +1258,7 @@ export default function TravelDashboard() {
 
       <div className="absolute inset-0 pointer-events-none z-20">
         {viewState === "ACTIVE" && trip && (
-          <div className="absolute top-6 right-4 md:top-8 md:right-8 z-50 pointer-events-auto">
+          <div className="absolute top-20 right-4 md:top-8 md:right-8 z-50 pointer-events-auto">
             <WeatherWidget 
               lat={activeDayCenter?.lat} 
               lng={activeDayCenter?.lng} 

@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
+import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
     try {
+        const userId = await getRequestUserId()
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+
+        const rl = checkRateLimit(userId, "main-chat", 30)
+        if (!rl.allowed) return rateLimitResponse(rl)
+
         const { message, history = [], tripContext } = await req.json()
+
+        if (!message || typeof message !== "string" || message.length > 2000) {
+            return NextResponse.json({ error: "Invalid message" }, { status: 400 })
+        }
 
         let systemPrompt = `Ты — центральный ИИ-ассистент TraveLLM. Твоя главная задача — помогать пользователю планировать идеальные путешествия.
 Будь дружелюбным, современным, профессиональным и кратким. Отвечай на русском языке. Используй эмодзи и Markdown.

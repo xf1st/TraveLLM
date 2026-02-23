@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
 import { deepseekInferenceWithUsage } from "@/lib/deepseek"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -16,6 +17,9 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await getRequestUserId()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const rl = checkRateLimit(userId, "budget-ai", 10)
+    if (!rl.allowed) return rateLimitResponse(rl)
 
     const client = createServiceClient()
     if (!client) return NextResponse.json({ error: "Server is not configured" }, { status: 500 })

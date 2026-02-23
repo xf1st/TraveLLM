@@ -2,6 +2,7 @@ import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 // Extract city from day title (e.g., "Токио: Сибуя" -> "Токио")
 function extractCity(title: string): string {
@@ -147,11 +148,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const rl = checkRateLimit(userId, "modify-itinerary", 5)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const body = await req.json()
     const { currentItinerary, userMessage } = body
 
     if (!currentItinerary || !userMessage) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    }
+
+    if (typeof userMessage !== "string" || userMessage.length > 2000) {
+      return NextResponse.json({ error: "Invalid userMessage" }, { status: 400 })
+    }
+
+    if (!Array.isArray(currentItinerary?.itinerary) || currentItinerary.itinerary.length > 60) {
+      return NextResponse.json({ error: "Invalid itinerary" }, { status: 400 })
     }
 
     const itinerary = currentItinerary.itinerary || []
