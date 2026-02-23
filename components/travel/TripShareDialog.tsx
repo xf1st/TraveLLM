@@ -15,7 +15,9 @@ import {
   MapPin,
   Calendar,
   Zap,
-  Star
+  Star,
+  Moon,
+  Sun
 } from "lucide-react"
 import { toast } from "sonner"
 import html2canvas from "html2canvas"
@@ -40,6 +42,7 @@ export function TripShareDialog({
   const cardRef = useRef<HTMLDivElement>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [theme, setTheme] = useState<"dark" | "light">("dark")
 
   const handleCopyLink = () => {
     const url = window.location.href
@@ -66,11 +69,11 @@ export function TripShareDialog({
       const canvas = await html2canvas(cardRef.current, {
         scale: 2, // High quality
         useCORS: true,
-        backgroundColor: "#050505",
+        backgroundColor: theme === "dark" ? "#050505" : "#ffffff",
       })
       
       const link = document.createElement("a")
-      link.download = `vettka-trip-${tripData?.destination || "story"}.png`
+      link.download = `travellm-trip-${tripData?.destination || "story"}.png`
       link.href = canvas.toDataURL("image/png")
       link.click()
       toast.success("Карточка сохранена")
@@ -95,16 +98,29 @@ export function TripShareDialog({
               <Smartphone className="w-3 h-3" /> Preview (9:16 Story)
             </div>
 
+            {/* Theme Toggle */}
+            <div className="absolute top-6 right-6 z-20 flex gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="rounded-full bg-zinc-900 border-white/10 text-white hover:bg-zinc-800 h-8 w-8"
+                title="Toggle UI Theme"
+              >
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
+            </div>
+
             {/* Story Card Target */}
             <div className="relative group shadow-2xl shadow-emerald-500/10">
               <div 
                 ref={cardRef}
-                className="w-[280px] h-[497px] bg-[#050505] border border-white/10 rounded-[2rem] overflow-hidden flex flex-col relative"
+                className={`w-[280px] h-[497px] ${theme === 'dark' ? 'bg-[#050505]' : 'bg-white'} border ${theme === 'dark' ? 'border-white/10' : 'border-zinc-200'} rounded-[2rem] overflow-hidden flex flex-col relative`}
                 style={{ fontFamily: "sans-serif" }}
               >
                 {/* Background effects */}
-                <div className="absolute top-0 left-0 w-full h-[30%] bg-gradient-to-b from-emerald-500/20 to-transparent pointer-events-none" />
-                <div className="absolute bottom-0 right-0 w-full h-[40%] bg-gradient-to-t from-emerald-500/10 to-transparent pointer-events-none" />
+                <div className={`absolute top-0 left-0 w-full h-[30%] bg-gradient-to-b ${theme === 'dark' ? 'from-emerald-500/20' : 'from-emerald-500/10'} to-transparent pointer-events-none`} />
+                <div className={`absolute bottom-0 right-0 w-full h-[40%] bg-gradient-to-t ${theme === 'dark' ? 'from-emerald-500/10' : 'from-emerald-500/5'} to-transparent pointer-events-none`} />
                 
                 {/* Content */}
                 <div className="relative z-10 flex flex-col h-full p-6 pb-8">
@@ -112,8 +128,8 @@ export function TripShareDialog({
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <div className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">VETTKA TRAVEL</div>
-                      <div className="text-lg font-black leading-tight">{tripData?.destination || "Adventure"}</div>
+                      <div className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">TRAVELLM</div>
+                      <div className={`text-lg font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.destination || "Adventure"}</div>
                     </div>
                     <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
                        <Zap className="w-4 h-4 text-black fill-black" />
@@ -123,7 +139,7 @@ export function TripShareDialog({
                   {/* Personality */}
                   <div className="mb-4">
                      <div className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Traveler Type</div>
-                     <div className="text-xl font-black text-white">{aiStats?.personality || "Explorer"}</div>
+                     <div className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{aiStats?.personality || "Explorer"}</div>
                   </div>
 
                   {/* Radar Chart */}
@@ -145,33 +161,33 @@ export function TripShareDialog({
 
                   {/* Quote */}
                   <div className="mb-auto">
-                    <div className="bg-white/5 border-l border-emerald-500 p-3 rounded-r-lg relative">
+                    <div className={`${theme === 'dark' ? 'bg-white/5' : 'bg-emerald-50'} border-l border-emerald-500 p-3 rounded-r-lg relative`}>
                       <Quote className="absolute -top-1 -left-1 w-4 h-4 text-emerald-500/20 rotate-180" />
-                      <p className="text-[10px] text-zinc-300 italic line-clamp-3">
+                      <p className={`text-[10px] ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'} italic line-clamp-3`}>
                          {aiStats?.bestQuote || aiStats?.description || "Incredible journey through the heart of culture."}
                       </p>
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/5">
+                  <div className={`grid grid-cols-3 gap-2 mt-4 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-zinc-200'}`}>
                     <div className="text-center">
-                      <div className="text-[10px] font-black text-white">{tripData?.itinerary?.length || 0}</div>
+                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.itinerary?.length || 0}</div>
                       <div className="text-[6px] text-zinc-500 uppercase font-bold">Days</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-[10px] font-black text-white">{radarData.length}</div>
+                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{radarData.length}</div>
                       <div className="text-[6px] text-zinc-500 uppercase font-bold">Areas</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-[10px] font-black text-white">100%</div>
+                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>100%</div>
                       <div className="text-[6px] text-zinc-500 uppercase font-bold">Vibe</div>
                     </div>
                   </div>
 
                   {/* QR/Call to action */}
                   <div className="mt-4 flex flex-col items-center">
-                    <div className="text-[7px] font-medium text-zinc-500 uppercase tracking-widest">Create yours at vettka.app</div>
+                    <div className="text-[7px] font-medium text-zinc-500 uppercase tracking-widest">Create yours at TraveLLM.ru</div>
                   </div>
                 </div>
               </div>

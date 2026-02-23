@@ -38,12 +38,30 @@ export default function TripCompletedPage() {
         const { data: tripData } = await supabase.from('trips').select('*').eq('id', tripId).single()
         if (tripData && isMounted) {
           setTrip(tripData)
-          // Fetch gallery
-          const dest = tripData.destination || "travel"
-          const res = await fetch(getGalleryApiUrl(dest, 8))
-          if (res.ok) {
-            const json = await res.json()
-            if (json.images && isMounted) setGallery(json.images)
+          // Extract gallery from itinerary if possible
+          let extractedImages: string[] = []
+          if (tripData.itinerary && Array.isArray(tripData.itinerary)) {
+             tripData.itinerary.forEach((day: any) => {
+               if (day.activities && Array.isArray(day.activities)) {
+                 day.activities.forEach((act: any) => {
+                   if (act.image && !extractedImages.includes(act.image)) extractedImages.push(act.image)
+                   else if (act.photoUrl && !extractedImages.includes(act.photoUrl)) extractedImages.push(act.photoUrl)
+                   else if (act.imageUrl && !extractedImages.includes(act.imageUrl)) extractedImages.push(act.imageUrl)
+                 })
+               }
+             })
+          }
+          
+          if (extractedImages.length > 0 && isMounted) {
+             setGallery(extractedImages)
+          } else {
+             // Fallback to Unsplash
+             const dest = tripData.destination || "travel"
+             const res = await fetch(getGalleryApiUrl(dest, 8))
+             if (res.ok) {
+               const json = await res.json()
+               if (json.images && isMounted) setGallery(json.images)
+             }
           }
         }
 
