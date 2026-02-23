@@ -43,7 +43,7 @@ export function TravelJournal({ moments, itinerary, className }: TravelJournalPr
     <div className={cn("w-full py-12 px-4 max-w-6xl mx-auto", className)}>
       <div className="flex items-center justify-between mb-8">
         <div>
-           <h3 className="text-2xl md:text-4xl font-black flex items-center gap-3 tracking-tighter uppercase italic text-primary">
+           <h3 className="text-2xl md:text-4xl font-black flex items-center gap-3 tracking-tighter uppercase italic text-blue-600 dark:text-primary">
              <BookOpen className="h-8 w-8" />
              Дневник путешественника
            </h3>

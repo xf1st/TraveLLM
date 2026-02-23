@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button"
 import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { supabase } from "@/lib/supabase"
 import { motion } from "framer-motion"
-import { getGalleryApiUrl } from "@/lib/image-utils"
+import { getGalleryApiUrl, getImageApiUrl } from "@/lib/image-utils"
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer
 } from "recharts"
 import { TripShareDialog } from "@/components/travel/TripShareDialog"
-import { Share2 } from "lucide-react"
+import { Share2, ArrowLeft } from "lucide-react"
+import { Header } from "@/components/header"
 
 export default function TripCompletedPage() {
   const searchParams = useSearchParams()
@@ -38,22 +39,38 @@ export default function TripCompletedPage() {
         const { data: tripData } = await supabase.from('trips').select('*').eq('id', tripId).single()
         if (tripData && isMounted) {
           setTrip(tripData)
-          // Extract gallery from itinerary if possible
-          let extractedImages: string[] = []
+          // Extract gallery from itinerary
+          let extractedDirectUrls: string[] = []
+          let extractedQueries: string[] = []
+
+          // Try to get exactly 8 unique images for the masonry grid
           if (tripData.itinerary && Array.isArray(tripData.itinerary)) {
              tripData.itinerary.forEach((day: any) => {
                if (day.activities && Array.isArray(day.activities)) {
                  day.activities.forEach((act: any) => {
-                   if (act.image && !extractedImages.includes(act.image)) extractedImages.push(act.image)
-                   else if (act.photoUrl && !extractedImages.includes(act.photoUrl)) extractedImages.push(act.photoUrl)
-                   else if (act.imageUrl && !extractedImages.includes(act.imageUrl)) extractedImages.push(act.imageUrl)
+                   if (act.imageUrl && act.imageUrl.startsWith("http") && !extractedDirectUrls.includes(act.imageUrl)) extractedDirectUrls.push(act.imageUrl)
+                   else if (act.photoUrl && act.photoUrl.startsWith("http") && !extractedDirectUrls.includes(act.photoUrl)) extractedDirectUrls.push(act.photoUrl)
+                   else if (act.image && act.image.startsWith("http") && !extractedDirectUrls.includes(act.image)) extractedDirectUrls.push(act.image)
+                   else if (act.imageQuery && typeof act.imageQuery === 'string' && !extractedQueries.includes(act.imageQuery)) extractedQueries.push(act.imageQuery)
+                   else if (act.name && typeof act.name === 'string' && !extractedQueries.includes(act.name)) extractedQueries.push(act.name)
                  })
                }
              })
           }
           
-          if (extractedImages.length > 0 && isMounted) {
-             setGallery(extractedImages)
+          let finalImages = [...extractedDirectUrls]
+          
+          if (extractedQueries.length > 0 && finalImages.length < 8) {
+              const queriesToFetch = extractedQueries.slice(0, 8 - finalImages.length)
+              const promises = queriesToFetch.map(q => fetch(getImageApiUrl(q)).then(r => r.json()).then(d => d.url).catch(() => null))
+              const resolvedUrls = await Promise.all(promises)
+              // Only add valid URLs that are string starting with http
+              const validUrls = resolvedUrls.filter(url => typeof url === 'string' && url.startsWith("http"))
+              finalImages = [...finalImages, ...validUrls]
+          }
+          
+          if (finalImages.length > 0 && isMounted) {
+             setGallery(finalImages.slice(0, 8))
           } else {
              // Fallback to Unsplash
              const dest = tripData.destination || "travel"
@@ -123,19 +140,20 @@ export default function TripCompletedPage() {
 
   if (isLoading && !trip) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-          <p className="text-zinc-500 font-medium animate-pulse">Проявляем воспоминания...</p>
+          <p className="text-muted-foreground font-medium animate-pulse">Проявляем воспоминания...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white selection:bg-emerald-500/30 font-sans">
+    <main className="min-h-screen bg-background text-foreground selection:bg-emerald-500/30 font-sans">
+      <Header />
       {/* Hero Section */}
-      <section className="relative pt-20 pb-12 overflow-hidden px-4">
+      <section className="relative pt-32 pb-12 overflow-hidden px-4">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl pointer-events-none" />
         
         <div className="max-w-6xl mx-auto relative z-10">
@@ -149,7 +167,7 @@ export default function TripCompletedPage() {
                Путешествие завершено
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground dark:from-white dark:to-white/60">
                {trip?.destination ? `Воспоминания: ${trip.destination}` : "Ваше приключение"}
             </h1>
             
@@ -159,15 +177,20 @@ export default function TripCompletedPage() {
               transition={{ delay: 0.5 }}
               className="flex items-center gap-3 mb-10"
             >
+              <Link href={`/trip/${tripId}`}>
+                <Button variant="outline" className="border-border dark:border-white/10 text-foreground dark:text-white hover:bg-muted dark:hover:bg-white/10 rounded-full h-12 px-6 font-bold flex items-center gap-2 bg-transparent">
+                  <ArrowLeft className="w-4 h-4" /> К маршруту
+                </Button>
+              </Link>
               <Button
                 onClick={() => setIsShareOpen(true)}
-                className="bg-white/10 hover:bg-white/20 text-white rounded-full h-12 px-6 font-bold border border-white/10 flex items-center gap-2"
+                className="bg-muted dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-foreground dark:text-white rounded-full h-12 px-6 font-bold border border-border dark:border-white/10 flex items-center gap-2"
               >
                 <Share2 className="w-4 h-4" /> Поделиться
               </Button>
             </motion.div>
             
-            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+            <p className="text-muted-foreground dark:text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
               Каждое путешествие оставляет след. Мы проанализировали ваши впечатления и составили уникальный портрет вашего приключения.
             </p>
           </motion.div>
@@ -186,21 +209,21 @@ export default function TripCompletedPage() {
              className="lg:col-span-2 relative group"
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative h-full bg-[#0a0a0a] border border-white/5 rounded-3xl p-6 md:p-10 overflow-hidden">
+            <div className="relative h-full bg-card dark:bg-[#0a0a0a] border border-border dark:border-white/5 rounded-3xl p-6 md:p-10 overflow-hidden shadow-xl">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
                   <div className="space-y-6">
                      <div>
-                        <div className="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Профиль путешественника</div>
-                        <h2 className="text-3xl md:text-4xl font-black text-white">{aiStats?.personality || "Исследователь"}</h2>
+                        <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Профиль путешественника</div>
+                        <h2 className="text-3xl md:text-4xl font-black text-foreground">{aiStats?.personality || "Исследователь"}</h2>
                      </div>
-                     <p className="text-zinc-400 leading-relaxed text-lg italic">
+                     <p className="text-muted-foreground dark:text-zinc-400 leading-relaxed text-lg italic">
                         "{aiStats?.description || "Загружаем анализ нашего приключения..."}"
                      </p>
                      
                      {aiStats?.bestQuote && (
-                        <div className="bg-white/5 border-l-2 border-emerald-500 p-4 rounded-r-xl relative">
+                        <div className="bg-muted dark:bg-white/5 border-l-2 border-emerald-500 p-4 rounded-r-xl relative">
                            <Quote className="absolute -top-2 -left-2 w-6 h-6 text-emerald-500/20 rotate-180" />
-                           <p className="text-zinc-300 font-medium relative z-10">
+                           <p className="text-foreground dark:text-zinc-300 font-medium relative z-10">
                              {aiStats.bestQuote}
                            </p>
                         </div>
@@ -210,8 +233,8 @@ export default function TripCompletedPage() {
                   <div className="h-[280px] w-full relative">
                      <ResponsiveContainer width="100%" height="100%">
                         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                           <PolarGrid stroke="#333" />
-                           <PolarAngleAxis dataKey="subject" tick={{ fill: '#666', fontSize: 10, fontWeight: 700 }} />
+                           <PolarGrid stroke="currentColor" strokeOpacity={0.2} />
+                           <PolarAngleAxis dataKey="subject" tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 10, fontWeight: 700 }} />
                            <Radar
                               name="Stats"
                               dataKey="A"
@@ -232,18 +255,18 @@ export default function TripCompletedPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-emerald-500/30 transition-colors"
+                className="bg-card dark:bg-white/5 border border-border dark:border-white/10 shadow-lg rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-emerald-500/30 transition-colors"
              >
                 <div className="flex justify-between items-start relative z-10">
-                   <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400">
+                   <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500 dark:text-emerald-400">
                       <Calendar className="w-6 h-6" />
                    </div>
                    <div className="text-right">
-                      <div className="text-3xl font-black text-white">{stats?.days || 0}</div>
-                      <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Дней в пути</div>
+                      <div className="text-3xl font-black text-foreground">{stats?.days || 0}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Дней в пути</div>
                    </div>
                 </div>
-                <div className="mt-auto relative z-10 text-[10px] text-zinc-400 font-medium">Отличная продолжительность отдыха.</div>
+                <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Отличная продолжительность отдыха.</div>
                 <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-emerald-500/5 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
              </motion.div>
 
@@ -251,18 +274,18 @@ export default function TripCompletedPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-blue-500/30 transition-colors"
+                className="bg-card dark:bg-white/5 border border-border dark:border-white/10 shadow-lg rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-blue-500/30 transition-colors"
              >
                 <div className="flex justify-between items-start relative z-10">
-                   <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-400">
+                   <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-500 dark:text-blue-400">
                       <MapPin className="w-6 h-6" />
                    </div>
                    <div className="text-right">
-                      <div className="text-3xl font-black text-white">{stats?.totalPlaces || 0}</div>
-                      <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Локаций</div>
+                      <div className="text-3xl font-black text-foreground">{stats?.totalPlaces || 0}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Локаций</div>
                    </div>
                 </div>
-                <div className="mt-auto relative z-10 text-[10px] text-zinc-400 font-medium">Каждое место уникально по-своему.</div>
+                <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Каждое место уникально по-своему.</div>
                 <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/5 blur-2xl group-hover:bg-blue-500/10 transition-colors" />
              </motion.div>
 
@@ -270,18 +293,18 @@ export default function TripCompletedPage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-violet-500/30 transition-colors"
+                className="bg-card dark:bg-white/5 border border-border dark:border-white/10 shadow-lg rounded-3xl p-6 flex flex-col justify-between h-[160px] relative overflow-hidden group hover:border-violet-500/30 transition-colors"
              >
                 <div className="flex justify-between items-start relative z-10">
-                   <div className="p-3 bg-violet-500/10 rounded-2xl text-violet-400">
+                   <div className="p-3 bg-violet-500/10 rounded-2xl text-violet-500 dark:text-violet-400">
                       <MoveRight className="w-6 h-6" />
                    </div>
                    <div className="text-right">
-                      <div className="text-3xl font-black text-white">{stats?.distance || 0}</div>
-                      <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">км пройдено</div>
+                      <div className="text-3xl font-black text-foreground">{stats?.distance || 0}</div>
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">км пройдено</div>
                    </div>
                 </div>
-                <div className="mt-auto relative z-10 text-[10px] text-zinc-400 font-medium">Это был насыщенный маршрут!</div>
+                <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Это был насыщенный маршрут!</div>
                 <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-violet-500/5 blur-2xl group-hover:bg-violet-500/10 transition-colors" />
              </motion.div>
           </div>
@@ -291,17 +314,16 @@ export default function TripCompletedPage() {
         <section>
            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
               <div>
-                 <div className="text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                 <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <Camera className="w-4 h-4" /> Polaroid Memories
                  </div>
-                 <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">Запечатленные моменты</h2>
+                 <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">Запечатленные моменты</h2>
               </div>
-              <p className="text-zinc-500 max-w-sm text-sm">
+              <p className="text-muted-foreground dark:text-zinc-500 max-w-sm text-sm">
                  Лучшие кадры вашего путешествия, бережно сохраненные в нашей цифровой галерее.
               </p>
            </div>
-           
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {gallery.length > 0 ? gallery.slice(0, 8).map((img, i) => (
                 <motion.div
                   key={i}
@@ -310,20 +332,20 @@ export default function TripCompletedPage() {
                   whileHover={{ scale: 1.05, rotate: 0, y: -10 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, type: "spring" }}
-                  className="bg-white p-3 pb-12 rounded-sm shadow-2xl relative border border-zinc-200 cursor-zoom-in"
+                  className="bg-card p-3 pb-12 rounded-sm shadow-2xl relative border border-border cursor-zoom-in"
                 >
-                  <div className="w-full aspect-[4/5] bg-zinc-200 relative overflow-hidden shadow-inner border border-black/5">
+                  <div className="w-full aspect-[4/5] bg-muted relative overflow-hidden shadow-inner border border-black/5">
                     <img src={img} alt={`Memory ${i+1}`} className="absolute inset-0 w-full h-full object-cover" />
                   </div>
                   <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center overflow-hidden">
-                     <span className="text-zinc-400 text-[10px] font-bold italic line-clamp-1">
+                     <span className="text-muted-foreground text-[10px] font-bold italic line-clamp-1">
                         {trip?.destination} #{i+1}
                      </span>
-                     <span className="text-[10px] text-zinc-200 font-bold uppercase opacity-30">Memories</span>
+                     <span className="text-[10px] text-muted-foreground/30 font-bold uppercase opacity-50">Memories</span>
                   </div>
                 </motion.div>
               )) : (
-                 <div className="col-span-full h-64 border-2 border-dashed border-white/5 rounded-3xl flex items-center justify-center text-zinc-600">
+                 <div className="col-span-full h-64 border-2 border-dashed border-border dark:border-white/5 rounded-3xl flex items-center justify-center text-muted-foreground">
                     Галерея пуста... пока что.
                  </div>
               )}
@@ -331,20 +353,20 @@ export default function TripCompletedPage() {
         </section>
 
         {/* Action Footer */}
-        <section className="pt-12 border-t border-white/5">
-           <div className="flex flex-col items-center bg-zinc-900/50 rounded-[40px] p-8 md:p-16 border border-white/5 relative overflow-hidden">
+        <section className="pt-12 border-t border-border dark:border-white/5">
+           <div className="flex flex-col items-center bg-muted/50 dark:bg-zinc-900/50 rounded-[40px] p-8 md:p-16 border border-border dark:border-white/5 relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
               
               <div className="relative z-10 text-center max-w-2xl">
-                 <h3 className="text-3xl md:text-4xl font-black mb-6">Готовы к новому открытию?</h3>
-                 <p className="text-zinc-400 mb-10 leading-relaxed font-medium">
+                 <h3 className="text-3xl md:text-4xl font-black mb-6 text-foreground">Готовы к новому открытию?</h3>
+                 <p className="text-muted-foreground dark:text-zinc-400 mb-10 leading-relaxed font-medium">
                     Мы уже подбираем для вас следующие невероятные локации на основе вашего профиля {aiStats?.personality || "исследователя"}.
                  </p>
                  
                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button 
                        onClick={() => setIsFeedbackOpen(true)}
-                       className="bg-emerald-500 text-black hover:bg-emerald-400 font-extrabold rounded-2xl h-16 px-10 text-lg shadow-xl shadow-emerald-500/20"
+                       className="bg-emerald-500 text-white dark:text-black hover:bg-emerald-600 dark:hover:bg-emerald-400 font-extrabold rounded-2xl h-16 px-10 text-lg shadow-xl shadow-emerald-500/20"
                     >
                        <Star className="w-5 h-5 mr-3 fill-current" />
                        {feedback?.rating ? `Оценка: ${feedback.rating}/5` : "Оценить поездку"}
@@ -352,7 +374,7 @@ export default function TripCompletedPage() {
                     <Button 
                        asChild
                        variant="outline"
-                       className="border-white/10 h-16 px-10 rounded-2xl font-extrabold text-lg hover:bg-white/5 text-white"
+                       className="border-border dark:border-white/10 h-16 px-10 rounded-2xl font-extrabold text-lg hover:bg-muted dark:hover:bg-white/5 text-foreground dark:text-white"
                     >
                        <Link href="/results">
                           <Compass className="w-5 h-5 mr-3" /> Все маршруты

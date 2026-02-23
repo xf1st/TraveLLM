@@ -30,7 +30,7 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2.5rem] min-h-[350px]"
+        className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-[2.5rem] min-h-[250px] md:min-h-[350px]"
       >
         <div className="absolute inset-0 z-0">
           <TripImage 
@@ -47,7 +47,7 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
             <Badge variant="outline" className="mb-4 border-white/30 text-white bg-white/10 backdrop-blur-md uppercase tracking-widest text-[10px]">
               Вайб поездки
             </Badge>
-            <h3 className="text-3xl md:text-5xl lg:text-6xl font-black mb-4 tracking-tighter leading-none text-white drop-shadow-lg">
+            <h3 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-4 tracking-tighter leading-none text-white drop-shadow-lg">
               {travelStyle} <br /> <span className="text-sky-300">в {destination}</span>
             </h3>
             <p className="text-white/80 text-sm max-w-xs leading-relaxed font-medium drop-shadow-md">

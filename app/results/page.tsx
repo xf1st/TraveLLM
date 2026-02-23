@@ -518,6 +518,15 @@ function ResultsContent() {
                                 </span>
                               )
                             })}
+                            
+                            {trip.status === 'completed' && (
+                              <Link href={`/trip/completed?tripId=${trip.id}`}>
+                                <span className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide shadow-sm transition-transform hover:scale-105 bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-400/30 cursor-pointer hover:bg-blue-500/30">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Завершен
+                                </span>
+                              </Link>
+                            )}
                           </div>
 
                           <div className="flex items-center justify-between pt-0 mt-auto">

@@ -306,7 +306,7 @@ export default function SubscribePage() {
               <p className="text-sm font-medium mb-3">Выбери платёжную систему и оплати</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <a
-                  href="https://www.donationalerts.com/r/myszf"
+                  href="https://www.donationalerts.com/r/xf1st"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-semibold bg-yellow-400 text-black hover:bg-yellow-300 transition-colors"
@@ -315,7 +315,7 @@ export default function SubscribePage() {
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://new.donatepay.ru/@myszf"
+                  href="https://new.donatepay.ru/@xf1st"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium border border-border/50 hover:bg-accent transition-colors"

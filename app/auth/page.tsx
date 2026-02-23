@@ -157,7 +157,7 @@ function AuthContent() {
       </div>
 
       {/* ── RIGHT PANEL — theme-aware desktop / glass mobile ── */}
-      <div className="flex-1 flex flex-col relative z-10 lg:bg-background min-h-screen">
+      <div className="flex-1 flex flex-col relative z-10 lg:bg-background min-h-screen overflow-y-auto">
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 sm:px-8 pt-6">
           <div className="flex items-center gap-2 lg:hidden">
@@ -170,7 +170,7 @@ function AuthContent() {
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8">
+        <div className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-8 py-6 sm:py-8">
           {/* Glass card on mobile, plain on desktop */}
           <div className="w-full max-w-[400px] rounded-3xl p-6 sm:p-8
             bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl

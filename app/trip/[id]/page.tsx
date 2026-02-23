@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
 import { toast } from "sonner"
@@ -31,6 +32,7 @@ import {
   Globe,
   Lock,
   Eye,
+  CheckCircle2,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { MeshGradient } from "@paper-design/shaders-react"
@@ -862,6 +864,14 @@ export default function TripDetailPage() {
                     {route.safetyInfo.rating}/10
                   </span>
                 )}
+                {route.status === 'completed' && (
+                  <Link href={`/trip/completed?tripId=${route.id}`}>
+                    <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-[10px] xl:text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Завершен
+                    </span>
+                  </Link>
+                )}
               </div>
 
               {/* Big Title */}
@@ -1111,7 +1121,7 @@ export default function TripDetailPage() {
               </AnimatePresence>}
 
               {/* Weather + Tips Grid */}
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-4">
                 {/* Weather Card */}
                 <CurrentWeatherWidget
                     destination={destinationName}

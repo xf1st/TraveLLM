@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useMemo, Suspense } from "react"
+import Link from "next/link"
 import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText, CreditCard } from "lucide-react"
+import { User, Settings, Heart, Map as MapIcon, Clock, LogOut, Camera, Edit2, Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet, Medal, Hotel as HotelIcon, FileText, CreditCard, Star, Calendar } from "lucide-react"
 import { SubscriptionBadge } from "@/components/SubscriptionBadge"
 import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 import { Input } from "@/components/ui/input"
@@ -978,8 +979,8 @@ function ProfileContent() {
           ) : (
             <>
               {/* Navigation Tabs */}
-              <div className="flex justify-center border-b border-black/5 dark:border-white/10 mb-12 overflow-x-auto">
-                <div className="flex gap-8">
+              <div className="flex justify-center border-b border-black/5 dark:border-white/10 mb-12 overflow-x-auto px-2">
+                <div className="flex gap-4 sm:gap-8 min-w-max">
                   {tabs.map(tab => (
                     <button
                       key={tab.id}
@@ -1014,7 +1015,7 @@ function ProfileContent() {
                     {activeTab === "overview" && (
                       <div className="space-y-8">
                         {/* Stats Row */}
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 py-8 border-b border-black/5 dark:border-white/5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 py-8 border-b border-black/5 dark:border-white/5">
                           {[
                             { label: "Гражданство", value: profile?.citizenship || "Не указано" },
                             { label: "Темп", value: profile?.preferences?.pace === 'fast' ? "Активный" : "Умеренный" },
@@ -1228,32 +1229,53 @@ function ProfileContent() {
                           </h2>
                           <p className="text-muted-foreground">Здесь хранятся завершенные маршруты. Для каждого можно оставить оценку и отзыв.</p>
 
-                          <Card className="border-white/20 trip-glass overflow-hidden">
-                            <div className="divide-y divide-border/60">
+                          {completedTrips.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {completedTrips.map((trip: any) => {
                                 const feedback = feedbackByTripId[String(trip.id)] || null
                                 return (
-                                  <div key={trip.id} className="p-4 flex items-center justify-between gap-4">
-                                    <div className="min-w-0">
-                                      <div className="font-semibold text-foreground truncate">{trip.title || "Маршрут"}</div>
-                                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
-                                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                                          {trip.destination || "Без направления"}
-                                        </Badge>
-                                        <span>{new Date(trip.created_at || Date.now()).toLocaleDateString("ru-RU")}</span>
-                                        {feedback?.rating ? <span>Оценка: {feedback.rating}/5</span> : <span>Без оценки</span>}
-                                      </div>
-                                    </div>
-                                    <Button size="sm" variant="outline" onClick={() => setFeedbackTrip(trip)}>
-                                      {feedback?.rating ? "Изменить отзыв" : "Оценить"}
-                                    </Button>
-                                  </div>
+                                  <Link key={trip.id} href={`/trip/completed?tripId=${trip.id}`}>
+                                    <motion.div whileHover={{ y: -4, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+                                      <Card className="h-full border-white/10 bg-white/5 hover:bg-white/10 transition-colors overflow-hidden group flex flex-col relative">
+                                        <div className="absolute top-3 right-3 z-10">
+                                           {feedback?.rating ? (
+                                             <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 backdrop-blur-md">
+                                               <Star className="w-3 h-3 mr-1 fill-emerald-400 text-emerald-400" /> {feedback.rating}
+                                             </Badge>
+                                           ) : (
+                                             <Badge variant="secondary" className="bg-black/40 backdrop-blur-md border-white/10 text-white/70">
+                                               Без оценки
+                                             </Badge>
+                                           )}
+                                        </div>
+                                        <div className="h-32 w-full bg-muted/20 relative overflow-hidden">
+                                           {/* We could load real images, but for now gradient fallback or abstract pattern */}
+                                           <div className={`absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-cyan-500/20 to-blue-500/20 opacity-80 group-hover:opacity-100 transition-opacity`} />
+                                           <div className="absolute inset-0 flex items-center justify-center">
+                                              <MapPin className="w-8 h-8 text-white/30 group-hover:text-white/50 transition-colors group-hover:scale-110 duration-500" />
+                                           </div>
+                                        </div>
+                                        <div className="p-4 flex flex-col flex-grow">
+                                          <div className="font-bold text-foreground line-clamp-1 mb-1 group-hover:text-cyan-400 transition-colors">{trip.title || "Незабываемое путешествие"}</div>
+                                          <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3">
+                                            <span>{trip.destination || "Мир"}</span>
+                                          </div>
+                                          <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(trip.created_at || Date.now()).toLocaleDateString("ru-RU")}</span>
+                                            <span className="flex items-center gap-1 text-cyan-500 group-hover:translate-x-1 transition-transform">Смотреть <ArrowRight className="w-3 h-3" /></span>
+                                          </div>
+                                        </div>
+                                      </Card>
+                                    </motion.div>
+                                  </Link>
                                 )
                               })}
-
-                              {completedTrips.length === 0 && <div className="p-8 text-center text-muted-foreground">Пока нет завершенных маршрутов.</div>}
                             </div>
-                          </Card>
+                          ) : (
+                            <Card className="border-white/20 trip-glass p-8 text-center text-muted-foreground">
+                              Пока нет завершенных маршрутов.
+                            </Card>
+                          )}
                         </div>
 
                         <div className="grid gap-6">

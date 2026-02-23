@@ -20,7 +20,7 @@ import {
   Sun
 } from "lucide-react"
 import { toast } from "sonner"
-import html2canvas from "html2canvas"
+import { toPng } from "html-to-image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts"
 
@@ -66,15 +66,17 @@ export function TripShareDialog({
       // Small delay to ensure everything is rendered
       await new Promise(r => setTimeout(r, 100))
       
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2, // High quality
-        useCORS: true,
-        backgroundColor: theme === "dark" ? "#050505" : "#ffffff",
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2, // High quality
+        skipFonts: true, // Bypass cross-origin font/stylesheet issues
+        style: {
+          backgroundColor: theme === "dark" ? "#050505" : "#ffffff",
+        }
       })
       
       const link = document.createElement("a")
       link.download = `travellm-trip-${tripData?.destination || "story"}.png`
-      link.href = canvas.toDataURL("image/png")
+      link.href = dataUrl
       link.click()
       toast.success("Карточка сохранена")
     } catch (error) {
@@ -87,11 +89,12 @@ export function TripShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl border-white/10 bg-zinc-950 text-white p-0 overflow-hidden rounded-[2.5rem]">
-        <div className="flex flex-col lg:flex-row h-full max-h-[90vh]">
-          
+      <DialogContent className="max-w-4xl border-white/10 bg-zinc-950 text-white p-0 overflow-y-auto max-h-[90vh] rounded-[2.5rem]">
+        <DialogTitle className="sr-only">Поделиться профилем</DialogTitle>
+        <div className="flex flex-col lg:flex-row">
+
           {/* Left: Preview Section */}
-          <div className="flex-1 bg-[#050505] p-6 lg:p-10 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-white/5 relative overflow-y-auto">
+          <div className="flex-1 bg-[#050505] p-4 sm:p-6 lg:p-10 flex flex-col items-center justify-center border-b lg:border-b-0 lg:border-r border-white/5 relative">
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(16,185,129,0.05),transparent)] pointer-events-none" />
             
             <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
@@ -113,9 +116,9 @@ export function TripShareDialog({
 
             {/* Story Card Target */}
             <div className="relative group shadow-2xl shadow-emerald-500/10">
-              <div 
+              <div
                 ref={cardRef}
-                className={`w-[280px] h-[497px] ${theme === 'dark' ? 'bg-[#050505]' : 'bg-white'} border ${theme === 'dark' ? 'border-white/10' : 'border-zinc-200'} rounded-[2rem] overflow-hidden flex flex-col relative`}
+                className={`w-[220px] h-[391px] sm:w-[280px] sm:h-[497px] ${theme === 'dark' ? 'bg-[#050505]' : 'bg-white'} border ${theme === 'dark' ? 'border-white/10' : 'border-zinc-200'} rounded-[2rem] overflow-hidden flex flex-col relative`}
                 style={{ fontFamily: "sans-serif" }}
               >
                 {/* Background effects */}
@@ -123,7 +126,7 @@ export function TripShareDialog({
                 <div className={`absolute bottom-0 right-0 w-full h-[40%] bg-gradient-to-t ${theme === 'dark' ? 'from-emerald-500/10' : 'from-emerald-500/5'} to-transparent pointer-events-none`} />
                 
                 {/* Content */}
-                <div className="relative z-10 flex flex-col h-full p-6 pb-8">
+                <div className="relative z-10 flex flex-col h-full p-4 sm:p-6 pb-6 sm:pb-8">
                   
                   {/* Header */}
                   <div className="flex justify-between items-start mb-6">
@@ -143,7 +146,7 @@ export function TripShareDialog({
                   </div>
 
                   {/* Radar Chart */}
-                  <div className="h-[180px] w-full mb-4">
+                  <div className="h-[120px] sm:h-[180px] w-full mb-3 sm:mb-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
                         <PolarGrid stroke="#333" />
@@ -195,7 +198,7 @@ export function TripShareDialog({
           </div>
 
           {/* Right: Actions Section */}
-          <div className="w-full lg:w-[360px] p-8 flex flex-col justify-center gap-8 bg-zinc-900/50">
+          <div className="w-full lg:w-[360px] p-6 sm:p-8 flex flex-col justify-start lg:justify-center gap-6 sm:gap-8 bg-zinc-900/50">
             <div>
               <h2 className="text-2xl font-black mb-3">Поделитесь моментом</h2>
               <p className="text-sm text-zinc-400 leading-relaxed font-medium">

@@ -155,7 +155,7 @@ export default function LandingPage() {
         <section className="w-full max-w-7xl mx-auto px-4 py-24 border-t border-black/5 dark:border-white/5 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4 border-violet-500/50 text-violet-500 bg-violet-500/10 uppercase tracking-widest">Инсайты AI</Badge>
-            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter">Спроектировано для <span className="text-primary italic">впечатлений</span></h2>
+            <h2 className="text-3xl md:text-5xl font-black mb-4 tracking-tighter">Спроектировано для <span className="text-blue-600 dark:text-primary italic">впечатлений</span></h2>
             <p className="text-muted-foreground max-w-xl mx-auto">Мы превращаем сухие данные в живой сценарий вашего отпуска</p>
           </div>
           
@@ -180,7 +180,7 @@ export default function LandingPage() {
                 title: "Shibuya Crossing Tokyo", 
                 description: "Самый оживленный перекресток мира встретил нас неоновыми огнями и бесконечным потоком людей. Настоящее сердце Токио!",
                 imageQuery: "shibuya crossing",
-                imageUrl: "https://images.unsplash.com/photo-15420518418c7-a53eccaea7df?auto=format&fit=crop&q=80&w=1000"
+                imageUrl: "https://as2.ftcdn.net/jpg/00/85/60/39/1000_F_85603973_vx8wY7kfLc0do3OGSbg24seYDy8GRi9D.jpg"
               },
               { 
                 day: 2, 
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 title: "Tsukiji Outer Market", 
                 description: "Запах свежей рыбы и вкус лучшего суши в нашей жизни. Гастрономический экстаз.",
                 imageQuery: "tsukiji market food",
-                imageUrl: "https://images.unsplash.com/photo-1504416284471-3fd46bbbb1ad?auto=format&fit=crop&q=80&w=1000"
+                imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/fb/Tsukiji_Outer_Market.jpg"
               }
             ]}
           />
@@ -202,7 +202,7 @@ export default function LandingPage() {
         {/* ===== ABOUT / FEATURES SECTION ===== */}
         <section className="w-full max-w-7xl mx-auto px-4 py-32 relative z-20">
           <div className="text-center mb-20 max-w-3xl mx-auto">
-            <Badge variant="outline" className="mb-6 border-primary/40 text-primary bg-primary/5 px-4 py-1 rounded-full uppercase tracking-[0.2em] text-[10px] font-bold">О технологии TraveLLM</Badge>
+            <Badge variant="outline" className="mb-6 border-primary/40 text-blue-600 dark:text-primary bg-primary/5 px-4 py-1 rounded-full uppercase tracking-[0.2em] text-[10px] font-bold">О технологии TraveLLM</Badge>
             <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70 dark:from-white dark:to-white/60">
               Путешествия, созданные <br />
             </h2>
@@ -224,7 +224,7 @@ export default function LandingPage() {
               <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-primary/20 transition-all duration-500 border-none">
                 <div className="absolute inset-0 z-0">
                   <TripImage 
-                    src="https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1000"
+                    src="https://i.pinimg.com/736x/33/49/e9/3349e98f2f8465a6e037f71803890018.jpg"
                     alt="AI Intelligence" 
                     query="futuristic neural network city abstract" 
                     className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 
@@ -253,7 +253,7 @@ export default function LandingPage() {
               <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-sky-500/20 transition-all duration-500 border-none">
                 <div className="absolute inset-0 z-0">
                   <TripImage 
-                    src="https://images.unsplash.com/photo-1436491865332-7a61a109c0f3?auto=format&fit=crop&q=80&w=1000"
+                    src="https://vestikavkaza.ru/upload/2025-12-29/17670342006952cd580923a3.94791965.jpg"
                     alt="Real Data" 
                     query="cinematic airplane wing above clouds sunset" 
                     className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 
@@ -282,7 +282,7 @@ export default function LandingPage() {
               <Card className="relative h-[450px] overflow-hidden group bg-transparent border-white/10 rounded-[3rem] shadow-2xl hover:shadow-pink-500/20 transition-all duration-500 border-none">
                 <div className="absolute inset-0 z-0">
                   <TripImage 
-                    src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=1000"
+                    src="https://i.pinimg.com/originals/e0/ac/79/e0ac79661d184e8615b142d7e988e300.jpg"
                     alt="Detailed Itinerary" 
                     query="minimalist aesthetic map travel pin landscape" 
                     className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 opacity-40 dark:opacity-30" 

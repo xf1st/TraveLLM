@@ -314,8 +314,8 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   return (
-    <div className="sticky top-0 z-50 w-full p-3 md:p-4">
-      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl trip-glass shadow-2xl">
+    <div className="sticky top-0 z-50 w-full p-2 sm:p-3 md:p-4">
+      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl trip-glass shadow-2xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
           <Logo size={24} />
@@ -368,11 +368,11 @@ export function Header({ floating = false }: HeaderProps) {
           <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-1" aria-label="Открыть меню">
+                <Button variant="ghost" size="icon" className="mr-1 h-9 w-9 min-h-[44px] min-w-[44px]" aria-label="Открыть меню">
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-xl">
                 <DropdownMenuLabel>Меню</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {navLinks.map((link) => {
@@ -380,9 +380,9 @@ export function Header({ floating = false }: HeaderProps) {
                   return (
                     <DropdownMenuItem key={link.href} asChild className="rounded-lg">
                       <Link href={link.href} className={cn(
-                        "w-full cursor-pointer flex items-center justify-between group transition-all duration-300",
-                        isCreateTrip 
-                          ? "relative hover:bg-accent/50 shadow-sm" 
+                        "w-full cursor-pointer flex items-center justify-between group transition-all duration-300 py-2.5",
+                        isCreateTrip
+                          ? "relative hover:bg-accent/50 shadow-sm"
                           : (pathname === link.href ? "bg-accent/50 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium")
                       )}>
                         {isCreateTrip && (

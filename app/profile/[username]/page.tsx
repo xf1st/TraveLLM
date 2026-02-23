@@ -187,7 +187,7 @@ export default function PublicProfilePage() {
               </p>
             )}
 
-            <div className="flex items-center gap-6 mt-6 text-sm font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 text-sm font-medium">
               <div className="flex flex-col items-center">
                 <span className="text-2xl font-bold text-foreground">{tripCount}</span>
                 <span className="text-xs text-muted-foreground uppercase tracking-widest">Поездки</span>
