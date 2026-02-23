@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { Bot, Navigation, Settings, FileText } from "lucide-react"
+import { Bot, Navigation, Settings, FileText, Wallet } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface MapControlsProps {
@@ -11,11 +11,13 @@ interface MapControlsProps {
   onOpenRoute: () => void
   onOpenNearby: () => void
   onOpenSettings: () => void
+  onOpenBudget: () => void
 }
 
-export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, onOpenSettings }: MapControlsProps) {
+export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, onOpenSettings, onOpenBudget }: MapControlsProps) {
   const buttons = [
     { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE" },
+    { icon: Wallet, label: "Бюджет", onClick: onOpenBudget, color: "text-emerald-400", show: viewState === "ACTIVE" },
     { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-blue-400", show: true },
     { icon: Navigation, label: "Рядом", onClick: onOpenNearby, color: "text-amber-400", show: viewState === "ACTIVE" },
     { icon: Settings, label: "Настройки", onClick: onOpenSettings, color: "text-gray-400", show: true },

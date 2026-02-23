@@ -11,6 +11,7 @@ import dynamic from "next/dynamic"
 import { MapChatWidget } from "./MapChatWidget"
 import { MapSettings } from "./MapSettings"
 import { NearbyPlacesPanel } from "./NearbyPlacesPanel"
+import { BudgetTracker } from "../social/BudgetTracker"
 import { fetchRoute, type RouteGeometry, type RouteResult, type RoutingProfile } from "@/lib/routing"
 import { PoiDrawer, type PoiDrawerPoint } from "./PoiDrawer"
 import { DEFAULT_TRAVEL_IMAGE, buildImageQuery, isProbablyBlockedImage } from "@/lib/image-utils"
@@ -214,7 +215,7 @@ export default function TravelDashboard() {
   const tripId = searchParams.get("tripId")
 
   const [viewState, setViewState] = useState<DashboardState>("IDLE")
-  const [activePanel, setActivePanel] = useState<"none" | "ai" | "route" | "nearby" | "settings" | "route-picker" | "poi">("none")
+  const [activePanel, setActivePanel] = useState<"none" | "ai" | "route" | "nearby" | "settings" | "route-picker" | "poi" | "budget">("none")
   const [trip, setTrip] = useState<any>(null)
   const [activeRouteRef, setActiveRouteRef] = useState<ActiveRouteRef | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -1331,6 +1332,7 @@ export default function TravelDashboard() {
           onOpenRoute={handleOpenRoutePanel}
           onOpenNearby={() => setActivePanel("nearby")}
           onOpenSettings={() => setActivePanel("settings")}
+          onOpenBudget={() => setActivePanel("budget")}
         />
 
         <div className="absolute left-4 bottom-20 md:bottom-4 pointer-events-auto z-50">
@@ -1415,6 +1417,22 @@ export default function TravelDashboard() {
           tripContext={trip}
           activeDay={activeDay}
         />
+      )}
+
+      {activePanel === "budget" && trip?.id && (
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-zinc-950/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative">
+            <button 
+              onClick={() => setActivePanel("none")}
+              className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all shadow-xl"
+            >
+              <X size={20} />
+            </button>
+            <div className="overflow-y-auto max-h-[85vh] p-1">
+              <BudgetTracker tripId={trip.id} />
+            </div>
+          </div>
+        </div>
       )}
 
       {activePanel === "route-picker" && (
