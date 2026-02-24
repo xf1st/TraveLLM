@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, Heart, Zap, Crown, ArrowRight, Copy, CheckCheck, Mail } from "lucide-react"
+import { Check, Heart, Zap, Crown, ArrowRight, Copy, CheckCheck, Mail, Send } from "lucide-react"
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
@@ -68,6 +68,7 @@ const TIERS = [
     badge: { label: "Max", colorClass: "text-purple-400 bg-purple-400/10 border-purple-400/30" },
     buttonDisabled: true,
     buttonText: "Скоро",
+    buttonHref: "https://t.me/TraveLLM_AI",
     colorClass: "border-purple-400/30",
     icon: Crown,
     planKey: "Max",
@@ -249,6 +250,16 @@ export default function SubscribePage() {
                 >
                   {selectedPlan === tier.planKey ? "✓ Выбрано" : "Выбрать"}
                 </button>
+              ) : tier.buttonHref ? (
+                <a
+                  href={tier.buttonHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold border border-purple-400/40 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+                >
+                  <Send className="h-4 w-4" />
+                  {tier.buttonText}
+                </a>
               ) : (
                 <Button disabled className="w-full rounded-xl opacity-40 text-sm">
                   {tier.buttonText}

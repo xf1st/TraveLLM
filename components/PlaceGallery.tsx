@@ -18,11 +18,24 @@ function detectProvider(url: string): { label: string; color: string } {
     if (url.includes("unsplash.com")) return { label: "unsplash", color: "bg-sky-500" }
     if (url.includes("wikimedia.org")) return { label: "wiki", color: "bg-purple-500" }
     if (url.includes("googleusercontent.com") || url.includes("googleapis.com")) return { label: "google", color: "bg-blue-500" }
+    if (url.includes("supabase")) return { label: "cdn", color: "bg-teal-500" }
     return { label: "local", color: "bg-slate-500" }
 }
 
 // Module-level client cache: survives re-renders and component remounts within a session
 const galleryClientCache = new Map<string, string[]>()
+
+/**
+ * Trip-wide URL deduplication set.
+ * Shared across all PlaceGallery instances in the same browser session.
+ * Call clearTripGalleryCache() when navigating to a new trip.
+ */
+const tripUsedUrls = new Set<string>()
+
+export function clearTripGalleryCache() {
+    tripUsedUrls.clear()
+    galleryClientCache.clear()
+}
 
 export function PlaceGallery({ query, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
     const cacheKey = `${query}:${count}`
@@ -47,14 +60,22 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
         const fetchImages = async () => {
             setLoading(true)
             try {
-                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${count}`)
+                // Request extra images so we can filter out cross-activity duplicates client-side
+                // (avoids URL length explosion from passing exclude URLs as query param)
+                const requestCount = count + Math.min(tripUsedUrls.size, count * 2)
+                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${requestCount}`)
                 const data = await res.json()
                 if (data.images && data.images.length > 0) {
-                    galleryClientCache.set(key, data.images)
-                    setImages(data.images)
+                    // Client-side dedup: prefer images not yet shown in this trip
+                    const fresh = data.images.filter((u: string) => !tripUsedUrls.has(u))
+                    const finalImages = (fresh.length >= count ? fresh : data.images).slice(0, count)
+                    // Register in trip-wide set
+                    for (const url of finalImages) tripUsedUrls.add(url)
+                    galleryClientCache.set(key, finalImages)
+                    setImages(finalImages)
                 }
             } catch (e) {
-                console.error("Gallery fetch failed")
+                console.error("Gallery fetch failed", e)
             } finally {
                 setLoading(false)
             }

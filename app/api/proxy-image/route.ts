@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
         });
 
         if (!response.ok) {
-            return new NextResponse(`Failed to fetch image: ${response.statusText}`, { status: response.status });
+            // Cache error responses so clients don't hammer the same broken URL repeatedly
+            return new NextResponse(`Failed to fetch image: ${response.statusText}`, {
+                status: response.status,
+                headers: { "Cache-Control": "public, max-age=3600" }
+            });
         }
 
         const contentType = response.headers.get("Content-Type") || "image/jpeg";

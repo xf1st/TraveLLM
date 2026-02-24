@@ -66,36 +66,47 @@ export async function POST(req: Request) {
             `День ${day.day}: ${day.title}\n  Активности: ${day.activities?.map((a: any) => `${a.time}: ${a.placeName}`).join(', ') || 'нет'}`
         ).join('\n')
 
-        // First, classify the intent
-        const classifyPrompt = `Проанализируй сообщение пользователя и определи его намерение.
+        // Classify intent AND parse modification in a single call (saves 1 AI round-trip)
+        const classifyAndParsePrompt = `Проанализируй сообщение пользователя о маршруте путешествия.
 
-КОНТЕКСТ: Пользователь просматривает маршрут путешествия "${tripTitle}" в ${destination}.
+МАРШРУТ "${tripTitle}" (${destination}):
+${itineraryContext}
 
 СООБЩЕНИЕ: "${userMessage}"
 
-Определи тип:
-1. MODIFY - пользователь хочет ИЗМЕНИТЬ маршрут (заменить, добавить, удалить, сократить дни)
-   Примеры: "замени музей на кафе", "добавь ресторан в день 2", "сократи до 5 дней"
-   
-2. QUESTION - пользователь задает ВОПРОС о маршруте или месте (не хочет ничего менять)
-   Примеры: "что посмотреть рядом?", "какая погода будет?", "нужна ли виза?", "расскажи про это место"
+Если пользователь хочет ИЗМЕНИТЬ маршрут — верни JSON с деталями изменения:
 
-Верни ТОЛЬКО JSON:
-{"intent": "MODIFY" или "QUESTION"}`
+Вариант 1 — редактировать/заменить активность:
+{"intent":"MODIFY","action":"edit_activity","dayNumber":N,"timeSlot":"Утро/День/Вечер или null","currentActivity":"текущее название или null","newActivityRequest":"что хочет","explanation":"кратко что сделано"}
+
+Вариант 2 — добавить активность:
+{"intent":"MODIFY","action":"add_activity","dayNumber":N,"timeSlot":"Вечер","newActivityRequest":"что добавить","explanation":"..."}
+
+Вариант 3 — перераспределить дни:
+{"intent":"MODIFY","action":"redistribute","changes":[{"city":"X","currentDays":N,"newDays":M}],"explanation":"..."}
+
+Если пользователь задаёт ВОПРОС (не хочет ничего менять):
+{"intent":"QUESTION"}
+
+Верни ТОЛЬКО JSON, без markdown.`
 
         const classifyRawResponse = await inferenceFn([
-            { role: "system", content: "Классификатор намерений." },
-            { role: "user", content: classifyPrompt }
-        ], { maxTokens: 100, temperature: 0.1, responseFormat: "json_object" })
-        
-        const classifyRaw = classifyRawResponse.content
+            { role: "system", content: "Анализатор намерений и запросов на изменение маршрутов. Отвечай только JSON." },
+            { role: "user", content: classifyAndParsePrompt }
+        ], { maxTokens: 300, temperature: 0.1, responseFormat: "json_object" })
 
-        let intent = "QUESTION" // Default to question
+        const classifyRaw = classifyRawResponse.content
+        // Use a dummy parseRawResponse object to keep usage aggregation working below
+        const parseRawResponse = { content: "{}", usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: 0, costRub: 0, model: "" } }
+
+        let intent = "QUESTION"
+        let parsedRequest: any = null
         try {
             const match = classifyRaw.match(/\{[\s\S]*\}/)?.[0]
             if (match) {
                 const parsed = JSON.parse(match)
                 intent = parsed.intent || "QUESTION"
+                if (intent === "MODIFY") parsedRequest = parsed
             }
         } catch {
             // Default to question if parsing fails
@@ -103,41 +114,9 @@ export async function POST(req: Request) {
 
         console.log(`Trip Assistant: Intent = ${intent}, Message = "${userMessage}"`)
 
-        // Handle MODIFY intent - call modify-itinerary logic
+        // Handle MODIFY intent
         if (intent === "MODIFY") {
-            // Parse the modification request
-            const parsePrompt = `Проанализируй запрос на изменение маршрута.
-
-ТЕКУЩИЙ МАРШРУТ:
-${itineraryContext}
-
-ЗАПРОС: "${userMessage}"
-
-Определи тип изменения:
-
-ТИП 1 - РЕДАКТИРОВАНИЕ АКТИВНОСТИ:
-{"action": "edit_activity", "dayNumber": N, "timeSlot": "Утро/День/Вечер" или null, "currentActivity": "название" или null, "newActivityRequest": "что хочет", "explanation": "..."}
-
-ТИП 2 - ДОБАВЛЕНИЕ АКТИВНОСТИ:
-{"action": "add_activity", "dayNumber": N, "timeSlot": "Вечер", "newActivityRequest": "что добавить", "explanation": "..."}
-
-ТИП 3 - ПЕРЕРАСПРЕДЕЛЕНИЕ ДНЕЙ:
-{"action": "redistribute", "changes": [{"city": "X", "currentDays": N, "newDays": M}], "explanation": "..."}
-
-Верни JSON без markdown!`
-
-            const parseRawResponse = await inferenceFn([
-                { role: "system", content: "Анализатор запросов на изменение маршрутов." },
-                { role: "user", content: parsePrompt }
-            ], { maxTokens: 500, temperature: 0.3, responseFormat: "json_object" })
-            
-            const parseRaw = parseRawResponse.content
-
-            let parsedRequest
-            try {
-                const clean = parseRaw.match(/\{[\s\S]*\}/)?.[0] || parseRaw
-                parsedRequest = JSON.parse(clean)
-            } catch {
+            if (!parsedRequest) {
                 return NextResponse.json({
                     type: "message",
                     reply: "Не совсем понял, что изменить. Попробуйте:\n• \"Замени музей на кафе в день 2\"\n• \"Добавь вечерний бар в день 3\"\n• \"Сократи Сочи до 3 дней\""
@@ -230,7 +209,7 @@ ${itineraryContext}
                     return { ...day, activities: updatedActivities, dayTotal: `${dayTotal.toLocaleString("ru-RU")} ₽` }
                 })
 
-                // Aggregate usage from all three calls
+                // Aggregate usage from classify+parse call and activity generation call
                 const totalUsage = {
                     promptTokens: (classifyRawResponse.usage?.promptTokens || 0) + (parseRawResponse.usage?.promptTokens || 0) + (activityRawResponse.usage?.promptTokens || 0),
                     completionTokens: (classifyRawResponse.usage?.completionTokens || 0) + (parseRawResponse.usage?.completionTokens || 0) + (activityRawResponse.usage?.completionTokens || 0),

@@ -333,17 +333,24 @@ export async function getDestinationImage(query: string): Promise<string> {
  * NOTE: Pexels CDN (images.pexels.com) IS blocked in Russia without VPN.
  *       TripImage component handles this client-side: direct → proxy → /api/image → fallback.
  *
- * @param query  Descriptive query (e.g. "rooftop restaurant Istanbul")
- * @param count  Max number of images
+ * @param query       Descriptive query (e.g. "rooftop restaurant Istanbul")
+ * @param count       Max number of images
+ * @param excludeUrls URLs already used in this trip — will be filtered out to prevent duplicates
  */
-export async function getGalleryImages(query: string, count: number = 4): Promise<string[]> {
+export async function getGalleryImages(query: string, count: number = 4, excludeUrls?: string[]): Promise<string[]> {
     const cacheKey = `gallery:${query.toLowerCase().trim()}:${count}`
 
-    const cached = galleryCache.get(cacheKey)
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
+    // Build exclusion set for fast lookup
+    const excluded = excludeUrls && excludeUrls.length > 0 ? new Set(excludeUrls) : null
 
-    // --- Persistency Check ---
-    if (supabase) {
+    // Check in-memory cache (only if no exclusions, to avoid serving cached+excluded results)
+    if (!excluded) {
+        const cached = galleryCache.get(cacheKey)
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
+    }
+
+    // --- Persistency Check (only if no exclusions) ---
+    if (!excluded && supabase) {
         try {
             const { data } = await supabase
                 .from("image_cache")
@@ -362,6 +369,11 @@ export async function getGalleryImages(query: string, count: number = 4): Promis
     try {
         const seen = new Set<string>()
         const finalUrls: string[] = []
+
+        // Pre-seed seen set with excluded URLs so they're never returned
+        if (excluded) {
+            for (const u of excluded) seen.add(u)
+        }
 
         const addUrls = (urls: string[]) => {
             for (const u of urls) {

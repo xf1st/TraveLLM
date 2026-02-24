@@ -45,6 +45,8 @@ import {
 } from "lucide-react"
 import { GeneratingModal } from "@/components/GeneratingModal"
 import { ErrorModal } from "@/components/ErrorModal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
@@ -95,6 +97,8 @@ export default function PlanPage() {
   // UI State
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [showEconomyWarning, setShowEconomyWarning] = useState(false)
+  const [pendingPayload, setPendingPayload] = useState<any>(null)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -269,88 +273,8 @@ export default function PlanPage() {
     return errors
   }
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault()
-
-    const errors = validateForm()
-    if (errors.length > 0) {
-      setValidationErrors(errors)
-      setErrorModal({
-        open: true,
-        title: "Проверьте данные",
-        message: "Пожалуйста, заполните все обязательные поля:",
-        blockers: errors.map((err, i) => ({ code: `VAL${i}`, message: err }))
-      })
-      return
-    }
-    setValidationErrors([])
-
-    setLoading(true)
-
+  const proceedGeneration = async (requestPayload: any) => {
     try {
-      let tripDays = 7
-      if (date?.from && date?.to) {
-        tripDays = Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      }
-
-      let effectiveBudget = budget
-      if (budget === "custom" && customBudget) {
-        const budgetNum = parseInt(customBudget.replace(/\D/g, ""))
-        if (budgetNum < 30000) effectiveBudget = "economy"
-        else if (budgetNum < 80000) effectiveBudget = "comfort"
-        else effectiveBudget = "premium"
-      }
-
-      let destinationValue: string
-      let destinationType: string = destination
-
-      if (destination === "custom") {
-        destinationValue = sanitizeInput(customDestination)
-        destinationType = "custom"
-      } else {
-        const count = countryCount === "more" ? "4+" : countryCount
-        if (destination === "russia") {
-          destinationValue = `Россия (${count} ${parseInt(count) === 1 ? "город" : "города"})`
-        } else {
-          destinationValue = `Заграница (${count} ${parseInt(count) === 1 ? "страна" : "страны"})`
-        }
-      }
-
-      const travelersCount = companions === "solo" ? 1 : companions === "couple" ? 2 : companions === "family" ? 4 : 3
-
-      const requestPayload = {
-        destination: destinationValue,
-        destinationType,
-        customDestination: destination === "custom" ? sanitizeInput(customDestination) : undefined,
-        days: tripDays,
-        budget: effectiveBudget,
-        customBudget: budget === "custom" ? customBudget : undefined,
-        departureCity: sanitizeInput(departureCity),
-        travelStyle,
-        companions,
-        countryCount: destination !== "custom" ? countryCount : undefined,
-        paymentMethods,
-        guideLanguage,
-        startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
-        endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
-        travelers: (companions === 'family' || companions === 'friends') ? travelers : (companions === 'solo' ? 1 : 2),
-        aiCreativity,
-        filterByDocuments,
-        tripHighlight: tripHighlight.trim() ? sanitizeInput(tripHighlight) : undefined,
-        preferences: profile?.preferences ? {
-          citizenship: profile.preferences.citizenship || profile.citizenship,
-          languages: profile.preferences.languages || profile.languages,
-          interestsDetailed: profile.preferences.interestsDetailed,
-          dietaryRestrictions: profile.preferences.dietaryRestrictions,
-          dietaryCustom: profile.preferences.dietaryCustom,
-          pace: profile.preferences.pace,
-          gender: profile.preferences.gender,
-          age: profile.preferences.age,
-          documents: profile.preferences.documents,
-        } : undefined,
-      }
-
-
       console.log("Submitting request:", requestPayload)
 
       // Create new AbortController
@@ -384,7 +308,7 @@ export default function PlanPage() {
         const tripRecord = {
           user_id: user.id,
           title: routeData.title || "Новый маршрут",
-          destination: routeData.countries?.[0]?.name || customDestination || "Путешествие",
+          destination: routeData.countries?.[0]?.name || requestPayload.customDestination || "Путешествие",
           description: routeData.description || "",
           itinerary: routeData.itinerary || [],
           total_cost: routeData.totalBudget || "",
@@ -453,6 +377,98 @@ export default function PlanPage() {
     }
   }
 
+  const handleEconomyChoice = async (strict: boolean) => {
+    setShowEconomyWarning(false)
+    if (!pendingPayload) return
+    const finalPayload = { ...pendingPayload, strictDestinations: strict }
+    setPendingPayload(null)
+    setLoading(true)
+    await proceedGeneration(finalPayload)
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+
+    const errors = validateForm()
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      setErrorModal({
+        open: true,
+        title: "Проверьте данные",
+        message: "Пожалуйста, заполните все обязательные поля:",
+        blockers: errors.map((err, i) => ({ code: `VAL${i}`, message: err }))
+      })
+      return
+    }
+    setValidationErrors([])
+
+    let tripDays = 7
+    if (date?.from && date?.to) {
+      tripDays = Math.ceil((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    }
+
+    // Keep "custom" as-is — the API uses customBudget value directly.
+    // Don't remap to economy/comfort/premium by total amount (that ignores trip duration).
+    const effectiveBudget = budget
+
+    let destinationValue: string
+    let destinationType: string = destination
+
+    if (destination === "custom") {
+      destinationValue = sanitizeInput(customDestination)
+      destinationType = "custom"
+    } else {
+      const count = countryCount === "more" ? "4+" : countryCount
+      if (destination === "russia") {
+        destinationValue = `Россия (${count} ${parseInt(count) === 1 ? "город" : "города"})`
+      } else {
+        destinationValue = `Заграница (${count} ${parseInt(count) === 1 ? "страна" : "страны"})`
+      }
+    }
+
+    const requestPayload = {
+      destination: destinationValue,
+      destinationType,
+      customDestination: destination === "custom" ? sanitizeInput(customDestination) : undefined,
+      days: tripDays,
+      budget: effectiveBudget,
+      customBudget: budget === "custom" ? customBudget : undefined,
+      departureCity: sanitizeInput(departureCity),
+      travelStyle,
+      companions,
+      countryCount: destination !== "custom" ? countryCount : undefined,
+      paymentMethods,
+      guideLanguage,
+      startDate: date?.from ? format(date.from, "yyyy-MM-dd") : undefined,
+      endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
+      travelers: (companions === 'family' || companions === 'friends') ? travelers : (companions === 'solo' ? 1 : 2),
+      aiCreativity,
+      filterByDocuments,
+      tripHighlight: tripHighlight.trim() ? sanitizeInput(tripHighlight) : undefined,
+      preferences: profile?.preferences ? {
+        citizenship: profile.preferences.citizenship || profile.citizenship,
+        languages: profile.preferences.languages || profile.languages,
+        interestsDetailed: profile.preferences.interestsDetailed,
+        dietaryRestrictions: profile.preferences.dietaryRestrictions,
+        dietaryCustom: profile.preferences.dietaryCustom,
+        pace: profile.preferences.pace,
+        gender: profile.preferences.gender,
+        age: profile.preferences.age,
+        documents: profile.preferences.documents,
+      } : undefined,
+    }
+
+    // Check for economy + specific cities conflict — ask user what to do
+    if (effectiveBudget === "economy" && destination === "custom" && customDestination.trim()) {
+      setPendingPayload(requestPayload)
+      setShowEconomyWarning(true)
+      return
+    }
+
+    setLoading(true)
+    await proceedGeneration(requestPayload)
+  }
+
   const handleCancelGeneration = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -497,6 +513,38 @@ export default function PlanPage() {
         warnings={errorModal.warnings}
         details={errorModal.details}
       />
+
+      {/* Economy + specific cities conflict dialog */}
+      <Dialog open={showEconomyWarning} onOpenChange={setShowEconomyWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Эконом-бюджет + конкретные города
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-1">
+              Вы выбрали эконом (~7 500 ₽/день) и указали конкретные города.
+              В некоторых городах (Токио, Дубай, Лондон) это потребует хостелов и уличной еды.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={() => handleEconomyChoice(true)}
+              className="w-full rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 text-left"
+            >
+              <p className="font-semibold text-sm">Генерировать именно в этих городах</p>
+              <p className="text-xs text-muted-foreground mt-1">AI найдёт самые дешёвые варианты и объяснит, как сэкономить</p>
+            </button>
+            <button
+              onClick={() => handleEconomyChoice(false)}
+              className="w-full rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 text-left"
+            >
+              <p className="font-semibold text-sm">Дать AI выбрать похожие, но дешевле</p>
+              <p className="text-xs text-muted-foreground mt-1">AI подберёт направления, которые лучше вписываются в бюджет</p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
 
 

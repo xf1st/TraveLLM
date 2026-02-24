@@ -190,6 +190,90 @@ const iconTextColors: Record<ColorTheme, string> = {
   free: "text-indigo-700 dark:text-indigo-200",
 }
 
+// Maps common Russian country/city names to English for gallery search
+const RU_TO_EN_DESTINATIONS: Record<string, string> = {
+  "таиланд": "Thailand", "тайланд": "Thailand", "бангкок": "Bangkok", "чиангмай": "Chiang Mai",
+  "япония": "Japan", "токио": "Tokyo", "осака": "Osaka", "киото": "Kyoto",
+  "франция": "France", "париж": "Paris", "италия": "Italy", "рим": "Rome", "венеция": "Venice",
+  "испания": "Spain", "барселона": "Barcelona", "мадрид": "Madrid",
+  "дубай": "Dubai", "оаэ": "UAE", "абу-даби": "Abu Dhabi",
+  "турция": "Turkey", "стамбул": "Istanbul", "анталья": "Antalya", "каппадокия": "Cappadocia",
+  "индонезия": "Indonesia", "бали": "Bali", "индия": "India", "вьетнам": "Vietnam",
+  "россия": "Russia", "москва": "Moscow", "санкт-петербург": "Saint Petersburg",
+  "греция": "Greece", "афины": "Athens", "мальдивы": "Maldives", "египет": "Egypt",
+  "португалия": "Portugal", "лиссабон": "Lisbon", "чехия": "Czech Republic", "прага": "Prague",
+}
+
+// Russian + Thai nature/place keywords → English descriptors for Pexels search
+const RU_NATURE_KEYWORDS: [RegExp, string][] = [
+  [/водопад/i, "waterfall lush jungle cascading"],
+  [/пещер/i, "cave stalactites underground"],
+  [/гор[аы]|горный/i, "mountain peak scenic vista"],
+  [/пляж/i, "beach tropical sand turquoise"],
+  [/остров/i, "island tropical turquoise water"],
+  [/джунгл/i, "jungle tropical rainforest green"],
+  [/лес/i, "forest nature green trees"],
+  [/ночной рынок|рынок/i, "market stalls colorful local night"],
+  [/\bват\b|\bwat\b/i, "Buddhist temple ornate golden spire"],  // Thai "Ват/Wat" = temple
+  [/храм|монастырь/i, "temple ancient architecture sacred"],
+  [/дворец/i, "palace historic ornate architecture"],
+  [/мост/i, "bridge scenic river crossing"],
+  [/закат|рассвет/i, "sunset golden hour scenic dramatic"],
+  [/треккинг|поход|хайкинг/i, "hiking trail scenic nature"],
+  [/снорк|дайвинг/i, "snorkeling coral reef underwater colorful"],
+  [/слон/i, "elephant sanctuary nature conservation"],
+  [/тигр/i, "tiger wildlife sanctuary"],
+  [/ферм/i, "farm rural countryside organic"],
+  [/сафари/i, "safari wildlife nature animals"],
+  [/вулкан/i, "volcano scenic dramatic landscape"],
+  [/река|канал|клонг/i, "river canal scenic water boat"],
+  [/озер/i, "lake scenic reflection mountain"],
+  [/чайнатаун|chinatown/i, "Chinatown colorful lanterns street market"],
+  [/скайвок|skywalk|небоскрёб|небоскреб/i, "skyscraper glass observation deck city panorama"],
+  [/плавуч|floating/i, "floating market colorful boats tropical"],
+  [/кулинар|cooking school/i, "cooking class Thai food kitchen herbs"],
+  [/массаж|spa/i, "spa massage relaxing wellness"],
+  [/тук-тук|тук тук|tuk.?tuk/i, "tuk-tuk street ride colorful Bangkok"],
+]
+
+// Russian type/place prefixes to strip from the start
+const RU_PLACE_PREFIX = /^(ресторан|отель|кафе|кафе-ресторан|музей|храм|рынок|ночной рынок|парк|пляж|остров|деревня|площадь|ужин в|обед в|завтрак в|посещение|посещение секретного|экскурсия|прогулка по|прогулка)\s+/gi
+
+// Returns true if the string is predominantly Latin (English) characters
+function isEnglishQuery(q: string): boolean {
+  const latin = (q.match(/[a-zA-Z]/g) || []).length
+  const cyrillic = (q.match(/[а-яёА-ЯЁ]/g) || []).length
+  return latin > cyrillic
+}
+
+function buildGalleryQuery(activity: Activity, destination: string): string {
+  // Only use AI-generated imageQuery if it's actually in English
+  if (activity.imageQuery && isEnglishQuery(activity.imageQuery)) return activity.imageQuery
+
+  // Try to get English destination
+  const destLower = destination.toLowerCase()
+  const destEn = Object.entries(RU_TO_EN_DESTINATIONS)
+    .find(([ru]) => destLower.includes(ru))?.[1] || destination
+
+  // Use title for keyword detection (richer than placeName), placeName for display name
+  const fullText = `${activity.title || ""} ${activity.placeName || ""}`.toLowerCase()
+  const type = activity.type || "activity"
+
+  // Check for Russian nature/place keywords in title/placeName
+  for (const [pattern, enDesc] of RU_NATURE_KEYWORDS) {
+    if (pattern.test(fullText)) {
+      return `${enDesc} ${destEn}`
+    }
+  }
+
+  // Strip Russian prefixes from placeName to get the core name
+  const rawName = (activity.placeName || activity.title || "").replace(RU_PLACE_PREFIX, "").trim()
+
+  if (type === "hotel") return `hotel elegant interior ${destEn}`
+  if (type === "food") return `restaurant cozy dining food ${destEn}`
+  return `travel landmark ${rawName} ${destEn}`
+}
+
 interface Activity {
   time?: string
   title?: string
@@ -371,9 +455,9 @@ export function ActivityTimelineCard({
           {!isPlaceholder && theme !== "transport" && (activity.imageQuery || activity.placeName) && (
             <div className="mb-3 sm:mb-4">
               <PlaceGallery
-                query={activity.imageQuery || `${activity.placeName} ${destination}`}
+                query={buildGalleryQuery(activity, destination)}
                 displayTitle={activity.title || activity.placeName}
-                count={theme === "hotel" ? 3 : 4}
+                count={theme === "hotel" ? 2 : 3}
                 showProviderBadge={process.env.NODE_ENV === "development"}
               />
             </div>

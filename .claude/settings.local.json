@@ -33,7 +33,9 @@
       "mcp__claude_ai_Notion__notion-move-pages",
       "Bash(test:*)",
       "Bash(head:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__claude_ai_Notion__notion-create-pages",
+      "Bash(printenv:*)"
     ]
   }
 }

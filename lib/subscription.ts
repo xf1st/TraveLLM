@@ -105,18 +105,24 @@ export async function checkGenerationLimit(userId: string): Promise<{ allowed: b
 export async function incrementGenerationCount(userId: string): Promise<void> {
   const supabase = getServiceClient()
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("monthly_gen_used")
-    .eq("id", userId)
-    .single()
+  // Use atomic increment via raw SQL or RPC to prevent race conditions
+  const { error } = await supabase.rpc('increment_gen_count', { user_id_param: userId })
 
-  const current = data?.monthly_gen_used ?? 0
+  if (error) {
+    // Fallback to manual increment if RPC fails
+    console.warn("RPC increment_gen_count failed, falling back to manual:", error.message)
+    const { data } = await supabase
+      .from("profiles")
+      .select("monthly_gen_used")
+      .eq("id", userId)
+      .single()
 
-  await supabase
-    .from("profiles")
-    .update({ monthly_gen_used: current + 1 })
-    .eq("id", userId)
+    const current = data?.monthly_gen_used ?? 0
+    await supabase
+      .from("profiles")
+      .update({ monthly_gen_used: current + 1 })
+      .eq("id", userId)
+  }
 }
 
 export async function checkChatLimit(userId: string, tripId: string): Promise<{ allowed: boolean; used: number; limit: number; tier: SubscriptionTier }> {

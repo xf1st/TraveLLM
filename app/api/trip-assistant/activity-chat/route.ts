@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { geminiInferenceWithUsage } from "@/lib/gemini"
+import { deepseekInferenceWithUsage } from "@/lib/deepseek"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
@@ -52,10 +52,9 @@ export async function POST(req: Request) {
       { role: "user" as const, content: userMessage },
     ]
 
-    const replyResponse = await geminiInferenceWithUsage(messages, {
+    const replyResponse = await deepseekInferenceWithUsage(messages, {
       maxTokens: 450,
       temperature: 0.5,
-      tripDays: 3,
     })
 
     const reply = replyResponse.content
@@ -64,7 +63,7 @@ export async function POST(req: Request) {
       await recordAiUsageEvent({
         userId,
         source: "activity-chat",
-        provider: "gemini",
+        provider: "deepseek",
         usage: replyResponse.usage
       })
     }

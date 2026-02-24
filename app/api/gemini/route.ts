@@ -13,6 +13,7 @@ import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/cont
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
 import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
 import { getFlightSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
+import { googleSearch } from "@/lib/google-search"
 
 function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
     if (!Array.isArray(routeData?.itinerary)) return routeData
@@ -230,6 +231,33 @@ function normalizeActivityTypes(routeData: any) {
   return routeData
 }
 
+async function enrichViralSpotsWithWebSearch(routeData: any) {
+  if (!Array.isArray(routeData?.viralSpots) || routeData.viralSpots.length === 0) return routeData
+
+  console.log(`[Search Optimization] Parallel searching for ${routeData.viralSpots.length} viral spots...`)
+  
+  try {
+    const searchPromises = routeData.viralSpots.map(async (spot: { name?: string }) => {
+      if (!spot.name) return spot
+      const results = await googleSearch(`${spot.name} ${routeData.title || ''} viral spot tiktok instagram`, { num: 1 })
+      if (results.length > 0) {
+        return {
+          ...spot,
+          realLink: results[0].link,
+          snippet: results[0].snippet
+        }
+      }
+      return spot
+    })
+
+    routeData.viralSpots = await Promise.all(searchPromises)
+  } catch (e) {
+    console.error("[Search Optimization] Failed to enrich viral spots:", e)
+  }
+
+  return routeData
+}
+
 export async function POST(req: Request) {
     try {
         const userId = await getRequestUserId()
@@ -336,7 +364,8 @@ export async function POST(req: Request) {
             customBudget,
             travelers,
             filterByDocuments,
-            tripHighlight
+            tripHighlight,
+            strictDestinations
         } = body
 
         // Server-side content filter for tripHighlight
@@ -425,7 +454,17 @@ export async function POST(req: Request) {
 
         if (budget === "custom" && customBudget) {
             budgetCap = parseInt(customBudget.replace(/\D/g, '')) || 100000;
-            budgetDesc = `Custom User Budget (${budgetCap} RUB)`;
+            const perDay = Math.round(budgetCap / durationDays);
+            const style = perDay < 10000
+                ? "ЭКОНОМ (хостелы/гестхаусы, уличная еда, общ. транспорт)"
+                : perDay < 18000
+                    ? "КОМФОРТ-ЛАЙТ (3* отели, кафе, автобусы/метро)"
+                    : perDay < 30000
+                        ? "КОМФОРТ (3-4* отели, рестораны, такси)"
+                        : perDay < 50000
+                            ? "БИЗНЕС (4* отели, рестораны выше среднего, такси)"
+                            : "ЛЮКС (5* отели, бизнес-класс, VIP)";
+            budgetDesc = `Бюджет пользователя: ${budgetCap.toLocaleString('ru-RU')} ₽ ИТОГО на ${durationDays} дней (≈${perDay.toLocaleString('ru-RU')} ₽/день). Стиль: ${style}`;
         } else {
             switch (budget) {
                 case "economy":
@@ -449,11 +488,14 @@ export async function POST(req: Request) {
 
 
         // Parse multiple destinations from semicolon-separated string
-        const destinations = customDestination
-            ? customDestination.split(';').map(s => s.trim()).filter(Boolean)
+        // If strictDestinations===false (user chose "let AI pick"), ignore customDestination
+        const effectiveCustomDestination = strictDestinations === false ? undefined : customDestination
+
+        const destinations = effectiveCustomDestination
+            ? effectiveCustomDestination.split(';').map((s: string) => s.trim()).filter(Boolean)
             : [] // Will be determined by AI if not specified
 
-        const targetDescription = customDestination
+        const targetDescription = effectiveCustomDestination
             ? destinations.length > 1
                 ? `Конкретные пункты назначения (${destinations.length}): ${destinations.map(parseDestination).join(', ')}`
                 : `Specific User Request: ${parseDestination(destinations[0])}`
@@ -530,12 +572,20 @@ ${destinationType === 'russia' && !customDestination ? `⚠️ КРИТИЧНО:
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
 - Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
-- Бюджет: ${budgetDesc}. СТРОГИЙ ЛИМИТ: ${budgetCap} ₽. НЕ ПРЕВЫШАЙ.
+- Бюджет: ${budgetDesc}
+⚠️ ЖЁСТКИЙ ЛИМИТ БЮДЖЕТА: ${budgetCap.toLocaleString('ru-RU')} ₽ МАКСИМУМ НА ВСЮ ПОЕЗДКУ. Сумма стоимостей всех активностей + отели + перелёты НЕ ДОЛЖНА превышать это число. Если бюджет небольшой — выбирай дешёвые отели и бесплатные/недорогие активности. НЕ ПРЕДЛАГАЙ дорогие рестораны, 5* отели или бизнес-класс если бюджет этого не позволяет.
 
-${destinations.length > 1 ? `КРИТИЧНО — ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
+${destinations.length > 0 ? `КРИТИЧНО — ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
 Маршрут ДОЛЖЕН включать ВСЕ указанные ниже места. НЕ ПРОПУСКАЙ НИ ОДНО! ПРИОРИТЕТ ВЫШЕ ЧЕМ У "КОЛИЧЕСТВО СТРАН".
-${destinations.map((d, i) => `${i + 1}. ${parseDestination(d)}`).join('\n')}
+${destinations.map((d: string, i: number) => `${i + 1}. ${parseDestination(d)}`).join('\n')}
 Распредели время равномерно между всеми пунктами!` : ''}
+
+${strictDestinations === true && destinations.length > 0 ? `⚠️ ЖЁСТКИЙ ПРИОРИТЕТ — ЭКОНОМ В КОНКРЕТНЫХ ГОРОДАХ:
+Пользователь НАСТАИВАЕТ на этих городах несмотря на эконом-бюджет.
+Генерируй маршрут СТРОГО в указанных городах. Адаптируй стиль под бюджет: хостелы/гостевые дома,
+уличная еда, бесплатные или дешёвые активности, бюджетный транспорт.
+НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИХ УСЛОВИЯХ.
+В поле советы объясни эконом-адаптацию: конкретные типы жилья и примерные цены, где есть бюджетно.` : ''}
 
 ИВЕНТЫ И ПРАЗДНИКИ (КРИТИЧНО):
 ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ивенты" - ОБЯЗАТЕЛЬНО включи в маршрут:
@@ -805,8 +855,8 @@ JSON СХЕМА:
       "day": 1, "title": "Прибытие в Стамбул", "dayTotal": "46 500 ₽",
       "activities": [
         { "time": "Утро", "type": "transport", "title": "Перелёт Москва (SVO) → Стамбул (IST)", "placeName": "Аэропорт Стамбул (IST)", "desc": "Прямой рейс Turkish Airlines TK414, 3.5 часа.", "cost": "15 000 ₽" },
-        { "time": "День", "type": "hotel", "title": "Заселение в Pera Palace Hotel 5*", "placeName": "Pera Palace Hotel 5*", "imageQuery": "Pera Palace Hotel Istanbul luxury exterior", "desc": "Легендарный отель в районе Бейоглу. Заселение с 14:00.", "cost": "12 000 ₽/ночь" },
-        { "time": "Вечер", "type": "food", "title": "Ужин в ресторане Mikla", "placeName": "Ресторан Mikla", "imageQuery": "Mikla rooftop restaurant Istanbul panoramic", "desc": "Панорамный ресторан на крыше с видом на Золотой Рог. Авторская турецкая кухня.", "cost": "5 000 ₽" }
+        { "time": "День", "type": "hotel", "title": "Заселение в Pera Palace Hotel 5*", "placeName": "Pera Palace Hotel 5*", "imageQuery": "Art Deco hotel grand lobby marble columns Istanbul golden hour", "desc": "Легендарный отель в районе Бейоглу. Заселение с 14:00.", "cost": "12 000 ₽/ночь" },
+        { "time": "Вечер", "type": "food", "title": "Ужин в ресторане Mikla", "placeName": "Ресторан Mikla", "imageQuery": "rooftop fine dining restaurant panoramic cityscape candlelit Istanbul Bosphorus", "desc": "Панорамный ресторан на крыше с видом на Золотой Рог. Авторская турецкая кухня.", "cost": "5 000 ₽" }
       ]
     }
   ]
@@ -814,21 +864,33 @@ JSON СХЕМА:
 
 Заполняй активности строго по шаблонам дней из системного промпта (ДЕНЬ ПРИБЫТИЯ, ОБЫЧНЫЙ ДЕНЬ, ДЕНЬ ПЕРЕЕЗДА, ПОСЛЕДНИЙ ДЕНЬ).
 
-ПОЛЕ imageQuery (ОБЯЗАТЕЛЬНО для hotel/food/activity):
-- Добавляй поле "imageQuery" для type=hotel, food, activity — поисковый запрос на АНГЛИЙСКОМ для Pexels.
-- Для transport — НЕ добавляй imageQuery.
-- ГЛАВНОЕ ПРАВИЛО: imageQuery должен быть ОПИСАТЕЛЬНЫМ, а НЕ собственным именем заведения.
-  Pexels ищет по смыслу слов — если написать "Question Mark restaurant" или "Hotel Moskva", Pexels найдёт знаки вопроса и виды Москвы вместо нужных фото.
-- Формат: [атмосфера/стиль] + [тип места] + [город или страна]
-  ✓ type=hotel → "grand historic hotel lobby Belgrade" (не "Hotel Moskva")
-  ✓ type=food → "traditional Serbian restaurant cozy interior" (не "Question Mark restaurant")
-  ✓ type=food → "rooftop restaurant panoramic Istanbul" (не "Mikla restaurant")
-  ✓ type=activity → "Kalemegdan fortress Belgrade park aerial view"
-  ✓ type=activity → "Zaryadye park Moscow winter landscape"
-  ✓ type=hotel → "luxury boutique hotel pool Antalya old town"
-  ✗ "Question Mark restaurant Belgrade" — буквально найдёт знаки вопроса
-  ✗ "Hotel Moskva Belgrade" — перепутает с Москвой
-  ✗ "Ресторан Микла Стамбул" — русский язык не работает в Pexels
+ПОЛЕ imageQuery — «Визуальный отпечаток» активности (ОБЯЗАТЕЛЬНО для hotel/food/activity):
+- Добавляй поле "imageQuery" для type=hotel, food, activity — поисковый запрос СТРОГО на АНГЛИЙСКОМ для Pexels.
+- Для type=transport — НЕ добавляй imageQuery.
+- КОНЦЕПЦИЯ «Визуального отпечатка»: по запросу сразу должно быть понятно ЧТО, ГДЕ и В КАКОЙ АТМОСФЕРЕ.
+- ОБЯЗАТЕЛЬНО включи минимум ОДИН из маркеров:
+  • Архитектурный: "Art Deco facade", "Byzantine dome", "Soviet mosaic", "cobblestone alley", "wrought iron gate"
+  • Культурный: "street food vendor steam", "open-air market stalls", "Buddhist shrine incense", "night bazaar neon"
+  • Визуальный: "golden hour light", "morning mist", "candlelit interior", "cinematic aerial", "close-up texture"
+- ЗАПРЕЩЕНЫ как главные слова без конкретики: "nature", "landscape", "outdoors", "flowers", "park", "street", "view", "building", "place"
+- Формат: [конкретный визуальный элемент] + [тип места + маркер] + [город/страна]
+  ✓ type=hotel   → "Art Deco hotel rooftop pool overlooking skyline Istanbul golden hour"
+  ✓ type=hotel   → "grand marble lobby crystal chandelier boutique hotel Belgrade interior"
+  ✓ type=food    → "steaming Carbonara pasta close-up rustic wooden table Trastevere Rome"
+  ✓ type=food    → "open-air night hawker market neon lights Singapore street food"
+  ✓ type=activity → "Senso-ji temple vermillion torii gate morning mist Asakusa Tokyo"
+  ✓ type=activity → "gold-lit Eiffel Tower iron lattice structure Trocadero cinematic"
+  ✓ type=activity → "medieval cobblestone alley lanterns twilight Tallinn old town"
+  ✗ "Tokyo restaurant food"               ← нет конкретики
+  ✗ "beautiful landscape nature"          ← запрещённые общие слова
+  ✗ "Mikla restaurant Istanbul rooftop"   ← собственное имя (Pexels не найдёт)
+  ✗ "Cabbages Condoms Bangkok"            ← слова из названия → НЕДОПУСТИМЫЙ контент
+  ✗ "Ресторан красивый вид"              ← русский язык не работает
+- КРИТИЧЕСКИ ВАЖНО — ЗАПРЕЩЕНО в imageQuery:
+  • Собственные имена заведений, отелей, ресторанов из полей title/placeName
+  • Любые слова, которые могут быть двусмысленными вне контекста (даже если они есть в названии места)
+  • Пример: ресторан "Cabbages & Condoms" → imageQuery: "colorful Thai restaurant quirky interior Bangkok vegetables decor" (описание атмосферы, НЕ название)
+- УНИКАЛЬНОСТЬ: каждый imageQuery в маршруте ОБЯЗАН быть визуально уникальным. Если в городе 5 активностей — у каждой свой архитектурный/культурный акцент, ни одного повтора ключевых слов.
 
 ЯЗЫК: Строго РУССКИЙ.`;
 
@@ -926,7 +988,7 @@ Output VALID JSON only (all strings must be in double quotes):
 {
   "title": "Название маршрута (ДОЛЖНО соответствовать направлению: ${targetDescription}${safeHighlight ? `, учитывая пожелание: ${safeHighlight}` : ''})",
   "description": "Краткое описание на 2-3 предложения",
-  "totalBudget": "${budgetCap} ₽",
+  "totalBudget": "Рассчитывается автоматически",
   "budgetAnalysis": {
     "avgAccommodation": "5000 ₽/ночь",
     "avgFood": "3000 ₽/день",
@@ -1153,7 +1215,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                         lastCity: nextPlanSegment?.city || lastDay?.endCity || lastDay?.logistics?.to || resolvedDestination,
                         visitedPlaces: [
                             ...previousContext.visitedPlaces,
-                            ...chunkDays.flatMap((day: any) =>
+                            ...chunkDays.flatMap((day: { activities?: Array<{ placeName?: string }> }) =>
                                 (day.activities || []).map((a: any) => a.placeName).filter(Boolean)
                             )
                         ]
@@ -1207,7 +1269,19 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             // PRIMARY: Gemini with parallel generation
             try {
                 console.log("Using Gemini as primary provider...");
-                let generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
+                let generatedRouteData = await generateParallel();
+
+                // Group enrichment tasks in parallel for performance
+                console.log("[Search Optimization] Running parallel enrichment tasks...")
+                // We run enrichment and sanitation in parallel
+                const [enrichedData] = await Promise.all([
+                   enrichViralSpotsWithWebSearch(generatedRouteData),
+                   // sanitizeClosedAirportLogistics directly modifies the object in many places, 
+                   // but here it's safer to just call it.
+                   Promise.resolve(sanitizeClosedAirportLogistics(generatedRouteData))
+                ])
+                
+                generatedRouteData = enrichedData;
                 
                 // Post-processing: Normalization & Dates
                 generatedRouteData = normalizeActivityTypes(generatedRouteData);

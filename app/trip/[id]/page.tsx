@@ -40,7 +40,7 @@ import { TripImage } from "@/components/TripImage"
 import { FlightCard } from "@/components/itinerary/FlightCard"
 import { HotelCard } from "@/components/itinerary/HotelCard"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
-import { cn } from "@/lib/utils"
+import { cn, parseCostRub } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,7 @@ import { getPopularRoute } from "@/lib/popular-routes"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 import { toggleFavorite } from "@/app/actions/favorites"
 import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/ActivityTimelineCard"
+import { clearTripGalleryCache } from "@/components/PlaceGallery"
 import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 import { TripTooltips } from "@/components/trip/TripTooltips"
 
@@ -260,6 +261,27 @@ export default function TripDetailPage() {
     [route, activeDay]
   )
 
+  const { calculatedTotal, hasUnknownCosts, dayTotals } = useMemo(() => {
+    if (!route?.itinerary) return { calculatedTotal: null, hasUnknownCosts: false, dayTotals: {} as Record<number, number> }
+    let total = 0
+    let hasUnknown = false
+    const dayTotals: Record<number, number> = {}
+    for (const day of route.itinerary) {
+      let daySum = 0
+      for (const act of day.activities ?? []) {
+        const n = parseCostRub(act.cost)
+        if (n === null) hasUnknown = true
+        else { total += n; daySum += n }
+      }
+      dayTotals[day.day] = daySum
+    }
+    return { calculatedTotal: total, hasUnknownCosts: hasUnknown, dayTotals }
+  }, [route?.itinerary])
+
+  const displayBudget = calculatedTotal !== null
+    ? `${hasUnknownCosts ? "≈ " : ""}${calculatedTotal.toLocaleString("ru-RU")} ₽`
+    : route?.totalBudget
+
   useEffect(() => {
     const checkSidebar = () => {
       const saved = localStorage.getItem("sidebar-collapsed") === "true"
@@ -334,9 +356,13 @@ export default function TripDetailPage() {
           if (error) console.error("Error fetching trip:", error.message)
           const stored = safeLocalStorage.getItem("lastGeneratedRoute")
           if (stored) {
-            try { setRoute(JSON.parse(stored)) } catch {}
+            try {
+              clearTripGalleryCache()
+              setRoute(JSON.parse(stored))
+            } catch {}
           }
         } else {
+          clearTripGalleryCache()
           setRoute({
             ...data,
             title: data.title,
@@ -797,7 +823,7 @@ export default function TripDetailPage() {
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                 <button onClick={() => setShowBudgetModal(true)} className="hidden sm:block text-right group cursor-pointer">
                   <p className="text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide">Общий бюджет</p>
-                  <p className="text-base sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors">{route.totalBudget}</p>
+                  <p className="text-base sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors">{displayBudget}</p>
                 </button>
                 <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
                 <div className="flex items-center gap-1.5 sm:gap-3">
@@ -1254,7 +1280,7 @@ export default function TripDetailPage() {
                 <h4 className="text-sm font-bold">Общие итоги</h4>
                 <div className="flex justify-between items-center py-2 border-b border-border italic text-sm">
                   <span className="text-muted-foreground font-medium">Предполагаемый бюджет:</span>
-                  <span className="font-bold">{route.totalBudget}</span>
+                  <span className="font-bold">{displayBudget}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   * Цены являются оценочными на основе средних показателей региона и выбранного стиля &quot;{route.budget_range || "Комфорт"}&quot;. Реальная стоимость может отличаться.

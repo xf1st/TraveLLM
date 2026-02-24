@@ -80,7 +80,7 @@ export default function RootLayout({
               <WelcomeModal />
             </ChatProvider>
           </AuthProvider>
-          {/* Notification & Cookie System */}
+          {/* Notification, TG Channel & Cookie System */}
           <NotificationPrompt />
           <CookieConsent />
           <Toaster position="top-center" />

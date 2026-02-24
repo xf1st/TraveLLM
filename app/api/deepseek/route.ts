@@ -333,7 +333,8 @@ export async function POST(req: Request) {
             customBudget,
             travelers,
             filterByDocuments,
-            tripHighlight
+            tripHighlight,
+            strictDestinations
         } = body
 
         // Server-side content filter for tripHighlight
@@ -422,7 +423,17 @@ export async function POST(req: Request) {
 
         if (budget === "custom" && customBudget) {
             budgetCap = parseInt(customBudget.replace(/\D/g, '')) || 100000;
-            budgetDesc = `Custom User Budget (${budgetCap} RUB)`;
+            const perDay = Math.round(budgetCap / durationDays);
+            const style = perDay < 10000
+                ? "ЭКОНОМ (хостелы/гестхаусы, уличная еда, общ. транспорт)"
+                : perDay < 18000
+                    ? "КОМФОРТ-ЛАЙТ (3* отели, кафе, автобусы/метро)"
+                    : perDay < 30000
+                        ? "КОМФОРТ (3-4* отели, рестораны, такси)"
+                        : perDay < 50000
+                            ? "БИЗНЕС (4* отели, рестораны выше среднего, такси)"
+                            : "ЛЮКС (5* отели, бизнес-класс, VIP)";
+            budgetDesc = `Бюджет пользователя: ${budgetCap.toLocaleString('ru-RU')} ₽ ИТОГО на ${durationDays} дней (≈${perDay.toLocaleString('ru-RU')} ₽/день). Стиль: ${style}`;
         } else {
             switch (budget) {
                 case "economy":
@@ -446,11 +457,14 @@ export async function POST(req: Request) {
 
 
         // Parse multiple destinations from semicolon-separated string
-        const destinations = customDestination
-            ? customDestination.split(';').map(s => s.trim()).filter(Boolean)
+        // If strictDestinations===false (user chose "let AI pick"), ignore customDestination
+        const effectiveCustomDestination = strictDestinations === false ? undefined : customDestination
+
+        const destinations = effectiveCustomDestination
+            ? effectiveCustomDestination.split(';').map(s => s.trim()).filter(Boolean)
             : [] // Will be determined by AI if not specified
 
-        const targetDescription = customDestination
+        const targetDescription = effectiveCustomDestination
             ? destinations.length > 1
                 ? `Конкретные пункты назначения (${destinations.length}): ${destinations.map(parseDestination).join(', ')}`
                 : `Specific User Request: ${parseDestination(destinations[0])}`
@@ -566,7 +580,7 @@ JSON СХЕМА:
 {
   "title": "Название маршрута",
   "description": "Описание",
-  "totalBudget": "150 000 ₽",
+  "totalBudget": "Рассчитывается автоматически",
   "budgetAnalysis": {
     "avgAccommodation": "5000 ₽/ночь",
     "avgFood": "3000 ₽/день",
@@ -599,12 +613,20 @@ JSON СХЕМА:
   ]
 }
 
-ПОЛЯ ИЗОБРАЖЕНИЙ (imageSearchTags):
-- ВСЕГДА генерируй массив из 3-4 ключевых слов на АНГЛИЙСКОМ языке для Pexels фото.
-- ПОЛЕ imageSearchTags ОБЯЗАТЕЛЬНО для type: hotel, food, activity. НЕ используй для type: transport!
-- Главное правило: слова должны описывать АТМОСФЕРУ и ТИП МЕСТА, а не быть его собственным именем.
-- Правильно: ["grand", "historic", "hotel", "lobby", "Belgrade"]
-- Неправильно: ["Hotel Moskva", "Belgrade"] (Pexels не найдет по имени).
+ПОЛЯ ИЗОБРАЖЕНИЙ (imageQuery) — «Визуальный отпечаток»:
+- Добавляй поле "imageQuery" для type=hotel, food, activity — поисковый запрос СТРОГО на АНГЛИЙСКОМ для Pexels.
+- Для type=transport — НЕ добавляй imageQuery.
+- КОНЦЕПЦИЯ: запрос = "визуальный отпечаток пальца" активности. Должно быть понятно ЧТО, ГДЕ и В КАКОЙ АТМОСФЕРЕ.
+- Включи минимум один маркер: архитектурный ("Art Deco facade", "cobblestone alley"), культурный ("street food stall steam", "night market neon"), визуальный ("golden hour", "morning mist", "close-up texture").
+- ЗАПРЕЩЕНЫ без уточнений: "nature", "landscape", "outdoors", "flowers", "park", "street", "view", "building".
+  ✓ "Art Deco hotel rooftop pool overlooking skyline Istanbul golden hour"
+  ✓ "steaming Carbonara pasta close-up rustic wooden table Trastevere Rome"
+  ✓ "medieval cobblestone alley lanterns twilight Tallinn old town"
+  ✓ "gold-lit Eiffel Tower iron lattice structure Trocadero cinematic"
+  ✗ "Tokyo restaurant food" — нет конкретики; ✗ "Mikla restaurant" — собственное имя; ✗ Русский — не работает
+  ✗ "Cabbages Condoms Bangkok" — слова из названия → НЕДОПУСТИМЫЙ контент в поиске
+- КРИТИЧЕСКИ ВАЖНО: imageQuery НИКОГДА не содержит собственные имена из title/placeName и НИКОГДА слова двусмысленные вне контекста. Ресторан "Cabbages & Condoms" → "colorful Thai restaurant quirky interior Bangkok vegetables decor".
+- УНИКАЛЬНОСТЬ: каждый imageQuery в маршруте визуально УНИКАЛЕН — ни одного повтора ключевых слов между активностями.
 </output_format>
 `;
 
@@ -616,7 +638,8 @@ JSON СХЕМА:
 ${destinationType === 'russia' && !customDestination ? `- ВНИМАНИЕ: Маршрут ТОЛЬКО по России (РФ). Все города и места ОБЯЗАНЫ находиться на территории Российской Федерации.` : ''}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
 - Длительность: СТРОГО ${durationDays} дней
-- Бюджет: ${budgetDesc}. ЛИМИТ: ${budgetCap} ₽.
+- Бюджет: ${budgetDesc}
+⚠️ ЖЁСТКИЙ ЛИМИТ БЮДЖЕТА: ${budgetCap.toLocaleString('ru-RU')} ₽ МАКСИМУМ НА ВСЮ ПОЕЗДКУ. Сумма стоимостей всех активностей + отели + перелёты НЕ ДОЛЖНА превышать это число. Если бюджет небольшой — выбирай дешёвые отели и бесплатные/недорогие активности. НЕ ПРЕДЛАГАЙ дорогие рестораны, 5* отели или бизнес-класс если бюджет этого не позволяет.
 
 ИВЕНТЫ И ПРАЗДНИКИ:
 ${travelStyle.includes('events') ? `- Включить фестивали, концерты и важные события в даты поездки. Для каждого крупного события укажи название, дату и где купить билеты.` : 'Ивенты не в приоритете.'}
@@ -641,9 +664,15 @@ ${travelStyle.includes('events') ? `- Включить фестивали, ко�
 
 ТРЕБОВАНИЯ И ФИЛЬТРЫ:
 ${creativityInstruction}
-${destinations.length > 1 ? `ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
+${destinations.length > 0 ? `ОБЯЗАТЕЛЬНЫЕ ПУНКТЫ НАЗНАЧЕНИЯ:
 Маршрут ДОЛЖЕН включать ВСЕ указанные ниже места:
 ${destinations.map((d, i) => `${i + 1}. ${parseDestination(d)}`).join('\n')}` : ''}
+${strictDestinations === true && destinations.length > 0 ? `⚠️ ЖЁСТКИЙ ПРИОРИТЕТ — ЭКОНОМ В КОНКРЕТНЫХ ГОРОДАХ:
+Пользователь НАСТАИВАЕТ на этих городах несмотря на эконом-бюджет.
+Генерируй маршрут СТРОГО в указанных городах. Адаптируй: хостелы/гостевые дома,
+уличная еда, бесплатные активности, дешёвый транспорт.
+НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИХ УСЛОВИЯХ.
+В поле советы объясни эконом-адаптацию с примерами жилья и еды с ценами.` : ''}
 </travel_context>
 
 ${safeHighlight ? `
@@ -702,7 +731,7 @@ Output VALID JSON only (all strings must be in double quotes):
 {
   "title": "Название маршрута (ДОЛЖНО соответствовать направлению: ${targetDescription})",
   "description": "Краткое описание на 2-3 предложения",
-  "totalBudget": "${budgetCap} ₽",
+  "totalBudget": "Рассчитывается автоматически",
   "budgetAnalysis": {
     "avgAccommodation": "5000 ₽/ночь",
     "avgFood": "3000 ₽/день",
