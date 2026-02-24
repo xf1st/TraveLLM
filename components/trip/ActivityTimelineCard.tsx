@@ -199,9 +199,26 @@ const RU_TO_EN_DESTINATIONS: Record<string, string> = {
   "дубай": "Dubai", "оаэ": "UAE", "абу-даби": "Abu Dhabi",
   "турция": "Turkey", "стамбул": "Istanbul", "анталья": "Antalya", "каппадокия": "Cappadocia",
   "индонезия": "Indonesia", "бали": "Bali", "индия": "India", "вьетнам": "Vietnam",
-  "россия": "Russia", "москва": "Moscow", "санкт-петербург": "Saint Petersburg",
+  "россия": "Russia", "москва": "Moscow", "санкт-петербург": "Saint Petersburg", "питер": "Saint Petersburg",
   "греция": "Greece", "афины": "Athens", "мальдивы": "Maldives", "египет": "Egypt",
   "португалия": "Portugal", "лиссабон": "Lisbon", "чехия": "Czech Republic", "прага": "Prague",
+  // Russian cities
+  "казань": "Kazan Russia", "екатеринбург": "Yekaterinburg Russia", "новосибирск": "Novosibirsk Russia",
+  "сочи": "Sochi Russia", "владивосток": "Vladivostok Russia", "иркутск": "Irkutsk Russia",
+  "нижний новгород": "Nizhny Novgorod Russia", "красноярск": "Krasnoyarsk Russia",
+  "пермь": "Perm Russia", "уфа": "Ufa Russia", "омск": "Omsk Russia", "хабаровск": "Khabarovsk Russia",
+  "мурманск": "Murmansk Russia Arctic", "архангельск": "Arkhangelsk Russia", "волгоград": "Volgograd Russia",
+  "краснодар": "Krasnodar Russia", "ростов-на-дону": "Rostov-on-Don Russia",
+  "пятигорск": "Pyatigorsk Caucasus Russia", "кисловодск": "Kislovodsk resort Russia",
+  "минеральные воды": "Mineralnye Vody Russia", "ставрополь": "Stavropol Russia",
+  "геленджик": "Gelendzhik Russia Black Sea", "анапа": "Anapa Russia Black Sea",
+  "байкал": "Lake Baikal Russia", "карелия": "Karelia Russia nature", "алтай": "Altai Mountains Russia",
+  "камчатка": "Kamchatka Russia volcano", "сахалин": "Sakhalin Island Russia",
+  "ярославль": "Yaroslavl Russia golden ring", "суздаль": "Suzdal Russia ancient",
+  "владимир": "Vladimir Russia historic", "кострома": "Kostroma Russia golden ring",
+  "псков": "Pskov Russia fortress", "новгород": "Veliky Novgorod Russia historic",
+  "калининград": "Kaliningrad Russia Baltic", "самара": "Samara Russia Volga",
+  "саратов": "Saratov Russia", "тюмень": "Tyumen Russia", "воронеж": "Voronezh Russia",
 }
 
 // Russian + Thai nature/place keywords → English descriptors for Pexels search
@@ -234,6 +251,32 @@ const RU_NATURE_KEYWORDS: [RegExp, string][] = [
   [/кулинар|cooking school/i, "cooking class Thai food kitchen herbs"],
   [/массаж|spa/i, "spa massage relaxing wellness"],
   [/тук-тук|тук тук|tuk.?tuk/i, "tuk-tuk street ride colorful Bangkok"],
+  // Russian landmarks & cities
+  [/эрмитаж/i, "Hermitage Museum Saint Petersburg art gallery interior"],
+  [/кремл/i, "Kremlin fortress Russia historic architecture"],
+  [/красная площадь/i, "Red Square Moscow cobblestone historic architecture"],
+  [/арбат/i, "Arbat street Moscow pedestrian historic"],
+  [/невский/i, "Nevsky Prospect Saint Petersburg architecture canal"],
+  [/петергоф/i, "Peterhof Palace Russia fountains gardens"],
+  [/царско.*село|пушкин.*город/i, "Tsarskoye Selo palace Russia ornate"],
+  [/байкал/i, "Lake Baikal Russia clear blue ice scenic"],
+  [/карел/i, "Karelia Russia nature lake forest"],
+  [/алтай/i, "Altai Mountains Russia scenic landscape alpine"],
+  [/камчатк/i, "Kamchatka volcano Russia dramatic landscape"],
+  [/транссиб|аэроэкспресс/i, "Russia train railway scenic countryside"],
+  [/золото.*кольц/i, "Golden Ring Russia church monastery historic"],
+  [/суздал/i, "Suzdal Russia ancient monastery winter snow"],
+  [/мурман/i, "Murmansk Russia Arctic northern lights"],
+  [/сочи/i, "Sochi Russia resort sea mountains"],
+  [/кавказ|эльбрус/i, "Caucasus mountains Russia scenic alpine"],
+  [/сапсан|ласточка|высокоскоростн/i, "high-speed train Russia Sapsan interior"],
+  [/набережн/i, "river embankment Russia city promenade"],
+  [/кремлёвская|красн.*кремл/i, "Kremlin Russia historic tower architecture"],
+  [/владивосток/i, "Vladivostok Russia harbor bridge sea"],
+  [/казань.*кремл|татарстан/i, "Kazan Kremlin Russia mosque colorful"],
+  [/нижегород.*кремл/i, "Nizhny Novgorod Kremlin Russia riverside"],
+  [/беломорск|белое море/i, "White Sea Russia nature landscape"],
+  [/ладог|онег/i, "Karelia Russia lake scenic nature"],
 ]
 
 // Russian type/place prefixes to strip from the start
@@ -314,13 +357,17 @@ export function ActivityTimelineCard({
   const isPlaceholder = theme === "free" && (!activity.title || activity.title === "Свободное время" || activity.title === "Free Time")
 
   let iconName = config.icon
-  const descLower = `${activity.type || ""} ${activity.desc || ""} ${activity.time || ""}`.toLowerCase()
+  // Include title in detection — most transport info is in the title
+  const transportText = `${activity.title || ""} ${activity.desc || ""} ${activity.type || ""}`.toLowerCase()
   if (theme === "transport") {
-    if (descLower.includes("taxi") || descLower.includes("такси") || descLower.includes("car") || descLower.includes("трансфер")) {
-      iconName = "directions_car"
-    } else if (descLower.includes("train") || descLower.includes("поезд")) {
+    if (/поезд|сапсан|ласточка|жд|ржд|ж\.д\.|аэроэкспресс|train/.test(transportText)) {
       iconName = "train"
+    } else if (/автобус|bus/.test(transportText)) {
+      iconName = "directions_bus"
+    } else if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин/.test(transportText)) {
+      iconName = "directions_car"
     }
+    // default stays "flight_land" for flights
   }
 
   const rawTitle = activity.title || activity.placeName || "Активность"
@@ -467,15 +514,38 @@ export function ActivityTimelineCard({
             <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-200/50 dark:border-white/5">
               <div className="flex items-center gap-2 sm:gap-3">
                 {theme === "transport" ? (
-                  <a
-                    href={buildFlightLink(activity)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm"
-                  >
-                    <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
-                    Найти билеты
-                  </a>
+                  (() => {
+                    const tt = transportText
+                    if (/поезд|сапсан|ласточка|жд|ржд|аэроэкспресс|train/.test(tt)) {
+                      return (
+                        <a href="https://www.tutu.ru/poezda/" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                          <span className="material-symbols-outlined text-sm mr-1.5">train</span>
+                          Билеты на поезд
+                        </a>
+                      )
+                    }
+                    if (/автобус|bus/.test(tt)) {
+                      return (
+                        <a href="https://www.tutu.ru/avtobus/" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                          <span className="material-symbols-outlined text-sm mr-1.5">directions_bus</span>
+                          Найти автобус
+                        </a>
+                      )
+                    }
+                    if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин/.test(tt)) {
+                      return null
+                    }
+                    // default: flight
+                    return (
+                      <a href={buildFlightLink(activity)} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                        <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
+                        Найти билеты
+                      </a>
+                    )
+                  })()
                 ) : (
                   <>
                     {activity.placeName && (

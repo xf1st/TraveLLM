@@ -158,6 +158,40 @@ function sanitizeClosedAirportLogistics(routeData: any) {
     return routeData
 }
 
+// Metropolitan airport groups — airports that serve the same city
+const METRO_AIRPORT_GROUPS: Record<string, string> = {
+    SVO: 'MOW', VKO: 'MOW', DME: 'MOW', ZIA: 'MOW', MOW: 'MOW', // Moscow
+    LED: 'LED', RVH: 'LED', // Saint Petersburg
+}
+
+/**
+ * Remove flights where origin and destination are in the same metropolitan area
+ * (e.g. Москва SVO → Москва VKO is not a real trip).
+ */
+function removeSameCityFlights(routeData: any): any {
+    if (!Array.isArray(routeData?.itinerary)) return routeData
+
+    for (const day of routeData.itinerary) {
+        if (!Array.isArray(day.activities)) continue
+        day.activities = day.activities.filter((act: any) => {
+            if (act.type !== 'transport') return true
+            const isFlight = /перелёт|перелет|рейс|вылет|самолет|самолёт|flight/i.test(act.title || '')
+            if (!isFlight) return true
+            const iataMatch = (act.title || '').match(/\b([A-Z]{3})\b[^A-Z]*\b([A-Z]{3})\b/)
+            if (!iataMatch) return true
+            const [, fromIata, toIata] = iataMatch
+            const fromCity = METRO_AIRPORT_GROUPS[fromIata] || fromIata
+            const toCity = METRO_AIRPORT_GROUPS[toIata] || toIata
+            if (fromCity === toCity) {
+                console.log(`[sanitize] Removed same-city flight: ${act.title}`)
+                return false
+            }
+            return true
+        })
+    }
+    return routeData
+}
+
 function normalizeActivityTypes(routeData: any) {
   if (!Array.isArray(routeData?.itinerary)) return routeData
 
@@ -1285,6 +1319,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 
                 // Post-processing: Normalization & Dates
                 generatedRouteData = normalizeActivityTypes(generatedRouteData);
+                generatedRouteData = removeSameCityFlights(generatedRouteData);
                 generatedRouteData = enrichTransportLinks(generatedRouteData, departureCity, destinations[0] || "", startDate, endDate);
                 generatedRouteData.start_date = startDate;
                 generatedRouteData.end_date = endDate;
@@ -1330,6 +1365,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                 // Post-processing: Normalization & Dates
                 fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
+                fallbackRouteData = removeSameCityFlights(fallbackRouteData);
                 fallbackRouteData = enrichTransportLinks(fallbackRouteData, departureCity, destinations[0] || "", startDate, endDate);
                 fallbackRouteData.start_date = startDate;
                 fallbackRouteData.end_date = endDate;

@@ -136,7 +136,7 @@ export default function LandingPage() {
             {[
               { value: 1200, suffix: "+", label: "маршрутов создано" },
               { value: 50,   suffix: "+", label: "стран в базе" },
-              { value: 2,    suffix: "₽",  label: "средняя стоимость" },
+              { value: 20,   suffix: "+", label: "часов экономии" },
             ].map((s) => (
               <div key={s.label} className="text-center">
                 <div className="text-3xl md:text-4xl font-black text-foreground">

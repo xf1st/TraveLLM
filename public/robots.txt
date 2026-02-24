@@ -1,5 +1,15 @@
-User-agent: Yandex
-Disallow: /
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
 
-User-agent: Googlebot
-Disallow: /
+# Admin and Auth
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /profile/
+Disallow: /dashboard/
+Disallow: /blocked/
+Disallow: /onboarding/
+
+# Host and Sitemap
+Sitemap: https://travellm.ru/sitemap.xml
