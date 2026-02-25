@@ -13,9 +13,10 @@ interface ViralSpot {
 
 interface TripViralCarouselProps {
   spots: ViralSpot[]
+  destination?: string
 }
 
-export function TripViralCarousel({ spots }: TripViralCarouselProps) {
+export function TripViralCarousel({ spots, destination }: TripViralCarouselProps) {
   const [expanded, setExpanded] = useState(false)
 
   const normalizedSpots = useMemo(
@@ -59,7 +60,7 @@ export function TripViralCarousel({ spots }: TripViralCarouselProps) {
             className="rounded-3xl overflow-hidden relative group aspect-[4/5] shadow-xl border border-white/40 dark:border-white/10"
           >
             <TripImage
-              query={spot.name}
+              query={destination ? `${spot.name} ${destination}` : spot.name}
               alt={spot.name}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />

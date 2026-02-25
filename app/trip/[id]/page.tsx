@@ -1229,7 +1229,7 @@ export default function TripDetailPage() {
               )}
 
               {/* TikTok Places */}
-              <TripViralCarousel spots={route.viralSpots || []} />
+              <TripViralCarousel spots={route.viralSpots || []} destination={destinationName} />
 
               {/* Important Info — hidden, accessible via Tips modal */}
             </div>

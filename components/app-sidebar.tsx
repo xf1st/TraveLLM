@@ -59,7 +59,7 @@ const navItems = [
     },
     {
         title: "Мои маршруты",
-        href: "/results",
+        href: "/trips",
         icon: Map,
     },
     {

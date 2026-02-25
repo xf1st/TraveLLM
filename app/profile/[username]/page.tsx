@@ -1,15 +1,14 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import Link from "next/link"
-import { MapPin, Globe, Lock, ArrowLeft, Calendar, Users, User, Heart, Clock, Camera, Check, MapIcon } from "lucide-react"
+import { MapPin, Globe, Lock, ArrowLeft, Calendar, Users, User, Share2, Check, Link2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TripImage } from "@/components/TripImage"
 import { AppLayout } from "@/components/app-layout"
-import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 // Interest categories with Russian labels and unique colors
@@ -28,7 +27,7 @@ const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string
 
 // Profile background presets
 const PROFILE_BACKGROUNDS = [
-  { id: "avatar", label: "Аватар", gradient: "" }, // Special: uses blurred avatar
+  { id: "avatar", label: "Аватар", gradient: "" },
   { id: "aurora", label: "Северное сияние", gradient: "from-emerald-500/30 via-cyan-500/20 to-purple-500/30" },
   { id: "sunset", label: "Закат", gradient: "from-orange-500/30 via-rose-500/20 to-pink-500/30" },
   { id: "ocean", label: "Океан", gradient: "from-blue-500/30 via-cyan-500/20 to-teal-500/30" },
@@ -48,6 +47,24 @@ export default function PublicProfilePage() {
   const [trips, setTrips] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : `https://travellm.ru/profile/${username}`
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${profile?.full_name || username} — TraveLLM`,
+          text: `Смотри профиль путешественника @${username} на TraveLLM`,
+          url,
+        })
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -95,10 +112,11 @@ export default function PublicProfilePage() {
   const avatarUrl = profile?.avatar_url
   const interests = profile?.preferences?.interestsDetailed || profile?.preferences?.interests || []
   const tripCount = trips.length
+  const currentBg = PROFILE_BACKGROUNDS.find(b => b.id === profileBackground)
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background trip-bg">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     )
@@ -106,13 +124,13 @@ export default function PublicProfilePage() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background text-center px-4 trip-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background text-center px-4">
         <Lock className="w-12 h-12 text-muted-foreground" />
         <h1 className="text-2xl font-bold">Профиль недоступен</h1>
         <p className="text-muted-foreground max-w-sm">
           Пользователь @{username} не существует или его профиль закрыт.
         </p>
-        <Button variant="outline" onClick={() => router.push("/")} className="rounded-full px-6 backdrop-blur-md">
+        <Button variant="outline" onClick={() => router.push("/")} className="rounded-full px-6">
           <ArrowLeft className="w-4 h-4 mr-2" /> На главную
         </Button>
       </div>
@@ -120,45 +138,46 @@ export default function PublicProfilePage() {
   }
 
   return (
-    <AppLayout className="trip-bg">
-      <div className="relative min-h-[calc(100vh-4rem)] pb-20">
-        
-        {/* Dynamic Profile Background */}
-        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          {profileBackground === "avatar" && avatarUrl ? (
-            <>
-              <img
-                src={avatarUrl}
-                alt=""
-                className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[100vw] h-[80vh] object-cover blur-[80px] opacity-30 dark:opacity-40 scale-150"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
-            </>
-          ) : (
-            <div className={`absolute top-[-10%] left-1/2 -translate-x-1/2 w-[100vw] h-[70vh] bg-gradient-to-br ${PROFILE_BACKGROUNDS.find(b => b.id === profileBackground)?.gradient || "from-blue-500/20 via-cyan-500/15 to-purple-500/20"
-              } blur-[80px] rounded-full`} />
-          )}
-        </div>
+    <AppLayout className="bg-background">
+      {/* Back button fixed top-left */}
+      <div className="fixed top-4 left-4 z-50 lg:left-72">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.back()}
+          className="rounded-full bg-background/80 backdrop-blur-md border border-border/50 shadow-sm"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+      </div>
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6 pt-12">
-          
-          {/* Back button */}
-          <div className="absolute top-0 left-6">
-             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.back()}
-              className="rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/10"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </div>
+      <div className="min-h-[calc(100vh-4rem)] pb-20">
+        <div className="max-w-4xl mx-auto px-4 pt-8">
 
-          {/* Centered Header */}
-          <div className="flex flex-col items-center text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-            <div className="relative mb-6">
-              <div className="h-32 w-32 rounded-full p-1 bg-gradient-to-br from-white/20 to-white/5 dark:from-white/20 dark:to-white/5 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-2xl overflow-hidden">
-                <div className="h-full w-full rounded-full overflow-hidden bg-muted/50 dark:bg-black/40 relative">
+          {/* ===== PROFILE HERO ===== */}
+          <div className="mb-8">
+            {/* Banner */}
+            <div className="relative rounded-[2rem] overflow-hidden h-32 mb-[-48px]">
+              {profileBackground === "avatar" && avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"
+                />
+              ) : (
+                <div className={cn(
+                  "absolute inset-0 bg-gradient-to-br",
+                  currentBg?.gradient || "from-blue-500/40 via-cyan-500/30 to-purple-500/40"
+                )} />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/60" />
+            </div>
+
+            {/* Identity bar overlapping banner */}
+            <div className="relative px-6 pb-4 flex items-end gap-4">
+              {/* Avatar */}
+              <div className="shrink-0">
+                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-2xl">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -167,55 +186,87 @@ export default function PublicProfilePage() {
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-purple-500/20">
-                      <User className="h-12 w-12 text-muted-foreground/50 dark:text-white/50" />
+                      <User className="h-10 w-10 text-muted-foreground/50" />
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Name + username */}
+              <div className="flex-1 min-w-0 pb-1">
+                <h1 className="text-xl font-black truncate text-foreground leading-tight">
+                  {profile.full_name || "Путешественник"}
+                </h1>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">@{username}</p>
+              </div>
+
+              {/* Share button */}
+              <button
+                onClick={handleShare}
+                className={cn(
+                  "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-200",
+                  copied
+                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                    : "bg-white/10 border-white/20 text-muted-foreground hover:text-foreground hover:bg-white/20 backdrop-blur-sm"
+                )}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Скопировано</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Поделиться</span>
+                  </>
+                )}
+              </button>
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/60 dark:from-white dark:to-white/60 mb-2">
-              {profile.full_name || "Путешественник"}
-            </h1>
-            <p className="text-lg text-muted-foreground mb-4 font-light flex items-center gap-1 opacity-80">
-              <Globe className="w-4 h-4" /> @{username}
-            </p>
-
-            {profile.bio && (
-              <p className="mt-2 text-base leading-relaxed text-muted-foreground max-w-lg italic">
-                "{profile.bio}"
-              </p>
+            {/* Bio */}
+            {profile?.bio && (
+              <p className="px-6 text-sm text-muted-foreground mt-1 mb-3 max-w-lg">{profile.bio}</p>
             )}
 
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-6 text-sm font-medium">
-              <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold text-foreground">{tripCount}</span>
-                <span className="text-xs text-muted-foreground uppercase tracking-widest">Поездки</span>
-              </div>
-              <div className="h-8 w-px bg-border/50" />
-              <div className="flex flex-col items-center">
-                <span className="text-2xl font-bold text-foreground">
-                   {new Date(profile.created_at).toLocaleDateString('ru-RU', { year: 'numeric' })}
-                </span>
-                <span className="text-xs text-muted-foreground uppercase tracking-widest">С нами с</span>
+            {/* Stats strip */}
+            <div className="px-6 mt-3">
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                {[
+                  { value: tripCount, label: "маршрутов" },
+                  {
+                    value: new Date(profile.created_at).toLocaleDateString('ru-RU', { year: 'numeric' }),
+                    label: "год регистрации"
+                  },
+                  ...(interests.length > 0 ? [{ value: interests.length, label: "интересов" }] : []),
+                ].map((chip, i) => (
+                  <div
+                    key={i}
+                    className="shrink-0 flex items-center gap-1.5 bg-white/10 dark:bg-white/5 border border-white/15 rounded-full px-3 py-1.5 text-sm font-medium"
+                  >
+                    <span className="font-bold text-foreground">{chip.value}</span>
+                    <span className="text-muted-foreground">{chip.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Interests */}
             {interests.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 mt-8">
+              <div className="px-6 mt-3 flex flex-wrap gap-2">
                 {interests.map((interest: string) => {
-                  const config = INTEREST_CONFIG[interest] || { label: interest, color: "text-muted-foreground", bg: "bg-muted" }
+                  const key = interest.toLowerCase()
+                  const config = INTEREST_CONFIG[key]
                   return (
-                    <Badge 
-                      key={interest} 
+                    <Badge
+                      key={interest}
+                      variant="outline"
                       className={cn(
-                        "rounded-full px-4 py-1 text-xs font-medium border transition-all hover:scale-105",
-                        config.bg,
-                        config.color
+                        "rounded-full px-3 py-1 text-xs font-medium border transition-all",
+                        config ? `${config.bg} ${config.color}` : "border-border text-foreground"
                       )}
                     >
-                      {config.label}
+                      {config?.label || interest}
                     </Badge>
                   )
                 })}
@@ -223,78 +274,86 @@ export default function PublicProfilePage() {
             )}
           </div>
 
-          {/* Content Grid */}
-          <div className="grid gap-8">
-             <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <MapPin className="w-5 h-5 text-primary" />
-                </div>
-                <h2 className="text-xl font-bold">Публичные поездки</h2>
-             </div>
+          {/* ===== TRIPS SECTION ===== */}
+          <div className="space-y-4">
+            {/* Section header */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <MapPin className="w-4 h-4 text-primary" />
+              </div>
+              <h2 className="text-lg font-bold">Публичные маршруты</h2>
+              <Badge variant="secondary" className="rounded-full text-xs">
+                {tripCount}
+              </Badge>
+            </div>
 
-             {trips.length === 0 ? (
-                <Card className="p-16 flex flex-col items-center justify-center text-center trip-glass border-dashed border-white/20">
-                  <Globe className="w-12 h-12 text-muted-foreground opacity-20 mb-4" />
-                  <p className="text-muted-foreground">У пользователя пока нет публичных маршрутов</p>
-                </Card>
-             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                  {trips.map((trip) => (
-                    <Link key={trip.id} href={`/trip/${trip.id}`} className="group">
-                      <Card className="h-full overflow-hidden trip-glass border-white/10 hover:border-primary/30 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 group-hover:-translate-y-1">
-                        <div className="relative aspect-[16/10] overflow-hidden">
-                           <TripImage
-                            src={trip.cover_image}
-                            query={trip.destination}
-                            alt={trip.title}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
-                          
-                          <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                             {trip.tags?.slice(0, 2).map((tag: string) => (
-                                <Badge key={tag} className="bg-black/40 backdrop-blur-md border border-white/20 text-[10px] uppercase tracking-tighter rounded-full text-white/90">
-                                  {tag.replace("#", "")}
-                                </Badge>
-                             ))}
+            {/* Trips grid */}
+            {trips.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center py-16 rounded-2xl border border-border/50 bg-card/30">
+                <Globe className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground text-sm">У пользователя пока нет публичных маршрутов</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trips.map((trip) => (
+                  <Link key={trip.id} href={`/trip/${trip.id}`} className="group block">
+                    <div className="rounded-2xl border border-border/50 bg-card/30 hover:bg-card/50 overflow-hidden transition-all hover:shadow-lg hover:border-border/80 hover:-translate-y-0.5 duration-300">
+                      {/* Trip image */}
+                      <div className="relative aspect-video overflow-hidden">
+                        <TripImage
+                          src={trip.cover_image}
+                          query={trip.destination}
+                          alt={trip.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                        {/* Tags overlay */}
+                        {trip.tags && trip.tags.length > 0 && (
+                          <div className="absolute top-2.5 left-2.5 flex gap-1.5 flex-wrap">
+                            {trip.tags.slice(0, 2).map((tag: string) => (
+                              <Badge
+                                key={tag}
+                                className="bg-black/50 backdrop-blur-sm border border-white/20 text-[10px] uppercase tracking-tight rounded-full text-white/90 px-2 py-0.5"
+                              >
+                                {tag.replace("#", "")}
+                              </Badge>
+                            ))}
                           </div>
+                        )}
 
-                          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-                            <div className="flex items-center gap-1.5 text-white/90 text-xs">
-                               <MapPin className="w-3 h-3 text-red-400" />
-                               <span className="font-medium line-clamp-1">{trip.destination}</span>
+                        {/* Destination bottom-left */}
+                        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1 text-white/90 text-xs">
+                          <MapPin className="w-3 h-3 text-red-400 shrink-0" />
+                          <span className="font-medium line-clamp-1">{trip.destination}</span>
+                        </div>
+                      </div>
+
+                      {/* Card body */}
+                      <div className="p-4 space-y-2">
+                        <h3 className="font-semibold text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                          {trip.title}
+                        </h3>
+                        <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Calendar className="w-3 h-3 text-primary/50" />
+                            <span>
+                              {new Date(trip.created_at).toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                          {trip.travelers && trip.travelers.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="w-3 h-3" />
+                              <span>{trip.travelers.length}</span>
                             </div>
-                            {trip.total_cost && (
-                              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-2 py-1 text-white text-[10px] font-bold">
-                                {trip.total_cost}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-
-                        <div className="p-4 space-y-2">
-                          <h3 className="font-bold text-base leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                            {trip.title}
-                          </h3>
-                          
-                          <div className="flex items-center justify-between pt-2">
-                             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                                <Calendar className="w-3 h-3 text-primary/60" />
-                                <span>
-                                  {new Date(trip.created_at).toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' })}
-                                </span>
-                             </div>
-                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
-                                <Users className="w-3 h-3" />
-                                <span>{trip.travelers?.length || 1}</span>
-                             </div>
-                          </div>
-                        </div>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-             )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>

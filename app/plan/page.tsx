@@ -739,8 +739,8 @@ export default function PlanPage() {
                 </div>
               )}
 
-              {/* Documents filter — only for international trips */}
-              {destination === "abroad" && profile?.preferences?.documents?.length > 0 && (
+              {/* Documents filter — for international or custom destination trips */}
+              {(destination === "abroad" || destination === "custom") && profile?.preferences?.documents?.length > 0 && (
                 <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-top-2">
                   <button
                     type="button"

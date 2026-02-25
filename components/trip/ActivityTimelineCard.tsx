@@ -118,12 +118,18 @@ const freeKeywords = [
   "прогулка",
 ]
 
-export function getActivityColorTheme(activity: { type?: string; time?: string; desc?: string; title?: string }): ColorTheme {
+export function getActivityColorTheme(activity: { type?: string; time?: string; desc?: string; title?: string; cost?: string }): ColorTheme {
+  const hasCost = activity.cost && 
+      activity.cost.trim() !== "" && 
+      activity.cost !== "0" && 
+      !activity.cost.toLowerCase().includes("бесплатно") && 
+      !activity.cost.toLowerCase().includes("free");
+
   // Explicit type field takes priority (set by AI or normalizer)
   if (activity.type === "transport") return "transport"
   if (activity.type === "hotel") return "hotel"
   if (activity.type === "food") return "food"
-  if (activity.type === "free") return "free"
+  if (activity.type === "free" && !hasCost) return "free"
   if (activity.type === "activity") return "activity"
 
   // Keyword fallback for old trips without type field
@@ -132,7 +138,9 @@ export function getActivityColorTheme(activity: { type?: string; time?: string; 
   if (hotelKeywords.some((k) => combined.includes(k))) return "hotel"
   if (transportKeywords.some((k) => combined.includes(k))) return "transport"
   if (foodKeywords.some((k) => combined.includes(k))) return "food"
-  if (freeKeywords.some((k) => combined.includes(k))) return "free"
+  if (!hasCost && freeKeywords.some((k) => combined.includes(k))) return "free"
+  
+  if (activity.type === "free") return "activity" // Fallback if it had cost but type was free
   return "activity"
 }
 
@@ -312,8 +320,8 @@ function buildGalleryQuery(activity: Activity, destination: string): string {
   // Strip Russian prefixes from placeName to get the core name
   const rawName = (activity.placeName || activity.title || "").replace(RU_PLACE_PREFIX, "").trim()
 
-  if (type === "hotel") return `hotel elegant interior ${destEn}`
-  if (type === "food") return `restaurant cozy dining food ${destEn}`
+  if (type === "hotel") return `hotel ${rawName || 'elegant interior'} ${destEn}`
+  if (type === "food") return `restaurant ${rawName || 'cozy dining food'} ${destEn}`
   return `travel landmark ${rawName} ${destEn}`
 }
 
