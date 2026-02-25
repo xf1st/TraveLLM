@@ -354,7 +354,7 @@ export default function PlanPage() {
         // Guest user: Save to localStorage with 'local-' prefix
         const localId = `${Date.now()}`
         localStorage.setItem(`trip-local-${localId}`, JSON.stringify(routeData))
-        // Also save as lastGeneratedRoute for /results page compatibility
+        // Also save as lastGeneratedRoute for /trips page compatibility
         localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
         router.push(`/trip/local-${localId}`)
       }

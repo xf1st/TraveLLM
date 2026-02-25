@@ -223,7 +223,7 @@ export default function NewsFeedPage() {
               ))}
             </div>
             <Button variant="outline" className="w-full mt-6 rounded-full border-white/10 hover:bg-white/5 text-zinc-300 hover:text-white" asChild>
-              <Link href="/results">Смотреть все маршруты</Link>
+              <Link href="/trips">Смотреть все маршруты</Link>
             </Button>
           </Card>
 

@@ -416,10 +416,10 @@ function GuidePageContent() {
     const finishTrip = async () => {
         try {
             await supabase.from('trips').update({ status: 'completed' }).eq('id', tripId)
-            router.push('/results')
+            router.push('/trips')
         } catch (e) {
             console.error("Failed to finish trip", e)
-            router.push('/results')
+            router.push('/trips')
         }
     }
 

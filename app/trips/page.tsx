@@ -35,7 +35,7 @@ import { FadeIn } from "@/components/FadeIn";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
-// ─── Tag config (same as /results) ───────────────────────────────────────────
+// ─── Tag config (same as /trips) ───────────────────────────────────────────
 const tagColors: Record<string, string> = {
   пляж: "bg-sky-500/20 text-sky-300 border border-sky-500/30",
   шопинг: "bg-pink-500/20 text-pink-300 border border-pink-500/30",

@@ -1283,7 +1283,7 @@ export default function TravelDashboard() {
                 <button className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-3" onClick={() => router.push("/")}>
                   <span className="text-xl">Главная</span>
                 </button>
-                <button className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-3" onClick={() => router.push("/results")}>
+                <button className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-3" onClick={() => router.push("/trips")}>
                   <span className="text-xl">Маршруты</span>
                 </button>
                 <button className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-3" onClick={() => trip?.id && router.push(`/trip/${trip.id}`)}>
@@ -1457,10 +1457,10 @@ export default function TravelDashboard() {
                   <p className="text-sm text-zinc-400 mt-1">Создайте маршрут или откройте список маршрутов.</p>
                   <div className="mt-3">
                     <button
-                      onClick={() => router.push("/results")}
+                      onClick={() => router.push("/trips")}
                       className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors text-sm font-medium"
                     >
-                      Открыть /results
+                      Открыть /trips
                     </button>
                   </div>
                 </div>

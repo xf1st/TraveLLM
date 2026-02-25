@@ -376,7 +376,7 @@ export default function TripCompletedPage() {
                        variant="outline"
                        className="border-border dark:border-white/10 h-16 px-10 rounded-2xl font-extrabold text-lg hover:bg-muted dark:hover:bg-white/5 text-foreground dark:text-white"
                     >
-                       <Link href="/results">
+                       <Link href="/trips">
                           <Compass className="w-5 h-5 mr-3" /> Все маршруты
                        </Link>
                     </Button>

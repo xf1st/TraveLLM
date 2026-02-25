@@ -73,7 +73,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. Protected Routes for Main Domain
   // Note: /profile/[username] is public (user profiles), only /profile itself is protected
-  const protectedPaths = ['/dashboard', '/plan', '/results', '/onboarding', '/guide']
+  const protectedPaths = ['/dashboard', '/plan', '/trips', '/onboarding', '/guide']
   const isOwnProfile = pathname === '/profile' || pathname.startsWith('/profile?') || pathname.startsWith('/profile/')
   const isPublicProfilePath = /^\/profile\/[^/]+$/.test(pathname)
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path)) || (isOwnProfile && !isPublicProfilePath)

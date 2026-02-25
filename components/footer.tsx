@@ -32,7 +32,7 @@ export function Footer() {
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/results" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 group">
+                                    <Link href="/trips" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 group">
                                         <span className="w-1 h-1 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
                                         Мои поездки
                                     </Link>

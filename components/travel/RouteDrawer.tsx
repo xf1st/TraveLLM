@@ -70,7 +70,7 @@ export function RouteDrawer({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => router.push("/results")}
+                  onClick={() => router.push("/trips")}
                   title="Мои маршруты"
                   className="rounded-full hover:bg-white/10 text-zinc-400 hover:text-white"
                 >
@@ -98,7 +98,7 @@ export function RouteDrawer({
             <div className="mx-auto w-12 h-1.5 flex-shrink-0 rounded-full bg-zinc-800 mb-6" />
             <div className="flex items-center justify-between mb-4 px-2">
               <Drawer.Title className="font-bold text-2xl text-white">Маршрут</Drawer.Title>
-              <Button variant="ghost" size="sm" onClick={() => router.push("/results")} className="text-xs text-zinc-400 hover:text-white">
+              <Button variant="ghost" size="sm" onClick={() => router.push("/trips")} className="text-xs text-zinc-400 hover:text-white">
                 Мои маршруты
               </Button>
             </div>

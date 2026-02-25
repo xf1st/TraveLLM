@@ -114,7 +114,7 @@ export default function LandingPage() {
               </Button>
             </Link>
             {user ? (
-              <Link href="/results">
+              <Link href="/trips">
                 <Button size="lg" variant="outline" className="h-14 px-8 rounded-full text-base font-bold border-white/20 backdrop-blur-md">
                   Мои поездки
                 </Button>

@@ -134,7 +134,7 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
-    { href: "/results", label: "Маршруты" },
+    { href: "/trips", label: "Маршруты" },
     { href: "/dashboard", label: "3D Карта β" },
     { href: "/plan", label: "Спланировать" },
   ]
