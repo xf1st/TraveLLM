@@ -1075,7 +1075,7 @@ CRITICAL:
             startDay: number,
             endDay: number,
             destination: string,
-            previousContext?: { lastCity: string; visitedPlaces: string[] },
+            previousContext?: { lastCity: string; visitedPlaces: string[]; lastCountry?: string },
             tripPlan?: Array<{ startDay: number; endDay: number; city: string; country: string }>
         ): Promise<any[]> {
             const isFirstChunk = startDay === 1
@@ -1092,6 +1092,13 @@ CRITICAL:
                     return `Дни ${dayFrom}-${dayTo}: ${s.city} (${s.country})`
                 }).join('\n  ')
                 : null
+
+            // Detect country change between previous chunk and this one
+            const firstDaySegment = (tripPlan || []).find(s => s.startDay <= startDay && s.endDay >= startDay)
+            const firstChunkCity = firstDaySegment?.city || ""
+            const firstChunkCountry = firstDaySegment?.country || ""
+            const previousCountry = previousContext?.lastCountry || ""
+            const isCountryChange = !isFirstChunk && !!previousCountry && !!firstChunkCountry && previousCountry !== firstChunkCountry
 
             const chunkPrompt = `
 Сгенерируй ДНИ ${startDay}-${endDay} из ${durationDays}-дневного маршрута.
@@ -1120,11 +1127,20 @@ ${isLastChunk
                     ? `- Это ПОСЛЕДНИЙ сегмент. День ${endDay} должен завершиться возвращением в ${departureCity}.`
                     : `- В конце дня ${endDay} укажи город, где путешественник останется на ночь.`
                 }
+${isCountryChange ? `
+🚨 СМЕНА СТРАНЫ — ОБЯЗАТЕЛЬНЫЙ ТРАНСПОРТ:
+Предыдущий сегмент закончился в ${startLocation} (страна: ${previousCountry}).
+Этот сегмент начинается в ${firstChunkCity} (страна: ${firstChunkCountry}).
+ПУТЕШЕСТВЕННИК ЕЩЁ ФИЗИЧЕСКИ НАХОДИТСЯ В ${previousCountry}!
+День ${startDay} ОБЯЗАН начинаться с активности type="transport" (перелёт ${startLocation} → ${firstChunkCity}).
+ЗАПРЕЩЕНО начинать день ${startDay} с "food" или "activity" — человек ещё не прилетел!
+Обязательный порядок дня ${startDay}: transport (перелёт) → hotel (заселение) → food/activity (знакомство с городом).` : ''}
 
 ПРАВИЛА ЛОГИСТИКИ:
 1. НЕТ ТЕЛЕПОРТАЦИИ: проверяй, где закончился предыдущий день
 2. Перелёты Россия↔Европа/США = только с пересадкой
 3. Утро первого дня после перелета = Трансфер/Отдых. НЕ АКТИВНОСТЬ.
+4. СМЕНА СТРАНЫ = ПЕРЕЛЁТ. Нельзя оказаться в другой стране без активности type="transport".
 
 Формат ответа — JSON массив. Следуй шаблонам дней из системного промпта.
 ${isFirstChunk ? 'День 1 = ДЕНЬ ПРИБЫТИЯ (transport → hotel → food/activity).' : ''}
@@ -1220,8 +1236,10 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 }
 
                 // Initial context
+                const departureCitySegment = tripPlan.find(s => s.startDay === 1)
                 let previousContext = {
                     lastCity: effectiveDepartureCity,
+                    lastCountry: departureCitySegment?.country || "",
                     visitedPlaces: [] as string[]
                 };
 
@@ -1239,14 +1257,16 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     );
                     allDays.push(...chunkDays);
 
-                    // Update context for next chunk — prefer tripPlan city over AI guess
+                    // Update context for next chunk — prefer tripPlan city/country over AI guess
                     const nextChunkStart = chunks[i + 1]?.start;
                     const nextPlanSegment = nextChunkStart
                         ? tripPlan.find(s => s.startDay <= nextChunkStart && s.endDay >= nextChunkStart)
                         : undefined;
+                    const currentChunkLastSegment = tripPlan.find(s => s.startDay <= chunks[i].end && s.endDay >= chunks[i].end)
                     const lastDay = chunkDays[chunkDays.length - 1];
                     previousContext = {
                         lastCity: nextPlanSegment?.city || lastDay?.endCity || lastDay?.logistics?.to || resolvedDestination,
+                        lastCountry: currentChunkLastSegment?.country || previousContext.lastCountry || "",
                         visitedPlaces: [
                             ...previousContext.visitedPlaces,
                             ...chunkDays.flatMap((day: { activities?: Array<{ placeName?: string }> }) =>
@@ -1257,6 +1277,33 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 }
 
                 allDays.sort((a, b) => a.day - b.day);
+
+                // Post-generation repair: ensure inter-country transport was not skipped by AI
+                for (let i = 1; i < allDays.length; i++) {
+                    const today = allDays[i]
+                    const yesterday = allDays[i - 1]
+                    const todaySeg = tripPlan.find(s => s.startDay <= today.day && s.endDay >= today.day)
+                    const yesterdaySeg = tripPlan.find(s => s.startDay <= yesterday.day && s.endDay >= yesterday.day)
+                    if (!todaySeg || !yesterdaySeg || todaySeg.country === yesterdaySeg.country) continue
+                    // Country changed — check first activity
+                    const firstActivity = today.activities?.[0]
+                    if (firstActivity?.type === 'transport') continue
+                    // AI forgot the transport — inject it
+                    console.log(`[Repair] Day ${today.day}: missing transport ${yesterdaySeg.city} (${yesterdaySeg.country}) → ${todaySeg.city} (${todaySeg.country})`)
+                    // Shift existing "Утро" activity to "День" to make room
+                    if (today.activities?.[0]?.time === 'Утро') today.activities[0].time = 'День'
+                    today.activities = [
+                        {
+                            time: "Утро",
+                            type: "transport",
+                            title: `Перелёт ${yesterdaySeg.city} → ${todaySeg.city}`,
+                            placeName: `Аэропорт ${yesterdaySeg.city}`,
+                            desc: `Вылет из ${yesterdaySeg.city} (${yesterdaySeg.country}) в ${todaySeg.city} (${todaySeg.country}). Трансфер до отеля.`,
+                            cost: "от 15 000 ₽"
+                        },
+                        ...(today.activities || [])
+                    ]
+                }
 
                 routeData = {
                     ...metadata,
@@ -1295,125 +1342,144 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             return routeData;
         }
 
-        try {
-            // Reset token usage counter at start of generation
-            resetGeminiSessionUsage();
-            resetDeepSeekSessionUsage();
-
-            // PRIMARY: Gemini with parallel generation
-            try {
-                console.log("Using Gemini as primary provider...");
-                let generatedRouteData = await generateParallel();
-
-                // Group enrichment tasks in parallel for performance
-                console.log("[Search Optimization] Running parallel enrichment tasks...")
-                // We run enrichment and sanitation in parallel
-                const [enrichedData] = await Promise.all([
-                   enrichViralSpotsWithWebSearch(generatedRouteData),
-                   // sanitizeClosedAirportLogistics directly modifies the object in many places, 
-                   // but here it's safer to just call it.
-                   Promise.resolve(sanitizeClosedAirportLogistics(generatedRouteData))
-                ])
-                
-                generatedRouteData = enrichedData;
-                
-                // Post-processing: Normalization & Dates
-                generatedRouteData = normalizeActivityTypes(generatedRouteData);
-                generatedRouteData = removeSameCityFlights(generatedRouteData);
-                generatedRouteData = enrichTransportLinks(generatedRouteData, departureCity, destinations[0] || "", startDate, endDate);
-                generatedRouteData.start_date = startDate;
-                generatedRouteData.end_date = endDate;
-
-                // Enrich with cover image
-                try {
-                    if (generatedRouteData.countries && generatedRouteData.countries.length > 0) {
-                        const cover = await getDestinationImage(generatedRouteData.countries[0].name + " travel");
-                        if (cover) generatedRouteData.coverImage = cover;
-                    }
-                } catch (imgError) {
-                    // Cover image is optional
+        // Stream the generation to prevent Cloudflare 524 timeout on long trips.
+        // Keepalive comments are sent every 15s; the final result arrives as a 'result' event.
+        const encoder = new TextEncoder()
+        const stream = new ReadableStream({
+            async start(controller) {
+                const sendEvent = (data: object) => {
+                    try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)) } catch {}
                 }
+                const keepaliveTimer = setInterval(() => {
+                    try { controller.enqueue(encoder.encode(': keepalive\n\n')) } catch {}
+                }, 15000)
 
-                // Attach token usage statistics to response
-                const usage = aiEngine === 'deepseek' ? getDeepSeekSessionUsage() : getGeminiSessionUsage();
-                generatedRouteData.tokenUsage = usage;
-
-                console.log(`Success with ${aiEngine}`)
-                console.log(`${aiEngine} session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
-                await incrementGenerationCount(userId)
-                
-                // Record the AI usage event
-                await recordAiUsageEvent({
-                    userId,
-                    source: "route-generation",
-                    provider: aiEngine,
-                    usage: usage
-                })
-                
-                return NextResponse.json(generatedRouteData)
-            } catch (geminiError: any) {
-                console.error("Gemini failed:", geminiError.message)
-
-                // FALLBACK: DeepSeek (single request)
-                console.log("Falling back to DeepSeek...");
-                const messages = [
-                    { role: "system" as const, content: systemPrompt },
-                    { role: "user" as const, content: prompt }
-                ]
-                const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
-                let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "DeepSeek-Fallback"));
-
-                // Post-processing: Normalization & Dates
-                fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
-                fallbackRouteData = removeSameCityFlights(fallbackRouteData);
-                fallbackRouteData = enrichTransportLinks(fallbackRouteData, departureCity, destinations[0] || "", startDate, endDate);
-                fallbackRouteData.start_date = startDate;
-                fallbackRouteData.end_date = endDate;
-
-                // Enrich cover image
                 try {
-                    if (fallbackRouteData.countries && fallbackRouteData.countries.length > 0) {
-                        const cover = await getDestinationImage(fallbackRouteData.countries[0].name + " travel");
-                        if (cover) fallbackRouteData.coverImage = cover;
+                    // Reset token usage counter at start of generation
+                    resetGeminiSessionUsage();
+                    resetDeepSeekSessionUsage();
+
+                    // PRIMARY: Gemini with parallel generation
+                    try {
+                        console.log("Using Gemini as primary provider...");
+                        let generatedRouteData = await generateParallel();
+
+                        // Group enrichment tasks in parallel for performance
+                        console.log("[Search Optimization] Running parallel enrichment tasks...")
+                        const [enrichedData] = await Promise.all([
+                           enrichViralSpotsWithWebSearch(generatedRouteData),
+                           Promise.resolve(sanitizeClosedAirportLogistics(generatedRouteData))
+                        ])
+
+                        generatedRouteData = enrichedData;
+
+                        // Post-processing: Normalization & Dates
+                        generatedRouteData = normalizeActivityTypes(generatedRouteData);
+                        generatedRouteData = removeSameCityFlights(generatedRouteData);
+                        generatedRouteData = enrichTransportLinks(generatedRouteData, departureCity, destinations[0] || "", startDate, endDate);
+                        generatedRouteData.start_date = startDate;
+                        generatedRouteData.end_date = endDate;
+
+                        // Enrich with cover image
+                        try {
+                            if (generatedRouteData.countries && generatedRouteData.countries.length > 0) {
+                                const cover = await getDestinationImage(generatedRouteData.countries[0].name + " travel");
+                                if (cover) generatedRouteData.coverImage = cover;
+                            }
+                        } catch (imgError) {
+                            // Cover image is optional
+                        }
+
+                        // Attach token usage statistics to response
+                        const usage = aiEngine === 'deepseek' ? getDeepSeekSessionUsage() : getGeminiSessionUsage();
+                        generatedRouteData.tokenUsage = usage;
+
+                        console.log(`Success with ${aiEngine}`)
+                        console.log(`${aiEngine} session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                        await incrementGenerationCount(userId)
+
+                        // Record the AI usage event
+                        await recordAiUsageEvent({
+                            userId,
+                            source: "route-generation",
+                            provider: aiEngine,
+                            usage: usage
+                        })
+
+                        sendEvent({ type: 'result', data: generatedRouteData })
+                    } catch (geminiError: any) {
+                        console.error("Gemini failed:", geminiError.message)
+
+                        // FALLBACK: DeepSeek (single request)
+                        console.log("Falling back to DeepSeek...");
+                        const messages = [
+                            { role: "system" as const, content: systemPrompt },
+                            { role: "user" as const, content: prompt }
+                        ]
+                        const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
+                        let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "DeepSeek-Fallback"));
+
+                        // Post-processing: Normalization & Dates
+                        fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
+                        fallbackRouteData = removeSameCityFlights(fallbackRouteData);
+                        fallbackRouteData = enrichTransportLinks(fallbackRouteData, departureCity, destinations[0] || "", startDate, endDate);
+                        fallbackRouteData.start_date = startDate;
+                        fallbackRouteData.end_date = endDate;
+
+                        // Enrich cover image
+                        try {
+                            if (fallbackRouteData.countries && fallbackRouteData.countries.length > 0) {
+                                const cover = await getDestinationImage(fallbackRouteData.countries[0].name + " travel");
+                                if (cover) fallbackRouteData.coverImage = cover;
+                            }
+                        } catch { }
+
+                        // Estimated token usage for fallback (DeepSeek pricing)
+                        const estimatedOutputTokens = Math.round(raw.length / 4);
+                        const estimatedInputTokens = Math.round((systemPrompt.length + prompt.length) / 4);
+                        const estimatedCostUsd = (estimatedInputTokens * 0.00000014) + (estimatedOutputTokens * 0.00000028);
+
+                        fallbackRouteData.tokenUsage = {
+                            promptTokens: estimatedInputTokens,
+                            completionTokens: estimatedOutputTokens,
+                            totalTokens: estimatedInputTokens + estimatedOutputTokens,
+                            promptCacheHitTokens: 0,
+                            model: 'deepseek-fallback',
+                            costUsd: estimatedCostUsd,
+                            costRub: estimatedCostUsd * 90
+                        };
+
+                        console.log("Success with DeepSeek fallback")
+                        console.log(`DeepSeek fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
+                        await incrementGenerationCount(userId)
+
+                        // Record the AI usage event for fallback
+                        await recordAiUsageEvent({
+                            userId,
+                            source: "route-generation-fallback",
+                            provider: "deepseek",
+                            usage: fallbackRouteData.tokenUsage
+                        })
+
+                        sendEvent({ type: 'result', data: fallbackRouteData })
                     }
-                } catch { }
-
-                // Estimated token usage for fallback (DeepSeek pricing)
-                const estimatedOutputTokens = Math.round(raw.length / 4);
-                const estimatedInputTokens = Math.round((systemPrompt.length + prompt.length) / 4);
-                const estimatedCostUsd = (estimatedInputTokens * 0.00000014) + (estimatedOutputTokens * 0.00000028);
-
-                fallbackRouteData.tokenUsage = {
-                    promptTokens: estimatedInputTokens,
-                    completionTokens: estimatedOutputTokens,
-                    totalTokens: estimatedInputTokens + estimatedOutputTokens,
-                    promptCacheHitTokens: 0,
-                    model: 'deepseek-fallback',
-                    costUsd: estimatedCostUsd,
-                    costRub: estimatedCostUsd * 90
-                };
-
-                console.log("Success with DeepSeek fallback")
-                console.log(`DeepSeek fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
-                await incrementGenerationCount(userId)
-                
-                // Record the AI usage event for fallback
-                await recordAiUsageEvent({
-                    userId,
-                    source: "route-generation-fallback",
-                    provider: "deepseek",
-                    usage: fallbackRouteData.tokenUsage
-                })
-                
-                return NextResponse.json(fallbackRouteData)
+                } catch (finalError: any) {
+                    console.error("All providers failed:", finalError.message)
+                    sendEvent({ type: 'error', message: "All AI providers failed to generate valid JSON", details: (finalError as any).message })
+                } finally {
+                    clearInterval(keepaliveTimer)
+                    controller.close()
+                }
             }
-        } catch (finalError: any) {
-            console.error("All providers failed:", finalError.message)
-            return NextResponse.json({
-                error: "All AI providers failed to generate valid JSON",
-                details: finalError.message
-            }, { status: 500 })
-        }
+        })
+
+        return new Response(stream, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache, no-transform',
+                'X-Accel-Buffering': 'no',
+            }
+        })
     } catch (error: any) {
         console.error("Fatal API Error:", error)
         return NextResponse.json({
