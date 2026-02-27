@@ -1227,7 +1227,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 }
 
                 // 2. Chunks (Sequential)
-                const chunks = [];
+                const chunks: { start: number; end: number }[] = [];
                 for (let i = 1; i <= durationDays; i += CHUNK_SIZE) {
                     chunks.push({
                         start: i,
