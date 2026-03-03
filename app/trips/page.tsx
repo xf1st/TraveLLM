@@ -76,7 +76,7 @@ function getTagStyle(tag: string) {
 function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: boolean; onToggleFav: (id: string, e: React.MouseEvent) => void }) {
   return (
     <Link href={`/trip/${trip.id}`} className="group block">
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] h-[200px] sm:h-[420px] md:h-[480px] shadow-2xl border border-white/10">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] h-[200px] sm:h-[320px] md:h-[380px] shadow-2xl border border-white/10">
         {/* Image */}
         <TripImage
           src={trip.image}
@@ -244,8 +244,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
           </div>
         </div>
 
-        {/* ── Desktop: full-bleed вертикальная карточка ── */}
-        <div className="hidden sm:block relative overflow-hidden rounded-[2rem] h-full min-h-[340px] border border-white/10 shadow-xl hover:-translate-y-1 transition-all duration-300 hover:border-white/20 hover:shadow-2xl">
+        <div className="hidden sm:block relative overflow-hidden rounded-[2rem] h-full min-h-[260px] border border-white/10 shadow-xl hover:-translate-y-1 transition-all duration-300 hover:border-white/20 hover:shadow-2xl">
           <TripImage
             src={trip.image}
             query={trip.destination || "travel"}

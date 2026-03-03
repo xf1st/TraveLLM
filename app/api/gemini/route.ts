@@ -154,7 +154,6 @@ function sanitizeClosedAirportLogistics(routeData: any) {
     }
 
     routeData.itinerary = itinerary
-    routeData.itinerary = itinerary
     return routeData
 }
 
@@ -423,15 +422,9 @@ export async function POST(req: Request) {
         const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
 
         // Apply profile preferences if fields are missing
-        if (!departureCity && preferences?.departureCity) {
-            // Re-assign logic (workaround since it's const destructured above, actually better to just rely on scoped usage or change let)
-            // Wait, I can't reassign const. I should change the destructuring to let or handle it differently.
-            // Actually, I can just use a new variable `effectiveDepartureCity` or modify the logic below.
-        }
 
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
 
-        // Calculate AI Temperature based on creativity setting
         // Calculate AI Temperature based on creativity setting
         const creativity = body.aiCreativity || preferences?.aiCreativity || "balanced"
         const aiTemperature = creativity === "creative" ? 1.0 : creativity === "conservative" ? 0.3 : 0.6
@@ -542,6 +535,7 @@ export async function POST(req: Request) {
         let validationResult: ValidationResult | null = null
         let dynamicContextStr = ""
         let adjustedBudget = budgetCap
+        let warningsStr = ""
 
         // Only validate if we have explicit destinations
         if (destinations.length > 0 && startDate && endDate) {
@@ -570,6 +564,8 @@ export async function POST(req: Request) {
                     adjustedBudget = validationResult.adjustedBudget
                     console.log(`[Validation] Budget adjusted: ${budgetCap} → ${adjustedBudget}`)
                 }
+
+                warningsStr = validationResult.warnings?.map(w => w.message).join('; ') || ''
 
                 // Collect dynamic context
                 const dynamicContext = await collectDynamicContext({
@@ -604,6 +600,7 @@ ${destinationType === 'russia' && !customDestination ? `⚠️ КРИТИЧНО:
 - Количество стран/городов: ${destinations.length > 0 ? destinations.length : (countryCount === "more" ? 4 : parseInt(countryCount as string) || 1)}
 - ПРАВИЛО КОЛИЧЕСТВА СТРАН: Если количество > 1, ты ОБЯЗАН выбрать РАЗНЫЕ подходящие страны и обеспечить логистику (перелёты/поезда) между ними. Не ограничивайся одной страной.
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
+${warningsStr ? `⚠️ АКТУАЛЬНЫЕ ПРЕДУПРЕЖДЕНИЯ ДЛЯ ЭТИХ ДАТ: ${warningsStr}` : ''}${dynamicContextStr ? `\nАКТУАЛЬНЫЙ КОНТЕКСТ:\n${dynamicContextStr}` : ''}
 - Длительность: СТРОГО ${durationDays} дней (сгенерируй ровно ${durationDays} дней)
 - Сезонность: Проверь сезон и праздники. Зимой НЕТ пляжного отдыха (кроме тропиков). Учитывай Новый год, если попадает.
 - Бюджет: ${budgetDesc}
@@ -651,8 +648,8 @@ ${travelStyle.includes('events') ? `Пользователь ВЫБРАЛ "ив�
 - Если даты включают февраль-март в Европе: карнавалы (Венеция, Ницца)
 - Если лето: фестивали (Sziget, Tomorrowland, Exit)
 
-- Стиль: ${travelStyle.join(', ')}
-- Стиль: ${travelStyle.join(', ')}
+- Стиль: ${styleStr || travelStyle.join(', ')}
+${rulesStr ? `ПРАВИЛА ДЛЯ ВЫБРАННОГО СТИЛЯ:\n${rulesStr}` : ''}
 - Компания: ${companions} (${travelers || ((companions === 'family' || companions === 'friends') ? 2 : (companions === 'solo' ? 1 : 2))} чел.)
 
 ПЕРСОНАЛИЗАЦИЯ:
@@ -778,7 +775,7 @@ ${creativityInstruction}
 
 1. ЛОГИСТИКА: Полная door-to-door логистика от ${departureCity}.
 
-2. СТОИМОСТЬ: Для КАЖДОЙ активности указывай реальную цену в рублях. НИКОГДА не пиши "0" или "Бесплатно" — даже прогулка = 500-1000₽ (вода, перекус). Ужин = 1500-5000₽.
+2. СТОИМОСТЬ: Для КАЖДОЙ активности указывай реальную цену в рублях. НИКОГДА не пиши cost: "0 ₽". Для реально бесплатных мест пиши "Бесплатно (вход свободный)" или "~500 ₽ (вода/перекус)". Ужин = 1500-5000₽.
 
 3. КОНКРЕТНЫЕ НАЗВАНИЯ (КРИТИЧНО):
    - ПЛОХО: "Местный ресторан", "Центральный парк", "Городской музей"
@@ -1011,6 +1008,7 @@ Generate ONLY the metadata for a travel itinerary. NO itinerary days needed.
 DESTINATION: ${targetDescription}
 DEPARTURE: ${departureCity}
 DURATION: ${durationDays} days
+${warningsStr ? `WARNINGS: ${warningsStr}` : ''}
 BUDGET: ${budgetDesc} (max ${budgetCap} RUB)
 STYLE: ${travelStyle.join(', ')}
 ⚠️ MANDATORY COUNTRIES COUNT: ${countryCount === "more" ? "4+" : (countryCount || "1")} — countries[] MUST contain EXACTLY ${countryCount === "more" ? "4 or more" : (countryCount || "1")} entries. ${parseInt(String(countryCount)) > 1 ? `Even if primary wish (e.g. sakura→Japan) leads to one country, you MUST add ${parseInt(String(countryCount)) - 1} more complementary country. Example: Japan + South Korea, or Japan + China. Returning fewer countries than requested is a CRITICAL ERROR.` : ""}
@@ -1121,12 +1119,14 @@ CRITICAL:
 
 КОНТЕКСТ МАРШРУТА:
 - Направление: ${destination}
+${destination ? `(ОБЯЗАТЕЛЬНЫЕ СТРАНЫ/ГОРОДА: ${destination})` : ''}
 - Город отправления: ${departureCity}
 - Стиль: ${toArray(travelStyle).join(', ') || 'Не указан'}
 - Темп: ${preferences?.pace || 'moderate'}
 - Диета: ${toArray(preferences?.dietaryRestrictions).join(', ') || 'Без ограничений'}
 - Бюджет: ${budgetDesc}
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'}
+${warningsStr ? `⚠️ АКТУАЛЬНЫЕ ПРЕДУПРЕЖДЕНИЯ: ${warningsStr}` : ''}
 ${safeHighlight ? `- ОСОБОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ: "${safeHighlight}" — Адаптируй активности и атмосферу этих дней под данный запрос (если это общая тема, добавляй соответствующие элементы в разные дни). Помечай такие активности "(✨ специально для тебя)" в desc. КАТЕГОРИЧЕСКИ ЗАПРЕЩАЕТСЯ комментировать его напрямую или писать "Учитывая ваше пожелание..." в logistics.note и других полях.` : ''}
 
 ${planForChunk ? `⚠️ ПЛАН МАРШРУТА (СТРОГО СЛЕДУЙ — НЕ ОТСТУПАЙ):
@@ -1173,6 +1173,13 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 }
 
 Ровно ${endDay - startDay + 1} дней. Все поля обязательны (time, type, title, placeName, desc, cost).
+
+ПОЛЕ imageQuery (ОБЯЗАТЕЛЬНО для hotel/food/activity):
+- Запрос на АНГЛИЙСКОМ для Pexels. НЕ используй собственные имена заведений.
+- Формат: [конкретный визуальный элемент] + [тип места + маркер] + [город/страна]
+- Пример: "rooftop terrace sunset cocktails Tbilisi skyline"
+- Для type=transport — НЕ добавляй imageQuery.
+
 Ответ ТОЛЬКО JSON массив, без markdown. Язык: РУССКИЙ.`;
 
             console.log(`Parallel: Generating days ${startDay}-${endDay} (start: ${startLocation})...`);
@@ -1201,7 +1208,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             const CHUNK_SIZE = 4; // Days per chunk
             const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
-            const travelersCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
+            const travelersCount = parseInt(travelers) || 2
 
             let routeData: any = {};
 
@@ -1236,6 +1243,12 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                 // Extract the trip plan (day → city mapping) from metadata
                 const tripPlan: Array<{ startDay: number; endDay: number; city: string; country: string }> =
                     Array.isArray(metadata.tripPlan) ? metadata.tripPlan : [];
+                
+                const gaps = tripPlan.filter((seg, i) => 
+                    i > 0 && seg.startDay > tripPlan[i-1].endDay + 1
+                );
+                if (gaps.length > 0) console.warn('[tripPlan] Gaps detected:', gaps);
+
                 if (tripPlan.length > 0) {
                     console.log(`Trip plan: ${tripPlan.map(s => `days ${s.startDay}-${s.endDay} → ${s.city}`).join(', ')}`);
                 } else {
@@ -1380,12 +1393,13 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                         console.log("Using Gemini as primary provider...");
                         let generatedRouteData = await generateParallel();
 
-                        // Group enrichment tasks in parallel for performance
-                        console.log("[Search Optimization] Running parallel enrichment tasks...")
-                        const [enrichedData] = await Promise.all([
-                           enrichViralSpotsWithWebSearch(generatedRouteData),
-                           Promise.resolve(sanitizeClosedAirportLogistics(generatedRouteData))
-                        ])
+                        // 1. Sanitize closed airports synchronously since it mutates
+                        console.log("[Sanitize] Checking for closed airports...")
+                        sanitizeClosedAirportLogistics(generatedRouteData)
+                        
+                        // 2. Enrich viral spots (async)
+                        console.log("[Search Optimization] Running viral spots enrichment...")
+                        const enrichedData = await enrichViralSpotsWithWebSearch(generatedRouteData)
 
                         generatedRouteData = enrichedData;
 
