@@ -3,12 +3,12 @@
 //
 // Uses existing OPENROUTER_API_KEY — no separate Gemini key needed.
 //
-// Model: google/gemini-2.0-flash-001 для всех маршрутов ($0.10 / $0.40 per 1M tokens)
+// Model: google/gemini-2.5-flash-lite-preview-09-2025 для всех маршрутов ($0.10 / $0.40 per 1M tokens)
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-export const GEMINI_FLASH = "google/gemini-2.0-flash-001";
+export const GEMINI_FLASH = "google/gemini-2.5-flash-lite-preview-09-2025";
 
 // Pricing (Feb 2026) — per 1M tokens
 const PRICING = {
