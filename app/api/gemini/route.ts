@@ -12,7 +12,7 @@ import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-val
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
 import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
-import { getFlightSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
+import { getFlightSearchLink, parseCityIata, getIataCode, checkDirectFlightsLive, getTrainSearchLink } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 
 function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
@@ -93,7 +93,11 @@ function enrichTransportLinks(routeData: any, origin: string, mainDestination: s
     return routeData
 }
 
-function sanitizeClosedAirportLogistics(routeData: any) {
+async function sanitizeClosedAirportLogistics(
+    routeData: any,
+    departureCity?: string,
+    startDate?: string
+) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
 
     const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
@@ -113,22 +117,47 @@ function sanitizeClosedAirportLogistics(routeData: any) {
         return m.includes('самол') || m.includes('flight') || m.includes('plane')
     }
 
-    for (const day of itinerary) {
+    for (let i = 0; i < itinerary.length; i++) {
+        const day = itinerary[i]
         const lg = day?.logistics
         if (!lg) continue
 
         const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
 
         if (targetsClosed && sanitizeMode(lg.mode)) {
-            const toLabel = lg.to || day?.title || "пункт назначения"
+            const fromCity = lg.from || departureCity || "Отправление"
+            const toCity = lg.to || day?.title || "Пункт назначения"
+
+            // Generate real Yandex Travel train link instead of generic rzd.ru
+            let trainLink = "https://www.rzd.ru/"
+            try {
+                const fromClean = String(fromCity).replace(/\s*\(.*?\)\s*/g, '').trim()
+                const toClean = String(toCity).replace(/\s*\(.*?\)\s*/g, '').trim()
+                let departDate = startDate
+                if (startDate && i > 0) {
+                    const d = new Date(startDate)
+                    d.setDate(d.getDate() + i)
+                    departDate = d.toISOString().split('T')[0]
+                }
+                trainLink = await getTrainSearchLink({
+                    origin: fromClean,
+                    destination: toClean,
+                    departDate,
+                    subId: `train_closed_day_${i + 1}`
+                })
+                console.log(`[Sanitize] Train link for ${fromClean} → ${toClean}: ${trainLink}`)
+            } catch (trainErr) {
+                console.error("[Sanitize] Failed to generate train link:", trainErr)
+            }
+
             day.logistics = {
                 mode: "Поезд/авто (аэропорт закрыт)",
-                from: lg.from || "Отправление",
-                to: lg.to || "Пункт назначения",
+                from: fromCity,
+                to: toCity,
                 distance: lg.distance || "—",
                 duration: lg.duration || "—",
                 price: lg.price || "—",
-                bookingLink: "https://www.rzd.ru/"
+                bookingLink: trainLink
             }
             if (typeof day.title === 'string') {
                 day.title = day.title
@@ -149,7 +178,7 @@ function sanitizeClosedAirportLogistics(routeData: any) {
                 }
             }
 
-            day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toLabel}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}).`
+            day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toCity}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}). Купить ЖД билеты: ${trainLink}`
         }
     }
 
@@ -581,6 +610,28 @@ export async function POST(req: Request) {
             } catch (validationError) {
                 console.error("[Validation] Error:", validationError)
                 // Continue without validation on error
+            }
+        }
+
+        // =====================================
+        // LIVE FLIGHT PRE-CHECK (Aviasales API)
+        // =====================================
+        if (destinations.length > 0 && effectiveDepartureCity) {
+            try {
+                const mainDest = destinations[0]
+                console.log(`[Flight Pre-Check] Checking ${effectiveDepartureCity} → ${mainDest}...`)
+                const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, mainDest, startDate)
+
+                let flightContextLine = ""
+                if (flightCheck.hasDirect && flightCheck.minPrice) {
+                    flightContextLine = `\n🛫 LIVE DATA: Прямые рейсы ${effectiveDepartureCity} → ${mainDest} ЕСТЬ (от ${flightCheck.minPrice.toLocaleString('ru-RU')} ${flightCheck.currency.toUpperCase()}). СТРОЙ маршрут с ПРЯМЫМ перелётом.`
+                } else {
+                    flightContextLine = `\n🛫 LIVE DATA: Прямых рейсов ${effectiveDepartureCity} → ${mainDest} НЕТ. Используй рейс С ПЕРЕСАДКОЙ (через хаб — Стамбул, Дубай, Доха и т.д.).`
+                }
+                console.log(`[Flight Pre-Check] Result: ${flightContextLine.trim()}`)
+                dynamicContextStr += flightContextLine
+            } catch (flightCheckErr) {
+                console.error("[Flight Pre-Check] Error:", flightCheckErr)
             }
         }
 
@@ -1069,7 +1120,13 @@ CRITICAL:
 - tripPlan MUST cover ALL ${durationDays} days (no gaps, no overlaps)
 - tripPlan MUST visit EACH country in countries[] exactly ONCE — no returning to already-visited cities
 - Last entry in tripPlan should end on day ${durationDays} (return day)
-- Distribute days EVENLY: if 11 days and 3 countries, roughly 4+4+3 — NOT 2+3+3+3 with repeats!`;
+- Distribute days EVENLY: if 11 days and 3 countries, roughly 4+4+3 — NOT 2+3+3+3 with repeats!
+${destinations.length > 0 ? `
+⚠️ ЖЁСТКОЕ ТРЕБОВАНИЕ — ВСЕ ПУНКТЫ НАЗНАЧЕНИЯ ОБЯЗАТЕЛЬНЫ:
+Пользователь ВЫБРАЛ следующие направления: ${destinations.map(parseDestination).join(', ')}.
+tripPlan ОБЯЗАН включать КАЖДЫЙ из этих пунктов. НИ ОДИН нельзя пропускать.
+Если какой-то город маленький или необычный — добавь к нему минимум 1 день.
+Не заменяй города пользователя на другие «более популярные».` : ''}`;
 
             console.log("Parallel: Generating metadata...");
             const messages = [
@@ -1334,6 +1391,36 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     ]
                 }
 
+                // Post-generation dedup: remove duplicate transport at chunk boundaries
+                // (e.g., chunk 1 ends with "fly to TBS" on day 4, chunk 2 starts with "fly to TBS" on day 5)
+                for (let i = 1; i < allDays.length; i++) {
+                    const prevDay = allDays[i - 1]
+                    const currDay = allDays[i]
+                    if (!Array.isArray(prevDay?.activities) || !Array.isArray(currDay?.activities)) continue
+                    if (prevDay.activities.length === 0 || currDay.activities.length === 0) continue
+
+                    const prevLastAct = prevDay.activities[prevDay.activities.length - 1]
+                    const currFirstAct = currDay.activities[0]
+
+                    if (prevLastAct?.type === 'transport' && currFirstAct?.type === 'transport') {
+                        const prevTitle = (prevLastAct.title || '').toLowerCase()
+                        const currTitle = (currFirstAct.title || '').toLowerCase()
+
+                        // Extract destination city from transport title
+                        const getTransportDest = (t: string): string => {
+                            const m = t.match(/[→>]\s*(.+)/i)
+                            return m ? m[1].replace(/\(.*?\)/g, '').trim().toLowerCase() : ''
+                        }
+                        const prevDest = getTransportDest(prevTitle)
+                        const currDest = getTransportDest(currTitle)
+
+                        if (prevDest && currDest && (prevDest === currDest || prevDest.includes(currDest) || currDest.includes(prevDest))) {
+                            console.log(`[Dedup] Removing duplicate transport: day ${prevDay.day} "${prevLastAct.title}" / day ${currDay.day} "${currFirstAct.title}"`)
+                            prevDay.activities.pop()
+                        }
+                    }
+                }
+
                 routeData = {
                     ...metadata,
                     itinerary: allDays,
@@ -1393,9 +1480,9 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                         console.log("Using Gemini as primary provider...");
                         let generatedRouteData = await generateParallel();
 
-                        // 1. Sanitize closed airports synchronously since it mutates
+                        // 1. Sanitize closed airports (async — generates real train links)
                         console.log("[Sanitize] Checking for closed airports...")
-                        sanitizeClosedAirportLogistics(generatedRouteData)
+                        await sanitizeClosedAirportLogistics(generatedRouteData, departureCity, startDate)
                         
                         // 2. Enrich viral spots (async)
                         console.log("[Search Optimization] Running viral spots enrichment...")
@@ -1447,7 +1534,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                             { role: "user" as const, content: prompt }
                         ]
                         const raw = await deepseekInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays });
-                        let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "DeepSeek-Fallback"));
+                        let fallbackRouteData = await sanitizeClosedAirportLogistics(parseJsonResponse(raw, "DeepSeek-Fallback"), departureCity, startDate);
 
                         // Post-processing: Normalization & Dates
                         fallbackRouteData = normalizeActivityTypes(fallbackRouteData);

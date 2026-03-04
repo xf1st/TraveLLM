@@ -799,6 +799,67 @@ interface CalendarPrice {
 }
 
 /**
+ * Проверка наличия прямых рейсов в реальном времени (для контекста LLM)
+ */
+export async function checkDirectFlightsLive(
+  origin: string,
+  destination: string,
+  targetDate?: string // YYYY-MM-DD
+): Promise<{ hasDirect: boolean; minPrice?: number; currency: string }> {
+  try {
+    // Strip region/country suffixes: "Белгород, Белгородская Область, Россия" → "Белгород"
+    const extractCityName = (s: string) => s.split(',')[0].trim()
+    const originCity = extractCityName(origin)
+    const destCity = extractCityName(destination)
+
+    const originIata = getIataCode(originCity) || getIataCode(origin) || origin;
+    const destIata = getIataCode(destCity) || getIataCode(destination) || destination;
+    
+    // Fallback: If we can't determine both IATAs, skip silently
+    if (!originIata || !destIata || originIata === origin || destIata === destination) {
+        console.log(`[Aviasales API] Could not resolve IATA for "${originCity}" or "${destCity}", skipping pre-check`)
+        return { hasDirect: false, currency: "rub" };
+    }
+
+    const month = targetDate ? targetDate.substring(0, 7) : undefined; // YYYY-MM
+    const tickets = await getCheapestTickets(originIata, destIata, month);
+
+    if (!tickets || !tickets.data || !tickets.success) {
+      return { hasDirect: false, currency: "rub" };
+    }
+
+    // Traverse the dates returned in the data
+    const dates = Object.keys(tickets.data);
+    let minDirectPrice = Infinity;
+    
+    for (const date of dates) {
+      const ticketMap = tickets.data[date];
+      if (!ticketMap) continue;
+      
+      // ticketMap looks like { "SU": { price: 3000, transfers: 0, ... } }
+      for (const airline of Object.keys(ticketMap)) {
+         const ticket = ticketMap[airline];
+         if (ticket.transfers === 0) {
+             if (ticket.price < minDirectPrice) {
+                 minDirectPrice = ticket.price;
+             }
+         }
+      }
+    }
+
+    if (minDirectPrice !== Infinity) {
+        return { hasDirect: true, minPrice: minDirectPrice, currency: tickets.currency || "rub" };
+    }
+
+    return { hasDirect: false, currency: tickets.currency || "rub" };
+  } catch (err) {
+    console.error("[Aviasales API] Live check failed:", err);
+    return { hasDirect: false, currency: "rub" };
+  }
+}
+
+
+/**
  * Получить календарь цен (самые дешёвые дни для перелёта)
  */
 export async function getPriceCalendar(
