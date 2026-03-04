@@ -112,19 +112,38 @@ async function sanitizeClosedAirportLogistics(
         return closedTokens.some((token: string) => token && t.includes(token))
     }
 
-    const sanitizeMode = (mode: unknown) => {
-        const m = String(mode || '').toLowerCase()
-        return m.includes('самол') || m.includes('flight') || m.includes('plane')
+    const isFlightMentioned = (text: unknown) => {
+        if (!text) return false
+        const t = String(text).toLowerCase()
+        return t.includes('самол') || t.includes('flight') || t.includes('plane') || t.includes('перелет') || t.includes('перелёт') || t.includes('рейс') || t.includes('вылет') || t.includes('аэропорт') || t.includes('airport')
     }
 
     for (let i = 0; i < itinerary.length; i++) {
         const day = itinerary[i]
         const lg = day?.logistics
-        if (!lg) continue
+        
+        let needsSanitization = false;
 
-        const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
+        if (lg) {
+            const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
+            const hasFlightConcepts = isFlightMentioned(lg.mode) || isFlightMentioned(lg.title) || isFlightMentioned(day?.title)
+            
+            if (targetsClosed && hasFlightConcepts) {
+                needsSanitization = true;
+            }
+        }
 
-        if (targetsClosed && sanitizeMode(lg.mode)) {
+        if (Array.isArray(day?.activities)) {
+            for (const a of day.activities) {
+                if (a?.type === 'transport' && (isFlightMentioned(a?.title) || isFlightMentioned(a?.desc))) {
+                    if (isClosedMentioned(a?.title) || isClosedMentioned(a?.desc) || isClosedMentioned(a?.placeName) || isClosedMentioned(lg?.to) || isClosedMentioned(lg?.from) || isClosedMentioned(day?.title)) {
+                        needsSanitization = true;
+                    }
+                }
+            }
+        }
+
+        if (needsSanitization && lg) {
             const fromCity = lg.from || departureCity || "Отправление"
             const toCity = lg.to || day?.title || "Пункт назначения"
 
@@ -162,8 +181,9 @@ async function sanitizeClosedAirportLogistics(
             if (typeof day.title === 'string') {
                 day.title = day.title
                     .replace(/прямой\s+рейс/ig, "наземный переезд")
+                    .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "поездка")
                     .replace(/аэрофлот|победа/ig, "")
-                    .replace(/\(.*?\)/g, (m: string) => m.toLowerCase().includes('urs') ? '' : m)
+                    .replace(/\(.*?\)/g, '')
                     .trim()
             }
             if (Array.isArray(day.activities)) {
@@ -171,11 +191,30 @@ async function sanitizeClosedAirportLogistics(
                     if (a?.placeName && isClosedMentioned(a.placeName)) {
                         a.placeName = String(a.placeName).replace(/\(.*?\)/g, '').trim()
                     }
-                    if (a?.desc && isClosedMentioned(a.desc)) {
+                    if (a?.title && a?.type === 'transport') {
+                        a.title = String(a.title)
+                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "переезд")
+                            .replace(/\(.*?\)/g, '').trim()
+                    }
+                    if (a?.desc && a?.type === 'transport') {
                         a.desc = String(a.desc)
                             .replace(/прямой\s+рейс.*?(\.|$)/ig, "Аэропорт закрыт — используйте наземный транспорт.")
+                            .replace(/перелёт|перелет|вылет/ig, "переезд")
+                            .replace(/\(.*?\)/g, '').trim()
                     }
                 }
+                
+                // Merge duplicate transport activities if the AI created two of them.
+                day.activities = day.activities.filter((act: any, idx: number, arr: any[]) => {
+                    if (act.type === 'transport' && idx > 0) {
+                        const prevAct = arr[idx - 1]
+                        if (prevAct.type === 'transport') {
+                            // Drop consecutive transport node on a closed airport travel day
+                            return false;
+                        }
+                    }
+                    return true;
+                })
             }
 
             day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toCity}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}). Купить ЖД билеты: ${trainLink}`
@@ -614,24 +653,52 @@ export async function POST(req: Request) {
         }
 
         // =====================================
-        // LIVE FLIGHT PRE-CHECK (Aviasales API)
+        // LIVE FLIGHT & TRAIN PRE-CHECK 
         // =====================================
         if (destinations.length > 0 && effectiveDepartureCity) {
             try {
                 const mainDest = destinations[0]
-                console.log(`[Flight Pre-Check] Checking ${effectiveDepartureCity} → ${mainDest}...`)
-                const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, mainDest, startDate)
+                console.log(`[Pre-Check] Checking ${effectiveDepartureCity} → ${mainDest}...`)
+                
+                const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
+                const closedTokens = closed
+                    .flatMap((a: any) => [a?.city, a?.iata, `${a?.city} (${a?.iata})`])
+                    .filter(Boolean)
+                    .map((s: string) => String(s).toLowerCase())
+
+                const isClosedMentioned = (text: unknown) => {
+                    if (!text) return false
+                    const t = String(text).toLowerCase()
+                    return closedTokens.some((token: string) => token && t.includes(token))
+                }
+
+                const isClosed = isClosedMentioned(mainDest) || isClosedMentioned(effectiveDepartureCity)
 
                 let flightContextLine = ""
-                if (flightCheck.hasDirect && flightCheck.minPrice) {
-                    flightContextLine = `\n🛫 LIVE DATA: Прямые рейсы ${effectiveDepartureCity} → ${mainDest} ЕСТЬ (от ${flightCheck.minPrice.toLocaleString('ru-RU')} ${flightCheck.currency.toUpperCase()}). СТРОЙ маршрут с ПРЯМЫМ перелётом.`
+                if (isClosed) {
+                    flightContextLine = `\n🚆 LIVE DATA АЭРОПОРТ ЗАКРЫТ: СТРОГО ИСПОЛЬЗУЙ ЖД поезд или автобус для маршрута ${effectiveDepartureCity} → ${mainDest}. В ПОЛЕ title и desc ПИШИ "Переезд на автобусе/поезде". КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова "перелёт", "рейс", "вылет" или коды аэропортов (типа BUS, EGO).`
                 } else {
-                    flightContextLine = `\n🛫 LIVE DATA: Прямых рейсов ${effectiveDepartureCity} → ${mainDest} НЕТ. Используй рейс С ПЕРЕСАДКОЙ (через хаб — Стамбул, Дубай, Доха и т.д.).`
+                    const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, mainDest, startDate)
+
+                    if (flightCheck.hasDirect && flightCheck.minPrice) {
+                        flightContextLine = `\n🛫 LIVE DATA: Прямые авиарейсы ${effectiveDepartureCity} → ${mainDest} ЕСТЬ (от ${flightCheck.minPrice.toLocaleString('ru-RU')} ${flightCheck.currency.toUpperCase()}). СТРОЙ маршрут с ПРЯМЫМ перелётом.`
+                    } else {
+                        const estimatedPerDay = budgetCap / durationDays
+                        const isBudget = estimatedPerDay < 10000 || budget === "economy"
+                        const isRussia = destinationType === 'russia' || destinations.some((d: string) => d.toLowerCase().includes('россия'))
+                        
+                        if (isBudget || isRussia) {
+                            flightContextLine = `\n🚆 LIVE DATA: Прямых авиарейсов ${effectiveDepartureCity} → ${mainDest} НЕТ. Чтобы сэкономить бюджет и избежать долгих пересадок, СТРОГО ПРЕДЛАГАЙ поездки на ПОЕЗДЕ (ЖД переезд). Оформи это в маршруте как ЖД Билет без кодов аэропортов.`
+                        } else {
+                            flightContextLine = `\n🛫 LIVE DATA: Прямых рейсов ${effectiveDepartureCity} → ${mainDest} НЕТ. Используй рейс С ПЕРЕСАДКОЙ (через крупные хабы) ИЛИ комфортный поезд.`
+                        }
+                    }
                 }
-                console.log(`[Flight Pre-Check] Result: ${flightContextLine.trim()}`)
+                
+                console.log(`[Pre-Check] Result: ${flightContextLine.trim()}`)
                 dynamicContextStr += flightContextLine
             } catch (flightCheckErr) {
-                console.error("[Flight Pre-Check] Error:", flightCheckErr)
+                console.error("[Pre-Check] Error:", flightCheckErr)
             }
         }
 
