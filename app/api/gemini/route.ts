@@ -182,7 +182,7 @@ async function sanitizeClosedAirportLogistics(
                 day.title = day.title
                     .replace(/прямой\s+рейс/ig, "наземный переезд")
                     .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "поездка")
-                    .replace(/аэрофлот|победа/ig, "")
+                    .replace(/аэрофлот|победа|s7\s*airlines|ural\s*airlines|смартавиа|smartavia/ig, "")
                     .replace(/\(.*?\)/g, '')
                     .trim()
             }
@@ -193,13 +193,15 @@ async function sanitizeClosedAirportLogistics(
                     }
                     if (a?.title && a?.type === 'transport') {
                         a.title = String(a.title)
-                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "переезд")
+                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "Авто автобус/ЖД поезд")
                             .replace(/\(.*?\)/g, '').trim()
                     }
                     if (a?.desc && a?.type === 'transport') {
                         a.desc = String(a.desc)
                             .replace(/прямой\s+рейс.*?(\.|$)/ig, "Аэропорт закрыт — используйте наземный транспорт.")
-                            .replace(/перелёт|перелет|вылет/ig, "переезд")
+                            .replace(/Рейс.*?\(.*?\)\./ig, "Трансфер.")
+                            .replace(/перелёт|перелет|вылет|рейс/ig, "поездка")
+                            .replace(/аэрофлот|победа|s7\s*airlines|ural\s*airlines|смартавиа|smartavia/ig, "")
                             .replace(/\(.*?\)/g, '').trim()
                     }
                 }
