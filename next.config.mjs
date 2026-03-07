@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true, // TODO: Consider disabling this to enforce typing
-  },
   images: {
     unoptimized: true,
   },

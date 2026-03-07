@@ -62,7 +62,7 @@ export interface VideoTextProps {
      * The element type to render for the text
      * @default "div"
      */
-    as?: ElementType
+    as?: React.ElementType<any>
 }
 
 export function VideoText({
@@ -98,9 +98,10 @@ export function VideoText({
     }, [content, fontSize, fontWeight, textAnchor, dominantBaseline, fontFamily])
 
     const dataUrlMask = `url("data:image/svg+xml,${encodeURIComponent(svgMask)}")`
+    const SafeComponent = Component as any;
 
     return (
-        <Component className={cn(`relative size-full overflow-hidden`, className)}>
+        <SafeComponent className={cn(`relative size-full overflow-hidden`, className)}>
             {/* Video layer with mask - shows video only in text shape */}
             <div
                 className="absolute inset-0 z-10"
@@ -143,6 +144,6 @@ export function VideoText({
             >
                 {content}
             </div>
-        </Component>
+        </SafeComponent>
     )
 }

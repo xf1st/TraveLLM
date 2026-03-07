@@ -1229,7 +1229,7 @@ export default function TravelDashboard() {
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black text-white">
       <div
-        className={`absolute top-24 left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ${
+        className={`absolute top-6 sm:top-24 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ${
           notification ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >

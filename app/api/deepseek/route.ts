@@ -564,7 +564,7 @@ export async function POST(req: Request) {
                 const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
                 const closedTokens = closed.flatMap((a: any) => [a?.city, a?.iata]).filter(Boolean).map((s: string) => String(s).toLowerCase())
 
-                const isClosed = closedTokens.some(t => mainDest.toLowerCase().includes(t))
+                const isClosed = closedTokens.some((t: string) => mainDest.toLowerCase().includes(t))
 
                 let flightContextLine = ""
                 if (isClosed) {

@@ -1229,30 +1229,40 @@ export default function TripDetailPage() {
             </DialogHeader>
             <div className="space-y-6 mt-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Проживание</div>
-                  <div className="text-xl font-bold">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">в среднем за ночь</div>
+                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Проживание</div>
+                  <div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за ночь</div>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Питание</div>
-                  <div className="text-xl font-bold">{route.budgetAnalysis?.avgFood || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">в среднем за день</div>
+                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Питание</div>
+                  <div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgFood || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за день</div>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Транспорт</div>
-                  <div className="text-xl font-bold">{route.budgetAnalysis?.avgTransport || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">всего за маршрут</div>
+                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Транспорт</div>
+                  <div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgTransport || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">всего за маршрут</div>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Развлечения</div>
-                  <div className="text-xl font-bold">{route.budgetAnalysis?.avgActivities || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">в среднем за день</div>
+                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Развлечения</div>
+                  <div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgActivities || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за день</div>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border col-span-2">
-                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Прочее</div>
-                  <div className="text-xl font-bold">{route.budgetAnalysis?.avgMisc || "—"}</div>
-                  <div className="text-[10px] text-muted-foreground">чаевые, сувениры и т.д.</div>
+                <div className="p-4 rounded-2xl bg-muted/50 border border-border col-span-2 flex flex-col justify-between">
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Прочее</div>
+                  <div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgMisc || "—"}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">чаевые, сувениры и т.д.</div>
+                  </div>
                 </div>
               </div>
               <div className="space-y-3">

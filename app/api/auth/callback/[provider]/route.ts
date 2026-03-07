@@ -178,14 +178,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // If new user (no preferences), redirect to onboarding instead of /plan
     try {
-      const { data: profile } = await adminAuth
-        .from('profiles')
-        .select('preferences')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (!profile?.preferences) {
-        return NextResponse.redirect(`${siteUrl}/onboarding`);
+      if (session?.user?.id) {
+        const { data: profile } = await adminAuth
+          .from('profiles')
+          .select('preferences')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (!profile?.preferences) {
+          return NextResponse.redirect(`${siteUrl}/onboarding`);
+        }
       }
     } catch (e) {}
 
