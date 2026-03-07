@@ -11,7 +11,7 @@ export const popularRoutes: Record<string, any> = {
         itinerary: [
             {
                 day: 1, title: "Прибытие в Симферополь", activities: [
-                    { time: "14:00", title: "Трансфер в Ялту", desc: "Аэропорт Симферополь → Ялта (1.5ч)", type: "transport", placeName: "Аэропорт Симферополь" },
+                    { time: "14:00", title: "Трансфер в Ялту", desc: "Симферополь → Ялта (1.5ч)", type: "transport", placeName: "Ж/Д вокзал Симферополь" },
                     { time: "17:00", title: "Заселение в отель", desc: "Отдых после дороги", type: "hotel", placeName: "Набережная Ялты" }
                 ]
             },
@@ -47,7 +47,7 @@ export const popularRoutes: Record<string, any> = {
             },
             {
                 day: 7, title: "Отъезд", activities: [
-                    { time: "10:00", title: "Выезд из отеля", desc: "Трансфер в аэропорт", type: "transport", placeName: "Аэропорт Симферополь" }
+                    { time: "10:00", title: "Выезд из отеля", desc: "Трансфер на вокзал", type: "transport", placeName: "Ж/Д вокзал Симферополь" }
                 ]
             }
         ],

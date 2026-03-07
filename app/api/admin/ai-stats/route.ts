@@ -146,9 +146,9 @@ export async function GET(req: Request) {
                 totalCostUsd += toNumber(usage.costUsd)
                 totalCostRub += toNumber(usage.costRub)
                 
-                // A typical completed trip generation involves ~3-5 API calls to OpenRouter
-                // (e.g. classification, location processing, main itinerary generation)
-                requestCount += 3
+                // A generation consists of multiple internal API calls, but we count it as
+                // exactly 1 generation from the user's perspective
+                requestCount += 1
                 
                 const genTime = toNumber(usage.generationTimeMs)
                 if (genTime > 0) {

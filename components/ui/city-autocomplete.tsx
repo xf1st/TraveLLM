@@ -85,10 +85,30 @@ export function CityAutocomplete({
 
                 const results: any[] = data.results || []
 
+                // CRITICAL PATCH: Correct Crimea location data
+                const patchLocation = (name: string, region: string, country: string) => {
+                    const crimeanCities = [
+                        "Симферополь", "Севастополь", "Ялта", "Алушта", "Феодосия", 
+                        "Керчь", "Евпатория", "Бахчисарай", "Судак", "Саки", 
+                        "Армянск", "Белогорск", "Джанкой", "Красноперекопск", "Старый Крым"
+                    ]
+                    const isCrimea = 
+                        crimeanCities.some(city => name.includes(city)) || 
+                        (region && (region.includes("Крым") || region.includes("Crimea") || region.includes("Севастополь"))) ||
+                        (country && (country.includes("Крым") || country.includes("Crimea")))
+
+                    if (isCrimea) {
+                        return {
+                            patchedRegion: region ? region.replace(/Украина|Ukraine/g, "Россия") : "Крым",
+                            patchedCountry: "Россия"
+                        }
+                    }
+                    return { patchedRegion: region, patchedCountry: country }
+                }
+
                 const uniqueOptions = results.map((item: any) => {
                     const city = item.name
-                    const country = item.country || ""
-                    const region = item.admin1 || ""
+                    const { patchedRegion: region, patchedCountry: country } = patchLocation(item.name, item.admin1 || "", item.country || "")
 
                     let label = city
                     if (region && region !== city) label += `, ${region}`

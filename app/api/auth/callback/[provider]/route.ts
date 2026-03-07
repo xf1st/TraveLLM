@@ -143,8 +143,51 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             providers: [...existingProviders, provider],
           }
         });
+
+        // ==========================================
+        // GRANT 7-DAY PRO TRIAL FOR NEW SOCIAL USERS
+        // ==========================================
+        try {
+          // Check if profile exists and has preferences (onboarding status)
+          const { data: profile } = await adminAuth
+            .from('profiles')
+            .select('subscription_tier, preferences')
+            .eq('id', session.user.id)
+            .single();
+
+          if (!profile?.preferences || !profile?.subscription_tier || profile.subscription_tier === 'free') {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
+            
+            console.log(`[Auth] Granting 7-day PRO trial to new ${provider} user: ${userEmail}`);
+            
+            await adminAuth
+              .from('profiles')
+              .update({ 
+                subscription_tier: 'pro',
+                subscription_expires_at: expiresAt.toISOString(),
+                site_access: true
+              })
+              .eq('id', session.user.id);
+          }
+        } catch (profileErr) {
+          console.error("[Auth] Failed to grant PRO trial:", profileErr);
+        }
       }
     }
+
+    // If new user (no preferences), redirect to onboarding instead of /plan
+    try {
+      const { data: profile } = await adminAuth
+        .from('profiles')
+        .select('preferences')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (!profile?.preferences) {
+        return NextResponse.redirect(`${siteUrl}/onboarding`);
+      }
+    } catch (e) {}
 
     return NextResponse.redirect(`${siteUrl}/plan`);
 

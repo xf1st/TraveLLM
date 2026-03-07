@@ -143,15 +143,16 @@ async function sanitizeClosedAirportLogistics(
             }
         }
 
-        if (needsSanitization && lg) {
-            const fromCity = lg.from || departureCity || "Отправление"
-            const toCity = lg.to || day?.title || "Пункт назначения"
+        if (needsSanitization) {
+            const fromCity = lg?.from || departureCity || "Отправление"
+            const toCity = lg?.to || day?.title || "Пункт назначения"
+
+            const fromClean = String(fromCity).replace(/\s*\(.*?\)\s*/g, '').trim()
+            const toClean = String(toCity).replace(/\s*\(.*?\)\s*/g, '').trim()
 
             // Generate real Yandex Travel train link instead of generic rzd.ru
             let trainLink = "https://www.rzd.ru/"
             try {
-                const fromClean = String(fromCity).replace(/\s*\(.*?\)\s*/g, '').trim()
-                const toClean = String(toCity).replace(/\s*\(.*?\)\s*/g, '').trim()
                 let departDate = startDate
                 if (startDate && i > 0) {
                     const d = new Date(startDate)
@@ -169,16 +170,29 @@ async function sanitizeClosedAirportLogistics(
                 console.error("[Sanitize] Failed to generate train link:", trainErr)
             }
 
-            day.logistics = {
-                mode: "Поезд/авто (аэропорт закрыт)",
-                from: fromCity,
-                to: toCity,
-                distance: lg.distance || "—",
-                duration: lg.duration || "—",
-                price: lg.price || "—",
-                bookingLink: trainLink
-            }
-            if (typeof day.title === 'string') {
+            if (!day.logistics) day.logistics = {}
+            
+            // Determine a cleaner mode based on AI content or default to "Поезд"
+            const aiTitle = String(day.title || "").toLowerCase()
+            const aiLogisticsMode = String(lg?.mode || "").toLowerCase()
+            let detectedMode = "Поезд"
+            if (aiTitle.includes("автобус") || aiLogisticsMode.includes("автобус")) detectedMode = "Автобус"
+            
+            day.logistics.mode = detectedMode
+            day.logistics.from = fromCity
+            day.logistics.to = toCity
+            day.logistics.distance = lg?.distance || "—"
+            day.logistics.duration = lg?.duration || "—"
+            
+            // Preserve price from AI if it provided one, otherwise use "—"
+            const aiPrice = lg?.price && lg.price !== "0 ₽" && lg.price !== "—" ? lg.price : "от 5 000 ₽"
+            day.logistics.price = aiPrice
+            
+            day.logistics.bookingLink = trainLink
+            day.logistics.note = `Аэропорт в г. ${toClean} закрыт. Рекомендуем фирменный поезд или автобус. Купить билеты: ${trainLink}`
+
+            // Only replace titles if they still mention flights
+            if (typeof day.title === 'string' && isFlightMentioned(day.title)) {
                 day.title = day.title
                     .replace(/прямой\s+рейс/ig, "наземный переезд")
                     .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "поездка")
@@ -191,12 +205,12 @@ async function sanitizeClosedAirportLogistics(
                     if (a?.placeName && isClosedMentioned(a.placeName)) {
                         a.placeName = String(a.placeName).replace(/\(.*?\)/g, '').trim()
                     }
-                    if (a?.title && a?.type === 'transport') {
+                    if (a?.title && a?.type === 'transport' && isFlightMentioned(a.title)) {
                         a.title = String(a.title)
-                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "Авто автобус/ЖД поезд")
+                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "ЖД поезд / Автобус")
                             .replace(/\(.*?\)/g, '').trim()
                     }
-                    if (a?.desc && a?.type === 'transport') {
+                    if (a?.desc && a?.type === 'transport' && isFlightMentioned(a.desc)) {
                         a.desc = String(a.desc)
                             .replace(/прямой\s+рейс.*?(\.|$)/ig, "Аэропорт закрыт — используйте наземный транспорт.")
                             .replace(/Рейс.*?\(.*?\)\./ig, "Трансфер.")
@@ -218,8 +232,6 @@ async function sanitizeClosedAirportLogistics(
                     return true;
                 })
             }
-
-            day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toCity}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}). Купить ЖД билеты: ${trainLink}`
         }
     }
 
@@ -361,6 +373,48 @@ async function enrichViralSpotsWithWebSearch(routeData: any) {
   return routeData
 }
 
+import { googleSearch, type SearchResult } from "@/lib/google-search"
+
+async function collectRealTimeSearchContext(departureCity: string, destinations: string[], startDate?: string) {
+    if (!destinations || destinations.length === 0) return ""
+
+    const mainDest = destinations[0]
+    const dateStr = startDate ? `в ${startDate}` : "в ближайшее время"
+    
+    // 1. Generate search queries
+    const queries = [
+        `актуальный статус рейсов и аэропорта ${mainDest} ${new Date().getFullYear()}`,
+        `погода и одежда для туристов в ${mainDest} ${dateStr}`,
+        `фестивали и крупные события в ${mainDest} ${dateStr}`,
+        `новые рестораны и модные места в ${mainDest} ${new Date().getFullYear()}`
+    ]
+
+    console.log(`[Google Search] Collecting real-time data for: ${mainDest}...`)
+    
+    try {
+        // 2. Execute parallel searches
+        const searchPromises = queries.map(q => googleSearch(q, { num: 3 }))
+        const allResults = await Promise.all(searchPromises)
+        const flatResults = allResults.flat()
+
+        if (flatResults.length === 0) return ""
+
+        // 3. Format context string
+        let context = "\n--- GOOGLE REAL-TIME DATA (GROUNDING) ---\n"
+        context += `Данные получены в реальном времени (${new Date().toLocaleDateString('ru-RU')}):\n`
+        
+        flatResults.forEach((res, i) => {
+            context += `- [${res.title}]: ${res.snippet}\n`
+        })
+        
+        context += "------------------------------------------\n"
+        return context
+    } catch (e) {
+        console.error("[Google Search] Integration failed:", e)
+        return ""
+    }
+}
+
 export async function POST(req: Request) {
     try {
         const userId = await getRequestUserId()
@@ -446,8 +500,8 @@ export async function POST(req: Request) {
             }, { status: 429 })
         }
 
-        // Determine AI engine by tier
-        const aiEngine = limitCheck.tier === 'free' ? 'deepseek' : 'gemini';
+        // Always use Gemini as primary. DeepSeek will be used natively as fallback on error.
+        const aiEngine: string = 'gemini';
         console.log(`Using AI Engine: ${aiEngine} for tier: ${limitCheck.tier}`);
 
         const body = await req.json()
@@ -678,7 +732,15 @@ export async function POST(req: Request) {
 
                 let flightContextLine = ""
                 if (isClosed) {
-                    flightContextLine = `\n🚆 LIVE DATA АЭРОПОРТ ЗАКРЫТ: СТРОГО ИСПОЛЬЗУЙ ЖД поезд или автобус для маршрута ${effectiveDepartureCity} → ${mainDest}. В ПОЛЕ title и desc ПИШИ "Переезд на автобусе/поезде". КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова "перелёт", "рейс", "вылет" или коды аэропортов (типа BUS, EGO).`
+                    const fromClean = String(effectiveDepartureCity).split(',')[0].trim();
+                    const toClean = String(mainDest).split(',')[0].trim();
+                    
+                    flightContextLine = `\n🚆 LIVE DATA АЭРОПОРТ ЗАКРЫТ: Аэропорт в г. ${toClean} ЗАКРЫТ. 
+СТРОГО ИСПОЛЬЗУЙ ЖД поезд (например, фирменный "Таврия") или комфортабельный автобус для маршрута ${fromClean} → ${toClean}. 
+В ПОЛЕ title пиши детально: "Поезд [Номер/Название] ${fromClean} — ${toClean}". 
+В ПОЛЕ desc опиши: время в пути (например, 28-33 часа), тип вагона (купе/плацкарт), вокзал отправления и прибытия. 
+ОБЯЗАТЕЛЬНО укажи реалистичную стоимость билета в рублях (например, от 5 000 до 12 000 руб) в поле price. 
+КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова "перелёт", "рейс", "вылет" или коды аэропортов.`
                 } else {
                     const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, mainDest, startDate)
 
@@ -866,7 +928,8 @@ ${filterByDocuments && toArray(preferences?.documents).length > 0 ? (() => {
 - Ограничения: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
 - Аэропорты: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
 - Авиасообщение: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
-- ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
+- ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ НА ПОЛЁТЫ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Анапа, Белгород, Брянск, Воронеж, Курск, Липецк, Ростов-на-Дону, Симферополь'}
+  ⚠️ СТРОЖАЙШЕ ЗАПРЕЩЕНО ПЛАНИРОВАТЬ АВИАПЕРЕЛЁТЫ В ЭТИ ГОРОДА (особенно в Симферополь и Крым). Предлагай перелет в Сочи (AER) или Минводы (MRV), а оттуда - поезд или автобус!
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
 ${safeHighlight ? `✨ ОСОБОЕ ЛИЧНОЕ ПОЖЕЛАНИЕ ПОЛЬЗОВАТЕЛЯ:
@@ -1582,6 +1645,8 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                         console.log(`Success with ${aiEngine}`)
                         console.log(`${aiEngine} session totals: ${usage.totalTokens} tokens, $${usage.costUsd.toFixed(4)}`)
+                        
+                        // Increment generation count (1 generation per route request, even if multiple AI chunks)
                         await incrementGenerationCount(userId)
 
                         // Record the AI usage event
@@ -1637,6 +1702,8 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
 
                         console.log("Success with DeepSeek fallback")
                         console.log(`DeepSeek fallback: ${fallbackRouteData.tokenUsage.totalTokens} tokens, $${estimatedCostUsd.toFixed(4)}`)
+                        
+                        // Increment generation count (1 generation per route request)
                         await incrementGenerationCount(userId)
 
                         // Record the AI usage event for fallback

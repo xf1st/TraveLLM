@@ -142,9 +142,8 @@ async function runGeminiInference(
         const totalTokens      = raw.total_tokens      || 0;
 
         const pricing = PRICING[GEMINI_FLASH];
-        // OpenRouter charges base web search costs for Gemini Flash ~$0.02
-        const baseCost = 0.02;
-        const costUsd = (promptTokens * pricing.input) + (completionTokens * pricing.output) + baseCost;
+        // OpenRouter charges are strictly per token, average generation is ~$0.003
+        const costUsd = (promptTokens * pricing.input) + (completionTokens * pricing.output);
 
         usage = {
             promptTokens,

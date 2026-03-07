@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
             if (user) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role, preferences')
+                    .select('role, preferences, subscription_tier')
                     .eq('id', user.id)
                     .single()
 
@@ -52,6 +53,24 @@ export async function GET(request: Request) {
                 }
 
                 if (!profile?.preferences) {
+                    // This is a new user proceeding to onboarding. Check and grant 7-day PRO trial
+                    if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
+                        const serviceClient = createClient(
+                            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                            process.env.SUPABASE_SERVICE_ROLE_KEY!
+                        )
+                        const expiresAt = new Date()
+                        expiresAt.setDate(expiresAt.getDate() + 7)
+                        
+                        await serviceClient
+                            .from('profiles')
+                            .update({ 
+                                subscription_tier: 'pro',
+                                subscription_expires_at: expiresAt.toISOString(),
+                                site_access: true
+                            })
+                            .eq('id', user.id)
+                    }
                     return NextResponse.redirect(`${siteUrl}/onboarding`)
                 }
 

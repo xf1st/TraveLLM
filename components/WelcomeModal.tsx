@@ -199,7 +199,7 @@ export function WelcomeModal() {
                     style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)" }}>
                     <Gift className="h-5 w-5 flex-shrink-0" style={{ color: "#34d399" }} />
                     <div className="text-left">
-                      <div className="text-xs font-bold" style={{ color: "#34d399" }}>1 бесплатная генерация для новых пользователей</div>
+                      <div className="text-xs font-bold" style={{ color: "#34d399" }}>7 дней PRO-подписки бесплатно</div>
                       <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Без привязки карты · Без ограничений по функциям</div>
                     </div>
                   </motion.div>
@@ -311,12 +311,12 @@ export function WelcomeModal() {
                     style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.1) 0%, rgba(16,185,129,0.06) 100%)", border: "1px solid rgba(52,211,153,0.22)" }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Gift className="h-4 w-4" style={{ color: "#34d399" }} />
-                      <span className="text-sm font-bold" style={{ color: "#34d399" }}>Бесплатный план</span>
+                      <span className="text-sm font-bold" style={{ color: "#34d399" }}>Подарок на старте</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       {[
-                        "1 бесплатная AI-генерация маршрута",
-                        "Полный доступ к картам и чату",
+                        "7 дней PRO-подписки бесплатно",
+                        "Доступ к генераторам маршрутов и чату",
                         "Сохранение маршрута в профиле",
                         "Все ссылки на бронирование",
                       ].map(item => (

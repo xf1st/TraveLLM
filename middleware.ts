@@ -105,12 +105,8 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
       }
 
-      // Site access gate: no profile OR site_access=false → /waitlist (protected paths only)
-      if (isProtectedPath && (!profile || profile.site_access === false)) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/waitlist'
-        return NextResponse.redirect(url)
-      }
+      // Site access gate: full_blocked users are handled above.
+      // We removed the waitlist redirect so all registered users have access.
     }
   }
 

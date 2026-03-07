@@ -12,7 +12,7 @@ import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-val
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
 import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
-import { getFlightSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
+import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 
 function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
     if (!Array.isArray(routeData?.itinerary)) return routeData
@@ -93,7 +93,7 @@ function enrichTransportLinks(routeData: any, origin: string, mainDestination: s
 }
 
 
-function sanitizeClosedAirportLogistics(routeData: any) {
+async function sanitizeClosedAirportLogistics(routeData: any, departureCity?: string, startDate?: string) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
 
     const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
@@ -108,33 +108,91 @@ function sanitizeClosedAirportLogistics(routeData: any) {
         return closedTokens.some((token: string) => token && t.includes(token))
     }
 
-    const sanitizeMode = (mode: unknown) => {
-        const m = String(mode || '').toLowerCase()
-        return m.includes('самол') || m.includes('flight') || m.includes('plane')
+    const isFlightMentioned = (text: unknown) => {
+        if (!text) return false
+        const t = String(text).toLowerCase()
+        return t.includes('самол') || t.includes('flight') || t.includes('plane') || t.includes('перелет') || t.includes('перелёт') || t.includes('рейс') || t.includes('вылет') || t.includes('аэропорт') || t.includes('airport')
     }
 
-    for (const day of itinerary) {
+    for (let i = 0; i < itinerary.length; i++) {
+        const day = itinerary[i]
         const lg = day?.logistics
-        if (!lg) continue
+        
+        let needsSanitization = false;
 
-        const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
-
-        if (targetsClosed && sanitizeMode(lg.mode)) {
-            const toLabel = lg.to || day?.title || "пункт назначения"
-            day.logistics = {
-                mode: "Поезд/авто (аэропорт закрыт)",
-                from: lg.from || "Отправление",
-                to: lg.to || "Пункт назначения",
-                distance: lg.distance || "—",
-                duration: lg.duration || "—",
-                price: lg.price || "—",
-                bookingLink: "https://www.rzd.ru/"
+        if (lg) {
+            const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
+            const hasFlightConcepts = isFlightMentioned(lg.mode) || isFlightMentioned(lg.title) || isFlightMentioned(day?.title)
+            
+            if (targetsClosed && hasFlightConcepts) {
+                needsSanitization = true;
             }
-            if (typeof day.title === 'string') {
+        }
+
+        if (Array.isArray(day?.activities)) {
+            for (const a of day.activities) {
+                if (a?.type === 'transport' && (isFlightMentioned(a?.title) || isFlightMentioned(a?.desc))) {
+                    if (isClosedMentioned(a?.title) || isClosedMentioned(a?.desc) || isClosedMentioned(a?.placeName) || isClosedMentioned(lg?.to) || isClosedMentioned(lg?.from) || isClosedMentioned(day?.title)) {
+                        needsSanitization = true;
+                    }
+                }
+            }
+        }
+
+        if (needsSanitization) {
+            const fromCity = lg?.from || departureCity || "Отправление"
+            const toCity = lg?.to || day?.title || "Пункт назначения"
+
+            const fromClean = String(fromCity).replace(/\s*\(.*?\)\s*/g, '').trim()
+            const toClean = String(toCity).replace(/\s*\(.*?\)\s*/g, '').trim()
+
+            // Generate real Yandex Travel train link instead of generic rzd.ru
+            let trainLink = "https://www.rzd.ru/"
+            try {
+                let departDate = startDate
+                if (startDate && i > 0) {
+                    const d = new Date(startDate)
+                    d.setDate(d.getDate() + i)
+                    departDate = d.toISOString().split('T')[0]
+                }
+                trainLink = await getTrainSearchLink({
+                    origin: fromClean,
+                    destination: toClean,
+                    departDate,
+                    subId: `train_closed_day_${i + 1}`
+                })
+                console.log(`[Sanitize] Train link for ${fromClean} → ${toClean}: ${trainLink}`)
+            } catch (trainErr) {
+                console.error("[Sanitize] Failed to generate train link:", trainErr)
+            }
+
+            if (!day.logistics) day.logistics = {}
+            
+            // Determine a cleaner mode based on AI content or default to "Поезд"
+            const aiTitle = String(day.title || "").toLowerCase()
+            const aiLogisticsMode = String(lg?.mode || "").toLowerCase()
+            let detectedMode = "Поезд"
+            if (aiTitle.includes("автобус") || aiLogisticsMode.includes("автобус")) detectedMode = "Автобус"
+            
+            day.logistics.mode = detectedMode
+            day.logistics.from = fromCity
+            day.logistics.to = toCity
+            day.logistics.distance = lg?.distance || "—"
+            day.logistics.duration = lg?.duration || "—"
+            
+            // Preserve price from AI if it provided one, otherwise use "—"
+            const aiPrice = lg?.price && lg.price !== "0 ₽" && lg.price !== "—" ? lg.price : "от 5 000 ₽"
+            day.logistics.price = aiPrice
+            
+            day.logistics.bookingLink = trainLink
+            day.logistics.note = `Аэропорт в г. ${toClean} закрыт. Рекомендуем фирменный поезд или автобус. Купить билеты: ${trainLink}`
+
+            if (typeof day.title === 'string' && isFlightMentioned(day.title)) {
                 day.title = day.title
                     .replace(/прямой\s+рейс/ig, "наземный переезд")
-                    .replace(/аэрофлот|победа/ig, "")
-                    .replace(/\(.*?\)/g, (m: string) => m.toLowerCase().includes('urs') ? '' : m)
+                    .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "поездка")
+                    .replace(/аэрофлот|победа|s7\s*airlines|ural\s*airlines|смартавиа|smartavia/ig, "")
+                    .replace(/\(.*?\)/g, '')
                     .trim()
             }
             if (Array.isArray(day.activities)) {
@@ -142,18 +200,36 @@ function sanitizeClosedAirportLogistics(routeData: any) {
                     if (a?.placeName && isClosedMentioned(a.placeName)) {
                         a.placeName = String(a.placeName).replace(/\(.*?\)/g, '').trim()
                     }
-                    if (a?.desc && isClosedMentioned(a.desc)) {
+                    if (a?.title && a?.type === 'transport' && isFlightMentioned(a.title)) {
+                        a.title = String(a.title)
+                            .replace(/перелёт|перелет|рейс|вылет|авиаперелет/ig, "ЖД поезд / Автобус")
+                            .replace(/\(.*?\)/g, '').trim()
+                    }
+                    if (a?.desc && a?.type === 'transport' && isFlightMentioned(a.desc)) {
                         a.desc = String(a.desc)
                             .replace(/прямой\s+рейс.*?(\.|$)/ig, "Аэропорт закрыт — используйте наземный транспорт.")
+                            .replace(/Рейс.*?\(.*?\)\./ig, "Трансфер.")
+                            .replace(/перелёт|перелет|вылет|рейс/ig, "поездка")
+                            .replace(/аэрофлот|победа|s7\s*airlines|ural\s*airlines|смартавиа|smartavia/ig, "")
+                            .replace(/\(.*?\)/g, '').trim()
                     }
                 }
+                
+                // Merge duplicate transport activities if the AI created two of them.
+                day.activities = day.activities.filter((act: any, idx: number, arr: any[]) => {
+                    if (act.type === 'transport' && idx > 0) {
+                        const prevAct = arr[idx - 1]
+                        if (prevAct.type === 'transport') {
+                            // Drop consecutive transport node on a closed airport travel day
+                            return false;
+                        }
+                    }
+                    return true;
+                })
             }
-
-            day.logistics.note = `Маршрут автоматически исправлен: аэропорт в '${toLabel}' указан как закрытый в базе актуальности (${(GROUNDING_DATA_2026 as any).lastUpdated}).`
         }
     }
 
-    routeData.itinerary = itinerary
     routeData.itinerary = itinerary
     return routeData
 }
@@ -523,6 +599,56 @@ export async function POST(req: Request) {
             }
         }
 
+        // =====================================
+        // LIVE FLIGHT & TRAIN PRE-CHECK 
+        // =====================================
+        if (destinations.length > 0 && effectiveDepartureCity) {
+            try {
+                const mainDest = destinations[0]
+                console.log(`[Pre-Check] Checking ${effectiveDepartureCity} → ${mainDest}...`)
+                
+                const closed = (GROUNDING_DATA_2026 as any).closedAirports || []
+                const closedTokens = closed
+                    .flatMap((a: any) => [a?.city, a?.iata, `${a?.city} (${a?.iata})`])
+                    .filter(Boolean)
+                    .map((s: string) => String(s).toLowerCase())
+
+                const isClosedMentioned = (text: unknown) => {
+                    if (!text) return false
+                    const t = String(text).toLowerCase()
+                    return closedTokens.some((token: string) => token && t.includes(token))
+                }
+
+                const isClosed = isClosedMentioned(mainDest) || isClosedMentioned(effectiveDepartureCity)
+
+                let flightContextLine = ""
+                if (isClosed) {
+                    const fromClean = String(effectiveDepartureCity).split(',')[0].trim();
+                    const toClean = String(mainDest).split(',')[0].trim();
+                    
+                    flightContextLine = `\n🚆 LIVE DATA АЭРОПОРТ ЗАКРЫТ: Аэропорт в г. ${toClean} ЗАКРЫТ. 
+СТРОГО ИСПОЛЬЗУЙ ЖД поезд (например, фирменный "Таврия") или комфортабельный автобус для маршрута ${fromClean} → ${toClean}. 
+В ПОЛЕ title пиши детально: "Поезд [Номер/Название] ${fromClean} — ${toClean}". 
+В ПОЛЕ desc опиши: время в пути (например, 28-33 часа), тип вагона (купе/плацкарт), вокзал отправления и прибытия. 
+ОБЯЗАТЕЛЬНО укажи реалистичную стоимость билета в рублях (например, от 5 000 до 12 000 руб) в поле price. 
+КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО использовать слова "перелёт", "рейс", "вылет" или коды аэропортов.`
+                } else {
+                    // Simple check for flights (in deepseek we keep it simpler but consistent)
+                    const isRussia = destinationType === 'russia' || destinations.some((d: string) => d.toLowerCase().includes('россия'))
+                    if (isRussia) {
+                        flightContextLine = `\n🚆 LIVE DATA: Для маршрута ${effectiveDepartureCity} → ${mainDest} ПРЕДПОЧИТАЙ прямой перелёт (если есть) или комфортный ПОЕЗД.`
+                    }
+                }
+                
+                if (flightContextLine) {
+                    console.log(`[Pre-Check] Result: ${flightContextLine.trim()}`)
+                    dynamicContextStr += flightContextLine
+                }
+            } catch (flightCheckErr) {
+                console.error("[Pre-Check] Error:", flightCheckErr)
+            }
+        }
+
         // Apply travel style to prompt
         const styleStr = travelStyle ? formatTravelStyleForPrompt(toArray(travelStyle)[0] || "") : ""
         const rulesStr = getApplicableRules({
@@ -659,7 +785,8 @@ ${travelStyle.includes('events') ? `- Включить фестивали, ко�
 - Ограничения: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
 - Аэропорты: ${GROUNDING_DATA_2026.airportStatus.join('; ')}
 - Авиасообщение: ${GROUNDING_DATA_2026.flightConnectivity.join('; ')}
-- ЗАКРЫТЫЕ АЭРОПОРТЫ: ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Нет'}
+- ЗАКРЫТЫЕ АЭРОПОРТЫ (АБСОЛЮТНЫЙ ЗАПРЕТ НА ПОЛЁТЫ): ${(GROUNDING_DATA_2026 as any).closedAirports?.map((a: any) => `${a.city} (${a.iata})`).join(', ') || 'Анапа, Белгород, Брянск, Воронеж, Курск, Липецк, Ростов-на-Дону, Симферополь'}
+  ⚠️ СТРОЖАЙШЕ ЗАПРЕЩЕНО ПЛАНИРОВАТЬ АВИАПЕРЕЛЁТЫ В ЭТИ ГОРОДА (особенно в Симферополь и Крым). Предлагай перелет в Сочи (AER) или Минводы (MRV), а оттуда - поезд или автобус!
 - Тренды: ${JSON.stringify(GROUNDING_DATA_2026.trendingLocations)}
 
 ТРЕБОВАНИЯ И ФИЛЬТРЫ:
@@ -965,7 +1092,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
             // PRIMARY: DeepSeek with parallel generation
             try {
                 console.log("Using DeepSeek as primary provider...");
-                let generatedRouteData = sanitizeClosedAirportLogistics(await generateParallel());
+                let generatedRouteData = await sanitizeClosedAirportLogistics(await generateParallel(), departureCity, startDate);
                 
                 // Post-processing: Normalization & Dates
                 generatedRouteData = normalizeActivityTypes(generatedRouteData);
@@ -1001,7 +1128,7 @@ ${isLastChunk ? `День ${endDay} = ПОСЛЕДНИЙ ДЕНЬ (food → acti
                     { role: "user" as const, content: prompt }
                 ]
                 const raw = await geminiInference(messages, { maxTokens: 8000, temperature: 0.6, tripDays: durationDays, responseFormat: "json_object" });
-                let fallbackRouteData = sanitizeClosedAirportLogistics(parseJsonResponse(raw, "Gemini-Fallback"));
+                let fallbackRouteData = await sanitizeClosedAirportLogistics(parseJsonResponse(raw, "Gemini-Fallback"), departureCity, startDate);
 
                 // Post-processing: Normalization & Dates
                 fallbackRouteData = normalizeActivityTypes(fallbackRouteData);
