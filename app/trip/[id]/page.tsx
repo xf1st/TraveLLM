@@ -821,9 +821,9 @@ export default function TripDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                <button onClick={() => setShowBudgetModal(true)} className="hidden sm:block text-right group cursor-pointer">
-                  <p className="text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide">Общий бюджет</p>
-                  <p className="text-base sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors">{displayBudget}</p>
+                <button onClick={() => setShowBudgetModal(true)} className="text-right group cursor-pointer mr-1 sm:mr-0 flex flex-col items-end">
+                  <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">Общий бюджет</p>
+                  <p className="text-sm sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors bg-white/10 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-lg sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/20 sm:border-none">{displayBudget}</p>
                 </button>
                 <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
                 <div className="flex items-center gap-1.5 sm:gap-3">

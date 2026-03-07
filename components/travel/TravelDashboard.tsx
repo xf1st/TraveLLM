@@ -105,6 +105,18 @@ const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
   Moscow: { lat: 55.7558, lng: 37.6173 },
   "Москва": { lat: 55.7558, lng: 37.6173 },
   "Санкт-Петербург": { lat: 59.9343, lng: 30.3351 },
+  "Иркутск": { lat: 52.287, lng: 104.305 },
+  "Новосибирск": { lat: 55.008, lng: 82.935 },
+  "Тула": { lat: 54.193, lng: 37.615 },
+  "Геленджик": { lat: 44.561, lng: 38.076 },
+  "Сочи": { lat: 43.585, lng: 39.720 },
+  "Казань": { lat: 55.796, lng: 49.108 },
+  "Екатеринбург": { lat: 56.838, lng: 60.605 },
+  "Калининград": { lat: 54.710, lng: 20.515 },
+  "Владивосток": { lat: 43.115, lng: 131.885 },
+  "Нижний Новгород": { lat: 56.326, lng: 44.005 },
+  "Самара": { lat: 53.195, lng: 50.101 },
+  "Ростов-на-Дону": { lat: 47.235, lng: 39.701 },
   Rome: { lat: 41.9028, lng: 12.4964 },
   "Рим": { lat: 41.9028, lng: 12.4964 },
   Berlin: { lat: 52.52, lng: 13.405 },
@@ -684,7 +696,7 @@ export default function TravelDashboard() {
       const foundCity = Object.keys(CITY_COORDS).find((city) => normalizedSearch.includes(normalizeText(city)))
 
       if (foundCity) return CITY_COORDS[foundCity]
-      return { lat: 48.8566, lng: 2.3522 }
+      return { lat: 55.7558, lng: 37.6173 } // Default fallback to Moscow instead of Paris
     },
     [trip?.destination],
   )

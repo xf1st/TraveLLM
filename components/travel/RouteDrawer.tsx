@@ -377,8 +377,10 @@ function RouteContent({
     return activities[activeActivity] || null
   }, [activities, activeActivity])
 
+  const destinationName = route?.destination || route?.countries?.[0]?.name || ""
+
   const heroImage = selectedActivity?.image || selectedActivity?.photo || null
-  const heroQuery = selectedActivity?.visual_query || selectedActivity?.title || selectedActivity?.placeName || "travel landmark"
+  const heroQuery = `${selectedActivity?.visual_query || selectedActivity?.title || selectedActivity?.placeName || ""} ${destinationName}`.trim() || "travel landmark"
 
   const toggleExpanded = (key: string) => {
     setExpandedMap((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -414,7 +416,7 @@ function RouteContent({
       </div>
 
       <div className="sticky top-0 z-20 bg-zinc-950/80 backdrop-blur-md md:backdrop-blur-xl -mx-5 px-5 pb-4 pt-2 border-b border-white/10">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-black text-lg italic">
               {safeDay}
@@ -424,6 +426,12 @@ function RouteContent({
               <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">График активностей</div>
             </div>
           </div>
+          {dayData?.logistics?.from && dayData?.logistics?.to && (
+             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold uppercase tracking-widest">
+               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+               Переезд
+             </div>
+          )}
         </div>
         
         <div className="text-sm text-zinc-300 font-medium line-clamp-1">{dayData.title || `Активности на день ${safeDay}`}</div>
