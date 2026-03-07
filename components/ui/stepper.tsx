@@ -92,7 +92,7 @@ export default function Stepper({
         >
             <div
                 className={cn(
-                    "mx-auto w-full max-w-3xl rounded-3xl border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-2xl shadow-2xl",
+                    "mx-auto w-full max-w-3xl rounded-3xl border border-black/10 dark:border-white/10 bg-white/60 dark:bg-black/40 backdrop-blur-md md:backdrop-blur-2xl shadow-md md:shadow-2xl",
                     stepCircleContainerClassName
                 )}
             >

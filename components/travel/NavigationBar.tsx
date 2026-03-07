@@ -32,7 +32,7 @@ export function NavigationBar({
 }: NavigationBarProps) {
   return (
     <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[70] w-[calc(100%-24px)] md:w-auto md:min-w-[920px] max-w-[1200px] pointer-events-auto">
-      <div className="rounded-2xl border border-white/15 bg-black/60 backdrop-blur-xl p-3 md:p-4 shadow-2xl">
+      <div className="rounded-2xl border border-white/15 bg-black/60 backdrop-blur-md md:backdrop-blur-xl p-3 md:p-4 shadow-md md:shadow-2xl">
         <div className="flex flex-wrap items-center gap-3 md:gap-4 md:flex-nowrap">
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={onPrevDay} className="rounded-full">

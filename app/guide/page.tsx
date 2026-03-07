@@ -519,7 +519,7 @@ function GuidePageContent() {
                             ) : trips.length > 0 ? (
                                 trips.map(trip => (
                                     <Link key={trip.id} href={`/guide?tripId=${trip.id}`} className="group block h-full">
-                                        <Card className="h-full relative overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]">
+                                        <Card className="h-full relative overflow-hidden border border-white/5 bg-zinc-900 shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]">
                                             {/* Status Badge */}
                                             <div className="absolute top-4 right-4 z-20">
                                                 <div className={cn(
@@ -634,7 +634,7 @@ function GuidePageContent() {
                     "min-h-screen transition-all duration-300 flex flex-col pt-16 lg:pt-0",
                     isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
                 )}>
-                    <header className="px-6 py-4 flex items-center gap-4 bg-background/80 backdrop-blur-xl sticky top-0 z-30 shrink-0 border-b border-white/5">
+                    <header className="px-6 py-4 flex items-center gap-4 bg-background/80 backdrop-blur-md md:backdrop-blur-xl sticky top-0 z-30 shrink-0 border-b border-white/5">
                         <Link href={`/trip/${tripId}`}>
                             <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
                                 <ChevronLeft className="h-6 w-6" />
@@ -939,7 +939,7 @@ function GuidePageContent() {
                             <div className="absolute bottom-6 left-4 right-4 flex gap-4 lg:hidden z-[400]">
                                 <Button
                                     size="lg"
-                                    className="flex-1 shadow-xl"
+                                    className="flex-1 shadow-md md:shadow-xl"
                                     variant={activeDrawer === "itinerary" ? "default" : "secondary"}
                                     onClick={() => setActiveDrawer(activeDrawer === "itinerary" ? "none" : "itinerary")}
                                 >
@@ -948,7 +948,7 @@ function GuidePageContent() {
                                 </Button>
                                 <Button
                                     size="lg"
-                                    className="flex-1 shadow-xl"
+                                    className="flex-1 shadow-md md:shadow-xl"
                                     variant={activeDrawer === "chat" ? "default" : "secondary"}
                                     onClick={() => setActiveDrawer(activeDrawer === "chat" ? "none" : "chat")}
                                 >
@@ -962,7 +962,7 @@ function GuidePageContent() {
                                 <Button
                                     size="sm"
                                     variant={isDemoPlaying ? "destructive" : "secondary"}
-                                    className="shadow-xl rounded-full font-bold backdrop-blur-md bg-background/80 hover:bg-background"
+                                    className="shadow-md md:shadow-xl rounded-full font-bold backdrop-blur-md bg-background/80 hover:bg-background"
                                     onClick={() => {
                                         if (!isDemoPlaying) {
                                             // Start from current active or first

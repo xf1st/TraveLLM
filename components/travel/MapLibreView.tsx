@@ -719,7 +719,7 @@ export default function MapLibreView({ points, arcs, refreshToken, flyTo, fitToP
       }
 
       popupNode.innerHTML = [
-        '<div class="w-[260px] max-w-[calc(100vw-32px)] bg-neutral-900/95 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border border-white/10 font-sans">',
+        '<div class="w-[260px] max-w-[calc(100vw-32px)] bg-neutral-900/95 backdrop-blur-md rounded-xl overflow-hidden shadow-md md:shadow-2xl border border-white/10 font-sans">',
         '  <div class="h-36 bg-zinc-800 relative overflow-hidden">',
         '    <img class="map-popup-image absolute inset-0 w-full h-full object-cover" alt="" />',
         '    <div class="absolute inset-0 bg-gradient-to-t from-neutral-900/90 via-transparent to-transparent"></div>',

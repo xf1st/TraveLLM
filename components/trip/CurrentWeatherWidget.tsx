@@ -63,7 +63,7 @@ export function CurrentWeatherWidget({ destination, date, className }: CurrentWe
 
   // Loading State
   if (loading) return (
-    <div className={cn("trip-glass bg-gradient-to-br from-sky-100/60 dark:from-sky-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
+    <div className={cn("trip-glass bg-gradient-to-br from-sky-100/60 dark:from-sky-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 backdrop-blur-md md:backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
        <div className="flex justify-between items-start">
             <div className="bg-white/60 dark:bg-white/10 p-2.5 rounded-2xl shadow-sm backdrop-blur-md border border-white/40 dark:border-white/5">
                 <Cloud className="w-5 h-5 text-sky-500/50 dark:text-sky-300/50 animate-pulse" />
@@ -79,7 +79,7 @@ export function CurrentWeatherWidget({ destination, date, className }: CurrentWe
 
   // Error State or No Data
   if (error || !weather) return (
-    <div className={cn("trip-glass bg-gradient-to-br from-red-50/60 dark:from-red-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
+    <div className={cn("trip-glass bg-gradient-to-br from-red-50/60 dark:from-red-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 backdrop-blur-md md:backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
         <div className="flex justify-between items-start">
             <div className="bg-white/60 dark:bg-white/10 p-2.5 rounded-2xl shadow-sm backdrop-blur-md border border-white/40 dark:border-white/5">
                 <Cloud className="w-5 h-5 text-red-400" />
@@ -105,7 +105,7 @@ export function CurrentWeatherWidget({ destination, date, className }: CurrentWe
   const description = getWeatherDescription(code)
 
   return (
-    <div className={cn("trip-glass bg-gradient-to-br from-sky-100/60 dark:from-sky-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 hover:bg-white/80 dark:hover:bg-sky-900/30 transition-colors backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
+    <div className={cn("trip-glass bg-gradient-to-br from-sky-100/60 dark:from-sky-900/20 to-white/60 dark:to-white/5 p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-36 hover:bg-white/80 dark:hover:bg-sky-900/30 transition-colors backdrop-blur-md md:backdrop-blur-xl border border-white/60 dark:border-white/10", className)}>
         <div className="flex justify-between items-start">
             <div className="bg-white/60 dark:bg-white/10 p-2.5 rounded-2xl shadow-sm backdrop-blur-md border border-white/40 dark:border-white/5">
                 <Icon className="w-5 h-5 text-sky-500 dark:text-sky-300" />

@@ -34,10 +34,10 @@ export function CookieConsent() {
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     className="fixed bottom-0 left-0 right-0 z-[90] p-4 md:p-6 flex justify-center pointer-events-none"
                 >
-                    <div className="bg-background/80 backdrop-blur-md border border-white/10 shadow-2xl rounded-2xl p-4 md:p-5 max-w-2xl w-full flex flex-col md:flex-row items-center gap-4 md:gap-6 pointer-events-auto relative overflow-hidden">
+                    <div className="bg-background/80 backdrop-blur-md border border-white/10 shadow-md md:shadow-2xl rounded-2xl p-4 md:p-5 max-w-2xl w-full flex flex-col md:flex-row items-center gap-4 md:gap-6 pointer-events-auto relative overflow-hidden">
 
                         {/* Decoration */}
-                        <div className="absolute -left-10 -top-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl rounded-full" />
+                        <div className="absolute -left-10 -top-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl rounded-full hidden md:block" />
 
                         <div className="flex items-center gap-4 flex-1">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">

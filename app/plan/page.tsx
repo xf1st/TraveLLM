@@ -662,7 +662,7 @@ export default function PlanPage() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border shadow-2xl rounded-2xl" align="center">
+                  <PopoverContent className="w-auto p-0 bg-card border-border shadow-md md:shadow-2xl rounded-2xl" align="center">
                     <Calendar
                       initialFocus
                       mode="range"
@@ -1030,13 +1030,13 @@ export default function PlanPage() {
               <div className="space-y-4 max-w-lg mx-auto w-full pt-4">
                 <div className="relative group">
                   {/* Decorative glow background */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-blue-500/20 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/20 via-fuchsia-500/20 to-blue-500/20 rounded-[2rem] blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none hidden md:block" />
                   
                   <div className={cn(
                     "relative rounded-[2rem] border transition-all duration-500 overflow-hidden shadow-sm",
                     highlightError
                       ? "border-red-400/50 bg-red-500/5"
-                      : "bg-white/40 dark:bg-black/20 backdrop-blur-xl border-black/5 dark:border-white/10 group-focus-within:border-violet-400/50 group-focus-within:shadow-2xl group-focus-within:shadow-violet-500/10"
+                      : "bg-white/40 dark:bg-black/20 backdrop-blur-md md:backdrop-blur-xl border-black/5 dark:border-white/10 group-focus-within:border-violet-400/50 group-focus-within:shadow-md md:shadow-2xl group-focus-within:shadow-violet-500/10"
                   )}>
                     <div className="flex items-center justify-between px-5 pt-4 pb-1">
                       <div className="flex items-center gap-2">

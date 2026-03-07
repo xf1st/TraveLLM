@@ -1,13 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import { CheckCircle2, Star, MapPin, Calendar, Camera, Compass, Quote, MoveRight, Sparkles } from "lucide-react"
+import { CheckCircle2, Star, MapPin, Calendar, Camera, Compass, Quote, MoveRight, Sparkles, Pencil, Trash2, Plus, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { supabase } from "@/lib/supabase"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { getGalleryApiUrl, getImageApiUrl } from "@/lib/image-utils"
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer
@@ -15,6 +15,8 @@ import {
 import { TripShareDialog } from "@/components/travel/TripShareDialog"
 import { Share2, ArrowLeft } from "lucide-react"
 import { Header } from "@/components/header"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export default function TripCompletedPage() {
   const searchParams = useSearchParams()
@@ -27,23 +29,27 @@ export default function TripCompletedPage() {
   const [aiStats, setAiStats] = useState<any>(null)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isEditGalleryOpen, setIsEditGalleryOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+  const loadData = async () => {
     if (!tripId) return
-    let isMounted = true
-
-    const loadData = async () => {
-      setIsLoading(true)
-      try {
-        // Fetch Trip Data
-        const { data: tripData } = await supabase.from('trips').select('*').eq('id', tripId).single()
-        if (tripData && isMounted) {
-          setTrip(tripData)
-          // Extract gallery from itinerary
+    setIsLoading(true)
+    try {
+      // Fetch Trip Data
+      const { data: tripData } = await supabase.from('trips').select('*').eq('id', tripId).single()
+      if (tripData) {
+        setTrip(tripData)
+        
+        // Use memory_photos if they exist
+        if (tripData.memory_photos && Array.isArray(tripData.memory_photos) && tripData.memory_photos.length > 0) {
+          setGallery(tripData.memory_photos.slice(0, 8))
+        } else {
+          // Extract gallery from itinerary fallback
           let extractedDirectUrls: string[] = []
           let extractedQueries: string[] = []
 
-          // Try to get exactly 8 unique images for the masonry grid
           if (tripData.itinerary && Array.isArray(tripData.itinerary)) {
              tripData.itinerary.forEach((day: any) => {
                if (day.activities && Array.isArray(day.activities)) {
@@ -64,51 +70,109 @@ export default function TripCompletedPage() {
               const queriesToFetch = extractedQueries.slice(0, 8 - finalImages.length)
               const promises = queriesToFetch.map(q => fetch(getImageApiUrl(q)).then(r => r.json()).then(d => d.url).catch(() => null))
               const resolvedUrls = await Promise.all(promises)
-              // Only add valid URLs that are string starting with http
               const validUrls = resolvedUrls.filter(url => typeof url === 'string' && url.startsWith("http"))
               finalImages = [...finalImages, ...validUrls]
           }
           
-          if (finalImages.length > 0 && isMounted) {
+          if (finalImages.length > 0) {
              setGallery(finalImages.slice(0, 8))
           } else {
-             // Fallback to Unsplash
              const dest = tripData.destination || "travel"
              const res = await fetch(getGalleryApiUrl(dest, 8))
              if (res.ok) {
                const json = await res.json()
-               if (json.images && isMounted) setGallery(json.images)
+               if (json.images) setGallery(json.images)
              }
           }
         }
-
-        // Fetch AI Stats
-        const statsRes = await fetch(`/api/trip-stats?tripId=${tripId}`)
-        if (statsRes.ok) {
-          const statsJson = await statsRes.json()
-          if (isMounted) setAiStats(statsJson.stats)
-        }
-
-        // Fetch Feedback
-        const fbRes = await fetch(`/api/trip-feedback?tripId=${encodeURIComponent(tripId)}`)
-        if (fbRes.ok) {
-          const payload = await fbRes.json()
-          if (isMounted && payload?.feedback) {
-            setFeedback(payload.feedback)
-          } else if (isMounted && !payload?.feedback) {
-            setTimeout(() => setIsFeedbackOpen(true), 2500)
-          }
-        }
-      } catch (e) {
-        console.error("Failed to load completed trip data", e)
-      } finally {
-        if (isMounted) setIsLoading(false)
       }
+
+      // Fetch AI Stats
+      const statsRes = await fetch(`/api/trip-stats?tripId=${tripId}`)
+      if (statsRes.ok) {
+        const statsJson = await statsRes.json()
+        setAiStats(statsJson.stats)
+      }
+
+      // Fetch Feedback
+      const fbRes = await fetch(`/api/trip-feedback?tripId=${encodeURIComponent(tripId)}`)
+      if (fbRes.ok) {
+        const payload = await fbRes.json()
+        if (payload?.feedback) {
+          setFeedback(payload.feedback)
+        } else if (!payload?.feedback) {
+          setTimeout(() => setIsFeedbackOpen(true), 2500)
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load completed trip data", e)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+  }, [tripId])
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !tripId) return
+
+    if (gallery.length >= 8) {
+      toast.error("Максимум 8 фотографий")
+      return
     }
 
-    loadData()
-    return () => { isMounted = false }
-  }, [tripId])
+    setIsUploading(true)
+    try {
+      const file = files[0]
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${tripId}/memory-${Date.now()}.${fileExt}`
+      
+      const { error } = await supabase.storage
+        .from('memories')
+        .upload(fileName, file)
+
+      if (error) throw error
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('memories')
+        .getPublicUrl(fileName)
+
+      const updatedGallery = [...gallery, publicUrl]
+      
+      const { error: updateError } = await supabase
+        .from('trips')
+        .update({ memory_photos: updatedGallery })
+        .eq('id', tripId)
+
+      if (updateError) throw updateError
+
+      setGallery(updatedGallery)
+      toast.success("Фотография добавлена")
+    } catch (err: any) {
+      toast.error("Ошибка при загрузке: " + err.message)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const removePhoto = async (url: string) => {
+    try {
+      const updatedGallery = gallery.filter(p => p !== url)
+      const { error } = await supabase
+        .from('trips')
+        .update({ memory_photos: updatedGallery })
+        .eq('id', tripId)
+
+      if (error) throw error
+      setGallery(updatedGallery)
+      toast.success("Фотография удалена")
+    } catch (err) {
+      toast.error("Ошибка при удалении")
+    }
+  }
 
   const stats = useMemo(() => {
     if (!trip?.itinerary) return null
@@ -154,7 +218,7 @@ export default function TripCompletedPage() {
       <Header />
       {/* Hero Section */}
       <section className="relative pt-32 pb-12 overflow-hidden px-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl pointer-events-none hidden md:block" />
         
         <div className="max-w-6xl mx-auto relative z-10">
           <motion.div 
@@ -209,7 +273,7 @@ export default function TripCompletedPage() {
              className="lg:col-span-2 relative group"
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative h-full bg-card dark:bg-[#0a0a0a] border border-border dark:border-white/5 rounded-3xl p-6 md:p-10 overflow-hidden shadow-xl">
+            <div className="relative h-full bg-card dark:bg-[#0a0a0a] border border-border dark:border-white/5 rounded-3xl p-6 md:p-10 overflow-hidden shadow-md md:shadow-xl">
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
                   <div className="space-y-6">
                      <div>
@@ -267,7 +331,7 @@ export default function TripCompletedPage() {
                    </div>
                 </div>
                 <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Отличная продолжительность отдыха.</div>
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-emerald-500/5 blur-2xl group-hover:bg-emerald-500/10 transition-colors" />
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-emerald-500/5 blur-2xl group-hover:bg-emerald-500/10 transition-colors hidden md:block" />
              </motion.div>
 
              <motion.div 
@@ -286,7 +350,7 @@ export default function TripCompletedPage() {
                    </div>
                 </div>
                 <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Каждое место уникально по-своему.</div>
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/5 blur-2xl group-hover:bg-blue-500/10 transition-colors" />
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-blue-500/5 blur-2xl group-hover:bg-blue-500/10 transition-colors hidden md:block" />
              </motion.div>
 
              <motion.div 
@@ -305,7 +369,7 @@ export default function TripCompletedPage() {
                    </div>
                 </div>
                 <div className="mt-auto relative z-10 text-[10px] text-muted-foreground font-medium">Это был насыщенный маршрут!</div>
-                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-violet-500/5 blur-2xl group-hover:bg-violet-500/10 transition-colors" />
+                <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-violet-500/5 blur-2xl group-hover:bg-violet-500/10 transition-colors hidden md:block" />
              </motion.div>
           </div>
         </div>
@@ -319,20 +383,29 @@ export default function TripCompletedPage() {
                  </div>
                  <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">Запечатленные моменты</h2>
               </div>
-              <p className="text-muted-foreground dark:text-zinc-500 max-w-sm text-sm">
-                 Лучшие кадры вашего путешествия, бережно сохраненные в нашей цифровой галерее.
-              </p>
+              <div className="flex flex-col items-end gap-3">
+                <Button 
+                  onClick={() => setIsEditGalleryOpen(true)}
+                  className="bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-black dark:text-white rounded-full px-6 font-bold flex items-center gap-2 h-10 border border-border dark:border-white/5 shadow-lg"
+                >
+                  <Pencil className="w-4 h-4" /> Изменить галерею
+                </Button>
+                <p className="text-muted-foreground dark:text-zinc-500 max-w-sm text-sm text-right leading-relaxed">
+                   Лучшие кадры вашего путешествия, бережно сохраненные в нашей цифровой галерее.
+                </p>
+              </div>
            </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+           
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {gallery.length > 0 ? gallery.slice(0, 8).map((img, i) => (
                 <motion.div
-                  key={i}
+                  key={img + i}
                   initial={{ opacity: 0, y: 40, rotate: (i % 2 === 0 ? 2 : -2) }}
                   whileInView={{ opacity: 1, y: 0 }}
                   whileHover={{ scale: 1.05, rotate: 0, y: -10 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1, type: "spring" }}
-                  className="bg-card p-3 pb-12 rounded-sm shadow-2xl relative border border-border cursor-zoom-in"
+                  className="bg-card p-3 pb-12 rounded-sm shadow-md md:shadow-2xl relative border border-border cursor-zoom-in"
                 >
                   <div className="w-full aspect-[4/5] bg-muted relative overflow-hidden shadow-inner border border-black/5">
                     <img src={img} alt={`Memory ${i+1}`} className="absolute inset-0 w-full h-full object-cover" />
@@ -366,7 +439,7 @@ export default function TripCompletedPage() {
                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Button 
                        onClick={() => setIsFeedbackOpen(true)}
-                       className="bg-emerald-500 text-white dark:text-black hover:bg-emerald-600 dark:hover:bg-emerald-400 font-extrabold rounded-2xl h-16 px-10 text-lg shadow-xl shadow-emerald-500/20"
+                       className="bg-emerald-500 text-white dark:text-black hover:bg-emerald-600 dark:hover:bg-emerald-400 font-extrabold rounded-2xl h-16 px-10 text-lg shadow-md md:shadow-xl shadow-emerald-500/20"
                     >
                        <Star className="w-5 h-5 mr-3 fill-current" />
                        {feedback?.rating ? `Оценка: ${feedback.rating}/5` : "Оценить поездку"}
@@ -385,6 +458,68 @@ export default function TripCompletedPage() {
            </div>
         </section>
       </div>
+
+      <Dialog open={isEditGalleryOpen} onOpenChange={setIsEditGalleryOpen}>
+        <DialogContent className="max-w-3xl bg-zinc-950 border-white/10 rounded-[32px] p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-3xl font-black tracking-tight text-white uppercase italic">Настройка галереи</DialogTitle>
+            <DialogDescription className="text-zinc-400 font-medium">
+              Добавьте до 8 своих фотографий, чтобы создать уникальный альбом воспоминаний.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {gallery.map((url, i) => (
+              <div key={url + i} className="group relative aspect-[4/5] rounded-2xl overflow-hidden bg-white/5 border border-white/10 shadow-md md:shadow-xl">
+                <img src={url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">
+                  <button 
+                    onClick={() => removePhoto(url)}
+                    className="p-3 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {gallery.length < 8 && (
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="aspect-[4/5] rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-8 h-8 animate-spin" />
+                ) : (
+                  <>
+                    <div className="p-4 bg-white/5 rounded-full group-hover:scale-110 transition-transform">
+                      <Plus className="w-8 h-8" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-widest">Добавить фото</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            accept="image/*" 
+            className="hidden" 
+          />
+
+          <div className="mt-8 flex justify-end">
+            <Button 
+              onClick={() => setIsEditGalleryOpen(false)}
+              className="bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl px-8"
+            >
+              Готово
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {tripId && (
         <TripFeedbackDialog

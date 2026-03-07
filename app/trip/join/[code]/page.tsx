@@ -78,7 +78,7 @@ export default function JoinTripPage() {
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center">
             <div className="relative mb-8">
-                <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl animate-pulse" />
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl animate-pulse hidden md:block" />
                 <div className="relative h-24 w-24 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center">
                     <Sparkles className="h-12 w-12 text-primary animate-bounce" />
                 </div>

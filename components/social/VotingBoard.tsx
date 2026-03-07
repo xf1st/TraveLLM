@@ -109,7 +109,7 @@ export function VotingBoard({ tripId }: { tripId: string }) {
     }
 
     return (
-        <Card className="bg-card/50 backdrop-blur-sm border-white/10 shadow-xl overflow-hidden h-full">
+        <Card className="bg-card/50 backdrop-blur-sm border-white/10 shadow-md md:shadow-xl overflow-hidden h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                     <Vote className="h-5 w-5 text-purple-400" />

@@ -105,7 +105,7 @@ export default function NewsFeedPage() {
               {feed.map((post, idx) => (
                 <Link key={post.id} href={`/news/${post.id}`}>
                   <Card
-                    className="group relative overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem] cursor-pointer"
+                    className="group relative overflow-hidden border border-white/5 bg-zinc-900 shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem] cursor-pointer"
                     style={{ animationDelay: `${idx * 100}ms` }}
                   >
                     <div className="grid md:grid-cols-2 gap-0">
@@ -199,7 +199,7 @@ export default function NewsFeedPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Trending Destinations */}
-          <Card className="p-6 bg-zinc-900/80 border-white/5 backdrop-blur-xl rounded-[2rem] shadow-2xl">
+          <Card className="p-6 bg-zinc-900/80 border-white/5 backdrop-blur-md md:backdrop-blur-xl rounded-[2rem] shadow-md md:shadow-2xl">
             <h3 className="font-bold mb-5 flex items-center gap-2 text-white">
               <div className="bg-amber-500/10 p-1.5 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-amber-500" />
@@ -228,7 +228,7 @@ export default function NewsFeedPage() {
           </Card>
 
           {/* Quick Actions */}
-          <Card className="p-6 bg-gradient-to-br from-primary/10 to-zinc-900 border-primary/20 backdrop-blur-xl rounded-[2rem]">
+          <Card className="p-6 bg-gradient-to-br from-primary/10 to-zinc-900 border-primary/20 backdrop-blur-md md:backdrop-blur-xl rounded-[2rem]">
             <h3 className="font-bold mb-4 flex items-center gap-2 text-white">
               <div className="bg-primary/20 p-1.5 rounded-lg">
                 <MapPin className="h-4 w-4 text-primary" />

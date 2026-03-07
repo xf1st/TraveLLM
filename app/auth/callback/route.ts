@@ -52,7 +52,9 @@ export async function GET(request: Request) {
                     return NextResponse.redirect(`${siteUrl}/admin`)
                 }
 
-                if (!profile?.preferences) {
+                const hasPreferences = profile?.preferences && Object.keys(profile.preferences as object).length > 0
+
+                if (!hasPreferences) {
                     // This is a new user proceeding to onboarding. Check and grant 7-day PRO trial
                     if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
                         const serviceClient = createClient(

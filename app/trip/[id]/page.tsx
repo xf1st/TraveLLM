@@ -435,7 +435,7 @@ export default function TripDetailPage() {
             <div className="text-center space-y-6">
               <div className="relative h-48 w-48 mx-auto">
                 <LottieLoader type="plane" className="h-full w-full" />
-                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
+                <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse hidden md:block" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Загрузка маршрута</h3>
@@ -798,7 +798,7 @@ export default function TripDetailPage() {
 
           {/* ===== Floating Header Bar (all screens) ===== */}
           <div className="absolute top-6 sm:top-8 left-3 sm:left-8 right-3 sm:right-8 z-50">
-            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-2xl backdrop-blur-xl bg-black/20 border-white/10 border">
+            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl bg-black/20 border-white/10 border">
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <button
                   onClick={() => router.back()}
@@ -901,7 +901,7 @@ export default function TripDetailPage() {
               </div>
 
               {/* Big Title */}
-              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight drop-shadow-xl leading-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight drop-shadow-md md:shadow-xl leading-tight">
                 {route.title}
               </h2>
 
@@ -916,7 +916,7 @@ export default function TripDetailPage() {
             {/* 3D Map Button */}
             <button
               onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
-              className="bg-blue-600 hover:bg-blue-500 backdrop-blur-xl text-white px-6 sm:px-8 py-3 sm:py-4 rounded-3xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-3 transform hover:-translate-y-1 border border-blue-400/50 hover:shadow-blue-500/50 shrink-0"
+              className="bg-blue-600 hover:bg-blue-500 backdrop-blur-md md:backdrop-blur-xl text-white px-6 sm:px-8 py-3 sm:py-4 rounded-3xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-3 transform hover:-translate-y-1 border border-blue-400/50 hover:shadow-blue-500/50 shrink-0"
             >
               <span className="material-symbols-outlined text-2xl">view_in_ar</span>
               <span className="text-base">3D-карта</span>
@@ -926,7 +926,7 @@ export default function TripDetailPage() {
 
         {/* ===== STICKY DAY TABS ===== */}
         <div className="sticky top-0 z-40 px-2 sm:px-4 lg:px-8 py-3">
-          <div className="trip-glass rounded-full p-1.5 sm:p-2 shadow-2xl max-w-7xl mx-auto flex items-center gap-1">
+          <div className="trip-glass rounded-full p-1.5 sm:p-2 shadow-md md:shadow-2xl max-w-7xl mx-auto flex items-center gap-1">
             {/* Left arrow */}
             {tripDurationDays > 1 && (
               <button
@@ -1050,28 +1050,7 @@ export default function TripDetailPage() {
                     </button>
                   </div>
 
-                  {/* Logistics bar */}
-                  {currentDay.logistics && currentDay.logistics.mode !== "None" && (
-                    <div className="trip-glass rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600 dark:text-blue-100/80 font-medium">
-                      <TransportIcon className="h-4 w-4 sm:h-5 sm:w-5 text-sky-500 dark:text-blue-400" />
-                      <span className="truncate">
-                        {modeTranslations[currentDay.logistics.mode] || currentDay.logistics.mode}: {currentDay.logistics.from} → {currentDay.logistics.to}
-                        {currentDay.logistics.distance && ` (${currentDay.logistics.distance}`}
-                        {currentDay.logistics.duration && `, ~${currentDay.logistics.duration})`}
-                      </span>
-                      {currentDay.logistics.price && (
-                        <Badge variant="secondary" className="ml-auto text-xs">{currentDay.logistics.price}</Badge>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Flight cards — hidden by design */}
-
-
-
-                  {/* Hotel cards — hidden by design */}
-
-                  {/* ===== Activity Timeline ===== */}
+                  {/* Activity Timeline */}
                   <div className="trip-timeline relative space-y-3 sm:space-y-4 lg:space-y-6 pl-0 sm:pl-2">
                     {finalDayActivities.map((activity: any, i: number) => (
                       <ActivityTimelineCard
@@ -1103,10 +1082,10 @@ export default function TripDetailPage() {
               {/* Weather Widget - REMOVED (Moved to grid below) */}
 
               {/* AI Assistant Button — owner only */}
-              {isOwner && <div className="hidden lg:block trip-glass rounded-[2rem] shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
+              {isOwner && <div className="hidden lg:block trip-glass rounded-[2rem] shadow-md md:shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
                 <button
                   onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-                  className="w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-xl px-5 py-4 rounded-3xl shadow-xl border border-white/50 dark:border-white/10 flex items-center justify-between group/btn hover:bg-white dark:hover:bg-[#0B1121]/90 transition-colors"
+                  className="w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-md md:backdrop-blur-xl px-5 py-4 rounded-3xl shadow-md md:shadow-xl border border-white/50 dark:border-white/10 flex items-center justify-between group/btn hover:bg-white dark:hover:bg-[#0B1121]/90 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 dark:from-blue-600 dark:to-blue-600 flex items-center justify-center text-white border border-white/40 dark:border-white/20 shadow-md dark:shadow-[0_0_15px_rgba(37,99,235,0.5)]">
@@ -1178,7 +1157,7 @@ export default function TripDetailPage() {
 
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
-                <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-xl transition-colors">
+                <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-md md:shadow-xl transition-colors">
                   <h4 className="text-[10px] sm:text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-3 sm:mb-4 opacity-80">Проживание</h4>
                   <div className="flex items-center gap-3 sm:gap-5">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
@@ -1286,7 +1265,7 @@ export default function TripDetailPage() {
                   * Цены являются оценочными на основе средних показателей региона и выбранного стиля &quot;{route.budget_range || "Комфорт"}&quot;. Реальная стоимость может отличаться.
                 </p>
               </div>
-              <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
+              <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-md md:shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
                 Понятно
               </Button>
             </div>
@@ -1386,7 +1365,7 @@ export default function TripDetailPage() {
         <div className="lg:hidden fixed bottom-6 right-4 z-50">
           <button
             onClick={() => { setIsMobileAIChatOpen(true); setIsMapOpen(false) }}
-            className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
+            className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-md md:shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
           >
             <MessageCircle className="w-6 h-6" />
           </button>
@@ -1404,7 +1383,7 @@ export default function TripDetailPage() {
             >
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMapOpen(false)} />
               <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
+                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-md md:shadow-2xl overflow-hidden"
                 style={{ maxHeight: "75vh" }}
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -1448,7 +1427,7 @@ export default function TripDetailPage() {
             >
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileAIChatOpen(false)} />
               <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-2xl overflow-hidden"
+                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-md md:shadow-2xl overflow-hidden"
                 style={{ maxHeight: "85vh" }}
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -1497,7 +1476,7 @@ export default function TripDetailPage() {
                 exit={{ opacity: 0 }}
               />
               <motion.div
-                className="relative w-full max-w-4xl h-[50vh] sm:h-[60vh] lg:h-[70vh] bg-card rounded-3xl overflow-hidden shadow-2xl border border-border/50 dark:border-white/10"
+                className="relative w-full max-w-4xl h-[50vh] sm:h-[60vh] lg:h-[70vh] bg-card rounded-3xl overflow-hidden shadow-md md:shadow-2xl border border-border/50 dark:border-white/10"
                 initial={{ scale: 0.9, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 50 }}
@@ -1532,7 +1511,7 @@ export default function TripDetailPage() {
         {showScrollTop && (
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-xl"
+            className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-md md:shadow-xl"
             aria-label="Наверх"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

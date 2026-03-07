@@ -109,7 +109,7 @@ export default function LandingPage() {
           {/* CTA */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="flex flex-col sm:flex-row gap-3 mb-14">
             <Link href="/plan">
-              <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2">
+              <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2">
                 Создать маршрут <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
@@ -282,7 +282,7 @@ export default function LandingPage() {
 
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="rounded-3xl border border-white/10 overflow-hidden bg-card/30 backdrop-blur-xl"
+            className="rounded-3xl border border-white/10 overflow-hidden bg-card/30 backdrop-blur-md md:backdrop-blur-xl"
           >
             {/* Table header */}
             <div className="grid grid-cols-3 border-b border-white/10">
@@ -359,7 +359,7 @@ export default function LandingPage() {
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={0}
               className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-primary/15 to-violet-500/10 p-8 relative overflow-hidden group hover:border-primary/30 transition-colors"
             >
-              <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-primary/15 blur-3xl pointer-events-none group-hover:bg-primary/25 transition-colors" />
+              <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-primary/15 blur-3xl pointer-events-none group-hover:bg-primary/25 transition-colors hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-5">
                 <Zap className="w-6 h-6 text-primary" />
               </div>
@@ -379,7 +379,7 @@ export default function LandingPage() {
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={1}
               className="rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 p-7 relative overflow-hidden hover:border-sky-500/30 transition-colors group"
             >
-              <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-sky-500/10 blur-2xl pointer-events-none" />
+              <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-sky-500/10 blur-2xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mb-4">
                 <Map className="w-6 h-6 text-sky-400" />
               </div>
@@ -433,7 +433,7 @@ export default function LandingPage() {
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={5}
               className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-8 relative overflow-hidden hover:border-indigo-500/30 transition-colors group"
             >
-              <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mb-5">
                 <Users className="w-6 h-6 text-indigo-400" />
               </div>
@@ -549,7 +549,7 @@ export default function LandingPage() {
                 className={cn(
                   "relative rounded-3xl border p-7 flex flex-col bg-card/40 backdrop-blur-sm transition-all duration-300",
                   tier.color,
-                  tier.highlight && "ring-1 ring-yellow-400/40 shadow-2xl shadow-yellow-400/5 scale-[1.02]"
+                  tier.highlight && "ring-1 ring-yellow-400/40 shadow-md md:shadow-2xl shadow-yellow-400/5 scale-[1.02]"
                 )}
               >
                 {tier.highlight && (
@@ -649,7 +649,7 @@ export default function LandingPage() {
             <Link href="/plan">
               <Button
                 size="lg"
-                className="h-16 px-12 rounded-full text-lg font-black shadow-2xl shadow-primary/40 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-3"
+                className="h-16 px-12 rounded-full text-lg font-black shadow-md md:shadow-2xl shadow-primary/40 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-3"
               >
                 <Route className="w-5 h-5" />
                 Создать маршрут — бесплатно

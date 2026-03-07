@@ -372,10 +372,16 @@ export function ActivityTimelineCard({
       iconName = "train"
     } else if (/автобус|bus/.test(transportText)) {
       iconName = "directions_bus"
-    } else if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин/.test(transportText)) {
+    } else if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин|переезд|дорога|трасса/.test(transportText)) {
       iconName = "directions_car"
+    } else if (/пешком|прогулка|walk|foot/.test(transportText)) {
+      iconName = "directions_walk"
+    } else if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(transportText)) {
+      iconName = "flight_land"
+    } else {
+      // Default to car for unknown land transport instead of flight
+      iconName = "commute"
     }
-    // default stays "flight_land" for flights
   }
 
   const rawTitle = activity.title || activity.placeName || "Активность"
@@ -542,17 +548,20 @@ export function ActivityTimelineCard({
                         </a>
                       )
                     }
-                    if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин/.test(tt)) {
+                    if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин|переезд|дорога|трасса|пешком|walk|foot/.test(tt)) {
                       return null
                     }
-                    // default: flight
-                    return (
-                      <a href={buildFlightLink(activity)} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
-                        <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
-                        Найти билеты
-                      </a>
-                    )
+                    // Only show flight button if flight-related keywords are found
+                    if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(tt)) {
+                      return (
+                        <a href={buildFlightLink(activity)} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                          <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
+                          Найти билеты
+                        </a>
+                      )
+                    }
+                    return null
                   })()
                 ) : (
                   <>

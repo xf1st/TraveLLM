@@ -73,7 +73,7 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
         viewport={{ once: true }}
         transition={{ delay: 0.1 }}
       >
-        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-xl border-white/20 p-6 flex flex-col items-center justify-center text-center rounded-[2rem] hover:border-orange-500/50 transition-all shadow-lg group">
+        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-md md:backdrop-blur-xl border-white/20 p-6 flex flex-col items-center justify-center text-center rounded-[2rem] hover:border-orange-500/50 transition-all shadow-lg group">
           <Sun className="h-10 w-10 text-orange-400 mb-2 animate-pulse group-hover:rotate-12 transition-transform" />
           <p className="text-4xl font-black tracking-tighter">+24°</p>
           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Солнечно</p>
@@ -110,7 +110,7 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
         viewport={{ once: true }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-xl border-white/20 p-6 flex flex-col items-center justify-center text-center rounded-[2rem] hover:border-sky-500/50 transition-all shadow-lg">
+        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-md md:backdrop-blur-xl border-white/20 p-6 flex flex-col items-center justify-center text-center rounded-[2rem] hover:border-sky-500/50 transition-all shadow-lg">
           <Calendar className="h-8 w-8 text-sky-400 mb-2" />
           <div className="flex items-baseline gap-1">
             <span className="text-4xl font-black tracking-tighter">{duration}</span>
@@ -127,7 +127,7 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
         viewport={{ once: true }}
         transition={{ delay: 0.4 }}
       >
-        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-xl border-white/20 p-6 flex items-start gap-4 rounded-[2rem] hover:border-emerald-500/50 transition-all shadow-lg overflow-hidden relative group">
+        <Card className="h-full bg-white/10 dark:bg-black/20 backdrop-blur-md md:backdrop-blur-xl border-white/20 p-6 flex items-start gap-4 rounded-[2rem] hover:border-emerald-500/50 transition-all shadow-lg overflow-hidden relative group">
           <div className="absolute inset-0 bg-emerald-500/5 pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
           <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
             <Info className="h-5 w-5 text-emerald-500" />

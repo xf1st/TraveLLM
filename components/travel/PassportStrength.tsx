@@ -23,7 +23,7 @@ export function PassportStrength({ isOpen, onClose }: PassportStrengthProps) {
                 onClick={onClose}
             >
                 <motion.div 
-                    className="w-full max-w-md bg-black/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden relative"
+                    className="w-full max-w-md bg-black/80 backdrop-blur-md md:backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-md md:shadow-2xl overflow-hidden relative"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}

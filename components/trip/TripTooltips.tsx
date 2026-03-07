@@ -117,7 +117,7 @@ export function TripTooltips({ userId, forceShow }: Props) {
             className="fixed z-[995] left-1/2 bottom-8 -translate-x-1/2 w-[min(92vw,380px)] pointer-events-auto"
           >
             <div
-              className="relative rounded-2xl shadow-2xl overflow-hidden"
+              className="relative rounded-2xl shadow-md md:shadow-2xl overflow-hidden"
               style={{
                 background: "linear-gradient(160deg,#0f1117 0%,#161b2e 100%)",
                 border: "1px solid rgba(255,255,255,0.09)",

@@ -81,7 +81,7 @@ export function RouteSearch({ className }: RouteSearchProps) {
             </div>
 
             {isOpen && (results.length > 0 || loading) && (
-                <div className="absolute top-full right-0 mt-4 w-[300px] sm:w-[350px] overflow-hidden rounded-3xl border border-border/50 bg-background/95 p-2 shadow-2xl backdrop-blur-md z-50 animate-in fade-in zoom-in-95 data-[side=bottom]:slide-in-from-top-2">
+                <div className="absolute top-full right-0 mt-4 w-[300px] sm:w-[350px] overflow-hidden rounded-3xl border border-border/50 bg-background/95 p-2 shadow-md md:shadow-2xl backdrop-blur-md z-50 animate-in fade-in zoom-in-95 data-[side=bottom]:slide-in-from-top-2">
                     {loading ? (
                         <div className="flex items-center justify-center py-4 text-xs text-muted-foreground">
                             <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />

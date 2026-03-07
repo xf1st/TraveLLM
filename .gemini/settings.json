@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "type": "http"
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_965a461f39869bed60e114619bb520909079043f"
+      ],
+      "env": {}
+    }
+  }
+}

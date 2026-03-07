@@ -42,10 +42,10 @@ export function TelegramToast() {
           transition={{ type: "spring", stiffness: 380, damping: 30 }}
           className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-[200] w-[calc(100vw-2rem)] sm:w-80"
         >
-          <div className="relative overflow-hidden rounded-2xl border border-sky-500/30 bg-background/85 backdrop-blur-2xl shadow-2xl shadow-sky-500/10 p-5">
+          <div className="relative overflow-hidden rounded-2xl border border-sky-500/30 bg-background/85 backdrop-blur-md md:backdrop-blur-2xl shadow-md md:shadow-2xl shadow-sky-500/10 p-5">
             {/* Glow orb */}
-            <div className="pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full bg-sky-500/15 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-blue-600/10 blur-3xl" />
+            <div className="pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full bg-sky-500/15 blur-3xl hidden md:block" />
+            <div className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-blue-600/10 blur-3xl hidden md:block" />
 
             {/* Close */}
             <button

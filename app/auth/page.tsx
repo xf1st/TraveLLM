@@ -43,8 +43,9 @@ function AuthContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data: profile } = await supabase.from("profiles").select("preferences").eq("id", user.id).single()
+        const hasPreferences = profile?.preferences && Object.keys(profile.preferences as object).length > 0
         const next = searchParams.get("next")
-        router.push(next || (profile?.preferences ? defaultRedirect : "/onboarding"))
+        router.push(next || (hasPreferences ? defaultRedirect : "/onboarding"))
       } else {
         router.push("/onboarding")
       }
@@ -173,7 +174,7 @@ function AuthContent() {
         <div className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-8 py-6 sm:py-8">
           {/* Glass card on mobile, plain on desktop */}
           <div className="w-full max-w-[400px] rounded-3xl p-6 sm:p-8
-            bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl
+            bg-white/10 backdrop-blur-md md:backdrop-blur-2xl border border-white/20 shadow-md md:shadow-2xl
             lg:p-0 lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:shadow-none">
 
             {/* Logo on desktop */}

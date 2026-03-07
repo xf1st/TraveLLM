@@ -77,7 +77,7 @@ export default function BlockedPage() {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-md"
       >
-        <Card className="border-rose-500/20 bg-card/40 backdrop-blur-2xl shadow-2xl shadow-rose-500/5">
+        <Card className="border-rose-500/20 bg-card/40 backdrop-blur-md md:backdrop-blur-2xl shadow-md md:shadow-2xl shadow-rose-500/5">
           <CardContent className="pt-12 pb-8 px-8 text-center">
             <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-500">
               <ShieldAlert className="h-10 w-10" />

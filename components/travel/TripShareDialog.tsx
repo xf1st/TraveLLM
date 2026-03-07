@@ -17,7 +17,9 @@ import {
   Zap,
   Star,
   Moon,
-  Sun
+  Sun,
+  Camera,
+  BarChart2
 } from "lucide-react"
 import { toast } from "sonner"
 import { toPng } from "html-to-image"
@@ -43,6 +45,7 @@ export function TripShareDialog({
   const [isExporting, setIsExporting] = useState(false)
   const [copied, setCopied] = useState(false)
   const [theme, setTheme] = useState<"dark" | "light">("dark")
+  const [storyType, setStoryType] = useState<"stats" | "photos">("stats")
 
   const handleCopyLink = () => {
     const url = window.location.href
@@ -87,6 +90,9 @@ export function TripShareDialog({
     }
   }
 
+  const memoryPhotos = tripData?.memory_photos || []
+  const displayPhotos = memoryPhotos.slice(0, 4)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl border-white/10 bg-zinc-950 text-white p-0 overflow-y-auto max-h-[90vh] rounded-[2.5rem]">
@@ -115,7 +121,7 @@ export function TripShareDialog({
             </div>
 
             {/* Story Card Target */}
-            <div className="relative group shadow-2xl shadow-emerald-500/10">
+            <div className="relative group shadow-md md:shadow-2xl shadow-emerald-500/10">
               <div
                 ref={cardRef}
                 className={`w-[220px] h-[391px] sm:w-[280px] sm:h-[497px] ${theme === 'dark' ? 'bg-[#050505]' : 'bg-white'} border ${theme === 'dark' ? 'border-white/10' : 'border-zinc-200'} rounded-[2rem] overflow-hidden flex flex-col relative`}
@@ -125,74 +131,136 @@ export function TripShareDialog({
                 <div className={`absolute top-0 left-0 w-full h-[30%] bg-gradient-to-b ${theme === 'dark' ? 'from-emerald-500/20' : 'from-emerald-500/10'} to-transparent pointer-events-none`} />
                 <div className={`absolute bottom-0 right-0 w-full h-[40%] bg-gradient-to-t ${theme === 'dark' ? 'from-emerald-500/10' : 'from-emerald-500/5'} to-transparent pointer-events-none`} />
                 
-                {/* Content */}
-                <div className="relative z-10 flex flex-col h-full p-4 sm:p-6 pb-6 sm:pb-8">
-                  
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <div className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">TRAVELLM</div>
-                      <div className={`text-lg font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.destination || "Adventure"}</div>
+                {storyType === "stats" ? (
+                  /* STATS VARIANT */
+                  <div className="relative z-10 flex flex-col h-full p-4 sm:p-6 pb-6 sm:pb-8">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <div className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">TRAVELLM</div>
+                        <div className={`text-lg font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.destination || "Adventure"}</div>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
+                         <Zap className="w-4 h-4 text-black fill-black" />
+                      </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                       <Zap className="w-4 h-4 text-black fill-black" />
-                    </div>
-                  </div>
 
-                  {/* Personality */}
-                  <div className="mb-4">
-                     <div className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Traveler Type</div>
-                     <div className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{aiStats?.personality || "Explorer"}</div>
-                  </div>
+                    {/* Personality */}
+                    <div className="mb-4">
+                       <div className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Traveler Type</div>
+                       <div className={`text-xl font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{aiStats?.personality || "Explorer"}</div>
+                    </div>
 
-                  {/* Radar Chart */}
-                  <div className="h-[120px] sm:h-[180px] w-full mb-3 sm:mb-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
-                        <PolarGrid stroke="#333" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 8, fontWeight: 700 }} />
-                        <Radar
-                          name="Stats"
-                          dataKey="A"
-                          stroke="#10b981"
-                          fill="#10b981"
-                          fillOpacity={0.5}
-                        />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
+                    {/* Radar Chart */}
+                    <div className="h-[120px] sm:h-[180px] w-full mb-3 sm:mb-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                          <PolarGrid stroke="#333" />
+                          <PolarAngleAxis dataKey="subject" tick={{ fill: '#888', fontSize: 8, fontWeight: 700 }} />
+                          <Radar
+                            name="Stats"
+                            dataKey="A"
+                            stroke="#10b981"
+                            fill="#10b981"
+                            fillOpacity={0.5}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                    </div>
 
-                  {/* Quote */}
-                  <div className="mb-auto">
-                    <div className={`${theme === 'dark' ? 'bg-white/5' : 'bg-emerald-50'} border-l border-emerald-500 p-3 rounded-r-lg relative`}>
-                      <Quote className="absolute -top-1 -left-1 w-4 h-4 text-emerald-500/20 rotate-180" />
-                      <p className={`text-[10px] ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'} italic line-clamp-3`}>
-                         {aiStats?.bestQuote || aiStats?.description || "Incredible journey through the heart of culture."}
-                      </p>
+                    {/* Quote */}
+                    <div className="mb-auto">
+                      <div className={`${theme === 'dark' ? 'bg-white/5' : 'bg-emerald-50'} border-l border-emerald-500 p-3 rounded-r-lg relative`}>
+                        <Quote className="absolute -top-1 -left-1 w-4 h-4 text-emerald-500/20 rotate-180" />
+                        <p className={`text-[10px] ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-700'} italic line-clamp-3`}>
+                           {aiStats?.bestQuote || aiStats?.description || "Incredible journey through the heart of culture."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className={`grid grid-cols-3 gap-2 mt-4 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-zinc-200'}`}>
+                      <div className="text-center">
+                        <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.itinerary?.length || 0}</div>
+                        <div className="text-[6px] text-zinc-500 uppercase font-bold">Days</div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{radarData.length}</div>
+                        <div className="text-[6px] text-zinc-500 uppercase font-bold">Areas</div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>100%</div>
+                        <div className="text-[6px] text-zinc-500 uppercase font-bold">Vibe</div>
+                      </div>
+                    </div>
+
+                    {/* QR/Call to action */}
+                    <div className="mt-4 flex flex-col items-center">
+                      <div className="text-[7px] font-medium text-zinc-500 uppercase tracking-widest">Create yours at TraveLLM.ru</div>
                     </div>
                   </div>
+                ) : (
+                  /* PHOTOS VARIANT */
+                  <div className="relative z-10 flex flex-col h-full p-4 sm:p-5">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-4 relative z-10 bg-black/40 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                      <div>
+                        <div className="text-[8px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-0.5">Memories</div>
+                        <div className="text-sm font-black leading-tight text-white uppercase italic">{tripData?.destination || "Adventure"}</div>
+                      </div>
+                      <Camera className="w-5 h-5 text-emerald-400" />
+                    </div>
 
-                  {/* Stats Grid */}
-                  <div className={`grid grid-cols-3 gap-2 mt-4 pt-4 border-t ${theme === 'dark' ? 'border-white/5' : 'border-zinc-200'}`}>
-                    <div className="text-center">
-                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.itinerary?.length || 0}</div>
-                      <div className="text-[6px] text-zinc-500 uppercase font-bold">Days</div>
+                    {/* Photo Collage */}
+                    <div className="flex-1 w-full rounded-2xl overflow-hidden relative mb-4">
+                      {displayPhotos.length === 0 ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/50 border border-white/10 rounded-2xl">
+                          <Camera className="w-8 h-8 text-zinc-600 mb-2" />
+                          <span className="text-[10px] text-zinc-500 font-medium">Нет загруженных фото</span>
+                        </div>
+                      ) : displayPhotos.length === 1 ? (
+                        <img src={displayPhotos[0]} alt="" className="w-full h-full object-cover rounded-2xl" />
+                      ) : displayPhotos.length === 2 ? (
+                        <div className="flex flex-col h-full gap-2">
+                          <img src={displayPhotos[0]} alt="" className="w-full h-1/2 object-cover rounded-2xl" />
+                          <img src={displayPhotos[1]} alt="" className="w-full h-1/2 object-cover rounded-2xl" />
+                        </div>
+                      ) : displayPhotos.length === 3 ? (
+                        <div className="flex flex-col h-full gap-2">
+                          <img src={displayPhotos[0]} alt="" className="w-full h-1/2 object-cover rounded-2xl" />
+                          <div className="flex w-full h-1/2 gap-2">
+                            <img src={displayPhotos[1]} alt="" className="w-1/2 h-full object-cover rounded-2xl" />
+                            <img src={displayPhotos[2]} alt="" className="w-1/2 h-full object-cover rounded-2xl" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 grid-rows-2 h-full gap-2">
+                          <img src={displayPhotos[0]} alt="" className="w-full h-full object-cover rounded-2xl" />
+                          <img src={displayPhotos[1]} alt="" className="w-full h-full object-cover rounded-2xl" />
+                          <img src={displayPhotos[2]} alt="" className="w-full h-full object-cover rounded-2xl" />
+                          <img src={displayPhotos[3]} alt="" className="w-full h-full object-cover rounded-2xl" />
+                        </div>
+                      )}
                     </div>
-                    <div className="text-center">
-                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{radarData.length}</div>
-                      <div className="text-[6px] text-zinc-500 uppercase font-bold">Areas</div>
-                    </div>
-                    <div className="text-center">
-                      <div className={`text-[10px] font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>100%</div>
-                      <div className="text-[6px] text-zinc-500 uppercase font-bold">Vibe</div>
+
+                    {/* Footer Info */}
+                    <div className={`p-3 rounded-2xl ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'} border ${theme === 'dark' ? 'border-white/10' : 'border-black/10'} flex justify-between items-center`}>
+                       <div className="flex gap-3">
+                         <div>
+                           <div className="text-[7px] text-zinc-500 uppercase font-bold">Дней</div>
+                           <div className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{tripData?.itinerary?.length || 0}</div>
+                         </div>
+                         <div>
+                           <div className="text-[7px] text-zinc-500 uppercase font-bold">Фото</div>
+                           <div className={`text-xs font-black ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{memoryPhotos.length}</div>
+                         </div>
+                       </div>
+                       <div className="text-[7px] font-black text-emerald-500 uppercase tracking-[0.2em] text-right">
+                         TraveLLM.ru
+                       </div>
                     </div>
                   </div>
-
-                  {/* QR/Call to action */}
-                  <div className="mt-4 flex flex-col items-center">
-                    <div className="text-[7px] font-medium text-zinc-500 uppercase tracking-widest">Create yours at TraveLLM.ru</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -206,11 +274,35 @@ export function TripShareDialog({
               </p>
             </div>
 
+            {/* Template Toggle */}
+            <div className="bg-black/40 p-1.5 rounded-2xl flex border border-white/5">
+              <button
+                onClick={() => setStoryType("stats")}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                  storyType === "stats" 
+                    ? "bg-emerald-500 text-black shadow-md" 
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <BarChart2 className="w-4 h-4" /> Статистика
+              </button>
+              <button
+                onClick={() => setStoryType("photos")}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                  storyType === "photos" 
+                    ? "bg-emerald-500 text-black shadow-md" 
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Camera className="w-4 h-4" /> Фотографии
+              </button>
+            </div>
+
             <div className="space-y-3">
               <Button 
                 onClick={handleDownloadImage}
                 disabled={isExporting}
-                className="w-full h-14 bg-emerald-500 text-black hover:bg-emerald-400 font-black rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/10"
+                className="w-full h-14 bg-emerald-500 text-black hover:bg-emerald-400 font-black rounded-2xl flex items-center justify-center gap-3 shadow-md md:shadow-xl shadow-emerald-500/10"
               >
                 {isExporting ? (
                   <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
@@ -247,7 +339,7 @@ export function TripShareDialog({
                   <div>
                     <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tip</div>
                     <div className="text-xs text-zinc-300 font-medium leading-tight">
-                      Изображение 9:16 идеально подходит для Stories.
+                      Изображение 9:16 идеально подходит для Stories. Вы можете переключать варианты дизайна выше.
                     </div>
                   </div>
                </div>
@@ -258,3 +350,4 @@ export function TripShareDialog({
     </Dialog>
   )
 }
+

@@ -129,7 +129,7 @@ export function WelcomeModal() {
             exit={{ scale: 0.95, opacity: 0, y: 12 }}
             transition={{ type: "spring", damping: 24, stiffness: 300, mass: 0.8 }}
             onClick={e => e.stopPropagation()}
-            className="relative w-full max-w-[520px] overflow-hidden rounded-[2rem] shadow-2xl"
+            className="relative w-full max-w-[520px] overflow-hidden rounded-[2rem] shadow-md md:shadow-2xl"
             style={{
               background: "linear-gradient(160deg, #0f1117 0%, #161b2e 50%, #0f1117 100%)",
               border: "1px solid rgba(255,255,255,0.08)",

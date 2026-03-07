@@ -177,7 +177,7 @@ export default function PublicProfilePage() {
             <div className="relative px-6 pb-4 flex items-end gap-4">
               {/* Avatar */}
               <div className="shrink-0">
-                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-2xl">
+                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md md:shadow-2xl">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}

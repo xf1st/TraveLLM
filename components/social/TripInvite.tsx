@@ -54,7 +54,7 @@ export function TripInvite({ tripId, tripTitle }: TripInviteProps) {
                     <span className="hidden sm:inline">Пригласить</span>
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md rounded-2xl bg-card/95 backdrop-blur-xl border-white/10">
+            <DialogContent className="sm:max-w-md rounded-2xl bg-card/95 backdrop-blur-md md:backdrop-blur-xl border-white/10">
                 <DialogHeader>
                     <DialogTitle>Пригласить друзей</DialogTitle>
                 </DialogHeader>

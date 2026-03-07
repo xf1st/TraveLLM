@@ -55,7 +55,7 @@ function ChatBody({
   return (
     <>
       {activityTitle && (
-        <div className="mx-4 mt-4 p-4 rounded-2xl relative overflow-hidden group smooth-transition hover-lift shadow-lg border border-white/20 bg-emerald-500/10 backdrop-blur-3xl">
+        <div className="mx-4 mt-4 p-4 rounded-2xl relative overflow-hidden group smooth-transition hover-lift shadow-lg border border-white/20 bg-emerald-500/10 backdrop-blur-md md:backdrop-blur-3xl">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-transparent opacity-60 pointer-events-none" />
           <div className="relative z-10 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 shrink-0">
@@ -106,7 +106,7 @@ function ChatBody({
         )}
       </div>
 
-      <div className="p-4 bg-black/40 border-t border-white/10 flex flex-col gap-4 backdrop-blur-3xl">
+      <div className="p-4 bg-black/40 border-t border-white/10 flex flex-col gap-4 backdrop-blur-md md:backdrop-blur-3xl">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
             {["Где поесть рядом?", "Интересный факт", "Где лучшие фото?", "Что тут кроется?"].map((action) => (
                 <button
@@ -237,7 +237,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
 
   const chatInner = (
     <>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5 backdrop-blur-xl">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-white/5 backdrop-blur-md md:backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
@@ -272,7 +272,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
     <Card
       className={cn(
         "w-full md:w-[420px] h-[50vh] md:h-[620px]",
-        "bg-black/60 backdrop-blur-3xl border-t md:border border-white/20",
+        "bg-black/60 backdrop-blur-md md:backdrop-blur-3xl border-t md:border border-white/20",
         "shadow-[0_20px_50px_rgba(0,0,0,0.5)] md:rounded-[2.5rem] rounded-t-[2rem] flex flex-col overflow-hidden",
       )}
     >
@@ -305,7 +305,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <div className="flex-1 rounded-[2rem] overflow-hidden bg-black/40 backdrop-blur-2xl border border-white/10 flex flex-col shadow-2xl overflow-hidden min-h-0">
+            <div className="flex-1 rounded-[2rem] overflow-hidden bg-black/40 backdrop-blur-md md:backdrop-blur-2xl border border-white/10 flex flex-col shadow-md md:shadow-2xl overflow-hidden min-h-0">
               <ChatBody
                 messages={messages}
                 isLoading={isLoading}

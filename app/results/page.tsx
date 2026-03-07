@@ -546,7 +546,7 @@ function ResultsContent() {
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full md:w-[400px] shadow-xl border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-full pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/50 text-slate-800 dark:text-white transition-all placeholder:text-slate-500"
+                className="h-12 w-full md:w-[400px] shadow-md md:shadow-xl border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-md md:backdrop-blur-xl rounded-full pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/50 text-slate-800 dark:text-white transition-all placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -606,7 +606,7 @@ function ResultsContent() {
                   const isFav = favoriteIds.has(trip.id);
                   return (
                     <FadeIn key={trip.id} delay={index * 50} className="h-full">
-                      <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-xl backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40">
+                      <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-md md:shadow-xl backdrop-blur-md md:backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-md md:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40">
                         {/* Image Section */}
                         <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
                           <TripImage

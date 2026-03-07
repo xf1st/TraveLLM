@@ -1222,7 +1222,7 @@ export default function TravelDashboard() {
         }`}
       >
         {notification && (
-          <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex items-start gap-4 max-w-[90vw] md:max-w-md">
+          <div className="bg-black/60 backdrop-blur-md md:backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-md md:shadow-2xl flex items-start gap-4 max-w-[90vw] md:max-w-md">
             <div className={`w-2 h-full min-h-[50px] rounded-full self-stretch ${notification.day ? "bg-gradient-to-b from-emerald-400 to-blue-500" : "bg-white/20"}`} />
             <div>
               {notification.day && (
@@ -1271,13 +1271,13 @@ export default function TravelDashboard() {
           <div className="relative">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="bg-black/40 backdrop-blur-xl border border-white/10 p-3 rounded-full shadow-2xl hover:bg-white/10 transition-all text-white active:scale-95"
+              className="bg-black/40 backdrop-blur-md md:backdrop-blur-xl border border-white/10 p-3 rounded-full shadow-md md:shadow-2xl hover:bg-white/10 transition-all text-white active:scale-95"
             >
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
 
             {isMenuOpen && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 p-2 origin-top-left">
+              <div className="absolute top-full left-0 mt-2 w-64 bg-black/80 backdrop-blur-md md:backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-md md:shadow-2xl animate-in fade-in zoom-in-95 duration-200 p-2 origin-top-left">
                 <div className="px-4 py-2 text-xs font-semibold text-white/40 uppercase tracking-widest">Меню сайта</div>
                 <div className="h-px bg-white/10 my-1 mx-2" />
                 <button className="w-full text-left px-4 py-3 hover:bg-white/10 rounded-xl transition-colors flex items-center gap-3" onClick={() => router.push("/")}>
@@ -1302,7 +1302,7 @@ export default function TravelDashboard() {
         </div>
 
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex flex-col items-center gap-2">
-          <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-full px-6 py-2.5 shadow-2xl hover:bg-black/50 transition-all cursor-pointer" onClick={() => router.push("/")}>
+          <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-full px-6 py-2.5 shadow-md md:shadow-2xl hover:bg-black/50 transition-all cursor-pointer" onClick={() => router.push("/")}>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 flex items-center gap-2 whitespace-nowrap">
               <span className="leading-none">TraveLLM Map</span>
               <span className="text-[10px] font-medium text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full bg-emerald-500/10">β</span>
@@ -1364,7 +1364,7 @@ export default function TravelDashboard() {
 
         {routingLine && (
           <div className="absolute left-1/2 -translate-x-1/2 bottom-4 md:bottom-6 pointer-events-auto z-50 w-[min(92vw,420px)]">
-            <div className="rounded-2xl border border-white/10 bg-black/70 backdrop-blur-xl p-4 shadow-2xl">
+            <div className="rounded-2xl border border-white/10 bg-black/70 backdrop-blur-md md:backdrop-blur-xl p-4 shadow-md md:shadow-2xl">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-emerald-300 font-semibold">Маршрут до точки</div>
@@ -1421,10 +1421,10 @@ export default function TravelDashboard() {
 
       {activePanel === "budget" && trip?.id && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
-          <div className="w-full max-w-2xl max-h-[85vh] bg-zinc-950/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden relative">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-zinc-950/95 border border-white/10 rounded-3xl shadow-md md:shadow-2xl overflow-hidden relative">
             <button 
               onClick={() => setActivePanel("none")}
-              className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all shadow-xl"
+              className="absolute top-4 right-4 z-10 h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all shadow-md md:shadow-xl"
             >
               <X size={20} />
             </button>
@@ -1437,7 +1437,7 @@ export default function TravelDashboard() {
 
       {activePanel === "route-picker" && (
         <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
-          <div className="w-full max-w-2xl max-h-[85vh] bg-zinc-950/95 border border-white/10 rounded-3xl shadow-2xl overflow-hidden">
+          <div className="w-full max-w-2xl max-h-[85vh] bg-zinc-950/95 border border-white/10 rounded-3xl shadow-md md:shadow-2xl overflow-hidden">
             <div className="p-5 border-b border-white/10 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">Выберите маршрут для карты</h2>

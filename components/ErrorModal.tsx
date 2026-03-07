@@ -78,7 +78,7 @@ export function ErrorModal({
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="relative w-full max-w-lg bg-gradient-to-b from-gray-900 to-gray-950 border border-red-500/20 rounded-2xl shadow-2xl overflow-hidden"
+                    className="relative w-full max-w-lg bg-gradient-to-b from-gray-900 to-gray-950 border border-red-500/20 rounded-2xl shadow-md md:shadow-2xl overflow-hidden"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header gradient */}
@@ -97,7 +97,7 @@ export function ErrorModal({
                         {/* Icon */}
                         <div className="flex justify-center mb-4">
                             <div className="relative">
-                                <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl animate-pulse" />
+                                <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl animate-pulse hidden md:block" />
                                 <div className="relative p-4 bg-red-500/10 rounded-full border border-red-500/20">
                                     <AlertTriangle className="h-8 w-8 text-red-400" />
                                 </div>

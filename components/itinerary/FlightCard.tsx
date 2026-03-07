@@ -119,7 +119,7 @@ export function FlightCard({
 
     return (
         <Card className={cn(
-            "relative overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-50/80 via-white to-sky-50/50 dark:from-blue-950/30 dark:via-card dark:to-sky-950/20 shadow-lg shadow-blue-500/5 hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/50 transition-all duration-300 w-full max-w-full",
+            "relative overflow-hidden border-2 border-blue-500/30 bg-gradient-to-br from-blue-50/80 via-white to-sky-50/50 dark:from-blue-950/30 dark:via-card dark:to-sky-950/20 shadow-lg shadow-blue-500/5 hover:shadow-md md:shadow-xl hover:shadow-blue-500/10 hover:border-blue-500/50 transition-all duration-300 w-full max-w-full",
             className
         )}>
             {/* Blue accent stripe */}

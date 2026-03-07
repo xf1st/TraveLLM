@@ -69,7 +69,7 @@ export function FloatingIcons() {
 
             {/* Glowing orbs — visible in both themes */}
             <motion.div
-                className="absolute w-[500px] h-[500px] rounded-full bg-sky-400/10 dark:bg-violet-500/5 blur-3xl"
+                className="absolute w-[500px] h-[500px] rounded-full bg-sky-400/10 dark:bg-violet-500/5 blur-3xl hidden md:block"
                 style={{ left: '-10%', top: '20%' }}
                 animate={{
                     x: [0, 50, 0],
@@ -83,7 +83,7 @@ export function FloatingIcons() {
                 }}
             />
             <motion.div
-                className="absolute w-[400px] h-[400px] rounded-full bg-violet-400/10 dark:bg-indigo-500/5 blur-3xl"
+                className="absolute w-[400px] h-[400px] rounded-full bg-violet-400/10 dark:bg-indigo-500/5 blur-3xl hidden md:block"
                 style={{ right: '-5%', bottom: '10%' }}
                 animate={{
                     x: [0, -40, 0],
@@ -97,7 +97,7 @@ export function FloatingIcons() {
                 }}
             />
             <motion.div
-                className="absolute w-[300px] h-[300px] rounded-full bg-rose-300/10 dark:bg-purple-500/5 blur-3xl"
+                className="absolute w-[300px] h-[300px] rounded-full bg-rose-300/10 dark:bg-purple-500/5 blur-3xl hidden md:block"
                 style={{ left: '50%', top: '60%', transform: 'translateX(-50%)' }}
                 animate={{
                     scale: [1, 1.2, 1],

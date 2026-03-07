@@ -144,7 +144,7 @@ export function HotelCard({
 
     return (
         <Card className={cn(
-            "relative overflow-hidden border-2 border-amber-500/30 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 dark:from-amber-950/20 dark:via-card dark:to-orange-950/10 shadow-lg shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/50 transition-all duration-300",
+            "relative overflow-hidden border-2 border-amber-500/30 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 dark:from-amber-950/20 dark:via-card dark:to-orange-950/10 shadow-lg shadow-amber-500/5 hover:shadow-md md:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/50 transition-all duration-300",
             className
         )}>
             {/* Amber accent stripe */}

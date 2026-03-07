@@ -55,7 +55,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onCancel && onCancel()}>
-            <DialogContent className="sm:max-w-md border-none bg-background/80 dark:bg-black/90 p-0 overflow-hidden rounded-[2.5rem] shadow-2xl [&>button]:hidden backdrop-blur-xl">
+            <DialogContent className="sm:max-w-md border-none bg-background/80 dark:bg-black/90 p-0 overflow-hidden rounded-[2.5rem] shadow-md md:shadow-2xl [&>button]:hidden backdrop-blur-md md:backdrop-blur-xl">
                 <DialogTitle className="sr-only">Генерация маршрута</DialogTitle>
                 <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8">
                     {/* Background Shader - Theme Aware */}
@@ -65,7 +65,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                             colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
                             speed={0.1}
                         />
-                        <div className="absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-3xl" />
+                        <div className="absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-md md:backdrop-blur-3xl hidden md:block" />
                     </div>
 
                     {/* Close Button */}
@@ -83,7 +83,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                         {/* Plane Animation */}
                         <div className="relative h-48 w-48 mx-auto flex items-center justify-center">
                             {/* Glow behind plane */}
-                            <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse" />
+                            <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse hidden md:block" />
                             
                             <LottieLoader type="plane" className="h-[120%] w-[120%] relative z-10" />
                         </div>

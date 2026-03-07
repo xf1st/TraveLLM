@@ -57,7 +57,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
         {visibleSpots.map((spot, idx) => (
           <div
             key={`${spot.name}-${idx}`}
-            className="rounded-3xl overflow-hidden relative group aspect-[4/5] shadow-xl border border-white/40 dark:border-white/10"
+            className="rounded-3xl overflow-hidden relative group aspect-[4/5] shadow-md md:shadow-xl border border-white/40 dark:border-white/10"
           >
             <TripImage
               query={destination ? `${spot.name} ${destination}` : spot.name}

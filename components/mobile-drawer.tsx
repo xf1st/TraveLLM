@@ -36,7 +36,7 @@ export function MobileDrawer({ isOpen, onClose, title, children, className }: Mo
 
             {/* Drawer */}
             <div className={cn(
-                "bg-background rounded-t-3xl shadow-xl w-full max-h-[85vh] flex flex-col transition-transform duration-300 ease-out transform",
+                "bg-background rounded-t-3xl shadow-md md:shadow-xl w-full max-h-[85vh] flex flex-col transition-transform duration-300 ease-out transform",
                 isOpen ? "translate-y-0" : "translate-y-full",
                 className
             )}>

@@ -59,7 +59,7 @@ export function TravelJournal({ moments, itinerary, className }: TravelJournalPr
         </div>
       </div>
 
-      <div className="relative h-[400px] md:h-[500px] w-full overflow-hidden rounded-[3rem] shadow-2xl group">
+      <div className="relative h-[400px] md:h-[500px] w-full overflow-hidden rounded-[3rem] shadow-md md:shadow-2xl group">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}

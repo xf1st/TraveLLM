@@ -20,7 +20,7 @@ interface MapSettingsProps {
 export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettingsProps) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-neutral-900/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-6 relative">
+      <div className="w-full max-w-md bg-neutral-900/95 backdrop-blur-md md:backdrop-blur-xl border border-white/10 rounded-3xl shadow-md md:shadow-2xl p-6 relative">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors text-white/60 hover:text-white">
           <X className="w-5 h-5" />
         </button>

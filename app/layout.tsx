@@ -6,6 +6,7 @@ import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { NotificationPrompt } from "@/components/NotificationPrompt"
+import { OnboardingPrompt } from "@/components/OnboardingPrompt"
 import { CookieConsent } from "@/components/CookieConsent"
 import { MaintenanceGuard } from "@/components/admin/maintenance-guard"
 import { UserAccessGuard } from "@/components/admin/user-access-guard"
@@ -82,6 +83,7 @@ export default function RootLayout({
           </AuthProvider>
           {/* Notification, TG Channel & Cookie System */}
           <NotificationPrompt />
+          <OnboardingPrompt />
           <CookieConsent />
           <Toaster position="top-center" />
           <Analytics />

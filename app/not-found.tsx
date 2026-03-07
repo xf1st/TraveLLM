@@ -16,7 +16,7 @@ export default function NotFound() {
                     colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
                     speed={0.1}
                 />
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-3xl" />
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-md md:backdrop-blur-3xl hidden md:block" />
             </div>
 
             {/* Glowing Orbs */}

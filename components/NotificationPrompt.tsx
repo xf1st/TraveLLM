@@ -41,10 +41,10 @@ export function NotificationPrompt() {
                 transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 className="fixed bottom-0 sm:bottom-6 left-0 sm:left-auto sm:right-6 z-[100] w-full sm:max-w-sm p-4 sm:p-0"
             >
-                <div className="bg-background/85 backdrop-blur-2xl border border-sky-500/25 p-6 rounded-3xl shadow-2xl shadow-sky-500/10 relative overflow-hidden">
+                <div className="bg-background/85 backdrop-blur-md md:backdrop-blur-2xl border border-sky-500/25 p-6 rounded-3xl shadow-md md:shadow-2xl shadow-sky-500/10 relative overflow-hidden">
                     {/* Glow orbs */}
-                    <div className="absolute -top-10 -right-10 w-28 h-28 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -top-10 -right-10 w-28 h-28 bg-sky-500/15 rounded-full blur-3xl pointer-events-none hidden md:block" />
+                    <div className="absolute -bottom-8 -left-8 w-20 h-20 bg-blue-600/10 rounded-full blur-3xl pointer-events-none hidden md:block" />
 
                     <button
                         onClick={dismiss}

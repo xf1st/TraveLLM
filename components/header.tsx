@@ -145,7 +145,7 @@ export function Header({ floating = false }: HeaderProps) {
   if (floating) {
     return (
       <div className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6 pointer-events-none">
-        <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-2xl">
+        <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-md md:backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-md md:shadow-2xl">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <Logo size={28} />
@@ -306,7 +306,7 @@ export function Header({ floating = false }: HeaderProps) {
   if (!isMounted) {
     return (
       <div className="sticky top-0 z-50 w-full p-3 md:p-4 opacity-0">
-        <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 border border-border/50 shadow-2xl">
+        <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 border border-border/50 shadow-md md:shadow-2xl">
           {/* Skeleton or empty header to prefer layout shift over hydration error */}
         </header>
       </div>
@@ -315,7 +315,7 @@ export function Header({ floating = false }: HeaderProps) {
 
   return (
     <div className="sticky top-0 z-50 w-full p-2 sm:p-3 md:p-4">
-      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl trip-glass shadow-2xl">
+      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl trip-glass shadow-md md:shadow-2xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
           <Logo size={24} />

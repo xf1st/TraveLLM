@@ -498,7 +498,7 @@ export function AppSidebar() {
                                     )}
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-xl border-border/50 shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
+                            <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-md md:backdrop-blur-xl border-border/50 shadow-md md:shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
                                 <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
                                     <div className="flex flex-col space-y-1.5">
                                         <div className="flex items-center gap-2">

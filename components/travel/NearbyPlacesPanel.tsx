@@ -330,7 +330,7 @@ export function NearbyPlacesPanel({ onClose, onPlacesFound, userLocation, userPr
   }, [selectedTheme, themesFromProfile])
 
   return (
-    <div className="fixed left-4 bottom-24 md:left-6 md:top-24 md:bottom-auto w-[calc(100%-32px)] md:w-[360px] bg-black/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-5 animate-in slide-in-from-left-10 duration-300 z-50">
+    <div className="fixed left-4 bottom-24 md:left-6 md:top-24 md:bottom-auto w-[calc(100%-32px)] md:w-[360px] bg-black/80 backdrop-blur-md md:backdrop-blur-xl border border-white/10 rounded-3xl shadow-md md:shadow-2xl p-5 animate-in slide-in-from-left-10 duration-300 z-50">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center shadow-lg">

@@ -174,7 +174,7 @@ export function GlobalSearch({
 
           <Command
             shouldFilter={false}
-            className="rounded-2xl overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] bg-white/96 dark:bg-neutral-900/98 backdrop-blur-2xl"
+            className="rounded-2xl overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] bg-white/96 dark:bg-neutral-900/98 backdrop-blur-md md:backdrop-blur-2xl"
           >
             {/* ── Input ── */}
             <div className="flex items-center gap-3 px-4 border-b border-black/5 dark:border-white/8">

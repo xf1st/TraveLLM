@@ -13,7 +13,7 @@ import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/cont
 import { formatTravelStyleForPrompt } from "@/lib/travel-styles"
 import { getApplicableRules, ITINERARY_STRUCTURE } from "@/lib/strict-rules"
 import { getFlightSearchLink, parseCityIata, getIataCode, checkDirectFlightsLive, getTrainSearchLink } from "@/lib/travelpayouts"
-import { googleSearch } from "@/lib/google-search"
+import { googleSearch, type SearchResult } from "@/lib/google-search"
 
 function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string, endDate?: string) {
     if (!Array.isArray(routeData?.itinerary)) return routeData
@@ -118,11 +118,14 @@ async function sanitizeClosedAirportLogistics(
         return t.includes('самол') || t.includes('flight') || t.includes('plane') || t.includes('перелет') || t.includes('перелёт') || t.includes('рейс') || t.includes('вылет') || t.includes('аэропорт') || t.includes('airport')
     }
 
+    let currentCity = departureCity || "Москва"
+
     for (let i = 0; i < itinerary.length; i++) {
         const day = itinerary[i]
         const lg = day?.logistics
         
         let needsSanitization = false;
+        // ... (rest of logic)
 
         if (lg) {
             const targetsClosed = isClosedMentioned(lg.to) || isClosedMentioned(lg.from) || isClosedMentioned(lg.bookingLink) || isClosedMentioned(day?.title)
@@ -220,16 +223,21 @@ async function sanitizeClosedAirportLogistics(
                     }
                 }
                 
-                // Merge duplicate transport activities if the AI created two of them.
+                // Only merge if they are very similar or the second one is redundant/generic
                 day.activities = day.activities.filter((act: any, idx: number, arr: any[]) => {
                     if (act.type === 'transport' && idx > 0) {
                         const prevAct = arr[idx - 1]
                         if (prevAct.type === 'transport') {
-                            // Drop consecutive transport node on a closed airport travel day
-                            return false;
+                            const title1 = String(prevAct.title || "").toLowerCase()
+                            const title2 = String(act.title || "").toLowerCase()
+                            
+                            // If they are nearly identical or one is just "Трансфер", merge them
+                            if (title1 === title2 || title2 === "трансфер" || title2 === "transfer") {
+                                return false
+                            }
                         }
                     }
-                    return true;
+                    return true
                 })
             }
         }
@@ -289,15 +297,13 @@ function normalizeActivityTypes(routeData: any) {
       }
 
       // Auto-detect type if missing
-      if (!act.type) {
-        if (/перелёт|перелет|рейс|аэропорт|вылет|прибытие|трансфер|поезд/.test(text)) {
+      if (!act.type || act.type === "activity") {
+        if (/перелёт|перелет|рейс|аэропорт|вылет|прибытие|трансфер|поезд|автобус|такси|переезд|трасса|дорога|м-4|билет/.test(text)) {
           act.type = "transport"
-        } else if (/заселение|отель|hotel|check.?in|гостиница|хостел/.test(text)) {
+        } else if (/заселение|отель|hotel|check.?in|гостиница|хостел|заезд|номер/.test(text)) {
           act.type = "hotel"
-        } else if (/ресторан|кафе|завтрак|обед|ужин|бар|еда|кухня/.test(text)) {
+        } else if (/ресторан|кафе|завтрак|обед|ужин|бар|еда|кухня|дегустация|стейк|суши|пицца|кофе/.test(text)) {
           act.type = "food"
-        } else {
-          act.type = "activity"
         }
       }
 
@@ -372,8 +378,6 @@ async function enrichViralSpotsWithWebSearch(routeData: any) {
 
   return routeData
 }
-
-import { googleSearch, type SearchResult } from "@/lib/google-search"
 
 async function collectRealTimeSearchContext(departureCity: string, destinations: string[], startDate?: string) {
     if (!destinations || destinations.length === 0) return ""
@@ -761,6 +765,12 @@ export async function POST(req: Request) {
                 
                 console.log(`[Pre-Check] Result: ${flightContextLine.trim()}`)
                 dynamicContextStr += flightContextLine
+
+                // Add Real-time Google Search grounding
+                const searchContext = await collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate)
+                if (searchContext) {
+                    dynamicContextStr += searchContext
+                }
             } catch (flightCheckErr) {
                 console.error("[Pre-Check] Error:", flightCheckErr)
             }
@@ -1054,6 +1064,10 @@ ${creativityInstruction}
    - Пример: "distance": "2800 км", "duration": "4 ч 15 мин (перелёт)"
    - Для поездов: "distance": "700 км", "duration": "4 ч (Сапсан)"
    - Для такси/автобуса: "distance": "35 км", "duration": "45 мин"
+
+11. СООТВЕТСТВИЕ ЗАГОЛОВКА И АКТИВНОСТЕЙ (КРИТИЧНО):
+   - Если заголовок дня (title) содержит слово "Переезд", "Трансфер" или упоминает НОВЫЙ город/страну, ПЕРВАЯ активность в списке activities этого дня ОБЯЗАНА иметь type: "transport".
+   - НЕЛЬЗЯ писать в заголовке "Переезд в Севастополь", если в списке активностей нет самого процесса переезда.
 
 JSON СХЕМА:
 {

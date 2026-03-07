@@ -196,7 +196,7 @@ export function ItineraryChatWidget({
       {!embedded && (
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-card/90 dark:bg-white/5 backdrop-blur-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border border-border/50 dark:border-white/10"
+          className="w-full flex items-center justify-between p-2.5 sm:p-3 bg-card/90 dark:bg-white/5 backdrop-blur-md md:backdrop-blur-xl rounded-xl shadow-lg hover:shadow-md md:shadow-xl transition-all duration-300 group border border-border/50 dark:border-white/10"
         >
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center shadow-md">
@@ -222,8 +222,8 @@ export function ItineraryChatWidget({
       <div
         className={cn(
           "transition-all duration-300 ease-out flex flex-col rounded-2xl overflow-hidden",
-          "bg-white/90 dark:bg-[#060b1a]/90 backdrop-blur-2xl",
-          "border border-slate-200/80 dark:border-white/10 shadow-2xl",
+          "bg-white/90 dark:bg-[#060b1a]/90 backdrop-blur-md md:backdrop-blur-2xl",
+          "border border-slate-200/80 dark:border-white/10 shadow-md md:shadow-2xl",
           embedded ? "h-full min-h-0" : isOpen ? "mt-3 opacity-100 scale-100" : "hidden opacity-0 scale-95 pointer-events-none"
         )}
       >

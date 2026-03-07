@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "supabase-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_965a461f39869bed60e114619bb520909079043f"
+      ],
+      "env": {}
+    },
+    "timeweb-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "timeweb-mcp-server"
+      ],
+      "env": {
+        "TIMEWEB_TOKEN": "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6IjFrYnhacFJNQGJSI0tSbE1xS1lqIn0.eyJ1c2VyIjoieGYxc3QiLCJ0eXBlIjoiYXBpX2tleSIsImFwaV9rZXlfaWQiOiIzYmYzZjZkOC05OWJjLTQ0NmYtYTYzOS1jNGVhNTg2OTFjMmYiLCJpYXQiOjE3NjkzMzYwNzJ9.n1CAiwa0KS8CSbvv9g8Cz_fkiggefzF4A8YoMcXi5gXNtg2KGVpR-h-1_HcxknGdSyx5MN3JxwVQlj0dSYV1VMsM2gXfrjkMrJZ9yStl7tU1u7vO1MEKAWJ0c4SBf5UQuC25h4ZMxzEv6uYvw-NDDZI0jG7_ScVTpjnDaSejU5h88I-18NODsmsxwr_8Fw40kxhmiV9h_mH69JMMD_r_IY-za9E3Xhr0F1CJWbvziAmmW0rSn1z6IqSKZUZHxA3GV3I-5lb2gIvoEbc-DR8_hAMgM4xRYrbyYzDoJ_RUDTSvg7G3VgG7kcx7_ThcyGyw02FORRVbJREUW9dvX6U8WbYBpM04TuAEf-dO8Ik_IBkTmXrktOxYnxkUfDizceLwS8UJW1roKOYycuNp8E95EA8VKC-qqPt8YvB1VTsyV3RDHpl6XSiTBJDxVeM4FKK3BJBYi249E-VrfxBpg6XQSWPndCn8X_ga5wn1agivKQRPGjztw1dYCPMLu1537DCM"
+      }
+    },
+    "notion-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@notionhq/notion-mcp-server"
+      ],
+      "env": {
+        "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ntn_b1111863105blitVn5m66LVZMNW2hWvvFGztetMNu5ZfAR\", \"Notion-Version\": \"2022-06-28\"}"
+      }
+    },
+    "pencil": {
+      "command": "c:\\Users\\myszfx\\.antigravity\\extensions\\highagency.pencildev-0.6.29-universal\\out\\mcp-server-windows-x64.exe",
+      "args": [
+        "--app",
+        "antigravity"
+      ],
+      "env": {}
+    }
+  }
+}

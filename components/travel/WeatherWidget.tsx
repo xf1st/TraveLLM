@@ -60,7 +60,7 @@ export function WeatherWidget({ lat, lng, city, className = "" }: WeatherWidgetP
           initial={{ opacity: 0, scale: 0.9, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: -10 }}
-          className={`pointer-events-auto flex items-center gap-2.5 bg-black/50 backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-2xl shadow-xl transition-all ${className}`}
+          className={`pointer-events-auto flex items-center gap-2.5 bg-black/50 backdrop-blur-md md:backdrop-blur-xl border border-white/10 px-3 py-1.5 rounded-2xl shadow-md md:shadow-xl transition-all ${className}`}
         >
           {loading && !data ? (
             <div className="flex items-center gap-2 animate-pulse w-[80px]">

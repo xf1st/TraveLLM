@@ -12,7 +12,16 @@ import {
   Medal, Hotel as HotelIcon, FileText, CreditCard, Star, Calendar,
   LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
   Bell, Bookmark, Wand2, Plane, Banknote, Ruler, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
+  Loader2,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { SubscriptionBadge } from "@/components/SubscriptionBadge"
 import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 import { Input } from "@/components/ui/input"
@@ -289,6 +298,8 @@ function ProfileContent() {
   const [usernameEditing, setUsernameEditing] = useState(false)
   const [usernameTemp, setUsernameTemp] = useState("")
   const [savingUsername, setSavingUsername] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const completedTrips = useMemo(() => {
     return userRoutes.filter((trip: any) => {
@@ -512,7 +523,7 @@ function ProfileContent() {
 
       if (!wasUnlocked && isUnlocked) {
         toast.custom((t) => (
-          <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-2xl flex items-center gap-4 border border-white/20">
+          <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-md md:shadow-2xl flex items-center gap-4 border border-white/20">
             <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
               <Medal className="w-8 h-8 animate-bounce" />
             </div>
@@ -635,6 +646,30 @@ function ProfileContent() {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+    try {
+      const res = await fetch("/api/user/delete-account", {
+        method: "POST",
+      })
+
+      if (res.ok) {
+        toast.success("Аккаунт успешно удален")
+        await supabase.auth.signOut()
+        window.location.href = "/"
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Ошибка при удалении аккаунта")
+      }
+    } catch (err) {
+      toast.error("Произошла ошибка")
+      console.error(err)
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+    }
+  }
+
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true)
@@ -728,7 +763,7 @@ function ProfileContent() {
             <div className="relative px-6 pb-4 flex items-end gap-4">
               {/* Avatar */}
               <div className="relative shrink-0 group">
-                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-2xl">
+                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md md:shadow-2xl">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -2019,7 +2054,12 @@ function ProfileContent() {
                             <LogOut className="h-4 w-4 mr-2" />
                             Выйти из аккаунта
                           </Button>
-                          <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-red-600">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-muted-foreground hover:text-red-600"
+                            onClick={() => setDeleteDialogOpen(true)}
+                          >
+                            <X className="h-4 w-4 mr-2" />
                             Удалить аккаунт
                           </Button>
                         </div>
@@ -2035,6 +2075,36 @@ function ProfileContent() {
 
         </div>
       </div>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Удалить аккаунт?</DialogTitle>
+            <DialogDescription>
+              Это действие необратимо. Все ваши маршруты, предпочтения и данные будут безвозвратно удалены.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+              Отмена
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Удаление...
+                </>
+              ) : (
+                "Удалить навсегда"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {feedbackTrip && (
         <TripFeedbackDialog

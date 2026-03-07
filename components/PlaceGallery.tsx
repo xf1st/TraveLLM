@@ -162,7 +162,7 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4"
+                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md md:backdrop-blur-2xl flex items-center justify-center p-4"
                             onClick={() => setIsPreviewOpen(false)}
                         >
                             <Button
@@ -184,7 +184,7 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                                 <img
                                     src={images[activeIndex]}
                                     alt="Preview"
-                                    className="max-w-full max-h-full md:max-w-[95vw] md:max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                                    className="max-w-full max-h-full md:max-w-[95vw] md:max-h-[85vh] object-contain rounded-lg shadow-md md:shadow-2xl"
                                 />
 
                                 <div className="absolute top-0 inset-x-0 p-8 flex items-center justify-between pointer-events-none">

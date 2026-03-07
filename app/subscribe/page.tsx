@@ -197,9 +197,9 @@ export default function SubscribePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               className={cn(
-                "relative rounded-2xl border p-6 bg-card/30 backdrop-blur-xl flex flex-col transition-all duration-300 hover:bg-card/40 hover:translate-y-[-4px]",
+                "relative rounded-2xl border p-6 bg-card/30 backdrop-blur-md md:backdrop-blur-xl flex flex-col transition-all duration-300 hover:bg-card/40 hover:translate-y-[-4px]",
                 tier.colorClass,
-                tier.highlight && "ring-1 ring-yellow-400/30 shadow-2xl shadow-yellow-400/10",
+                tier.highlight && "ring-1 ring-yellow-400/30 shadow-md md:shadow-2xl shadow-yellow-400/10",
                 !tier.buttonDisabled && selectedPlan === tier.planKey && "ring-2 ring-primary/40"
               )}
             >
@@ -274,7 +274,7 @@ export default function SubscribePage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
-          className="rounded-2xl border border-border/40 bg-card/30 backdrop-blur-xl p-6 md:p-8 space-y-6 shadow-xl"
+          className="rounded-2xl border border-border/40 bg-card/30 backdrop-blur-md md:backdrop-blur-xl p-6 md:p-8 space-y-6 shadow-md md:shadow-xl"
         >
           <div>
             <h2 className="text-lg font-bold mb-1">Как оплатить</h2>

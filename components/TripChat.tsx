@@ -114,7 +114,7 @@ export function TripChat({ tripId, isOpen, onClose, currentUser }: TripChatProps
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-y-0 right-0 z-50 w-full md:w-96 bg-zinc-900 border-l border-white/10 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
+        <div className="fixed inset-y-0 right-0 z-50 w-full md:w-96 bg-zinc-900 border-l border-white/10 shadow-md md:shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10 bg-zinc-900/50 backdrop-blur-md">
                 <div className="flex items-center gap-2">

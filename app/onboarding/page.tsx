@@ -124,7 +124,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Top bar */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md md:backdrop-blur-xl">
         <div className="container max-w-2xl px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo size={24} />
@@ -709,7 +709,7 @@ export default function OnboardingPage() {
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-violet-500 shadow-2xl shadow-primary/30"
+                    className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-violet-500 shadow-md md:shadow-2xl shadow-primary/30"
                   >
                     <Sparkles className="h-10 w-10 text-white fill-white" />
                   </motion.div>

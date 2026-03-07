@@ -147,7 +147,7 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
     }
 
     return (
-        <Card className="bg-card/40 backdrop-blur-md border-white/5 shadow-2xl overflow-hidden">
+        <Card className="bg-card/40 backdrop-blur-md border-white/5 shadow-md md:shadow-2xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
@@ -162,7 +162,7 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
                             <Plus className="h-5 w-5" />
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-3xl border-white/10 bg-zinc-950/90 backdrop-blur-xl">
+                    <DialogContent className="rounded-3xl border-white/10 bg-zinc-950/90 backdrop-blur-md md:backdrop-blur-xl">
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-black">Новый расход</DialogTitle>
                         </DialogHeader>

@@ -140,7 +140,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             <img
                 src={currentSrc}
                 alt={alt}
-                className={`w-full h-full object-cover transition-all duration-700 ${isLoading ? 'scale-105 blur-sm' : 'scale-100 blur-0'} ${error ? 'opacity-0' : 'opacity-100'} ${imgClassName}`}
+                className={`w-full h-full object-cover transition-opacity duration-500 will-change-transform ${isLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100'} ${error ? 'opacity-0' : 'opacity-100'} ${imgClassName}`}
                 onLoad={() => setIsLoading(false)}
                 onError={handleError}
                 loading={priority ? "eager" : "lazy"}
