@@ -71,11 +71,11 @@
   --popover-foreground: oklch(0.95 0 0);
   --primary: oklch(0.65 0.22 255);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.20 0.005 280);
+  --secondary: oklch(0.2 0.005 280);
   --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.20 0.005 280);
+  --muted: oklch(0.2 0.005 280);
   --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.20 0.005 280);
+  --accent: oklch(0.2 0.005 280);
   --accent-foreground: oklch(0.95 0 0);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
@@ -97,7 +97,7 @@
   --sidebar-foreground: oklch(0.95 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.20 0.005 280);
+  --sidebar-accent: oklch(0.2 0.005 280);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.22 0.005 280);
   --sidebar-ring: oklch(0.35 0 0);
@@ -159,7 +159,14 @@
     font-family: inherit;
   }
 
+  /* 
+     ANTI-JUMP SYSTEM:
+     Ensures vertical scrollbar space is ALWAYS reserved.
+     Prevents content shifting when modals (Radix/Shadcn) open.
+  */
   html {
+    scrollbar-gutter: stable !important;
+    overflow-y: scroll; /* Force the track to be visible always */
     @apply overflow-x-hidden scroll-smooth;
   }
 
@@ -167,12 +174,41 @@
     @apply bg-transparent text-foreground overflow-x-hidden antialiased selection:bg-primary/30;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     letter-spacing: -0.01em;
-    transition: color 0.3s ease, background-color 0.3s ease;
+    transition:
+      color 0.3s ease,
+      background-color 0.3s ease;
+    scrollbar-gutter: stable !important;
+  }
+
+  /* 
+     Radix UI Scroll Lock Override:
+     When a modal opens, Radix adds 'data-scroll-locked' to body
+     and injects an inline 'padding-right' style. 
+     We force it to 0 because scrollbar-gutter handles the space.
+  */
+  body[data-scroll-locked],
+  [data-radix-scroll-lock],
+  [data-state="open"] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Ensure fixed/sticky elements don't shift either */
+  .fixed, .sticky {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
   }
 
   /* Smooth Theme Transition for all major elements */
-  *, *::before, *::after {
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  *,
+  *::before,
+  *::after {
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      color 0.3s ease,
+      background 0.3s ease,
+      box-shadow 0.3s ease;
   }
 
   .container {
@@ -260,14 +296,20 @@
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 20px 25px -5px rgb(0 0 0 / 0.1),
+      0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 
   .text-gradient {
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    background-image: linear-gradient(to right, var(--primary), color-mix(in oklch, var(--primary), transparent 40%));
+    background-image: linear-gradient(
+      to right,
+      var(--primary),
+      color-mix(in oklch, var(--primary), transparent 40%)
+    );
   }
 
   .glow {
@@ -280,7 +322,8 @@
 
   /* Search bar hover glow effect */
   .search-glow {
-    box-shadow: 0 20px 40px -12px color-mix(in oklch, var(--primary) 10%, transparent);
+    box-shadow: 0 20px 40px -12px
+      color-mix(in oklch, var(--primary) 10%, transparent);
     transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
@@ -293,13 +336,15 @@
   }
 
   /* --- Micro-Animations & Interactions --- */
-  
+
   .smooth-transition {
     transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .hover-lift {
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .hover-lift:hover {
@@ -325,8 +370,13 @@
     -webkit-backdrop-filter: blur(var(--glass-blur));
     border: 1px solid var(--glass-border);
     border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+      0 20px 25px -5px rgb(0 0 0 / 0.1),
+      0 8px 10px -6px rgb(0 0 0 / 0.1);
+    transition:
+      all 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .glass-card-premium:hover {
@@ -365,7 +415,14 @@
 
   /* Trip page background gradients */
   .trip-bg {
-    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 25%, #7dd3fc 50%, #bae6fd 75%, #e0f2fe 100%);
+    background: linear-gradient(
+      135deg,
+      #e0f2fe 0%,
+      #bae6fd 25%,
+      #7dd3fc 50%,
+      #bae6fd 75%,
+      #e0f2fe 100%
+    );
     background-size: 200% 200%;
     animation: trip-gradient 15s ease infinite;
     background-attachment: fixed;
@@ -546,7 +603,11 @@
 
   /* Material Symbols sizing helper */
   .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
   }
 }
 
@@ -642,8 +703,11 @@
   min-height: 46px !important;
   padding: 10px 12px !important;
   border: 1px solid color-mix(in oklch, var(--border), transparent 12%) !important;
-  background:
-    linear-gradient(145deg, color-mix(in oklch, var(--card), transparent 2%), color-mix(in oklch, var(--background), transparent 8%)) !important;
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklch, var(--card), transparent 2%),
+    color-mix(in oklch, var(--background), transparent 8%)
+  ) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow:
@@ -658,7 +722,12 @@
   left: 10px;
   right: 10px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.25), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.25),
+    transparent
+  );
 }
 
 .travelm-toast-title {
@@ -720,8 +789,11 @@
 
 .dark .travelm-toast {
   border-color: rgb(255 255 255 / 0.12) !important;
-  background:
-    linear-gradient(145deg, rgb(12 14 18 / 0.92), rgb(20 24 31 / 0.82)) !important;
+  background: linear-gradient(
+    145deg,
+    rgb(12 14 18 / 0.92),
+    rgb(20 24 31 / 0.82)
+  ) !important;
   box-shadow:
     0 18px 32px -22px rgb(0 0 0 / 0.72),
     inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
@@ -793,27 +865,27 @@
 
 /* MapLibre / Mapbox Customization */
 .maplibregl-ctrl-group {
-    background: black !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
+  background: black !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 .maplibregl-ctrl-group button {
-    border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 .maplibregl-ctrl-icon {
-    filter: invert(1) !important;
+  filter: invert(1) !important;
 }
 
 .maplibregl-popup-content {
-    background: rgba(0,0,0,0.8) !important;
-    backdrop-filter: blur(10px) !important;
-    color: white !important;
-    border: 1px solid rgba(255,255,255,0.2) !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  padding: 12px !important;
 }
 
 .maplibregl-popup-tip {
-    border-top-color: rgba(0,0,0,0.8) !important;
+  border-top-color: rgba(0, 0, 0, 0.8) !important;
 }

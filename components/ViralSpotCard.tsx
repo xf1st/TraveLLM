@@ -43,12 +43,7 @@ export function ViralSpotCard({ name, desc, description, mapLink }: ViralSpotCar
     }, [name])
 
     useEffect(() => {
-        if (isPreviewOpen) {
-            document.body.style.overflow = 'hidden'
-        } else {
-            document.body.style.overflow = 'unset'
-        }
-        return () => { document.body.style.overflow = 'unset' }
+        // Scrollbar hiding removed as per request
     }, [isPreviewOpen])
 
     return (

@@ -13,11 +13,11 @@ import { UserAccessGuard } from "@/components/admin/user-access-guard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import Script from "next/script"
 import "./globals.css"
+import "material-symbols/outlined.css"
 import { AuthProvider } from "@/components/auth-provider"
 import { ChatProvider } from "@/lib/context/chat-context"
-import { GlobalBackground } from "@/components/GlobalBackground"
 import { WelcomeModal } from "@/components/WelcomeModal"
-
+import { GlobalLoader } from "@/components/GlobalLoader"
 const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
@@ -60,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="ru" suppressHydrationWarning>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+        {/* material-symbols loaded locally via npm */}
       </head>
       <body className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider
@@ -87,7 +87,7 @@ export default function RootLayout({
           <CookieConsent />
           <Toaster position="top-center" />
           <Analytics />
-          <GlobalBackground />
+          <GlobalLoader />
         </ThemeProvider>
 
 

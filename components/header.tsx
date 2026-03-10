@@ -314,12 +314,25 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   return (
-    <div className="sticky top-0 z-50 w-full p-2 sm:p-3 md:p-4">
-      <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl trip-glass shadow-md md:shadow-2xl">
+    <div className={cn(
+      "z-50 w-full transition-all duration-500",
+      pathname === "/" 
+        ? (isScrolled ? "fixed top-0 p-2 sm:p-3 md:p-4" : "absolute top-0 p-4 sm:p-6 md:p-8") 
+        : "sticky top-0 p-2 sm:p-3 md:p-4"
+    )}>
+      <header className={cn(
+        "mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl transition-all duration-500",
+        pathname === "/"
+          ? (isScrolled ? "trip-glass shadow-md md:shadow-2xl" : "bg-transparent border-none shadow-none")
+          : "trip-glass shadow-md md:shadow-2xl"
+      )}>
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
-          <Logo size={24} />
-          <span className="text-sm font-semibold tracking-tight">TraveLLM</span>
+          <Logo size={pathname === "/" && !isScrolled ? 28 : 24} />
+          <span className={cn(
+            "text-sm font-semibold tracking-tight transition-colors duration-500",
+            pathname === "/" && !isScrolled ? "text-white text-base" : "text-foreground"
+          )}>TraveLLM</span>
         </Link>
 
         {/* Navigation - Desktop */}

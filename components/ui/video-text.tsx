@@ -104,12 +104,15 @@ export function VideoText({
         <SafeComponent className={cn(`relative size-full overflow-hidden`, className)}>
             {/* Video layer with mask - shows video only in text shape */}
             <div
-                className="absolute inset-0 z-10"
+                className={cn(
+                    "absolute inset-0 z-10 transition-opacity duration-700",
+                    isLoaded ? "opacity-100" : "opacity-0"
+                )}
                 style={{
                     maskImage: dataUrlMask,
                     WebkitMaskImage: dataUrlMask,
-                    maskSize: "contain",
-                    WebkitMaskSize: "contain",
+                    maskSize: "100% 100%",
+                    WebkitMaskSize: "100% 100%",
                     maskRepeat: "no-repeat",
                     WebkitMaskRepeat: "no-repeat",
                     maskPosition: "center",
@@ -124,6 +127,8 @@ export function VideoText({
                     loop={loop}
                     preload={preload}
                     playsInline
+                    disablePictureInPicture
+                    disableRemotePlayback
                     onLoadedData={() => setIsLoaded(true)}
                 >
                     <source src={src} type="video/webm" />
@@ -131,19 +136,21 @@ export function VideoText({
             </div>
 
             {/* Fallback text - visible while video loads or if mask fails */}
-            <div
-                className={cn(
-                    "absolute inset-0 flex items-center justify-center font-black",
-                    !isLoaded ? "opacity-100" : "opacity-0"
-                )}
-                style={{
-                    fontSize: typeof fontSize === "number" ? `${fontSize}vw` : fontSize,
-                    fontWeight,
-                    fontFamily,
-                }}
-            >
-                {content}
-            </div>
+            {!isLoaded && (
+                <div
+                    className={cn(
+                        "absolute inset-0 flex items-center justify-center font-black select-none pointer-events-none"
+                    )}
+                    style={{
+                        fontSize: typeof fontSize === "number" ? `${fontSize}vw` : fontSize,
+                        fontWeight,
+                        fontFamily,
+                        textAlign: "center"
+                    }}
+                >
+                    {content}
+                </div>
+            )}
         </SafeComponent>
     )
 }

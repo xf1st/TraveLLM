@@ -62,45 +62,54 @@ export default function LandingPage() {
       ═══════════════════════════════════════════════ */}
       <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden">
 
-        {/* Ambient background */}
-        <div className="pointer-events-none absolute inset-0 z-0">
+        {/* Video Background Layer */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
+          >
+            <source src="/vidforland.mp4" type="video/mp4" />
+          </video>
+          {/* Forced dark overlays for readability in both light/dark themes */}
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+          <div className="absolute inset-0 backdrop-blur-[1px]" />
+        </div>
+
+        {/* Ambient elements (on top of video, behind text) */}
+        <div className="pointer-events-none absolute inset-0 z-1">
           <FloatingIcons />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
-          <div className="absolute top-2/3 right-0 w-[400px] h-[400px] rounded-full bg-violet-500/8 blur-[100px]" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto w-full">
 
           {/* Eyebrow */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0}>
-            <Badge variant="outline" className="mb-8 px-4 py-1.5 rounded-full border-primary/30 bg-primary/5 text-primary text-xs font-semibold tracking-widest uppercase gap-2">
-              <Sparkles className="w-3 h-3" /> AI-планировщик путешествий
+            <Badge variant="outline" className="mb-8 px-4 py-1.5 rounded-full border-white/20 bg-white/10 text-white text-xs font-semibold tracking-widest uppercase gap-2 backdrop-blur-md shadow-lg shadow-black/20">
+              <Sparkles className="w-3 h-3 text-sky-400" /> AI-планировщик путешествий
             </Badge>
           </motion.div>
 
-          {/* VideoText logo */}
-          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={1} className="w-full max-w-3xl mb-2">
-            <div className="relative w-full h-[100px] md:h-[150px] overflow-hidden rounded-2xl">
-              <VideoText src="https://cdn.magicui.design/ocean-small.webm" className="font-black" fontSize={14}>
-                TraveLLM
-              </VideoText>
-            </div>
-          </motion.div>
-
-          {/* Headline */}
+          {/* Headline - FORCED WHITE FOR READABILITY */}
           <motion.h1
             variants={fadeUp} initial="hidden" animate="show" custom={2}
-            className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6"
+            className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-white"
           >
+            <span className="drop-shadow-2xl">TraveLLM</span>
+            <br />
             Полный маршрут{" "}
-            <span className="bg-gradient-to-r from-sky-400 via-primary to-violet-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-sky-400 via-blue-400 to-violet-400 bg-clip-text text-transparent drop-shadow-sm">
               за 60 секунд
             </span>
           </motion.h1>
 
           <motion.p
             variants={fadeUp} initial="hidden" animate="show" custom={3}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed"
+            className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 leading-relaxed drop-shadow-md"
           >
             Скажите куда хотите — AI сгенерирует маршрут по дням, найдёт рейсы и отели,
             покажет на карте и ответит на любой вопрос в чате.
@@ -109,26 +118,26 @@ export default function LandingPage() {
           {/* CTA */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="flex flex-col sm:flex-row gap-3 mb-14">
             <Link href="/plan">
-              <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2">
+              <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2 text-white">
                 Создать маршрут <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             {user ? (
               <Link href="/trips">
-                <Button size="lg" variant="outline" className="h-14 px-8 rounded-full text-base font-bold border-white/20 backdrop-blur-md">
+                <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
                   Мои поездки
                 </Button>
               </Link>
             ) : (
               <Link href="/auth">
-                <Button size="lg" variant="outline" className="h-14 px-8 rounded-full text-base font-bold border-white/20 backdrop-blur-md">
+                <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
                   Войти бесплатно
                 </Button>
               </Link>
             )}
           </motion.div>
 
-          {/* Stats row */}
+          {/* Stats row - FORCED WHITE FOR READABILITY */}
           <motion.div
             variants={fadeUp} initial="hidden" animate="show" custom={5}
             className="flex flex-wrap items-center justify-center gap-6 md:gap-10"
@@ -139,13 +148,14 @@ export default function LandingPage() {
               { value: 20,   suffix: "+", label: "часов экономии" },
             ].map((s) => (
               <div key={s.label} className="text-center">
-                <div className="text-3xl md:text-4xl font-black text-foreground">
+                <div className="text-3xl md:text-4xl font-black text-white drop-shadow-md">
                   <Counter to={s.value} suffix={s.suffix} />
                 </div>
-                <div className="text-xs text-muted-foreground uppercase tracking-widest mt-1">{s.label}</div>
+                <div className="text-xs text-white/60 uppercase tracking-widest mt-1 font-bold">{s.label}</div>
               </div>
             ))}
           </motion.div>
+
         </div>
 
         {/* Bottom fade */}
