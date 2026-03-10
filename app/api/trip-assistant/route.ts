@@ -240,11 +240,7 @@ ${itineraryContext}
         const currentDate = new Date().toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
         const locationStr = reqUserLocation ? `${reqUserLocation.lat.toFixed(4)}, ${reqUserLocation.lng.toFixed(4)}` : "Неизвестно"
 
-        // Check safety
-        const closedAirport = GROUNDING_DATA_2026.closedAirports.find(a => destination.toLowerCase().includes(a.city.toLowerCase()))
-        const safetyWarning = closedAirport 
-            ? `⚠️ ВНИМАНИЕ: Аэропорт ${closedAirport.city} (${closedAirport.iata}) ЗАКРЫТ. Добраться можно только на поезде или автобусе из Сочи/Минвод.`
-            : ""
+        const safetyWarning = "" // Теперь проверяется динамически в основном роуте
 
         const answerPrompt = `Ты — умный ИИ-помощник по путешествиям. Пользователь просматривает маршрут.
 
