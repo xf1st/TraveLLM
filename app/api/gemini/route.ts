@@ -244,6 +244,12 @@ export async function POST(req: Request) {
 
                     let routeData = await generateParallel();
                     
+                    // Fallback title if missing
+                    if (!routeData.title || routeData.title === "Название маршрута" || routeData.title === "Новый маршрут") {
+                        const dest = destinations[0] || "новым местам";
+                        routeData.title = `Путешествие по ${dest}`;
+                    }
+                    
                     // Post-processing
                     await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
                     routeData = await enrichViralSpotsWithWebSearch(routeData);

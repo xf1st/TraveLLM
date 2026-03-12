@@ -37,6 +37,7 @@ async function uploadToStorage(url: string, prefix: string): Promise<string | nu
         const hashBuffer = await crypto.subtle.digest("SHA-256", data);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+        
         const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
         const filename = `${prefix}_${hashHex}.${ext}`;
 

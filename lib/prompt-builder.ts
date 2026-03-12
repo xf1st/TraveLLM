@@ -201,10 +201,50 @@ ${strictDestinations ? `⚠️ НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИ
 5. IMAGE QUERY: Для каждой активности (hotel, food, activity) добавь imageQuery на АНГЛИЙСКОМ для Pexels (например: "Art Deco hotel rooftop pool skyline Istanbul golden hour"). НЕ используй собственные имена.
 `.trim())
 
-    // 8. ПЛАН МАРШРУТА (TripPlan) - если это мета-промпт
+    // 8. ФОРМАТ ОТВЕТА
     userParts.push(`
 ФОРМАТ ОТВЕТА:
-Верни JSON объект со структурой маршрута (схема была предоставлена ранее).
+Верни JSON объект со следующей структурой:
+{
+  "title": "Креативное и привлекательное название маршрута",
+  "description": "Завлекающее описание маршрута (2-3 предложения)",
+  "totalBudget": "Оценка общей стоимости в рублях",
+  "budgetAnalysis": {
+    "avgAccommodation": "за ночь",
+    "avgFood": "в день",
+    "avgTransport": "всего",
+    "avgActivities": "всего",
+    "avgMisc": "запас"
+  },
+  "visaAdvice": "Краткая справка по визам для граждан РФ",
+  "paymentAdvice": "Какие карты работают (МИР, UnionPay, наличные)",
+  "safetyInfo": { "rating": 1-10, "tips": "Советы по безопасности" },
+  "restrictions": "Текущие ограничения или null",
+  "countries": [{"name": "Название страны", "visaRequired": true, "visaType": "тип"}],
+  "tags": ["тег1", "тег2"],
+  "viralSpots": [
+    { "name": "Место", "desc": "Почему это популярно", "mapLink": "https://..." }
+  ],
+  "itinerary": [
+    {
+      "day": 1,
+      "title": "Заголовок дня",
+      "dayTotal": "Сумма за день",
+      "activities": [
+        {
+          "time": "Утро/День/Вечер",
+          "type": "transport/hotel/food/activity/free",
+          "title": "Название активности",
+          "placeName": "Название места",
+          "desc": "Описание",
+          "cost": "Стоимость в ₽",
+          "imageQuery": "English keywords for Pexels search",
+          "mapLink": "https://google.com/maps/..."
+        }
+      ]
+    }
+  ]
+}
 `.trim())
 
     const userPrompt = userParts.join("\n\n")
