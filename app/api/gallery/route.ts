@@ -21,28 +21,6 @@ function sanitizeQuery(q: string): string {
     return safe.length > 8 ? safe : SAFE_FALLBACKS.food
 }
 
-function hasCyrillic(text: string): boolean {
-    return /[а-яёА-ЯЁ]/.test(text)
-}
-
-async function translateToEnglish(text: string): Promise<string> {
-    try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ru|en`
-        const res = await fetch(url, { signal: AbortSignal.timeout(2500) })
-        if (!res.ok) return text
-        const data = await res.json()
-        const translated: string = data?.responseData?.translatedText || ""
-        // MyMemory returns "MYMEMORY WARNING" on quota exceed
-        if (translated && !translated.startsWith("MYMEMORY WARNING") && translated.toLowerCase() !== "error") {
-            console.log(`[gallery] translated: "${text}" → "${translated}"`)
-            return translated
-        }
-    } catch {
-        // timeout or network error — use original
-    }
-    return text
-}
-
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const rawQuery = searchParams.get("query");
@@ -55,13 +33,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ images: [] }, { status: 400 });
     }
 
-    let query = sanitizeQuery(rawQuery)
-
-    // Auto-translate Russian queries to English before sending to Pexels
-    if (hasCyrillic(query)) {
-        query = await translateToEnglish(query)
-        query = sanitizeQuery(query) // re-sanitize after translation
-    }
+    const query = sanitizeQuery(rawQuery)
 
     try {
         const images = await getGalleryImages(query, count, excludeUrls.length > 0 ? excludeUrls : undefined);

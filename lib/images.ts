@@ -15,28 +15,68 @@
 import { searchPexels } from "./pexels"
 import { searchUnsplash } from "./unsplash"
 import { createClient } from "@supabase/supabase-js"
+import crypto from "crypto"
+import { HttpsProxyAgent } from "https-proxy-agent"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null
+
+/**
+ * Custom fetch with optional proxy support for server-side requests in restricted environments.
+ */
+async function proxiedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const fetchOptions: any = { ...options };
+    if (httpProxy && !url.includes(supabaseUrl)) {
+        // Use proxy only for external requests
+        try {
+            fetchOptions.agent = new HttpsProxyAgent(httpProxy);
+        } catch (e) {
+            console.error("[proxiedFetch] Agent init error:", e);
+        }
+    }
+    return fetch(url, fetchOptions);
+}
+
+/**
+ * Auto-translate Russian queries to English for better search results.
+ * Used by both Hero and Gallery search.
+ */
+async function translateToEnglish(text: string): Promise<string> {
+    if (!/[а-яёА-ЯЁ]/.test(text)) return text;
+    
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ru|en`
+        const res = await proxiedFetch(url, { signal: AbortSignal.timeout(3000) })
+        if (!res.ok) return text
+        const data = await res.json()
+        const translated: string = data?.responseData?.translatedText || ""
+        
+        // MyMemory returns "MYMEMORY WARNING" on quota exceed
+        if (translated && !translated.startsWith("MYMEMORY WARNING") && translated.toLowerCase() !== "error") {
+            console.log(`[images] translated: "${text}" → "${translated}"`)
+            return translated
+        }
+    } catch (e) {
+        console.warn("[images] translation failed:", e)
+    }
+    return text
+}
 
 async function uploadToStorage(url: string, prefix: string): Promise<string | null> {
     if (!supabaseAdmin) return null;
     try {
         // 1. Download image
-        const response = await fetch(url);
+        const response = await proxiedFetch(url, { signal: AbortSignal.timeout(8000) });
         if (!response.ok) return null;
         const buffer = await response.arrayBuffer();
 
         // 2. Generate filename (hash of URL to avoid duplicates)
-        const encoder = new TextEncoder();
-        const data = encoder.encode(url);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+        const hashHex = crypto.createHash("sha256").update(url).digest("hex").slice(0, 16);
         
         const ext = url.split('.').pop()?.split('?')[0] || 'jpg';
         const filename = `${prefix}_${hashHex}.${ext}`;
@@ -44,7 +84,7 @@ async function uploadToStorage(url: string, prefix: string): Promise<string | nu
         // 3. Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from("destination-images")
-            .upload(filename, buffer, {
+            .upload(filename, Buffer.from(buffer), {
                 contentType: response.headers.get("content-type") || "image/jpeg",
                 upsert: true
             });
@@ -285,23 +325,26 @@ export async function getDestinationImage(query: string): Promise<string> {
         }
     }
 
+    // Auto-translate if Russian
+    const translatedQuery = await translateToEnglish(query);
+
     let result: string | null = null
 
     // 1. Unsplash (highest quality, landscape, CDN not blocked in Russia)
-    const unsplashUrls = await searchUnsplash(query, 1)
+    const unsplashUrls = await searchUnsplash(translatedQuery, 1)
     if (unsplashUrls.length > 0) {
         result = unsplashUrls[0]
     }
 
     // 2. Wikimedia fallback (may be blocked on RU client, but works for non-RU)
     if (!result) {
-        const wikiImg = await searchWikimedia(query)
+        const wikiImg = await searchWikimedia(translatedQuery)
         if (wikiImg) result = wikiImg
     }
 
     // 3. Static Wikimedia map (last resort — blocked in RU but at least not empty)
     if (!result) {
-        result = getStaticFallback(query)
+        result = getStaticFallback(query) // Use original query for fallback check as it has RU keys
     }
 
     // --- Persistency Save ---
@@ -383,27 +426,30 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
             }
         }
 
+        // Auto-translate if Russian
+        const translatedQuery = await translateToEnglish(query);
+
         // 1. Unsplash + Pexels in parallel (fastest path, covers most queries)
-        const latinQuery = extractLatinWords(query)
-        const shortQuery = shortenQuery(query)
-        const pexelsFallbackQuery = latinQuery || shortQuery || query
+        const latinQuery = extractLatinWords(translatedQuery)
+        const shortQuery = shortenQuery(translatedQuery)
+        const pexelsFallbackQuery = latinQuery || shortQuery || translatedQuery
 
         const [unsplashUrls, pexelsUrls] = await Promise.all([
-            searchUnsplash(query, count),
-            searchPexels(query, count),
+            searchUnsplash(translatedQuery, count),
+            searchPexels(translatedQuery, count),
         ])
         addUrls(unsplashUrls)
         addUrls(pexelsUrls)
 
-        // 2. Pexels retry with simplified query (only if still short AND query had Cyrillic)
-        if (finalUrls.length < count && pexelsFallbackQuery !== query) {
+        // 2. Pexels retry with simplified query (only if still short)
+        if (finalUrls.length < count && pexelsFallbackQuery !== translatedQuery) {
             const retryUrls = await searchPexels(pexelsFallbackQuery, count - finalUrls.length)
             addUrls(retryUrls)
         }
 
         // 3. Wikimedia supplement — only if genuinely short on images
         if (finalUrls.length < count) {
-            const wikiUrls = await searchWikimediaGallery(query, count - finalUrls.length)
+            const wikiUrls = await searchWikimediaGallery(translatedQuery, count - finalUrls.length)
             addUrls(wikiUrls)
         }
 
@@ -418,7 +464,12 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
             const storedUrls = await Promise.all(
                 finalUrls.map(async (u) => {
                     if (u.startsWith("http") && !u.includes(supabaseUrl)) {
-                        return await uploadToStorage(u, "gallery") || u;
+                        try {
+                            return await uploadToStorage(u, "gallery") || u;
+                        } catch (e) {
+                            console.error("[getGalleryImages] upload failed for", u, e);
+                            return u;
+                        }
                     }
                     return u;
                 })
@@ -435,7 +486,8 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
 
         galleryCache.set(cacheKey, { urls: finalUrls, timestamp: Date.now() })
         return finalUrls
-    } catch {
+    } catch (e) {
+        console.error("[getGalleryImages] generic error:", e);
         return ["/tbilisi-old-town.jpg"]
     }
 }

@@ -7,8 +7,10 @@ import { cn } from '@/lib/utils'
 interface StepperProps extends HTMLAttributes<HTMLDivElement> {
     children: ReactNode
     initialStep?: number
+    currentStep?: number // New prop for external control
     onStepChange?: (step: number) => void
     onFinalStepCompleted?: () => void
+    // ... rest of props
     stepCircleContainerClassName?: string
     stepContainerClassName?: string
     contentClassName?: string
@@ -32,33 +34,34 @@ interface StepperProps extends HTMLAttributes<HTMLDivElement> {
 export default function Stepper({
     children,
     initialStep = 1,
+    currentStep: controlledStep,
     onStepChange = () => { },
     onFinalStepCompleted = () => { },
-    stepCircleContainerClassName = '',
-    stepContainerClassName = '',
-    contentClassName = '',
-    footerClassName = '',
-    backButtonProps = {},
-    nextButtonProps = {},
-    backButtonText = 'Назад',
-    nextButtonText = 'Далее',
-    finalButtonText = 'Создать маршрут',
-    disableStepIndicators = false,
-    showStepLabels = false,
-    stepLabels = [],
-    isNextDisabled = false,
-    renderStepIndicator,
-    ...rest
+    // ... rest
 }: StepperProps) {
-    const [currentStep, setCurrentStep] = useState<number>(initialStep)
+    const [internalStep, setInternalStep] = useState<number>(initialStep)
+    const currentStep = controlledStep !== undefined ? controlledStep : internalStep
+    
     const [direction, setDirection] = useState<number>(0)
+    const prevStepRef = useRef<number>(currentStep)
+
+    useLayoutEffect(() => {
+        if (controlledStep !== undefined && controlledStep !== prevStepRef.current) {
+            setDirection(controlledStep > prevStepRef.current ? 1 : -1)
+            prevStepRef.current = controlledStep
+        }
+    }, [controlledStep])
+
     const stepsArray = Children.toArray(children)
     const totalSteps = stepsArray.length
     const isCompleted = currentStep > totalSteps
     const isLastStep = currentStep === totalSteps
 
     const updateStep = (newStep: number) => {
-        setCurrentStep(newStep)
+        if (controlledStep === undefined) {
+            setInternalStep(newStep)
+        }
+        
         if (newStep > totalSteps) {
             onFinalStepCompleted()
         } else {

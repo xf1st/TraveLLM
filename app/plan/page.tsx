@@ -416,6 +416,19 @@ export default function PlanPage() {
     const errors = validateForm()
     if (errors.length > 0) {
       setValidationErrors(errors)
+      
+      // Navigate to the first relevant step with error
+      const firstError = errors[0];
+      if (firstError.includes("город") || firstError.includes("даты") || firstError.includes("длительность")) {
+        setCurrentStep(1);
+      } else if (firstError.includes("направление")) {
+        setCurrentStep(2);
+      } else if (firstError.includes("бюджет")) {
+        setCurrentStep(3);
+      } else {
+        setCurrentStep(4);
+      }
+
       setErrorModal({
         open: true,
         title: "Проверьте данные",
@@ -594,7 +607,7 @@ export default function PlanPage() {
         {/* Stepper Form */}
         <Stepper
           key={stepperKey}
-          initialStep={currentStep}
+          currentStep={currentStep}
           onStepChange={(step) => setCurrentStep(step)}
           onFinalStepCompleted={handleSubmit}
           backButtonText="Назад"
