@@ -60,24 +60,24 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           HERO
       ═══════════════════════════════════════════════ */}
-      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden">
+      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden bg-black">
 
         {/* Video Background Layer */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-950">
           <video
             autoPlay
             muted
             loop
             playsInline
             preload="auto"
-            className="absolute inset-0 w-full h-full object-cover scale-[1.02]"
+            className="absolute inset-0 w-full h-full object-cover scale-[1.01] opacity-90"
           >
             <source src="/vidforland.mp4" type="video/mp4" />
           </video>
           {/* Forced dark overlays for readability in both light/dark themes */}
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
-          <div className="absolute inset-0 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-background" />
+          <div className="absolute inset-0 backdrop-blur-[0.5px]" />
         </div>
 
         {/* Ambient elements (on top of video, behind text) */}
