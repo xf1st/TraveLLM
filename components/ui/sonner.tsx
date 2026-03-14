@@ -18,7 +18,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
             expand={true}
             visibleToasts={6}
             position="bottom-center"
-            swipeToDismiss={true}
             toastOptions={{
                 duration: 4200,
                 style: { background: 'transparent', border: 'none', boxShadow: 'none', padding: 0 },
@@ -104,9 +103,15 @@ const appToast = {
         <TicketToast type="info" msg={msg} />
     ), { id }),
     
+    warning: (msg: string, id?: string | number) => toast.custom((t) => (
+        <TicketToast type="error" msg={msg} /> // Using error style for warning for now
+    ), { id }),
+    
     loading: (msg: string) => toast.custom((t) => (
         <TicketToast type="loading" msg={msg} />
-    ))
+    )),
+    dismiss: (id?: string | number) => toast.dismiss(id),
+    custom: toast.custom
 }
 
 export { Toaster, appToast }

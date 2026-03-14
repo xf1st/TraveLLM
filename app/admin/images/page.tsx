@@ -193,13 +193,13 @@ export default function AdminImagesPage() {
               return next
           })
         }
-        toast.success(isMultiple ? `Успешно удалено ${q.length} записей` : "Успешно удалено", { id: toastId })
+        toast.success(isMultiple ? `Успешно удалено ${q.length} записей` : "Успешно удалено", toastId)
       } else {
           const errData = await res.json().catch(() => ({}))
-          toast.error(`Ошибка: ${errData.error || res.statusText || 'Не удалось удалить'}`, { id: toastId })
+          toast.error(`Ошибка: ${errData.error || res.statusText || 'Не удалось удалить'}`, toastId)
       }
     } catch (e: any) {
-      toast.error(`Ошибка при удалении: ${e.message}`, { id: toastId })
+      toast.error(`Ошибка при удалении: ${e.message}`, toastId)
     } finally {
       setDeleting(false)
     }

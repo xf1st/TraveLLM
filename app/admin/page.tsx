@@ -285,16 +285,16 @@ export default function AdminDashboard() {
                   // @ts-ignore
                   if (result?.error) {
                     // @ts-ignore
-                    toast.error(result.error, { id: toastId })
+                    toast.error(result.error, toastId)
                   } else if (result?.success && result.token && result.botUsername) {
                     setConnectData({ token: result.token, botUsername: result.botUsername })
                     toast.dismiss(toastId)
                   } else {
-                    toast.error("Неизвестный ответ сервера", { id: toastId })
+                    toast.error("Неизвестный ответ сервера", toastId)
                   }
                 } catch (e) {
                   console.error("Client caught error:", e)
-                  toast.error("Ошибка соединения", { id: toastId })
+                  toast.error("Ошибка соединения", toastId)
                 }
               }}
               variant="outline"
