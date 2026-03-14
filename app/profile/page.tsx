@@ -29,7 +29,7 @@ import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
 import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
@@ -2136,3 +2136,4 @@ export default function ProfilePage() {
     </Suspense>
   )
 }
+

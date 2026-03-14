@@ -109,11 +109,18 @@ export const IATA_CODES: Record<string, string> = {
   "ереван": "EVN",
   "yerevan": "EVN",
   "баку": "GYD",
-  "baku": "GYD",
+  "баку": "GYD",
+  "gyd": "GYD",
   "ташкент": "TAS",
   "tashkent": "TAS",
   "алматы": "ALA",
   "almaty": "ALA",
+  "астана": "NQZ",
+  "astana": "NQZ",
+  "караганда": "KGF",
+  "karaganda": "KGF",
+  "kgf": "KGF",
+
 
   // Америка
   "нью-йорк": "NYC",

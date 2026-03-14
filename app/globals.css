@@ -696,110 +696,19 @@
   }
 }
 
-/* TraveLM Sonner Toasts */
-.travelm-toast {
-  position: relative;
-  border-radius: 14px !important;
-  min-height: 46px !important;
-  padding: 10px 12px !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 12%) !important;
-  background: linear-gradient(
-    145deg,
-    color-mix(in oklch, var(--card), transparent 2%),
-    color-mix(in oklch, var(--background), transparent 8%)
-  ) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow:
-    0 12px 32px -20px rgb(0 0 0 / 0.45),
-    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
-}
-
-.travelm-toast::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 10px;
-  right: 10px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(255 255 255 / 0.25),
-    transparent
-  );
-}
-
-.travelm-toast-title {
-  font-size: 13px !important;
-  line-height: 1.25 !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.01em;
-}
-
-.travelm-toast-description {
-  margin-top: 2px !important;
-  font-size: 12px !important;
-  line-height: 1.35 !important;
-  color: color-mix(in oklch, var(--foreground), transparent 34%) !important;
-}
-
-.travelm-toast-action,
-.travelm-toast-cancel {
-  height: 28px !important;
-  border-radius: 999px !important;
-  padding: 0 10px !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 10%) !important;
-}
-
-.travelm-toast-action {
-  background: color-mix(in oklch, var(--primary), transparent 78%) !important;
-  color: color-mix(in oklch, var(--foreground), transparent 5%) !important;
-}
-
-.travelm-toast-cancel {
-  background: color-mix(in oklch, var(--muted), transparent 28%) !important;
-  color: color-mix(in oklch, var(--foreground), transparent 28%) !important;
-}
-
-.travelm-toast-close {
-  border-radius: 999px !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 8%) !important;
-  background: color-mix(in oklch, var(--muted), transparent 34%) !important;
-}
-
-.travelm-toast-success {
-  border-color: rgb(16 185 129 / 0.35) !important;
-}
-
-.travelm-toast-error {
-  border-color: rgb(239 68 68 / 0.35) !important;
-}
-
-.travelm-toast-warning {
-  border-color: rgb(245 158 11 / 0.4) !important;
-}
-
-.travelm-toast-info,
-.travelm-toast-loading {
-  border-color: rgb(59 130 246 / 0.35) !important;
-}
-
-.dark .travelm-toast {
-  border-color: rgb(255 255 255 / 0.12) !important;
-  background: linear-gradient(
-    145deg,
-    rgb(12 14 18 / 0.92),
-    rgb(20 24 31 / 0.82)
-  ) !important;
-  box-shadow:
-    0 18px 32px -22px rgb(0 0 0 / 0.72),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
-}
-
 /* Print Styles */
+[data-sonner-toaster], 
+.toaster,
+[data-sonner-toast] {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  pointer-events: none !important;
+}
+
+[data-sonner-toast] * {
+  pointer-events: none !important;
+}
+
 @media print {
   @page {
     margin: 0;

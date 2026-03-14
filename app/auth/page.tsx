@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ModeToggle } from "@/components/mode-toggle"
 import { ArrowRight, Loader2, Mail, Lock, User } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { motion } from "framer-motion"
 
 
@@ -445,3 +445,4 @@ export default function AuthPage() {
     </Suspense>
   )
 }
+

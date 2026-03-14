@@ -1,14 +1,15 @@
 // Gemini via OpenRouter (Primary AI Provider)
 // https://openrouter.ai
-//
-// Uses existing OPENROUTER_API_KEY — no separate Gemini key needed.
-//
-// Model: google/gemini-2.5-flash-lite-preview-09-2025 для всех маршрутов ($0.10 / $0.40 per 1M tokens)
+import { ProxyAgent } from "undici"
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 
 export const GEMINI_FLASH = "google/gemini-2.5-flash-lite-preview-09-2025";
+
+// Create a singleton dispatcher for the proxy
+const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 // Pricing (Feb 2026) — per 1M tokens
 const PRICING = {
@@ -115,14 +116,22 @@ async function runGeminiInference(
         bodyPayload.response_format = { type: "json_object" };
     }
 
-    const response = await fetch(OPENROUTER_URL, {
+    const fetchOptions: any = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://travellm.ai",
+            "X-Title": "TraveLLM",
         },
         body: JSON.stringify(bodyPayload),
-    });
+    };
+
+    if (proxyDispatcher) {
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
+
+    const response = await fetch(OPENROUTER_URL, fetchOptions);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -142,7 +151,6 @@ async function runGeminiInference(
         const totalTokens      = raw.total_tokens      || 0;
 
         const pricing = PRICING[GEMINI_FLASH];
-        // OpenRouter charges are strictly per token, average generation is ~$0.003
         const costUsd = (promptTokens * pricing.input) + (completionTokens * pricing.output);
 
         usage = {

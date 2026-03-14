@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Settings, Wrench, Save, AlertCircle } from "lucide-react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -284,3 +284,4 @@ export default function AdminSettingsPage() {
     </div>
   )
 }
+

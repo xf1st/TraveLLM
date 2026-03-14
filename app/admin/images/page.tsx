@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { appToast as toast } from "@/components/ui/sonner"
 
 const PRESET_QUERIES = [
   "Дубай Бурдж Халифа",
@@ -149,6 +150,9 @@ export default function AdminImagesPage() {
   const [mode, setMode] = useState<"gallery" | "hero" | "db">("gallery")
   const [cacheEntries, setCacheEntries] = useState<any[]>([])
   const [loadingCache, setLoadingCache] = useState(false)
+  const [selectedCacheKeys, setSelectedCacheKeys] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [brokenKeys, setBrokenKeys] = useState<Set<string>>(new Set())
 
   const fetchCache = useCallback(async () => {
     setLoadingCache(true)
@@ -156,14 +160,21 @@ export default function AdminImagesPage() {
       const res = await fetch("/api/admin/image-cache")
       const data = await res.json()
       if (data.cache) setCacheEntries(data.cache)
+      setSelectedCacheKeys(new Set())
+      setBrokenKeys(new Set())
     } catch (e) {
       console.error("Failed to fetch cache", e)
     }
     setLoadingCache(false)
   }, [])
 
-  const deleteFromCache = async (q: string) => {
-    if (!confirm("Удалить из кэша?")) return
+  const deleteFromCache = async (q: string | string[]) => {
+    const isMultiple = Array.isArray(q)
+    if (!confirm(`Удалить ${isMultiple ? q.length + ' записей' : 'из кэша'}?`)) return
+    
+    setDeleting(true)
+    const toastId = toast.loading(isMultiple ? `Удаляем ${q.length} записей...` : "Удаление...")
+    
     try {
       const res = await fetch("/api/admin/image-cache", {
         method: "DELETE",
@@ -171,11 +182,52 @@ export default function AdminImagesPage() {
         headers: { "Content-Type": "application/json" }
       })
       if (res.ok) {
-        setCacheEntries(prev => prev.filter(e => e.query !== q))
+        if (isMultiple) {
+          setCacheEntries(prev => prev.filter(e => !q.includes(e.query)))
+          setSelectedCacheKeys(new Set())
+        } else {
+          setCacheEntries(prev => prev.filter(e => e.query !== q))
+          setSelectedCacheKeys(prev => {
+              const next = new Set(prev)
+              next.delete(q as string)
+              return next
+          })
+        }
+        toast.success(isMultiple ? `Успешно удалено ${q.length} записей` : "Успешно удалено", { id: toastId })
+      } else {
+          const errData = await res.json().catch(() => ({}))
+          toast.error(`Ошибка: ${errData.error || res.statusText || 'Не удалось удалить'}`, { id: toastId })
       }
-    } catch (e) {
-      alert("Ошибка при удалении")
+    } catch (e: any) {
+      toast.error(`Ошибка при удалении: ${e.message}`, { id: toastId })
+    } finally {
+      setDeleting(false)
     }
+  }
+
+  const toggleSelectAll = () => {
+      if (selectedCacheKeys.size === cacheEntries.length) {
+          setSelectedCacheKeys(new Set())
+      } else {
+          setSelectedCacheKeys(new Set(cacheEntries.map(e => e.query)))
+      }
+  }
+
+  const selectBroken = () => {
+      setSelectedCacheKeys(new Set(brokenKeys))
+  }
+
+  const toggleSelect = (q: string) => {
+      setSelectedCacheKeys(prev => {
+          const next = new Set(prev)
+          if (next.has(q)) next.delete(q)
+          else next.add(q)
+          return next
+      })
+  }
+
+  const markBroken = (q: string) => {
+      setBrokenKeys(prev => new Set(prev).add(q))
   }
 
   const runQuery = useCallback(async (q: string) => {
@@ -264,11 +316,32 @@ export default function AdminImagesPage() {
 
         {mode === "db" ? (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 📦 Сохраненные изображения ({cacheEntries.length})
                 <button onClick={fetchCache} className="text-xs bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded">Обновить</button>
               </h2>
+              {cacheEntries.length > 0 && (
+                  <div className="flex items-center gap-3">
+                      <button onClick={toggleSelectAll} className="text-sm text-zinc-400 hover:text-white px-3 py-1 bg-zinc-800 rounded">
+                          {selectedCacheKeys.size === cacheEntries.length ? "Снять выделение" : "Выбрать все"}
+                      </button>
+                      {brokenKeys.size > 0 && (
+                          <button onClick={selectBroken} className="text-sm text-orange-400 hover:text-white px-3 py-1 bg-orange-900/30 border border-orange-500/30 rounded">
+                              Выбрать битые ({brokenKeys.size})
+                          </button>
+                      )}
+                      {selectedCacheKeys.size > 0 && (
+                          <button 
+                              onClick={() => deleteFromCache(Array.from(selectedCacheKeys))} 
+                              disabled={deleting}
+                              className="text-sm bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1 rounded transition-colors disabled:opacity-50 flex items-center gap-2"
+                          >
+                              {deleting ? "Удаление..." : `Удалить выбранные (${selectedCacheKeys.size})`}
+                          </button>
+                      )}
+                  </div>
+              )}
             </div>
             
             {loadingCache ? (
@@ -277,30 +350,59 @@ export default function AdminImagesPage() {
               <div className="py-20 text-center text-zinc-500">Кэш пуст</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {cacheEntries.map((entry) => (
-                  <div key={entry.query} className="bg-zinc-900 border border-white/10 rounded-xl overflow-hidden flex flex-col">
+                {cacheEntries.map((entry) => {
+                  const isSelected = selectedCacheKeys.has(entry.query);
+                  const isBroken = brokenKeys.has(entry.query);
+                  return (
+                  <div 
+                      key={entry.query} 
+                      className={`bg-zinc-900 border rounded-xl overflow-hidden flex flex-col transition-colors ${isSelected ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : isBroken ? 'border-orange-500/50' : 'border-white/10'}`}
+                  >
                     <div className="p-3 border-b border-white/5 flex justify-between items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs text-zinc-500 truncate mb-0.5">{entry.query.startsWith('gallery:') ? 'Gallery' : 'Hero'}</div>
-                        <div className="font-bold text-sm truncate" title={entry.query}>{entry.query.replace('gallery:', '').split(':')[0]}</div>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            onChange={() => toggleSelect(entry.query)}
+                            className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 checked:bg-red-500 cursor-pointer"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-zinc-500 truncate mb-0.5 flex justify-between">
+                            <span>{entry.query.startsWith('gallery:') ? 'Gallery' : 'Hero'}</span>
+                            {isBroken && <span className="text-orange-400 font-bold px-1.5 py-0.5 bg-orange-900/40 rounded">Битое фото</span>}
+                          </div>
+                          <div className="font-bold text-sm truncate" title={entry.query}>{entry.query.replace('gallery:', '').split(':')[0]}</div>
+                        </div>
                       </div>
                       <button 
                         onClick={() => deleteFromCache(entry.query)}
-                        className="text-zinc-600 hover:text-red-400 p-1"
+                        disabled={deleting}
+                        className="text-zinc-600 hover:text-red-400 p-1 disabled:opacity-50"
+                        title="Удалить одну запись"
                       >
                         🗑️
                       </button>
                     </div>
                     
-                    <div className="flex-1 p-3 flex flex-wrap gap-2 overflow-auto max-h-60">
+                    <div className="flex-1 p-3 flex flex-wrap gap-2 overflow-auto max-h-60" onClick={() => toggleSelect(entry.query)}>
                       {entry.image_url && (
-                        <div className="w-full aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0">
-                          <img src={entry.image_url} alt="hero" className="w-full h-full object-cover" />
+                        <div className="w-full aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 cursor-pointer relative">
+                          <img 
+                              src={entry.image_url} 
+                              alt="hero" 
+                              className="w-full h-full object-cover" 
+                              onError={() => markBroken(entry.query)}
+                          />
                         </div>
                       )}
                       {entry.gallery_urls && entry.gallery_urls.map((u: string, i: number) => (
-                        <div key={i} className="w-[45%] aspect-square rounded overflow-hidden bg-black flex-shrink-0">
-                          <img src={u} alt={`gallery-${i}`} className="w-full h-full object-cover" />
+                        <div key={i} className="w-[45%] aspect-square rounded overflow-hidden bg-black flex-shrink-0 relative">
+                          <img 
+                              src={u} 
+                              alt={`gallery-${i}`} 
+                              className="w-full h-full object-cover" 
+                              onError={() => markBroken(entry.query)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -309,7 +411,8 @@ export default function AdminImagesPage() {
                       <span>{new Date(entry.updated_at).toLocaleString()}</span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

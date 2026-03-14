@@ -5,10 +5,13 @@
  * CDN: images.pexels.com — not blocked in Russia ✓
  */
 
-import { HttpsProxyAgent } from "https-proxy-agent"
+import { ProxyAgent } from "undici"
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+
+// Create a singleton dispatcher for the proxy
+const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 /**
  * Search Pexels for photos matching query.
@@ -29,12 +32,8 @@ export async function searchPexels(query: string, count: number = 4): Promise<st
             signal: controller.signal,
         }
 
-        if (httpProxy) {
-            try {
-                fetchOptions.agent = new HttpsProxyAgent(httpProxy)
-            } catch (e) {
-                console.error("[searchPexels] Proxy agent error:", e)
-            }
+        if (proxyDispatcher) {
+            fetchOptions.dispatcher = proxyDispatcher;
         }
 
         const res = await fetch(url, fetchOptions)

@@ -10,7 +10,7 @@ import { useMediaQuery } from "@/lib/hooks/use-media-query"
 import { useRouter } from "next/navigation"
 import { TripImage } from "@/components/TripImage"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 interface RouteDrawerProps {
@@ -614,3 +614,4 @@ function RouteContent({
     </div>
   )
 }
+

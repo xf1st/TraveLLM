@@ -6,10 +6,13 @@
  * Get key: https://unsplash.com/developers
  */
 
-import { HttpsProxyAgent } from "https-proxy-agent"
+import { ProxyAgent } from "undici"
 
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+
+// Create a singleton dispatcher for the proxy
+const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 /**
  * Search Unsplash for photos matching query.
@@ -30,12 +33,8 @@ export async function searchUnsplash(query: string, count: number = 1): Promise<
             signal: controller.signal,
         }
 
-        if (httpProxy) {
-            try {
-                fetchOptions.agent = new HttpsProxyAgent(httpProxy)
-            } catch (e) {
-                console.error("[searchUnsplash] Proxy agent error:", e)
-            }
+        if (proxyDispatcher) {
+            fetchOptions.dispatcher = proxyDispatcher;
         }
 
         const res = await fetch(url, fetchOptions)

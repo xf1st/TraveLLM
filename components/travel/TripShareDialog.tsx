@@ -21,7 +21,7 @@ import {
   Camera,
   BarChart2
 } from "lucide-react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { toPng } from "html-to-image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts"
@@ -350,4 +350,5 @@ export function TripShareDialog({
     </Dialog>
   )
 }
+
 

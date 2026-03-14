@@ -8,7 +8,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 const TIERS = [
   {
@@ -363,3 +363,4 @@ export default function SubscribePage() {
     </div>
   )
 }
+

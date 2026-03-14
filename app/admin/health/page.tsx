@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Activity, CheckCircle2, XCircle, Loader2, Database, Cloud, Zap, Image as ImageIcon } from "lucide-react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 interface HealthCheck {
   name: string
@@ -310,3 +310,4 @@ export default function AdminHealthPage() {
     </div>
   )
 }
+

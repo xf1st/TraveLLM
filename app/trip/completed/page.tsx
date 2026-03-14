@@ -15,7 +15,7 @@ import {
 import { TripShareDialog } from "@/components/travel/TripShareDialog"
 import { Share2, ArrowLeft } from "lucide-react"
 import { Header } from "@/components/header"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export default function TripCompletedPage() {
@@ -545,3 +545,4 @@ export default function TripCompletedPage() {
     </main>
   )
 }
+

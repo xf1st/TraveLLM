@@ -504,7 +504,7 @@ export default function LandingPage() {
                 color: "border-border/50",
                 cta: { href: "/auth", label: "Начать бесплатно", variant: "outline" as const },
                 features: [
-                  "25 генераций маршрутов/мес",
+                  "1 генерация маршрута",
                   "10 AI-сообщений на маршрут",
                   "Интерактивная карта",
                   "Погода по дням",
@@ -523,7 +523,7 @@ export default function LandingPage() {
                 badge: "Популярный",
                 cta: { href: "/subscribe", label: "Поддержать проект", variant: "default" as const },
                 features: [
-                  "50 генераций маршрутов/мес",
+                  "25 генераций маршрутов/мес",
                   "25 AI-сообщений на маршрут",
                   "Всё из Free",
                   "Gemini 2.0 Flash (быстрее)",
@@ -542,7 +542,7 @@ export default function LandingPage() {
                 color: "border-purple-400/30",
                 cta: { href: "https://t.me/TraveLLM_AI", label: "Следить за обновлением", variant: "outline" as const },
                 features: [
-                  "100 генераций маршрутов/мес",
+                  "50 генераций маршрутов/мес",
                   "50 AI-сообщений на маршрут",
                   "Всё из Pro",
                   "Групповые поездки (до 10 чел.)",
@@ -668,7 +668,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-muted-foreground">
-            {["Без регистрации карты", "Маршрут за 60 сек", "25 генераций бесплатно"].map(t => (
+            {["Без регистрации карты", "Маршрут за 60 сек", "1 генерация бесплатно"].map(t => (
               <div key={t} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-400" />
                 {t}

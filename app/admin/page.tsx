@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, MapPin, Activity, AlertCircle, Cpu, DollarSign, Zap, TrendingUp, Loader2, Copy } from "lucide-react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { connectTelegram } from "@/app/actions/telegram"
@@ -505,3 +505,4 @@ export default function AdminDashboard() {
     </div>
   )
 }
+

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Vote, Plus, CheckCircle2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import type { Database } from "@/types/database.types"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { Progress } from "@/components/ui/progress"
 
 type Poll = Database['public']['Tables']['voting_polls']['Row'] & {
@@ -191,3 +191,4 @@ export function VotingBoard({ tripId }: { tripId: string }) {
         </Card>
     )
 }
+

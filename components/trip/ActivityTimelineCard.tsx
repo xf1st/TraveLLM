@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 

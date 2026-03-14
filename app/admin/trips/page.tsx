@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase"
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table"
 import { MapPin, Search, ExternalLink, Calendar, Sparkles, Bot } from "lucide-react"
 import Link from "next/link"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 type TokenUsage = {
   totalTokens?: number
@@ -170,7 +170,7 @@ export default function AdminTripsPage() {
 
       setTrips(normalized)
     } catch (error: any) {
-      toast.error(`Ошибка загрузки маршрутов: ${error.message}`)
+      toast.error(`������ �������� ���������: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -182,9 +182,9 @@ export default function AdminTripsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <MapPin className="h-8 w-8" />
-            Маршруты
+            ��������
           </h1>
-          <p className="text-muted-foreground">Просмотр созданных маршрутов, поиск и фильтрация</p>
+          <p className="text-muted-foreground">�������� ��������� ���������, ����� � ����������</p>
         </div>
 
         <Card className="mb-6">
@@ -193,7 +193,7 @@ export default function AdminTripsPage() {
               <div className="flex-1 flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Поиск по названию, направлению, email пользователя или ID..."
+                  placeholder="����� �� ��������, �����������, email ������������ ��� ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-background"
@@ -201,16 +201,16 @@ export default function AdminTripsPage() {
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant={filterStatus === "all" ? "default" : "outline"} onClick={() => setFilterStatus("all")} size="sm">
-                  Все
+                  ���
                 </Button>
                 <Button variant={filterStatus === "draft" ? "default" : "outline"} onClick={() => setFilterStatus("draft")} size="sm">
-                  Черновики
+                  ���������
                 </Button>
                 <Button variant={filterStatus === "active" ? "default" : "outline"} onClick={() => setFilterStatus("active")} size="sm">
-                  Активные
+                  ��������
                 </Button>
                 <Button variant={filterStatus === "completed" ? "default" : "outline"} onClick={() => setFilterStatus("completed")} size="sm">
-                  Завершенные
+                  �����������
                 </Button>
               </div>
             </div>
@@ -218,29 +218,29 @@ export default function AdminTripsPage() {
         </Card>
 
         {loading ? (
-          <div className="text-center py-8">Загрузка...</div>
+          <div className="text-center py-8">��������...</div>
         ) : (
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <Table className="min-w-[1020px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Название</TableHead>
-                    <TableHead>Направление</TableHead>
-                    <TableHead>Пользователь</TableHead>
-                    <TableHead>Дней</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Токены</TableHead>
-                    <TableHead>Стоимость</TableHead>
-                    <TableHead>Создан</TableHead>
-                    <TableHead className="text-right">Действия</TableHead>
+                    <TableHead>��������</TableHead>
+                    <TableHead>�����������</TableHead>
+                    <TableHead>������������</TableHead>
+                    <TableHead>����</TableHead>
+                    <TableHead>������</TableHead>
+                    <TableHead>������</TableHead>
+                    <TableHead>���������</TableHead>
+                    <TableHead>������</TableHead>
+                    <TableHead className="text-right">��������</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTrips.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                        Маршруты не найдены
+                        �������� �� �������
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -250,7 +250,7 @@ export default function AdminTripsPage() {
 
                       return (
                         <TableRow key={trip.id}>
-                          <TableCell className="font-medium">{trip.title || "Без названия"}</TableCell>
+                          <TableCell className="font-medium">{trip.title || "��� ��������"}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
@@ -264,7 +264,7 @@ export default function AdminTripsPage() {
                           <TableCell>{getDaysCount(trip)}</TableCell>
                           <TableCell>
                             <Badge variant={status === "active" ? "default" : status === "completed" ? "secondary" : "outline"}>
-                              {status === "active" ? "Активен" : status === "completed" ? "Завершен" : "Черновик"}
+                              {status === "active" ? "�������" : status === "completed" ? "��������" : "��������"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -282,7 +282,7 @@ export default function AdminTripsPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {typeof tokenUsage?.costRub === "number" ? `${tokenUsage.costRub.toFixed(2)} ₽` : "-"}
+                            {typeof tokenUsage?.costRub === "number" ? `${tokenUsage.costRub.toFixed(2)} ?` : "-"}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm">
@@ -312,10 +312,11 @@ export default function AdminTripsPage() {
 
         {filteredTrips.length > 0 && (
           <div className="mt-4 text-sm text-muted-foreground text-center">
-            Показано {filteredTrips.length} из {trips.length} маршрутов
+            �������� {filteredTrips.length} �� {trips.length} ���������
           </div>
         )}
       </div>
     </div>
   )
 }
+

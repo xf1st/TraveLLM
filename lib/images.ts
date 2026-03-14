@@ -4,19 +4,13 @@
  * Gallery (/api/gallery):  Pexels → Wikimedia → static fallback
  * Hero    (/api/image):    Unsplash → Wikimedia → static fallback
  * Hotels:                  Hotellook URL pattern (unchanged, in travelpayouts.ts)
- *
- * Why Pexels/Unsplash instead of Wikimedia-only:
- * - Wikimedia is partially blocked in Russia (server-side AND client CDN)
- * - Pexels CDN (images.pexels.com) is not blocked in Russia ✓
- * - Unsplash CDN (images.unsplash.com) is not blocked in Russia ✓
- * - Both cover niche queries (restaurants, parks, local places) that Wikimedia misses
  */
 
 import { searchPexels } from "./pexels"
 import { searchUnsplash } from "./unsplash"
 import { createClient } from "@supabase/supabase-js"
 import crypto from "crypto"
-import { HttpsProxyAgent } from "https-proxy-agent"
+import { ProxyAgent } from "undici"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -26,18 +20,17 @@ const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null
 
+// Create a singleton dispatcher for the proxy
+const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
+
 /**
  * Custom fetch with optional proxy support for server-side requests in restricted environments.
  */
 async function proxiedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const fetchOptions: any = { ...options };
-    if (httpProxy && !url.includes(supabaseUrl)) {
-        // Use proxy only for external requests
-        try {
-            fetchOptions.agent = new HttpsProxyAgent(httpProxy);
-        } catch (e) {
-            console.error("[proxiedFetch] Agent init error:", e);
-        }
+    if (proxyDispatcher && !url.includes(supabaseUrl)) {
+        // Use proxy only for external requests (undici ProxyAgent for Node 18+ native fetch)
+        fetchOptions.dispatcher = proxyDispatcher;
     }
     return fetch(url, fetchOptions);
 }
@@ -132,15 +125,12 @@ async function searchWikimedia(query: string): Promise<string | null> {
 
         for (const q of queries) {
             if (!q || q.length < 2) continue
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 4000)
             try {
                 const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=15`
-                const res = await fetch(url, {
-                    headers: { Accept: "application/json" },
-                    signal: controller.signal,
+                const res = await proxiedFetch(url, { 
+                    signal: AbortSignal.timeout(4000),
+                    headers: { Accept: "application/json" }
                 })
-                clearTimeout(timeoutId)
                 if (!res.ok) continue
                 const data = await res.json()
                 if (data.query?.pages) {
@@ -149,6 +139,7 @@ async function searchWikimedia(query: string): Promise<string | null> {
                         const imgUrl = p.imageinfo?.[0]?.url?.toLowerCase()
                         const title = p.title?.toLowerCase() || ""
                         if (!imgUrl) return false
+                        
                         if (!imgUrl.endsWith(".jpg") && !imgUrl.endsWith(".jpeg")) return false
                         const blacklist = ["map", "chart", "diagram", "coat of arms", "flag", "icon", "logo", "stamp", "seal", "location", "stub", "currency", "coa"]
                         if (blacklist.some((w) => title.includes(w))) return false
@@ -156,66 +147,50 @@ async function searchWikimedia(query: string): Promise<string | null> {
                     })
                     if (validImage) return validImage.imageinfo[0].url
                 }
-            } catch {
-                clearTimeout(timeoutId)
-                continue
+            } catch (e) {
+                // Continue to next query
             }
         }
-        return null
-    } catch {
-        return null
+    } catch (error) {
+        console.error("Wikimedia search failed:", error)
     }
+    return null
 }
 
 async function searchWikimediaGallery(query: string, count: number): Promise<string[]> {
-    const queries = [
-        query,
-        query + " landmark",
-        query + " tourism",
-        query + " architecture",
-    ]
-    if (query.includes(",")) {
-        const dest = query.split(",").pop()?.trim()
-        if (dest && dest.length > 2) {
-            queries.push(dest + " travel")
-            queries.push(dest + " city")
-        }
-    } else {
-        const words = query.split(" ")
-        if (words.length > 1) {
-            const last = words[words.length - 1]
-            if (last.length > 3) queries.push(last + " travel")
-        }
-    }
-
     const results = new Set<string>()
-    for (const q of queries) {
-        if (results.size >= count) break
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 3000)
-        try {
-            const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=${count * 2}`
-            const res = await fetch(url, { signal: controller.signal })
-            clearTimeout(timeoutId)
-            if (!res.ok) continue
-            const data = await res.json()
-            if (data.query?.pages) {
-                const pages = Object.values(data.query.pages) as any[]
-                for (const p of pages) {
-                    if (results.size >= count) break
-                    const imgUrl = p.imageinfo?.[0]?.url
-                    if (!imgUrl) continue
-                    const lower = imgUrl.toLowerCase()
-                    const title = p.title?.toLowerCase() || ""
-                    if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) continue
-                    if (["map", "flag", "coat of arms", "logo", "icon"].some((w) => title.includes(w))) continue
-                    results.add(imgUrl)
+    try {
+        const queries = [
+            query,
+            query + " landmark",
+            query + " tourism",
+            query + " scenic",
+        ]
+        
+        for (const q of queries) {
+            if (results.size >= count) break
+            try {
+                const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=${count * 2}`
+                const res = await proxiedFetch(url, { signal: AbortSignal.timeout(4000) })
+                if (!res.ok) continue
+                const data = await res.json()
+                if (data.query?.pages) {
+                    const pages = Object.values(data.query.pages) as any[]
+                    for (const p of pages) {
+                        if (results.size >= count) break
+                        const imgUrl = p.imageinfo?.[0]?.url
+                        if (!imgUrl) continue
+                        const lower = imgUrl.toLowerCase()
+                        const title = p.title?.toLowerCase() || ""
+                        if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) continue
+                        if (["map", "flag", "coat of arms", "logo", "icon"].some((w) => title.includes(w))) continue
+                        results.add(imgUrl)
+                    }
                 }
-            }
-        } catch {
-            clearTimeout(timeoutId)
-            continue
+            } catch (e) { }
         }
+    } catch (error) {
+        console.error("Wikimedia gallery search failed:", error)
     }
     return Array.from(results)
 }
@@ -248,62 +223,43 @@ const FALLBACK_IMAGES: Record<string, string> = {
     амстердам: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
     turkey: "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
     турция: "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
+    balkan: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    балканы: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    belgrade: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    белград: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    serbia: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    сербия: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+    bosnia: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
+    босния: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
+    sarajevo: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
+    сараево: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
     egypt: "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
     египет: "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
-    thailand: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
-    таиланд: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
-    japan: "https://upload.wikimedia.org/wikipedia/commons/6/67/Chureito_Pagoda_and_Mount_Fuji.jpg",
-    япония: "https://upload.wikimedia.org/wikipedia/commons/6/67/Chureito_Pagoda_and_Mount_Fuji.jpg",
-    china: "https://upload.wikimedia.org/wikipedia/commons/a/a4/Great_Wall_of_China_July_2006.jpg",
-    китай: "https://upload.wikimedia.org/wikipedia/commons/a/a4/Great_Wall_of_China_July_2006.jpg",
-    usa: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Empire_State_Building_from_the_Top_of_the_Rock.jpg",
-    сша: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Empire_State_Building_from_the_Top_of_the_Rock.jpg",
-    asia: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
-    азия: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Maya_Bay%2C_Ko_Phi_Phi_Lee.jpg",
-    africa: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lion_d%27Afrique.jpg",
-    африка: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Lion_d%27Afrique.jpg",
-    europe: "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
-    европа: "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
+    dubai: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dubai_Skyline_2015.jpg",
+    дубай: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dubai_Skyline_2015.jpg",
+    thailand: "https://upload.wikimedia.org/wikipedia/commons/0/04/Wat_Arun_by_Nand_Nirodh.jpg",
+    таиланд: "https://upload.wikimedia.org/wikipedia/commons/0/04/Wat_Arun_by_Nand_Nirodh.jpg",
+    japan: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Fuji_from_Pagoda.jpg",
+    япония: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Fuji_from_Pagoda.jpg",
     travel: "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg",
 }
 
 function getStaticFallback(query: string): string {
-    const lower = query.toLowerCase()
-    for (const [key, url] of Object.entries(FALLBACK_IMAGES)) {
-        if (lower.includes(key)) return url
+    const q = query.toLowerCase()
+    for (const key in FALLBACK_IMAGES) {
+        if (q.includes(key)) return FALLBACK_IMAGES[key]
     }
     return FALLBACK_IMAGES["travel"]
 }
 
-// --- Query helpers ---
-
-/** Extract non-Cyrillic words from query (for Pexels which doesn't index Russian). */
-function extractLatinWords(query: string): string {
-    return query
-        .split(/\s+/)
-        .filter(w => /[a-zA-Z]/.test(w))
-        .join(" ")
-        .trim()
-}
-
-/** Shorten query to last 2 words — helps when specific name has no Pexels results. */
-function shortenQuery(query: string): string | null {
-    const words = query.trim().split(/\s+/)
-    return words.length > 2 ? words.slice(-2).join(" ") : null
-}
-
-// ============================================================
-// PUBLIC API
-// ============================================================
-
-/**
- * Hero / destination image.
- * Waterfall: Unsplash → Wikimedia → local fallback
- * NOTE: Static Wikimedia URLs removed from early-return path —
- *       they are blocked in Russia client-side.
- */
 export async function getDestinationImage(query: string): Promise<string> {
     const cacheKey = query.toLowerCase().trim()
+
+    // 0. Skip fetching for airports/stations - they rarely produce good travel photos
+    const skipKeywords = ["аэропорт", "airport", "вокзал", "station", "перелет", "flight", "transfer", "трансфер"]
+    if (skipKeywords.some(k => cacheKey.includes(k))) {
+        return "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
+    }
 
     const cached = imageCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.url
@@ -328,21 +284,65 @@ export async function getDestinationImage(query: string): Promise<string> {
     // Auto-translate if Russian
     const translatedQuery = await translateToEnglish(query);
 
+    // Enhance query for better hero covers if it's just a short name (like "Belgrade")
+    let enhancedQuery = translatedQuery;
+    const wordCount = translatedQuery.trim().split(/\s+/).length;
+    if (wordCount <= 2 && !translatedQuery.toLowerCase().includes("hotel") && !translatedQuery.toLowerCase().includes("restaurant")) {
+        enhancedQuery = `${translatedQuery} landmark cityscape`;
+    }
+
     let result: string | null = null
 
     // 1. Unsplash (highest quality, landscape, CDN not blocked in Russia)
-    const unsplashUrls = await searchUnsplash(translatedQuery, 1)
+    let unsplashUrls = await searchUnsplash(enhancedQuery, 1)
+    
+    // 1.2 Fallback to translated query without enhancement
+    if (unsplashUrls.length === 0 && enhancedQuery !== translatedQuery) {
+        unsplashUrls = await searchUnsplash(translatedQuery, 1)
+    }
+
+    // 1.4 Fallback to just the first 2 words if it's a long tagged query
+    if (unsplashUrls.length === 0 && wordCount > 2) {
+        const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
+        unsplashUrls = await searchUnsplash(simpleQuery, 1)
+    }
+
+    // 1.6 Last ditch effort for Unsplash: try the last 2 words (often contains city/location)
+    if (unsplashUrls.length === 0 && wordCount > 2) {
+        const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
+        unsplashUrls = await searchUnsplash(lastWords, 1)
+    }
+
     if (unsplashUrls.length > 0) {
         result = unsplashUrls[0]
     }
 
-    // 2. Wikimedia fallback (may be blocked on RU client, but works for non-RU)
+    // 2. Pexels (broader database, good for hotels/bars/specific spots)
     if (!result) {
-        const wikiImg = await searchWikimedia(translatedQuery)
+        let pexelsUrls = await searchPexels(translatedQuery, 1)
+        
+        if (pexelsUrls.length === 0 && wordCount > 2) {
+            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
+            pexelsUrls = await searchPexels(simpleQuery, 1)
+        }
+
+        if (pexelsUrls.length === 0 && wordCount > 2) {
+            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
+            pexelsUrls = await searchPexels(lastWords, 1)
+        }
+
+        if (pexelsUrls.length > 0) {
+            result = pexelsUrls[0]
+        }
+    }
+
+    // 3. Wikimedia fallback (may be blocked on RU client, but proxy handles it)
+    if (!result) {
+        let wikiImg = await searchWikimedia(translatedQuery)
         if (wikiImg) result = wikiImg
     }
 
-    // 3. Static Wikimedia map (last resort — blocked in RU but at least not empty)
+    // 4. Static Wikimedia map (last resort)
     if (!result) {
         result = getStaticFallback(query) // Use original query for fallback check as it has RU keys
     }
@@ -370,16 +370,8 @@ export async function getDestinationImage(query: string): Promise<string> {
  * Server waterfall:
  *   1. Unsplash  — not blocked in Russia, high quality landscape photos
  *   2. Pexels    — blocked in Russia without VPN, but client handles via /api/proxy-image
- *   3. Pexels retry — latin/shortened query if Cyrillic got no results
- *   4. Wikimedia — encyclopedia photos as supplement
- *   5. Local fallback — always succeeds
- *
- * NOTE: Pexels CDN (images.pexels.com) IS blocked in Russia without VPN.
- *       TripImage component handles this client-side: direct → proxy → /api/image → fallback.
- *
- * @param query       Descriptive query (e.g. "rooftop restaurant Istanbul")
- * @param count       Max number of images
- * @param excludeUrls URLs already used in this trip — will be filtered out to prevent duplicates
+ *   3. Wikimedia — encyclopedia photos as supplement
+ *   4. Local fallback — always succeeds
  */
 export async function getGalleryImages(query: string, count: number = 4, excludeUrls?: string[]): Promise<string[]> {
     const cacheKey = `gallery:${query.toLowerCase().trim()}:${count}`
@@ -430,10 +422,6 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
         const translatedQuery = await translateToEnglish(query);
 
         // 1. Unsplash + Pexels in parallel (fastest path, covers most queries)
-        const latinQuery = extractLatinWords(translatedQuery)
-        const shortQuery = shortenQuery(translatedQuery)
-        const pexelsFallbackQuery = latinQuery || shortQuery || translatedQuery
-
         const [unsplashUrls, pexelsUrls] = await Promise.all([
             searchUnsplash(translatedQuery, count),
             searchPexels(translatedQuery, count),
@@ -441,19 +429,13 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
         addUrls(unsplashUrls)
         addUrls(pexelsUrls)
 
-        // 2. Pexels retry with simplified query (only if still short)
-        if (finalUrls.length < count && pexelsFallbackQuery !== translatedQuery) {
-            const retryUrls = await searchPexels(pexelsFallbackQuery, count - finalUrls.length)
-            addUrls(retryUrls)
-        }
-
-        // 3. Wikimedia supplement — only if genuinely short on images
+        // 2. Wikimedia supplement — only if genuinely short on images
         if (finalUrls.length < count) {
             const wikiUrls = await searchWikimediaGallery(translatedQuery, count - finalUrls.length)
             addUrls(wikiUrls)
         }
 
-        // 4. Local fallback
+        // 3. Local fallback
         if (finalUrls.length === 0) {
             finalUrls.push("/tbilisi-old-town.jpg")
         }

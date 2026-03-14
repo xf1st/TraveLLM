@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, DollarSign, Wallet, Trash2, PieChart, TrendingDown, Info, Bot, Sparkles, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import type { Database } from "@/types/database.types"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Cell, Pie, PieChart as RePieChart, ResponsiveContainer, Tooltip } from "recharts"
 
@@ -415,3 +415,4 @@ export function BudgetTracker({ tripId }: { tripId: string }) {
         </Card>
     )
 }
+

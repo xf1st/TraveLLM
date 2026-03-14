@@ -85,7 +85,7 @@ export default function RootLayout({
           <NotificationPrompt />
           <OnboardingPrompt />
           <CookieConsent />
-          <Toaster position="top-center" />
+          <Toaster />
           <Analytics />
           <GlobalLoader />
         </ThemeProvider>

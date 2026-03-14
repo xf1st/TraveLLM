@@ -37,7 +37,21 @@ export default function Stepper({
     currentStep: controlledStep,
     onStepChange = () => { },
     onFinalStepCompleted = () => { },
-    // ... rest
+    stepCircleContainerClassName,
+    stepContainerClassName,
+    contentClassName,
+    footerClassName,
+    backButtonProps,
+    nextButtonProps,
+    backButtonText = "Back",
+    nextButtonText = "Next",
+    finalButtonText = "Complete",
+    disableStepIndicators = false,
+    showStepLabels = false,
+    stepLabels = [],
+    isNextDisabled = false,
+    renderStepIndicator,
+    ...rest
 }: StepperProps) {
     const [internalStep, setInternalStep] = useState<number>(initialStep)
     const currentStep = controlledStep !== undefined ? controlledStep : internalStep

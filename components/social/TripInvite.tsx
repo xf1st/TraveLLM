@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Users, Copy, Check, UserPlus } from "lucide-react"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { supabase } from "@/lib/supabase"
 
 interface TripInviteProps {
@@ -99,3 +99,4 @@ export function TripInvite({ tripId, tripTitle }: TripInviteProps) {
         </Dialog>
     )
 }
+

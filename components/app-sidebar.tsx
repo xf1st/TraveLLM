@@ -44,7 +44,7 @@ import {
 import { supabase, signOut } from "@/lib/supabase"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { SubscriptionBadge } from "@/components/SubscriptionBadge"
@@ -570,4 +570,5 @@ export function AppSidebar() {
         </aside>
     )
 }
+
 

@@ -48,7 +48,7 @@ import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import dynamic from "next/dynamic"
 import Stepper, { Step } from "@/components/ui/stepper"
 import { FloatingIcons } from "@/components/FloatingIcons"
@@ -1138,3 +1138,4 @@ export default function PlanPage() {
     </AppLayout>
   )
 }
+

@@ -5,7 +5,7 @@ import { Star } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 export type TripFeedbackRecord = {
@@ -177,3 +177,4 @@ export function TripFeedbackDialog({
     </Dialog>
   )
 }
+

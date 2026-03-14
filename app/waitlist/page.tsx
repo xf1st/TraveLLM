@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Lock, MessageCircle, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 
 export default function WaitlistPage() {
   const handleSignOut = async () => {
@@ -67,3 +67,4 @@ export default function WaitlistPage() {
     </div>
   )
 }
+

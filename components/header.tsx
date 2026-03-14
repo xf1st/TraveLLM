@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { supabase, signOut } from "@/lib/supabase"
 import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { SubscriptionBadge } from "@/components/SubscriptionBadge"
@@ -494,4 +494,5 @@ export function Header({ floating = false }: HeaderProps) {
     </div>
   )
 }
+
 

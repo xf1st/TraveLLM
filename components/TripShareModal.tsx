@@ -24,7 +24,7 @@ import {
   Users,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { appToast as toast } from "@/components/ui/sonner";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -289,3 +289,4 @@ export function TripShareModal({
     </Dialog>
   );
 }
+

@@ -1,5 +1,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
+import { ProxyAgent } from "undici";
+
+// Create a singleton dispatcher for the proxy
+const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
     const url = req.nextUrl.searchParams.get("url");
@@ -22,11 +27,18 @@ export async function GET(req: NextRequest) {
             return new NextResponse("Forbidden domain", { status: 403 });
         }
 
-        const response = await fetch(url, {
+        const fetchOptions: any = {
             headers: {
                 "User-Agent": "TraveLM-Image-Proxy/1.0",
-            }
-        });
+            },
+            signal: AbortSignal.timeout(8000)
+        };
+
+        if (proxyDispatcher) {
+            fetchOptions.dispatcher = proxyDispatcher;
+        }
+
+        const response = await fetch(url, fetchOptions);
 
         if (!response.ok) {
             // Cache error responses so clients don't hammer the same broken URL repeatedly

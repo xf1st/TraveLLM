@@ -1,10 +1,13 @@
 export const DEFAULT_TRAVEL_IMAGE = "/tbilisi-old-town.jpg"
 
-const BLOCKED_OR_UNSTABLE_PATTERNS = [
+const BAD_IMAGE_PATTERNS = [
   "loremflickr.com",
   "picsum.photos",
-  // "pexels.com" — unblocked: now using real Pexels API (not AI-hallucinated URLs)
   "pollinations.ai",
+]
+
+const PROXY_DOMAINS = [
+  "wikimedia.org"
 ]
 
 export const isProbablyBlockedImage = (src?: string | null) => {
@@ -12,7 +15,13 @@ export const isProbablyBlockedImage = (src?: string | null) => {
   const lower = String(src).toLowerCase().trim()
   if (!lower) return true
   if (lower.startsWith("data:") || lower.startsWith("blob:")) return false
-  return BLOCKED_OR_UNSTABLE_PATTERNS.some((pattern) => lower.includes(pattern))
+  return BAD_IMAGE_PATTERNS.some((pattern) => lower.includes(pattern))
+}
+
+export const needsProxyImage = (src?: string | null) => {
+  if (!src) return false
+  const lower = String(src).toLowerCase().trim()
+  return PROXY_DOMAINS.some((pattern) => lower.includes(pattern))
 }
 
 export const buildImageQuery = (...candidates: Array<string | undefined | null>) => {

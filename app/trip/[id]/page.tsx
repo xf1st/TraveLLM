@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
-import { toast } from "sonner"
+import { appToast as toast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -470,7 +470,15 @@ export default function TripDetailPage() {
   }
 
   // ===== Computed data =====
-  const destinationName = route.countries?.[0]?.name || route.destination || "Travel"
+  const destinationName = route.destination && route.destination !== route.title 
+    ? route.destination 
+    : route.countries?.[0]?.name || "Travel"
+
+  // Use simple country/city for more reliable hero images, add tags for context
+  const cleanDestination = route.countries?.[0]?.name || destinationName
+  const topTags = route.tags?.slice(0, 2).map((t: string) => t.replace("#", "")).join(" ") || ""
+  const heroQuery = `${cleanDestination} ${topTags}`.trim()
+
   const heroImage = route.coverImage || route.image || "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
   const tripDurationDays = Array.isArray(route.itinerary) ? route.itinerary.length : 0
 
@@ -785,9 +793,10 @@ export default function TripDetailPage() {
           <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
             <TripImage
               src={heroImage}
-              query={destinationName}
+              query={destinationName || "travel"}
               alt={route.title || destinationName}
               className="h-full w-full object-cover"
+              imgClassName="transition-transform duration-700"
               priority
             />
           </motion.div>
@@ -807,16 +816,32 @@ export default function TripDetailPage() {
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                 </button>
                 <div className="min-w-0 flex flex-col justify-center">
-                  <h1 className="text-sm sm:text-xl lg:text-2xl font-bold text-white tracking-tight truncate drop-shadow-md pr-2">{route.title}</h1>
-                  <div className="hidden sm:flex items-center text-xs sm:text-sm text-white/90 gap-4 mt-0.5 font-medium drop-shadow-sm">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm sm:text-base">calendar_month</span>
-                      {formatDateRange(tripStartDate, tripEndDate) || `${tripDurationDays} дней`}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm sm:text-base">person</span>
-                      {route.travelers || 2} путешественника
-                    </span>
+                  <h1 className="text-sm sm:text-lg lg:text-xl font-black text-white tracking-tight truncate drop-shadow-md pr-2 uppercase italic">{route.title}</h1>
+                  
+                  {/* Tags and Metadata Row in Header */}
+                  <div className="flex items-center gap-3 sm:gap-4 mt-1.5 overflow-hidden">
+                    <div className="flex items-center text-[10px] sm:text-xs text-white/80 gap-3 font-bold shrink-0">
+                      <span className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">calendar_month</span>
+                        {formatDateRange(tripStartDate, tripEndDate) || `${tripDurationDays} дней`}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">person</span>
+                        {route.travelers || 2}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <div className="w-px h-3 bg-white/20 mx-1" />
+                      {route.tags?.slice(0, 3).map((tag: string, idx: number) => {
+                        const cfg = getTagConfig(tag)
+                        return (
+                          <span key={idx} className={cn("px-2.5 py-1 rounded-lg border text-[10px] sm:text-[11px] font-black uppercase tracking-tight whitespace-nowrap shadow-lg backdrop-blur-md", cfg.color.replace('bg-sky-100/80', 'bg-sky-500/20').replace('text-sky-700', 'text-sky-200'))}>
+                            {tag.replace("#", "")}
+                          </span>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -863,36 +888,20 @@ export default function TripDetailPage() {
             </div>
           </div>
 
-          {/* ===== Bottom Overlay (tags + title + description) ===== */}
+          {/* ===== Bottom Overlay (title + description) ===== */}
           <div className="absolute bottom-8 sm:bottom-12 left-4 sm:left-8 right-4 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-6 z-30">
             <div className="max-w-3xl">
-              {/* Colored Tags with icons */}
-              <div className="flex items-center flex-wrap gap-2 mb-4">
-                {route.tags?.map((tag: string, idx: number) => {
-                  const cfg = getTagConfig(tag)
-                  const TagIcon = cfg.icon
-                  return (
-                    <span
-                      key={idx}
-                      className={cn(
-                        "px-3 py-1.5 backdrop-blur-md text-[10px] font-bold rounded-full border uppercase tracking-wide shadow-sm flex items-center gap-1.5",
-                        cfg.color
-                      )}
-                    >
-                      <TagIcon className="w-3 h-3" />
-                      {tag.replace("#", "")}
-                    </span>
-                  )
-                })}
+              {/* Star Rating & Completed Status */}
+              <div className="flex items-center gap-2 mb-4">
                 {route.safetyInfo?.rating && (
-                  <span className="px-3 py-1.5 bg-emerald-100/80 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-200/50 dark:border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                  <span className="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                     <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                     {route.safetyInfo.rating}/10
                   </span>
                 )}
                 {route.status === 'completed' && (
                   <Link href={`/trip/completed?tripId=${route.id}`}>
-                    <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-[10px] xl:text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
+                    <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Завершен
                     </span>
