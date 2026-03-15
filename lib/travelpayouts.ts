@@ -7,11 +7,16 @@
  * Получить: https://www.travelpayouts.com/programs/100/tools/api
  */
 
-import { ProxyAgent } from "undici"
-
-// Proxy configuration
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || ""
-const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined
+// No static import of undici, it causes "Cannot find module 'node:net'" when imported in Client Components
+// Proxy configuration deferred to avoid client-side bundling issues
+const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && PROXY_URL) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(PROXY_URL);
+    } catch(e) {}
+}
 
 // Партнёрский маркер (заменить на реальный из .env)
 const TRAVELPAYOUTS_MARKER = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""

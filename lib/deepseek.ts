@@ -1,8 +1,12 @@
-import { ProxyAgent } from "undici";
-
 // Proxy configuration
 const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
-const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined;
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && PROXY_URL) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(PROXY_URL);
+    } catch(e) {}
+}
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 

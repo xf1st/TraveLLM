@@ -10,7 +10,6 @@ import { searchPexels } from "./pexels"
 import { searchUnsplash } from "./unsplash"
 import { createClient } from "@supabase/supabase-js"
 import crypto from "crypto"
-import { ProxyAgent } from "undici"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -21,7 +20,13 @@ const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, su
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null
 
 // Create a singleton dispatcher for the proxy
-const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && httpProxy) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(httpProxy);
+    } catch(e) {}
+}
 
 /**
  * Custom fetch with optional proxy support for server-side requests in restricted environments.

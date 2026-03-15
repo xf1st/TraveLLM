@@ -1,7 +1,5 @@
 // Gemini via OpenRouter (Primary AI Provider)
 // https://openrouter.ai
-import { ProxyAgent } from "undici"
-
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
@@ -9,7 +7,13 @@ const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 export const GEMINI_FLASH = "google/gemini-2.5-flash-lite-preview-09-2025";
 
 // Create a singleton dispatcher for the proxy
-const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && httpProxy) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(httpProxy);
+    } catch(e) {}
+}
 
 // Pricing (Feb 2026) — per 1M tokens
 const PRICING = {

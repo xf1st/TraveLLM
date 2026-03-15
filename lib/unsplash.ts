@@ -6,13 +6,17 @@
  * Get key: https://unsplash.com/developers
  */
 
-import { ProxyAgent } from "undici"
-
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 
 // Create a singleton dispatcher for the proxy
-const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && httpProxy) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(httpProxy);
+    } catch(e) {}
+}
 
 /**
  * Search Unsplash for photos matching query.

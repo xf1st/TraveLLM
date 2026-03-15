@@ -5,13 +5,17 @@
  * CDN: images.pexels.com — not blocked in Russia ✓
  */
 
-import { ProxyAgent } from "undici"
-
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 
 // Create a singleton dispatcher for the proxy
-const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
+let proxyDispatcher: any = undefined;
+if (typeof window === "undefined" && httpProxy) {
+    try {
+        const undici = eval('require("undici")');
+        proxyDispatcher = new undici.ProxyAgent(httpProxy);
+    } catch(e) {}
+}
 
 /**
  * Search Pexels for photos matching query.
