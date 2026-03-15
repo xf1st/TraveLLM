@@ -7,6 +7,12 @@
  * Получить: https://www.travelpayouts.com/programs/100/tools/api
  */
 
+import { ProxyAgent } from "undici"
+
+// Proxy configuration
+const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || ""
+const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined
+
 // Партнёрский маркер (заменить на реальный из .env)
 const TRAVELPAYOUTS_MARKER = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
 
@@ -777,9 +783,8 @@ export async function getCheapestTickets(
   if (returnMonth) params.set("return_date", returnMonth)
 
   try {
-    const fetchOptions: RequestInit = {};
+    const fetchOptions: RequestInit & { dispatcher?: any } = {};
     if (proxyDispatcher) {
-        // @ts-ignore
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -886,9 +891,8 @@ export async function getPriceCalendar(
   }
 
   try {
-    const fetchOptions: RequestInit = {};
+    const fetchOptions: RequestInit & { dispatcher?: any } = {};
     if (proxyDispatcher) {
-        // @ts-ignore
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -948,9 +952,8 @@ export async function getWeekMatrix(
   })
 
   try {
-    const fetchOptions: RequestInit = {};
+    const fetchOptions: RequestInit & { dispatcher?: any } = {};
     if (proxyDispatcher) {
-        // @ts-ignore
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -1001,9 +1004,8 @@ export async function getSpecialOffers(
   if (origin) params.set("origin", origin)
 
   try {
-    const fetchOptions: RequestInit = {};
+    const fetchOptions: RequestInit & { dispatcher?: any } = {};
     if (proxyDispatcher) {
-        // @ts-ignore
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(

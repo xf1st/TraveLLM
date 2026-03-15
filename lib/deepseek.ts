@@ -157,7 +157,7 @@ async function runDeepseekInference(
 
     const startTime = Date.now();
 
-    const fetchOptions: RequestInit = {
+    const fetchOptions: RequestInit & { dispatcher?: any } = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -167,7 +167,6 @@ async function runDeepseekInference(
     };
 
     if (proxyDispatcher) {
-        // @ts-ignore - dispatcher is a valid Node 18+ undici fetch option
         fetchOptions.dispatcher = proxyDispatcher;
     }
 
