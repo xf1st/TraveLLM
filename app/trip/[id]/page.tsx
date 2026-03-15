@@ -35,7 +35,10 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { MeshGradient } from "@paper-design/shaders-react"
+const MeshGradient = dynamic(
+  () => import("@paper-design/shaders-react").then(m => ({ default: m.MeshGradient })),
+  { ssr: false }
+)
 import { TripImage } from "@/components/TripImage"
 import { FlightCard } from "@/components/itinerary/FlightCard"
 import { HotelCard } from "@/components/itinerary/HotelCard"
@@ -67,6 +70,9 @@ import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 import { TripTooltips } from "@/components/trip/TripTooltips"
 
 import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
+import { TripWeatherWidget } from "@/components/trip/TripWeatherWidget"
+import { getWeatherForLocation, getWeatherEmoji, WeatherData } from "@/lib/weather"
+import { getCoordinates } from "@/lib/geocoding"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
 
@@ -180,6 +186,7 @@ export default function TripDetailPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
+  const [tripWeather, setTripWeather] = useState<WeatherData[]>([])
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
 
   useEffect(() => {
@@ -297,6 +304,29 @@ export default function TripDetailPage() {
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
+
+  // Fetch per-day weather for the whole trip
+  useEffect(() => {
+    if (!route?.id) return
+    const dest = (route.destination && route.destination !== route.title)
+      ? route.destination
+      : route.countries?.[0]?.name || ""
+    if (!dest) return
+    const start = route.start_date ? new Date(route.start_date) : null
+    const days = Array.isArray(route.itinerary) ? route.itinerary.length : 0
+    const end = route.end_date ? new Date(route.end_date) : (start && days > 0 ? addDays(start, days - 1) : null)
+    if (!start || !end) return
+    ;(async () => {
+      try {
+        const coords = await getCoordinates(dest)
+        if (!coords) return
+        const data = await getWeatherForLocation(coords.lat, coords.lng, start, end)
+        setTripWeather(data)
+      } catch (e) {
+        console.error("[TripWeather] fetch error:", e)
+      }
+    })()
+  }, [route?.id])
 
   const safeLocalStorage = {
     getItem: (key: string): string | null => {
@@ -534,6 +564,7 @@ export default function TripDetailPage() {
   // Trip date range for calendar
   const tripStartDate = route.start_date ? new Date(route.start_date) : null
   const tripEndDate = route.end_date ? new Date(route.end_date) : null
+  const currentDayWeather = tripWeather[activeDay - 1] ?? null
   const calendarSelectedDays: Date[] = []
   if (tripStartDate && tripEndDate) {
     const d = new Date(tripStartDate)
@@ -995,6 +1026,14 @@ export default function TripDetailPage() {
                     )}>
                       {formatDayDate(tripStartDate, day.day - 1) || `День ${day.day}`}
                     </span>
+                    {tripWeather[day.day - 1] && (
+                      <span className={cn(
+                        "text-[9px] font-medium leading-none mt-0.5",
+                        isActive ? "text-white/80" : "text-sky-600/80 dark:text-sky-300/80"
+                      )}>
+                        {getWeatherEmoji(tripWeather[day.day - 1].weatherCode)} {Math.round(tripWeather[day.day - 1].maxTemp)}°
+                      </span>
+                    )}
                   </button>
                 )
               })}
@@ -1048,9 +1087,16 @@ export default function TripDetailPage() {
                 <>
                   {/* Day title bar */}
                   <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-lg">
-                    <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm">
-                      День {currentDay.day}: {currentDay.title || "Продолжение приключения"}
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm truncate">
+                        День {currentDay.day}: {currentDay.title || "Продолжение приключения"}
+                      </h3>
+                      {currentDayWeather && (
+                        <span className="shrink-0 text-xs sm:text-sm font-semibold text-sky-600 dark:text-sky-300 whitespace-nowrap">
+                          {getWeatherEmoji(currentDayWeather.weatherCode)} {Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
                       className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-sky-500/30 dark:shadow-blue-600/30 border border-sky-400/20 dark:border-blue-400/50 shrink-0"
@@ -1134,16 +1180,22 @@ export default function TripDetailPage() {
                 )}
               </AnimatePresence>}
 
-              {/* Weather + Tips Grid */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-2 sm:gap-4">
-                {/* Weather Card */}
-                <CurrentWeatherWidget
-                    destination={destinationName}
-                    date={undefined}
+              {/* Weather section */}
+              {route.start_date && route.end_date ? (
+                <TripWeatherWidget
+                  destination={destinationName}
+                  startDate={route.start_date}
+                  endDate={route.end_date}
                 />
+              ) : (
+                <CurrentWeatherWidget
+                  destination={destinationName}
+                  date={undefined}
+                />
+              )}
 
-                {/* Tips Card */}
-                <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-3 sm:p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 sm:h-32 lg:h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
+              {/* Tips Card */}
+              <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-3 sm:p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 sm:h-32 lg:h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
                   <div className="flex justify-between items-start">
                     <div className="bg-white/60 dark:bg-white/5 p-2.5 rounded-2xl shadow-sm dark:shadow-inner backdrop-blur-md border border-white/40 dark:border-white/5">
                       <span className="material-symbols-outlined text-amber-500 dark:text-amber-300">lightbulb</span>
@@ -1162,7 +1214,6 @@ export default function TripDetailPage() {
                     </button>
                   </div>
                 </div>
-              </div>
 
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (

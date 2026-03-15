@@ -8,9 +8,8 @@ import { Toaster } from "@/components/ui/sonner"
 import { NotificationPrompt } from "@/components/NotificationPrompt"
 import { OnboardingPrompt } from "@/components/OnboardingPrompt"
 import { CookieConsent } from "@/components/CookieConsent"
-import { MaintenanceGuard } from "@/components/admin/maintenance-guard"
-import { UserAccessGuard } from "@/components/admin/user-access-guard"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
+import { GuardsWrapper } from "@/components/admin/guards-wrapper"
 import Script from "next/script"
 import "./globals.css"
 import "material-symbols/outlined.css"
@@ -71,13 +70,11 @@ export default function RootLayout({
         >
           <AuthProvider>
             <ChatProvider>
-              <MaintenanceGuard>
-                <UserAccessGuard>
-                  <ErrorBoundary>
-                    {children}
-                  </ErrorBoundary>
-                </UserAccessGuard>
-              </MaintenanceGuard>
+              <GuardsWrapper>
+                <ErrorBoundary>
+                  {children}
+                </ErrorBoundary>
+              </GuardsWrapper>
               <WelcomeModal />
             </ChatProvider>
           </AuthProvider>

@@ -2,13 +2,32 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const host = request.headers.get('host') || ''
+  const isAdminSubdomain = host.startsWith('admin.')
+
+  // Early-return for fully public routes — no Supabase call needed at all
+  if (!isAdminSubdomain) {
+    const isFullyPublic =
+      pathname === '/' ||
+      pathname.startsWith('/news') ||
+      pathname.startsWith('/auth') ||
+      pathname.startsWith('/waitlist') ||
+      pathname.startsWith('/blocked') ||
+      pathname.startsWith('/terms') ||
+      pathname.startsWith('/privacy') ||
+      pathname.startsWith('/support')
+
+    if (isFullyPublic) return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // 1. Create Supabase Client and Refresh Session
+  // Create Supabase client (needed for auth checks below)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,22 +51,15 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // This refreshes the session if needed
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // 2. Existing Admin Subdomain Logic
-  const host = request.headers.get('host') || ''
-  const isAdminSubdomain = host.startsWith('admin.')
-  const pathname = request.nextUrl.pathname
-
+  // Admin subdomain — requires verified user via getUser() (JWT network validation for security)
   if (isAdminSubdomain) {
+    const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) {
-      // Not logged in - redirect to main domain auth
       const mainDomain = host.replace('admin.', '')
       return NextResponse.redirect(`https://${mainDomain}/auth`)
     }
 
-    // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -57,21 +69,23 @@ export async function middleware(request: NextRequest) {
     const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
 
     if (!isAdmin) {
-      // Not admin - redirect to main domain
       const mainDomain = host.replace('admin.', '')
       return NextResponse.redirect(`https://${mainDomain}`)
     }
 
-    // Admin accessing admin subdomain - redirect to /admin if not already there
     if (pathname === '/' || !pathname.startsWith('/admin')) {
-      // Clone the url to keep search params if needed, but here just /admin
       const url = request.nextUrl.clone()
       url.pathname = '/admin'
       return NextResponse.redirect(url)
     }
+
+    return response
   }
 
-  // 3. Protected Routes for Main Domain
+  // Regular routes — getUser() validates JWT with Supabase (secure)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Protected Routes for Main Domain
   // Note: /profile/[username] is public (user profiles), only /profile itself is protected
   const protectedPaths = ['/dashboard', '/plan', '/trips', '/trip', '/results', '/onboarding', '/guide']
   const isOwnProfile = pathname === '/profile' || pathname.startsWith('/profile?') || pathname.startsWith('/profile/')
@@ -81,13 +95,12 @@ export async function middleware(request: NextRequest) {
   if (isProtectedPath && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
-    url.searchParams.set('next', pathname) // Optional: redirect back after login
+    url.searchParams.set('next', pathname)
     return NextResponse.redirect(url)
   }
 
-  // 4. Site Access Gate — redirect to /waitlist or /blocked
+  // Site Access Gate — redirect to /blocked
   if (user) {
-    // We don't want to run this for /auth, /blocked, /waitlist or static/api routes (api already excluded in matcher)
     const bypassPaths = ['/auth', '/blocked', '/waitlist', '/onboarding', '/terms', '/privacy', '/support']
     const isBypassPath = bypassPaths.some(path => pathname.startsWith(path))
 
@@ -98,15 +111,11 @@ export async function middleware(request: NextRequest) {
         .eq('id', user.id)
         .single()
 
-      // High priority: Global block
       if (profile?.access_mode === 'full_blocked') {
         const url = request.nextUrl.clone()
         url.pathname = '/blocked'
         return NextResponse.redirect(url)
       }
-
-      // Site access gate: full_blocked users are handled above.
-      // We removed the waitlist redirect so all registered users have access.
     }
   }
 
@@ -120,8 +129,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes (handled separately)
+     * - public folder files (with extensions)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],

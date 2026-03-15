@@ -379,7 +379,7 @@ export default function LandingPage() {
                 временем и адресами. Для маршрутов 7+ дней работает посегментная генерация.
               </p>
               <div className="flex flex-wrap gap-2">
-                {["DeepSeek", "Gemini 2.0", "OpenRouter"].map(m => (
+                {["DeepSeek", "Gemini 2.5 Flash", "OpenRouter"].map(m => (
                   <span key={m} className="text-[10px] font-bold uppercase tracking-widest border border-primary/20 rounded-full px-3 py-1 text-primary/80">{m}</span>
                 ))}
               </div>
@@ -408,7 +408,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-black mb-2">Погода по дням</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Прогноз OpenWeather для каждого дня маршрута прямо в карточке дня.
+                Прогноз Open-Meteo для каждого дня маршрута прямо в карточке дня.
               </p>
             </motion.div>
 
@@ -504,7 +504,7 @@ export default function LandingPage() {
                 color: "border-border/50",
                 cta: { href: "/auth", label: "Начать бесплатно", variant: "outline" as const },
                 features: [
-                  "1 генерация маршрута",
+                  "3 генерации маршрута",
                   "10 AI-сообщений на маршрут",
                   "Интерактивная карта",
                   "Погода по дням",
@@ -668,7 +668,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-muted-foreground">
-            {["Без регистрации карты", "Маршрут за 60 сек", "1 генерация бесплатно"].map(t => (
+            {["Без регистрации карты", "Маршрут за 60 сек", "3 генерации бесплатно"].map(t => (
               <div key={t} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-400" />
                 {t}

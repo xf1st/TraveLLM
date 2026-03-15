@@ -17,6 +17,7 @@ import {
     enrichViralSpotsWithWebSearch
 } from "@/lib/api/route-pipeline"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
+import { validateAirports } from "@/lib/api/airport-validator"
 import { buildEnrichedPrompt, buildMetadataPrompt, buildDayChunkPrompt } from "@/lib/prompt-builder"
 import { type RouteData, type ItineraryDay } from "@/types/itinerary"
 
@@ -141,6 +142,20 @@ export async function POST(req: Request) {
             }
         }
 
+        // Validate destination airports via AeroDataBox (dynamic, not static)
+        let airportValidationContext = ""
+        if (destinations.length > 0) {
+            try {
+                const validation = await validateAirports(destinations)
+                if (!validation.allOpen && validation.closedAirports.length > 0) {
+                    airportValidationContext = `СТАТУС АЭРОПОРТОВ: ${validation.closedAirports.join('; ')} — авиаперелёт НЕДОСТУПЕН, используй наземный транспорт или хаб пересадки.`
+                    console.log(`[AirportValidation] Closed: ${validation.closedAirports.join(', ')}`)
+                }
+            } catch (e) {
+                console.error("[Airport Validation Error]", e)
+            }
+        }
+
         const travelStyles = toArray(travelStyle)
         const enriched = await buildEnrichedPrompt({
             departureCity: effectiveDepartureCity,
@@ -160,11 +175,12 @@ export async function POST(req: Request) {
             destinationType,
             strictDestinations,
             countryCount,
-            filterByDocuments
+            filterByDocuments,
+            airportValidationContext
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
-        const aiTemperature = (body.aiCreativity || preferences?.aiCreativity) === "creative" ? 1.0 : 0.6
+        const aiTemperature = (body.aiCreativity || preferences?.aiCreativity) === "creative" ? 0.8 : 0.6
 
         // Helper to parse JSON from AI response
         function parseJsonResponse(raw: string, source: string): any {

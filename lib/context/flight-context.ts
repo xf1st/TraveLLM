@@ -162,8 +162,11 @@ export async function fetchFlightContext(
         }
     }
 
-    // Обратный рейс (для round trip)
-    if (destinations.length > 0 && endDate) {
+    // Обратный рейс — только для round trip (последний город совпадает с первым или это явный возврат)
+    // Для open-jaw (Москва→Стамбул→Бали) возвратный рейс не добавляем
+    const isRoundTrip = destinations.length === 1 ||
+        (destinations.length > 1 && destinations[destinations.length - 1].toLowerCase() === departureCity.toLowerCase())
+    if (isRoundTrip && destinations.length > 0 && endDate) {
         const lastDest = destinations[destinations.length - 1]
         const lastDestIata = getIataCode(lastDest)
 

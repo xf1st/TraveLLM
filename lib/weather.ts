@@ -1,9 +1,3 @@
-import { ProxyAgent } from "undici";
-
-// Proxy configuration
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
-const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined;
-
 export interface WeatherData {
   date: string
   maxTemp: number
@@ -48,20 +42,24 @@ export const getWeatherDescription = (code: number): string => {
   }
 }
 
+export function getWeatherEmoji(code: number): string {
+  if (code === 0) return '☀️'
+  if (code <= 2) return '🌤️'
+  if (code === 3) return '☁️'
+  if (code <= 48) return '🌫️'
+  if (code <= 67) return '🌧️'
+  if (code <= 77) return '❄️'
+  if (code <= 82) return '🌦️'
+  if (code <= 99) return '⛈️'
+  return '🌡️'
+}
+
 export async function getWeatherForLocation(lat: number, lon: number, startDate: Date, endDate: Date): Promise<WeatherData[]> {
   try {
     const startStr = startDate.toISOString()
     const endStr = endDate.toISOString()
     
-    // ofetch is currently not explicitly imported here but used in other files.
-    // the code uses native `fetch`!
-    const fetchOptions: RequestInit = {};
-    if (proxyDispatcher) {
-      // @ts-ignore
-      fetchOptions.dispatcher = proxyDispatcher;
-    }
-
-    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}&start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`, fetchOptions)
+    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}&start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`)
     if (!res.ok) {
         console.error('Failed to fetch weather via proxy API', res.statusText)
         throw new Error('Failed to fetch weather')

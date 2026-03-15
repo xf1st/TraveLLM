@@ -8,7 +8,7 @@ export interface TierLimits {
 }
 
 export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
-  free: { genPerMonth: 1, chatPerTrip: 10 },
+  free: { genPerMonth: 3, chatPerTrip: 10 },
   pro:  { genPerMonth: 25, chatPerTrip: 25 },
   max:  { genPerMonth: 50, chatPerTrip: 50 },
   dev:  { genPerMonth: Infinity, chatPerTrip: Infinity },

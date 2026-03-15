@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Logo } from "@/components/logo"
-import { ArrowRight, ArrowLeft, Sparkles, Globe, Languages, CheckCircle2 } from "lucide-react"
+import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
@@ -18,42 +16,28 @@ import { CityAutocomplete } from "@/components/ui/city-autocomplete"
 import { motion, AnimatePresence } from "framer-motion"
 
 const STEP_LABELS = [
-  "Частота",
-  "О себе",
-  "Страны",
-  "Регионы",
-  "Питание",
-  "Транспорт",
-  "Жильё",
-  "Темп",
+  "О вас",
+  "Опыт и мечты",
+  "Стиль",
   "Интересы",
-  "Гражданство",
   "Документы",
-  "Языки",
   "Готово",
 ]
 
 const DOC_PASSPORTS = [
-  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪", desc: "Внутренний" },
-  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘", desc: "Для выезда за рубеж" },
+  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪" },
+  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘" },
 ]
 
-const DOC_VISAS = [
-  { value: "schengen", label: "Шенгенская виза", icon: "🇪🇺", desc: "29 стран Европы" },
-  { value: "us_visa", label: "Виза США", icon: "🇺🇸", desc: "B1/B2 (бизнес/туризм)" },
-  { value: "uk_visa", label: "Виза Великобритании", icon: "🇬🇧", desc: "Standard Visitor" },
-  { value: "canada_visa", label: "Виза Канады", icon: "🇨🇦", desc: "Виза посетителя (TRV)" },
-  { value: "australia_visa", label: "Виза Австралии", icon: "🇦🇺", desc: "Виза (Subclass 600)" },
-  { value: "japan_visa", label: "Виза Японии", icon: "🇯🇵", desc: "Туристическая" },
-  { value: "korea_visa", label: "Виза Южной Кореи", icon: "🇰🇷", desc: "K-ETA (разрешение)" },
-  { value: "india_evisa", label: "E-виза Индии", icon: "🇮🇳", desc: "e-Tourist Visa" },
-  { value: "thailand_evisa", label: "Таиланд (Штамп/Виза)", icon: "🇹🇭", desc: "Безвиз (60 дн) или e-Visa" },
-  { value: "vietnam_evisa", label: "E-виза Вьетнама", icon: "🇻🇳", desc: "90 дней (e-Visa)" },
-  { value: "china_visa", label: "Виза Китая", icon: "🇨🇳", desc: "Туристическая L-виза" },
-  { value: "uae_visa", label: "Виза ОАЭ", icon: "🇦🇪", desc: "Виза по прибытии" },
-  { value: "saudi_visa", label: "Виза Саудовской Аравии", icon: "🇸🇦", desc: "e-Visa" },
-  { value: "israel_visa", label: "Виза Израиля", icon: "🇮🇱", desc: "ETA-IL / Туристическая" },
-  { value: "albania_evisa", label: "E-виза Албании", icon: "🇦🇱", desc: "Для граждан РФ" },
+const DOC_VISAS_TOP = [
+  { value: "schengen", label: "Шенген", icon: "🇪🇺" },
+  { value: "us_visa", label: "США", icon: "🇺🇸" },
+  { value: "uk_visa", label: "Великобритания", icon: "🇬🇧" },
+  { value: "japan_visa", label: "Япония", icon: "🇯🇵" },
+  { value: "china_visa", label: "Китай", icon: "🇨🇳" },
+  { value: "uae_visa", label: "ОАЭ", icon: "🇦🇪" },
+  { value: "india_evisa", label: "Индия", icon: "🇮🇳" },
+  { value: "canada_visa", label: "Канада", icon: "🇨🇦" },
 ]
 
 export default function OnboardingPage() {
@@ -80,30 +64,47 @@ export default function OnboardingPage() {
     languages: [] as string[],
   })
 
-  const totalSteps = 13
+  const totalSteps = 6
+
+  const savePreferences = async (prefs: typeof preferences) => {
+    localStorage.setItem("userPreferences", JSON.stringify(prefs))
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name,
+        citizenship: prefs.citizenship,
+        nationality: prefs.nationality,
+        languages: prefs.languages,
+        preferences: {
+          ...prefs,
+          visitedCountries: prefs.visitedCountries
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+        },
+      })
+    }
+    router.push("/plan")
+  }
 
   const handleNext = async () => {
     if (step < totalSteps) {
       setStep(step + 1)
     } else {
-      localStorage.setItem("userPreferences", JSON.stringify(preferences))
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from("profiles").upsert({
-          id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name,
-          citizenship: preferences.citizenship,
-          nationality: preferences.nationality,
-          languages: preferences.languages,
-          preferences: {
-            ...preferences,
-            visitedCountries: preferences.visitedCountries.split(",").map((s) => s.trim()).filter((s) => s.length > 0),
-          },
-        })
-      }
-      router.push("/plan")
+      await savePreferences(preferences)
     }
+  }
+
+  const handleSkip = async () => {
+    // Save minimal preferences so OnboardingPrompt stops showing
+    const prefs = {
+      ...preferences,
+      travelFrequency: preferences.travelFrequency || "sometimes",
+      skipped: true,
+    } as typeof preferences
+    await savePreferences(prefs)
   }
 
   const handleBack = () => {
@@ -118,13 +119,34 @@ export default function OnboardingPage() {
     })
   }
 
-  const optionClass =
-    "flex cursor-pointer items-center gap-4 rounded-2xl border border-border bg-card/50 p-4 transition-all duration-200 hover:bg-accent/50 hover:border-primary/30 active:scale-[0.98] active:bg-primary/10 has-[:checked]:border-primary has-[:checked]:bg-primary/15 has-[:checked]:shadow-[0_0_0_1px_hsl(var(--primary))]"
+  const chip = (selected: boolean) =>
+    cn(
+      "flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm font-medium cursor-pointer transition-all duration-200 select-none",
+      selected
+        ? "border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_hsl(var(--primary))]"
+        : "border-border/60 bg-white/40 dark:bg-card/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+    )
+
+  const tile = (selected: boolean) =>
+    cn(
+      "flex flex-col items-start p-4 rounded-2xl border text-sm font-medium cursor-pointer transition-all duration-200 text-left",
+      selected
+        ? "border-primary bg-primary/15 shadow-[0_0_0_1px_hsl(var(--primary))]"
+        : "border-border/60 bg-white/40 dark:bg-card/40 text-muted-foreground hover:border-primary/40 hover:bg-accent/40"
+    )
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-background text-foreground overflow-x-hidden">
+      {/* Friendly ambient background */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-48 -right-48 w-[700px] h-[700px] rounded-full bg-violet-500/15 dark:bg-violet-500/10 blur-[140px]" />
+        <div className="absolute -bottom-48 -left-48 w-[600px] h-[600px] rounded-full bg-sky-500/15 dark:bg-sky-500/10 blur-[130px]" />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-rose-400/10 dark:bg-rose-400/7 blur-[110px]" />
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full bg-amber-400/10 dark:bg-amber-400/6 blur-[100px]" />
+      </div>
+
       {/* Top bar */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md md:backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-border/40 bg-background/60 backdrop-blur-xl">
         <div className="container max-w-2xl px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo size={24} />
@@ -145,8 +167,8 @@ export default function OnboardingPage() {
                     done
                       ? "h-2 w-2 bg-primary"
                       : active
-                      ? "h-2 w-5 bg-primary"
-                      : "h-2 w-2 bg-muted-foreground/30"
+                      ? "h-2 w-6 bg-primary"
+                      : "h-2 w-2 bg-muted-foreground/25"
                   )}
                 />
               )
@@ -162,9 +184,9 @@ export default function OnboardingPage() {
         </div>
       </header>
 
-      <main className="container max-w-2xl px-4 py-8 md:py-12">
+      <main className="relative z-10 container max-w-2xl px-4 py-8 md:py-10">
         {/* Step label */}
-        <div className="mb-6 text-center">
+        <div className="mb-5 text-center">
           <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Шаг {step} · {STEP_LABELS[step - 1]}
           </span>
@@ -173,559 +195,434 @@ export default function OnboardingPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: 24 }}
+            initial={{ opacity: 0, x: 28 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <Card className="p-6 sm:p-8 bg-card border-border rounded-3xl shadow-sm">
+            <Card className="p-6 sm:p-8 bg-card/75 backdrop-blur-md border-border/50 rounded-3xl shadow-sm">
 
-              {/* Step 1 — Travel frequency */}
+              {/* ─── STEP 1: О вас ─── */}
               {step === 1 && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Как часто вы путешествуете?</h2>
-                    <p className="text-muted-foreground mt-2">Это поможет нам лучше понять ваш опыт.</p>
+                    <h2 className="text-2xl sm:text-3xl font-black">Расскажите о себе</h2>
+                    <p className="text-muted-foreground mt-1.5">Пара вопросов — и AI лучше поймёт вас.</p>
                   </div>
-                  <RadioGroup
-                    value={preferences.travelFrequency}
-                    onValueChange={(v) => setPreferences({ ...preferences, travelFrequency: v })}
-                    className="space-y-3"
-                  >
-                    {[
-                      { value: "rarely", label: "Редко", desc: "Раз в год или реже", icon: "🌱" },
-                      { value: "sometimes", label: "Иногда", desc: "2–3 раза в год", icon: "✈️" },
-                      { value: "often", label: "Часто", desc: "4+ раза в год", icon: "🌍" },
-                      { value: "very-often", label: "Очень часто", desc: "Путешествия — моя страсть!", icon: "🔥" },
-                    ].map((option) => (
-                      <Label key={option.value} htmlFor={option.value} className={optionClass}>
-                        <RadioGroupItem value={option.value} id={option.value} className="border-border text-primary shrink-0" />
-                        <span className="text-2xl shrink-0">{option.icon}</span>
-                        <div>
-                          <span className="font-semibold text-foreground block">{option.label}</span>
-                          <span className="text-sm text-muted-foreground">{option.desc}</span>
-                        </div>
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                </div>
-              )}
 
-              {/* Step 2 — О себе */}
-              {step === 2 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">О вас</h2>
-                    <p className="text-muted-foreground mt-2">Поможет подобрать маршрут под ваши потребности.</p>
-                  </div>
-                  <div className="space-y-5">
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пол</Label>
-                      <RadioGroup
-                        value={preferences.gender}
-                        onValueChange={(v) => setPreferences({ ...preferences, gender: v })}
-                        className="grid grid-cols-3 gap-3"
-                      >
-                        {[
-                          { value: "male", label: "Мужской", icon: "👨" },
-                          { value: "female", label: "Женский", icon: "👩" },
-                          { value: "unspecified", label: "Не указываю", icon: "🤷" },
-                        ].map((o) => (
-                          <Label key={o.value} htmlFor={`gender-${o.value}`} className={cn(optionClass, "relative justify-center flex-col text-center py-4")}>
-                            <RadioGroupItem value={o.value} id={`gender-${o.value}`} className="border-border text-primary absolute right-3 top-3" />
-                            <span className="text-2xl mb-1">{o.icon}</span>
-                            <span className="font-medium text-foreground text-sm">{o.label}</span>
-                          </Label>
-                        ))}
-                      </RadioGroup>
+                  {/* Travel frequency */}
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Как часто путешествуете?</Label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { value: "rarely", label: "Редко", desc: "Раз в год или реже", icon: "🌱" },
+                        { value: "sometimes", label: "Иногда", desc: "2–3 раза в год", icon: "✈️" },
+                        { value: "often", label: "Часто", desc: "4+ раза в год", icon: "🌍" },
+                        { value: "very-often", label: "Это страсть!", desc: "Постоянно", icon: "🔥" },
+                      ].map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setPreferences({ ...preferences, travelFrequency: o.value })}
+                          className={cn(
+                            "flex flex-col items-center text-center p-4 rounded-2xl border transition-all duration-200 gap-2",
+                            preferences.travelFrequency === o.value
+                              ? "border-primary bg-primary/15 shadow-[0_0_0_1px_hsl(var(--primary))]"
+                              : "border-border/60 bg-white/40 dark:bg-card/40 hover:border-primary/40 hover:bg-accent/40"
+                          )}
+                        >
+                          <span className="text-2xl">{o.icon}</span>
+                          <div>
+                            <span className="font-semibold text-foreground text-sm block">{o.label}</span>
+                            <span className="text-xs text-muted-foreground">{o.desc}</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                    <div className="space-y-3 pt-2 border-t border-border">
+                  </div>
+
+                  {/* Gender + Age */}
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/40">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Пол</Label>
+                      <div className="flex gap-1.5">
+                        {[
+                          { value: "male", label: "👨 М" },
+                          { value: "female", label: "👩 Ж" },
+                          { value: "unspecified", label: "🤷 —" },
+                        ].map((o) => (
+                          <button
+                            key={o.value}
+                            type="button"
+                            onClick={() => setPreferences({ ...preferences, gender: o.value })}
+                            className={cn(
+                              "flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all",
+                              preferences.gender === o.value
+                                ? "border-primary bg-primary/15 text-primary shadow-[0_0_0_1px_hsl(var(--primary))]"
+                                : "border-border/60 text-muted-foreground hover:border-primary/40"
+                            )}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
                       <Label htmlFor="age-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Возраст</Label>
                       <Input
                         id="age-input"
                         type="number"
                         min={10}
                         max={100}
-                        placeholder="Например: 28"
+                        placeholder="28"
                         value={preferences.age}
                         onChange={(e) => setPreferences({ ...preferences, age: e.target.value })}
-                        className="h-12 rounded-xl"
+                        className="h-11 rounded-xl"
                       />
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 3 — Visited countries */}
+              {/* ─── STEP 2: Опыт и мечты ─── */}
+              {step === 2 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black">Ваш опыт и мечты</h2>
+                    <p className="text-muted-foreground mt-1.5">AI не будет повторять места, где вы уже были.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Где уже побывали?</Label>
+                    <CityAutocomplete
+                      placeholder="Турция, Египет, Таиланд..."
+                      value={preferences.visitedCountries}
+                      onValueChange={(val) => setPreferences({ ...preferences, visitedCountries: val })}
+                      className="rounded-2xl min-h-[48px]"
+                      multiselect={true}
+                    />
+                    <p className="text-xs text-muted-foreground">Можно оставить пустым</p>
+                  </div>
+
+                  <div className="space-y-3 pt-2 border-t border-border/40">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Куда хотите поехать?</Label>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { value: "russia", label: "🏔 По России" },
+                        { value: "cis", label: "🌿 Страны СНГ" },
+                        { value: "asia", label: "⛩️ Азия" },
+                        { value: "europe", label: "🏛️ Европа" },
+                        { value: "middle-east", label: "🕌 Ближний Восток" },
+                        { value: "americas", label: "🗽 Америка" },
+                      ].map((o) => {
+                        const selected = preferences.preferredDestinations.includes(o.value)
+                        return (
+                          <button
+                            key={o.value}
+                            type="button"
+                            onClick={() => toggleArray("preferredDestinations", o.value)}
+                            className={tile(selected)}
+                          >
+                            <span className={cn("font-semibold text-sm", selected ? "text-primary" : "text-foreground")}>
+                              {o.label}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── STEP 3: Стиль ─── */}
               {step === 3 && (
                 <div className="space-y-6">
-                  <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                    <Globe className="w-5 h-5" />
-                  </div>
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Где вы уже были?</h2>
-                    <p className="text-muted-foreground mt-2">Перечислите страны, которые вы посетили, чтобы AI мог предложить новые места.</p>
-                  </div>
-                  <CityAutocomplete
-                    placeholder="Турция, Египет, Таиланд, Италия..."
-                    value={preferences.visitedCountries}
-                    onValueChange={(val) => setPreferences({ ...preferences, visitedCountries: val })}
-                    className="rounded-2xl min-h-[52px]"
-                    multiselect={true}
-                  />
-                  <p className="text-sm text-muted-foreground">Этот шаг можно пропустить — нажмите «Далее».</p>
-                </div>
-              )}
-
-              {/* Step 4 — Preferred destinations */}
-              {step === 4 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">География планов</h2>
-                    <p className="text-muted-foreground mt-2">Куда планируете или мечтаете поехать?</p>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      { value: "russia", label: "По России", desc: "Алтай, Сочи, Золотое кольцо…", icon: "🏔" },
-                      { value: "cis", label: "Страны СНГ", desc: "Грузия, Армения, Казахстан…", icon: "🌿" },
-                      { value: "asia", label: "Азия", desc: "Таиланд, Бали, Китай…", icon: "⛩️" },
-                      { value: "europe", label: "Европа", desc: "Классические маршруты", icon: "🏛️" },
-                      { value: "middle-east", label: "Ближний Восток", desc: "ОАЭ, Турция, Египет…", icon: "🕌" },
-                      { value: "americas", label: "Америка", desc: "США, Латинская Америка…", icon: "🗽" },
-                    ].map((option) => (
-                      <Label key={option.value} htmlFor={`dest-${option.value}`} className={optionClass}>
-                        <Checkbox
-                          id={`dest-${option.value}`}
-                          checked={preferences.preferredDestinations.includes(option.value)}
-                          onCheckedChange={() => toggleArray("preferredDestinations", option.value)}
-                          className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
-                        />
-                        <span className="text-2xl shrink-0">{option.icon}</span>
-                        <div>
-                          <span className="font-semibold text-foreground block">{option.label}</span>
-                          <span className="text-sm text-muted-foreground">{option.desc}</span>
-                        </div>
-                      </Label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 5 — Special preferences */}
-              {step === 5 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Особые предпочтения</h2>
-                    <p className="text-muted-foreground mt-2">Мы учтём культурные и диетические особенности</p>
+                    <h2 className="text-2xl sm:text-3xl font-black">Стиль путешествия</h2>
+                    <p className="text-muted-foreground mt-1.5">Как вы любите ездить?</p>
                   </div>
 
-                  <div className="space-y-4">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Религия / Культура</Label>
-                    <RadioGroup
-                      value={preferences.religion}
-                      onValueChange={(v) => setPreferences({ ...preferences, religion: v })}
-                      className="grid grid-cols-2 gap-3"
-                    >
+                  {/* Pace */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Темп</Label>
+                    <div className="grid grid-cols-3 gap-2">
                       {[
-                        { value: "none", label: "Не важно" },
-                        { value: "orthodox", label: "Православие" },
-                        { value: "islam", label: "Ислам" },
-                        { value: "buddhism", label: "Буддизм" },
+                        { value: "slow", label: "🌊", desc: "Расслабленный" },
+                        { value: "medium", label: "⚖️", desc: "Сбалансированный" },
+                        { value: "fast", label: "⚡", desc: "Активный" },
                       ].map((o) => (
-                        <Label key={o.value} htmlFor={`rel-${o.value}`} className={cn(optionClass, "justify-start gap-3")}>
-                          <RadioGroupItem value={o.value} id={`rel-${o.value}`} className="border-border text-primary" />
-                          <span className="font-medium text-foreground">{o.label}</span>
-                        </Label>
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setPreferences({ ...preferences, pace: o.value })}
+                          className={cn(
+                            "flex flex-col items-center py-3.5 px-2 rounded-2xl border text-sm font-medium transition-all text-center gap-1.5",
+                            preferences.pace === o.value
+                              ? "border-primary bg-primary/15 shadow-[0_0_0_1px_hsl(var(--primary))]"
+                              : "border-border/60 bg-white/40 dark:bg-card/40 text-muted-foreground hover:border-primary/40"
+                          )}
+                        >
+                          <span className="text-xl">{o.label}</span>
+                          <span className={cn("text-xs leading-tight", preferences.pace === o.value ? "text-primary font-semibold" : "text-muted-foreground")}>
+                            {o.desc}
+                          </span>
+                        </button>
                       ))}
-                    </RadioGroup>
+                    </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-border">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Питание</Label>
-                    <div className="grid grid-cols-2 gap-3">
+                  {/* Accommodation */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Жильё</Label>
+                    <div className="grid grid-cols-2 gap-2">
                       {[
-                        { value: "halal", label: "Халяль" },
-                        { value: "kosher", label: "Кошерно" },
-                        { value: "vegetarian", label: "Вегетарианство" },
-                        { value: "vegan", label: "Веганство" },
-                        { value: "keto", label: "Кето" },
-                        { value: "gluten-free", label: "Без глютена" },
+                        { value: "hotel-budget", label: "🏨 Эконом", desc: "Хостел / 2–3★" },
+                        { value: "apartment", label: "🏠 Апартаменты", desc: "Airbnb / Квартира" },
+                        { value: "hotel-luxury", label: "✨ Комфорт / Люкс", desc: "Отель 4–5★" },
+                        { value: "boutique", label: "🌿 Бутик / Эко", desc: "Глэмпинг" },
                       ].map((o) => (
-                        <Label key={o.value} htmlFor={`diet-${o.value}`} className={cn(optionClass, "justify-start gap-3")}>
-                          <Checkbox
-                            id={`diet-${o.value}`}
-                            checked={preferences.dietaryRestrictions.includes(o.value)}
-                            onCheckedChange={() => toggleArray("dietaryRestrictions", o.value)}
-                            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                          />
-                          <span className="font-medium text-foreground">{o.label}</span>
-                        </Label>
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setPreferences({ ...preferences, accommodation: o.value })}
+                          className={tile(preferences.accommodation === o.value)}
+                        >
+                          <span className={cn("font-semibold text-sm", preferences.accommodation === o.value ? "text-primary" : "text-foreground")}>
+                            {o.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground mt-0.5">{o.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transport */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Транспорт <span className="normal-case font-normal text-muted-foreground/70">(можно несколько)</span>
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "walk", label: "🚶 Пешком" },
+                        { value: "public", label: "🚌 Общественный" },
+                        { value: "taxi", label: "🚕 Такси" },
+                        { value: "car", label: "🚗 Авто" },
+                        { value: "bike", label: "🚲 Велосипед" },
+                      ].map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => toggleArray("transport", o.value)}
+                          className={chip(preferences.transport.includes(o.value))}
+                        >
+                          {o.label}
+                        </button>
                       ))}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Step 6 — Transport */}
-              {step === 6 && (
+              {/* ─── STEP 4: Интересы ─── */}
+              {step === 4 && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Транспорт</h2>
-                    <p className="text-muted-foreground mt-2">Как вы любите передвигаться?</p>
+                    <h2 className="text-2xl sm:text-3xl font-black">Ваши интересы</h2>
+                    <p className="text-muted-foreground mt-1.5">Выберите всё, что вам откликается</p>
                   </div>
-                  <div className="space-y-3">
-                    {[
-                      { value: "walk", label: "Пешком", icon: "🚶", desc: "Много хожу" },
-                      { value: "public", label: "Транспорт", icon: "🚌", desc: "Метро / Автобус" },
-                      { value: "taxi", label: "Такси", icon: "🚕", desc: "Комфорт" },
-                      { value: "car", label: "Авто", icon: "🚗", desc: "Аренда машины" },
-                      { value: "bike", label: "Велосипед", icon: "🚲", desc: "Активность" },
-                    ].map((o) => (
-                      <Label key={o.value} htmlFor={`trans-${o.value}`} className={optionClass}>
-                        <Checkbox
-                          id={`trans-${o.value}`}
-                          checked={preferences.transport.includes(o.value)}
-                          onCheckedChange={() => toggleArray("transport", o.value)}
-                          className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
-                        />
-                        <span className="text-2xl shrink-0">{o.icon}</span>
-                        <div>
-                          <span className="font-semibold text-foreground block">{o.label}</span>
-                          <span className="text-sm text-muted-foreground">{o.desc}</span>
-                        </div>
-                      </Label>
-                    ))}
-                  </div>
-                </div>
-              )}
 
-              {/* Step 7 — Accommodation */}
-              {step === 7 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Жильё</h2>
-                    <p className="text-muted-foreground mt-2">Где вам комфортнее всего?</p>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Интересы</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { value: "museums", label: "🏛️ Музеи и искусство" },
+                        { value: "nature", label: "🏔 Природа и горы" },
+                        { value: "food", label: "🍽️ Гастро-туры" },
+                        { value: "history", label: "📜 История" },
+                        { value: "spiritual", label: "⛩️ Святые места" },
+                        { value: "local", label: "🗺️ Как местный" },
+                        { value: "shopping", label: "🛍️ Шоппинг" },
+                        { value: "photo", label: "📸 Фото-споты" },
+                        { value: "nightlife", label: "🌙 Ночная жизнь" },
+                        { value: "tech", label: "🤖 Технологии" },
+                      ].map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => toggleArray("interestsDetailed", o.value)}
+                          className={chip(preferences.interestsDetailed.includes(o.value))}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <RadioGroup
-                    value={preferences.accommodation}
-                    onValueChange={(v) => setPreferences({ ...preferences, accommodation: v })}
-                    className="space-y-3"
-                  >
-                    {[
-                      { value: "hotel-budget", label: "Эконом", icon: "🏨", desc: "Хостел / 2–3★" },
-                      { value: "apartment", label: "Апартаменты", icon: "🏠", desc: "Airbnb / Квартира" },
-                      { value: "hotel-luxury", label: "Комфорт / Люкс", icon: "✨", desc: "Отель 4–5★" },
-                      { value: "boutique", label: "Бутик / Эко", icon: "🌿", desc: "Глэмпинг, Глэмпинг" },
-                    ].map((o) => (
-                      <Label key={o.value} htmlFor={`acc-${o.value}`} className={optionClass}>
-                        <RadioGroupItem value={o.value} id={`acc-${o.value}`} className="border-border text-primary shrink-0" />
-                        <span className="text-2xl shrink-0">{o.icon}</span>
-                        <div>
-                          <span className="font-semibold text-foreground block">{o.label}</span>
-                          <span className="text-sm text-muted-foreground">{o.desc}</span>
-                        </div>
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                </div>
-              )}
 
-              {/* Step 8 — Pace */}
-              {step === 8 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Темп путешествия</h2>
-                    <p className="text-muted-foreground mt-2">Насколько насыщенным должен быть день?</p>
-                  </div>
-                  <RadioGroup
-                    value={preferences.pace}
-                    onValueChange={(v) => setPreferences({ ...preferences, pace: v })}
-                    className="space-y-3"
-                  >
-                    {[
-                      { value: "slow", label: "Спокойный", desc: "1–2 места, релакс и отдых", color: "text-blue-500", icon: "🌊" },
-                      { value: "medium", label: "Сбалансированный", desc: "3–4 места, разумный темп", color: "text-emerald-500", icon: "⚖️" },
-                      { value: "fast", label: "Галопом", desc: "Максимум всего, ранний подъём", color: "text-orange-500", icon: "⚡" },
-                    ].map((o) => (
-                      <Label
-                        key={o.value}
-                        htmlFor={`pace-${o.value}`}
-                        className={cn(optionClass, "flex-row items-center")}
-                      >
-                        <RadioGroupItem value={o.value} id={`pace-${o.value}`} className="border-border text-primary shrink-0" />
-                        <span className="text-2xl shrink-0">{o.icon}</span>
-                        <div className="flex-1">
-                          <span className={cn("font-bold block", o.color)}>{o.label}</span>
-                          <span className="text-sm text-muted-foreground">{o.desc}</span>
-                        </div>
-                      </Label>
-                    ))}
-                  </RadioGroup>
-                </div>
-              )}
-
-              {/* Step 9 — Interests */}
-              {step === 9 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Интересы</h2>
-                    <p className="text-muted-foreground mt-2">Выберите всё, что вам откликается</p>
-                  </div>
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    {[
-                      { value: "museums", label: "Музеи и Искусство", icon: "🏛️" },
-                      { value: "nature", label: "Природа и Горы", icon: "🏔" },
-                      { value: "food", label: "Гастро-туры", icon: "🍽️" },
-                      { value: "history", label: "История", icon: "📜" },
-                      { value: "spiritual", label: "Святые места", icon: "⛩️" },
-                      { value: "local", label: "Как местный", icon: "🗺️" },
-                      { value: "shopping", label: "Шоппинг", icon: "🛍️" },
-                      { value: "photo", label: "Фото-споты", icon: "📸" },
-                      { value: "nightlife", label: "Ночная жизнь", icon: "🌙" },
-                      { value: "tech", label: "Технологии", icon: "🤖" },
-                    ].map((o) => (
-                      <Label key={o.value} htmlFor={`int-${o.value}`} className={optionClass}>
-                        <Checkbox
-                          id={`int-${o.value}`}
-                          checked={preferences.interestsDetailed.includes(o.value)}
-                          onCheckedChange={() => toggleArray("interestsDetailed", o.value)}
-                          className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
-                        />
-                        <span className="text-lg shrink-0">{o.icon}</span>
-                        <span className="font-medium text-foreground text-sm">{o.label}</span>
-                      </Label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 10 — Citizenship */}
-              {step === 10 && (
-                <div className="space-y-6">
-                  <div className="h-11 w-11 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Гражданство</h2>
-                    <p className="text-muted-foreground mt-2">Нужно для проверки визовых требований.</p>
-                  </div>
-                  <div className="space-y-4">
+                  <div className="pt-2 border-t border-border/40 space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="citizenship" className="text-sm font-medium">Гражданство</Label>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Религия / Культура</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { value: "none", label: "Не важно" },
+                          { value: "orthodox", label: "☦️ Православие" },
+                          { value: "islam", label: "☪️ Ислам" },
+                          { value: "buddhism", label: "☸️ Буддизм" },
+                        ].map((o) => (
+                          <button
+                            key={o.value}
+                            type="button"
+                            onClick={() => setPreferences({ ...preferences, religion: o.value })}
+                            className={chip(preferences.religion === o.value)}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Питание</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { value: "halal", label: "☪️ Халяль" },
+                          { value: "kosher", label: "✡️ Кошерно" },
+                          { value: "vegetarian", label: "🥗 Вегетарианство" },
+                          { value: "vegan", label: "🌱 Веганство" },
+                          { value: "keto", label: "🥩 Кето" },
+                          { value: "gluten-free", label: "🌾 Без глютена" },
+                        ].map((o) => (
+                          <button
+                            key={o.value}
+                            type="button"
+                            onClick={() => toggleArray("dietaryRestrictions", o.value)}
+                            className={chip(preferences.dietaryRestrictions.includes(o.value))}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── STEP 5: Документы ─── */}
+              {step === 5 && (
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black">Документы и языки</h2>
+                    <p className="text-muted-foreground mt-1.5">AI учтёт, куда вы можете поехать без визы.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="citizenship" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Гражданство</Label>
                       <Input
                         id="citizenship"
                         placeholder="Например: РФ"
                         value={preferences.citizenship}
                         onChange={(e) => setPreferences({ ...preferences, citizenship: e.target.value })}
-                        className="h-12 rounded-xl"
+                        className="h-11 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="nationality" className="text-sm font-medium">Национальность <span className="text-muted-foreground font-normal">(опционально)</span></Label>
+                      <Label htmlFor="nationality" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Национальность <span className="normal-case font-normal text-muted-foreground/60">(опц.)</span>
+                      </Label>
                       <Input
                         id="nationality"
-                        placeholder="Например: Русский"
+                        placeholder="Русский"
                         value={preferences.nationality}
                         onChange={(e) => setPreferences({ ...preferences, nationality: e.target.value })}
-                        className="h-12 rounded-xl"
+                        className="h-11 rounded-xl"
                       />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Step 11 — Documents */}
-              {step === 11 && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Ваши документы</h2>
-                    <p className="text-muted-foreground mt-2">Какие паспорта и визы у вас есть? AI будет предлагать только доступные для вас страны.</p>
-                  </div>
-
-                  {/* Passports */}
-                  <div className="space-y-3">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Паспорта и удостоверения</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {DOC_PASSPORTS.map((doc) => (
-                        <Label key={doc.value} htmlFor={`doc-${doc.value}`} className={cn(optionClass, "relative flex-col text-center py-4 justify-center")}>
-                          <Checkbox
-                            id={`doc-${doc.value}`}
-                            checked={preferences.documents.includes(doc.value)}
-                            onCheckedChange={() => toggleArray("documents", doc.value)}
-                            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary absolute right-3 top-3"
-                          />
-                          <span className="text-2xl mb-1">{doc.icon}</span>
-                          <span className="font-semibold text-foreground text-sm block">{doc.label}</span>
-                          <span className="text-xs text-muted-foreground">{doc.desc}</span>
-                        </Label>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Языки</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: "ru", label: "🇷🇺 Русский" },
+                        { id: "en", label: "🇬🇧 Английский" },
+                        { id: "local", label: "📚 Учу местный" },
+                        { id: "other", label: "🌐 Другие" },
+                      ].map((lang) => (
+                        <button
+                          key={lang.id}
+                          type="button"
+                          onClick={() => toggleArray("languages", lang.label)}
+                          className={chip(preferences.languages.includes(lang.label))}
+                        >
+                          {lang.label}
+                        </button>
                       ))}
                     </div>
-                    {/* Other country passport */}
-                    <div className="flex gap-2 items-center">
-                      <span className="text-xl shrink-0">🌍</span>
-                      <Input
-                        placeholder="Паспорт другой страны (напр: Израиль)"
-                        className="h-10 rounded-xl text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const val = e.currentTarget.value.trim()
-                            if (val) {
-                              const key = `passport:${val}`
-                              if (!preferences.documents.includes(key)) {
-                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
-                              }
-                              e.currentTarget.value = ''
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                    {/* Other country ID */}
-                    <div className="flex gap-2 items-center">
-                      <span className="text-xl shrink-0">🆔</span>
-                      <Input
-                        placeholder="ID-карта другой страны (напр: Германия)"
-                        className="h-10 rounded-xl text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const val = e.currentTarget.value.trim()
-                            if (val) {
-                              const key = `id:${val}`
-                              if (!preferences.documents.includes(key)) {
-                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
-                              }
-                              e.currentTarget.value = ''
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                    {/* Show added custom passport/IDs */}
-                    {preferences.documents.filter(d => d.startsWith('passport:') || d.startsWith('id:')).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {preferences.documents.filter(d => d.startsWith('passport:') || d.startsWith('id:')).map(d => (
-                          <Badge key={d} variant="secondary" className="cursor-pointer rounded-full" onClick={() => setPreferences({ ...preferences, documents: preferences.documents.filter(x => x !== d) })}>
-                            {d.startsWith('passport:') ? `🌍 Паспорт ${d.split(':')[1]}` : `🆔 ID ${d.split(':')[1]}`} ×
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Visas */}
-                  <div className="space-y-3 pt-2 border-t border-border">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Визы</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {DOC_VISAS.map((doc) => {
-                        const checked = preferences.documents.includes(doc.value)
-                        return (
-                          <button
-                            key={doc.value}
-                            type="button"
-                            onClick={() => toggleArray("documents", doc.value)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition-all text-left duration-200 active:scale-[0.98] ${checked ? 'border-primary bg-primary/15 shadow-[0_0_0_1px_hsl(var(--primary))]' : 'border-border bg-card/50 hover:bg-accent/50 hover:border-primary/30 active:bg-primary/10'}`}
-                          >
-                            <span className="text-base shrink-0">{doc.icon}</span>
-                            <div className="min-w-0">
-                              <span className="font-medium text-foreground text-xs block truncate">{doc.label}</span>
-                              <span className="text-[10px] text-muted-foreground">{doc.desc}</span>
-                            </div>
-                          </button>
-                        )
-                      })}
+                  <div className="space-y-2 pt-2 border-t border-border/40">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Паспорта</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DOC_PASSPORTS.map((doc) => (
+                        <button
+                          key={doc.value}
+                          type="button"
+                          onClick={() => toggleArray("documents", doc.value)}
+                          className={chip(preferences.documents.includes(doc.value))}
+                        >
+                          {doc.icon} {doc.label}
+                        </button>
+                      ))}
                     </div>
-                    {/* Custom visa input */}
-                    <div className="flex gap-2 items-center">
-                      <span className="text-xl shrink-0">✈️</span>
-                      <Input
-                        placeholder="Другая виза → Enter (напр: Албания)"
-                        className="h-10 rounded-xl text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const val = e.currentTarget.value.trim()
-                            if (val) {
-                              const key = `visa:${val}`
-                              if (!preferences.documents.includes(key)) {
-                                setPreferences({ ...preferences, documents: [...preferences.documents, key] })
-                              }
-                              e.currentTarget.value = ''
-                            }
-                          }
-                        }}
-                      />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Визы <span className="normal-case font-normal text-muted-foreground/60">(если есть)</span>
+                    </Label>
+                    <div className="flex flex-wrap gap-2">
+                      {DOC_VISAS_TOP.map((doc) => (
+                        <button
+                          key={doc.value}
+                          type="button"
+                          onClick={() => toggleArray("documents", doc.value)}
+                          className={chip(preferences.documents.includes(doc.value))}
+                        >
+                          {doc.icon} {doc.label}
+                        </button>
+                      ))}
                     </div>
-                    {preferences.documents.filter(d => d.startsWith('visa:')).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {preferences.documents.filter(d => d.startsWith('visa:')).map(d => (
-                          <Badge key={d} variant="secondary" className="cursor-pointer rounded-full" onClick={() => setPreferences({ ...preferences, documents: preferences.documents.filter(x => x !== d) })}>
-                            ✈️ Виза {d.split(':')[1]} ×
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
 
-              {/* Step 12 — Languages */}
-              {step === 12 && (
-                <div className="space-y-6">
-                  <div className="h-11 w-11 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-500">
-                    <Languages className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-foreground">Языки</h2>
-                    <p className="text-muted-foreground mt-2">Какими языками вы владеете?</p>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {[
-                      { id: "ru", label: "Русский", icon: "🇷🇺" },
-                      { id: "en", label: "Английский", icon: "🇬🇧" },
-                      { id: "local", label: "Хочу учить местный", icon: "📚" },
-                      { id: "other", label: "Другие языки", icon: "🌐" },
-                    ].map((lang) => (
-                      <Label key={lang.id} htmlFor={`lang-${lang.id}`} className={optionClass}>
-                        <Checkbox
-                          id={`lang-${lang.id}`}
-                          checked={preferences.languages.includes(lang.label)}
-                          onCheckedChange={() => toggleArray("languages", lang.label)}
-                          className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
-                        />
-                        <span className="text-xl">{lang.icon}</span>
-                        <span className="font-medium text-foreground">{lang.label}</span>
-                      </Label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 13 — Done */}
-              {step === 13 && (
-                <div className="space-y-8 text-center py-6">
+              {/* ─── STEP 6: Готово! ─── */}
+              {step === 6 && (
+                <div className="space-y-8 text-center py-4">
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                    className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-violet-500 shadow-md md:shadow-2xl shadow-primary/30"
+                    className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-violet-500 shadow-2xl shadow-primary/30"
                   >
                     <Sparkles className="h-10 w-10 text-white fill-white" />
                   </motion.div>
+
                   <div>
-                    <h2 className="text-3xl sm:text-4xl font-black text-foreground">Профиль готов!</h2>
+                    <h2 className="text-3xl sm:text-4xl font-black">Профиль готов!</h2>
                     <p className="text-lg text-muted-foreground mt-3 max-w-sm mx-auto">
                       AI теперь знает вас лучше. Создадим ваш первый идеальный маршрут?
                     </p>
                   </div>
 
-                  <div className="bg-muted/50 rounded-2xl p-5 text-left border border-border space-y-3">
+                  <div className="bg-muted/40 rounded-2xl p-5 text-left border border-border/50 space-y-3">
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ваш профиль</p>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="rounded-full">
-                        {preferences.pace === "fast" ? "⚡ Активный" : preferences.pace === "slow" ? "🌊 Размеренный" : "⚖️ Сбалансированный"}
-                      </Badge>
+                      {preferences.pace && (
+                        <Badge variant="secondary" className="rounded-full">
+                          {preferences.pace === "fast" ? "⚡ Активный" : preferences.pace === "slow" ? "🌊 Размеренный" : "⚖️ Сбалансированный"}
+                        </Badge>
+                      )}
                       {preferences.accommodation && (
                         <Badge variant="outline" className="rounded-full border-primary/40 text-primary">
                           {preferences.accommodation === "hotel-luxury" ? "✨ Люкс" :
@@ -741,6 +638,9 @@ export default function OnboardingPage() {
                       {preferences.interestsDetailed.slice(0, 3).map((s) => (
                         <Badge key={s} variant="secondary" className="rounded-full">{s}</Badge>
                       ))}
+                      {!preferences.pace && !preferences.accommodation && preferences.interestsDetailed.length === 0 && (
+                        <Badge variant="secondary" className="rounded-full">✈️ Готов к путешествиям</Badge>
+                      )}
                     </div>
                   </div>
 
@@ -750,7 +650,7 @@ export default function OnboardingPage() {
                       { icon: "🏨", label: "Отели", sub: "из базы" },
                       { icon: "🤖", label: "AI-план", sub: "за секунды" },
                     ].map((f) => (
-                      <div key={f.label} className="p-3 rounded-2xl bg-muted/50 border border-border">
+                      <div key={f.label} className="p-3 rounded-2xl bg-muted/50 border border-border/50">
                         <div className="text-xl mb-1">{f.icon}</div>
                         <div className="text-xs font-semibold text-foreground">{f.label}</div>
                         <div className="text-[10px] text-muted-foreground">{f.sub}</div>
@@ -759,17 +659,18 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               )}
+
             </Card>
           </motion.div>
         </AnimatePresence>
 
         {/* Navigation */}
-        <div className="mt-6 flex gap-3">
+        <div className="mt-5 flex gap-3">
           {step > 1 && (
             <Button
               variant="outline"
               onClick={handleBack}
-              className="h-12 px-5 rounded-xl border-border font-semibold"
+              className="h-12 px-5 rounded-xl border-border/60 font-semibold"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Назад
@@ -780,16 +681,19 @@ export default function OnboardingPage() {
             className="flex-1 h-12 rounded-xl text-base font-bold"
             disabled={step === 1 && !preferences.travelFrequency}
           >
-            {step === totalSteps ? "Создать профиль" : "Далее"}
+            {step === totalSteps ? "Создать профиль и начать" : "Далее"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
 
-        {/* Skip hint on optional steps */}
-        {[2, 3, 5, 10, 11, 12].includes(step) && (
-          <p className="text-center text-xs text-muted-foreground mt-3">
-            Этот шаг необязателен — можно пропустить
-          </p>
+        {/* Skip link */}
+        {step < totalSteps && (
+          <button
+            onClick={handleSkip}
+            className="block mx-auto mt-4 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors underline-offset-2 hover:underline"
+          >
+            Пропустить и начать планировать →
+          </button>
         )}
       </main>
     </div>

@@ -54,27 +54,25 @@ export async function GET(request: Request) {
 
                 const hasPreferences = profile?.preferences && Object.keys(profile.preferences as object).length > 0
 
-                if (!hasPreferences) {
-                    // This is a new user proceeding to onboarding. Check and grant 7-day PRO trial
-                    if (!profile?.subscription_tier || profile.subscription_tier === 'free') {
-                        const serviceClient = createClient(
-                            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                            process.env.SUPABASE_SERVICE_ROLE_KEY!
-                        )
-                        const expiresAt = new Date()
-                        expiresAt.setDate(expiresAt.getDate() + 7)
-                        
-                        await serviceClient
-                            .from('profiles')
-                            .update({ 
-                                subscription_tier: 'pro',
-                                subscription_expires_at: expiresAt.toISOString(),
-                                site_access: true
-                            })
-                            .eq('id', user.id)
-                    }
-                    return NextResponse.redirect(`${siteUrl}/onboarding`)
+                // Grant 7-day PRO trial to new users (no preferences = first login)
+                if (!hasPreferences && (!profile?.subscription_tier || profile.subscription_tier === 'free')) {
+                    const serviceClient = createClient(
+                        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                        process.env.SUPABASE_SERVICE_ROLE_KEY!
+                    )
+                    const expiresAt = new Date()
+                    expiresAt.setDate(expiresAt.getDate() + 7)
+
+                    await serviceClient
+                        .from('profiles')
+                        .update({
+                            subscription_tier: 'pro',
+                            subscription_expires_at: expiresAt.toISOString(),
+                            site_access: true
+                        })
+                        .eq('id', user.id)
                 }
+                // New users go directly to /plan — OnboardingPrompt will appear there
 
                 if (next !== '/') {
                     return NextResponse.redirect(`${siteUrl}${next}`)

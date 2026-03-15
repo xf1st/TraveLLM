@@ -43,7 +43,10 @@ import {
   Bus,
   Banknote
 } from "lucide-react"
-import { GeneratingModal } from "@/components/GeneratingModal"
+const GeneratingModal = dynamic(
+  () => import("@/components/GeneratingModal").then(m => ({ default: m.GeneratingModal })),
+  { ssr: false }
+)
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { AlertTriangle } from "lucide-react"
@@ -1132,7 +1135,7 @@ export default function PlanPage() {
         </Stepper>
 
         <p className="mt-6 text-center text-xs text-muted-foreground animate-in fade-in duration-1000 delay-500">
-          Бесплатно доступна 1 генерация маршрута.
+          Бесплатно доступны 3 генерации маршрута.
         </p>
       </div>
     </AppLayout>

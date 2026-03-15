@@ -50,13 +50,16 @@ export interface PromptBuilderParams {
     isLastDayEarlyDeparture?: boolean
     flightArrivalTime?: string
     flightDepartureTime?: string
-    
+
     // Специальные поля
     safeHighlight?: string
     destinationType?: string
     strictDestinations?: boolean
     countryCount?: string | number
     filterByDocuments?: boolean
+
+    // Динамический статус аэропортов (от AeroDataBox)
+    airportValidationContext?: string
 }
 
 export interface EnrichedPrompt {
@@ -99,7 +102,8 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
         destinationType,
         strictDestinations,
         countryCount,
-        filterByDocuments
+        filterByDocuments,
+        airportValidationContext
     } = params
 
     // Рассчитываем длительность
@@ -163,6 +167,13 @@ ${strictDestinations ? `⚠️ НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИ
     }
 
     // 4. ПЕРСОНАЛИЗАЦИЯ
+    const citizenshipLine = preferences?.citizenship ? `- Гражданство: ${preferences.citizenship}` : ''
+    const languagesLine = preferences?.languages?.length ? `- Языки: ${preferences.languages.join(', ')}` : ''
+    const visitedLine = preferences?.visitedCountries?.length ? `- Уже посещённые страны: ${preferences.visitedCountries.join(', ')} (не повторяй эти направления если не просят)` : ''
+    const docsLine = filterByDocuments && preferences?.citizenship
+        ? `⚠️ ВИЗОВЫЕ ОГРАНИЧЕНИЯ: Учти реальные визовые требования для гражданина "${preferences.citizenship}". Приоритет — безвизовые или e-visa направления.`
+        : ''
+
     userParts.push(`
 ПЕРСОНАЛИЗАЦИЯ:
 - Стиль: ${formatTravelStyleForPrompt(mainTravelStyle)}
@@ -170,6 +181,10 @@ ${strictDestinations ? `⚠️ НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИ
 - Темп: ${preferences?.pace || 'moderate'}
 - Диета: ${preferences?.dietaryRestrictions?.join(', ') || 'Без ограничений'}
 - Интересы: ${preferences?.interestsDetailed?.join(', ') || 'Общие'}
+${citizenshipLine}
+${languagesLine}
+${visitedLine}
+${docsLine}
 `.trim())
 
     // 5. РЕАЛЬНОСТЬ 2026
@@ -178,6 +193,7 @@ ${strictDestinations ? `⚠️ НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИ
 - Ограничения: ${GROUNDING_DATA_2026.globalRestrictions.join('; ')}
 - Авиасообщение: Прямые рейсы доступны во многие страны (Турция, ОАЭ, Сербия, Китай, Таиланд, Грузия, Армения и др.). В Европу и США — через пересадочные хабы (Стамбул, Ереван, Баку, Доха).
 - Тренды: ${Object.values(GROUNDING_DATA_2026.trendingLocations).flat().join(', ')}
+${airportValidationContext ? `- АЭРОПОРТЫ: ${airportValidationContext}` : ''}
 `.trim())
 
     // 6. СПЕЦИАЛЬНОЕ ПОЖЕЛАНИЕ
@@ -204,47 +220,15 @@ ${strictDestinations ? `⚠️ НЕ МЕНЯЙ ГОРОДА НИ ПРИ КАКИ
     // 8. ФОРМАТ ОТВЕТА
     userParts.push(`
 ФОРМАТ ОТВЕТА:
-Верни JSON объект со следующей структурой:
-{
-  "title": "Креативное и привлекательное название маршрута",
-  "description": "Завлекающее описание маршрута (2-3 предложения)",
-  "totalBudget": "Оценка общей стоимости в рублях",
-  "budgetAnalysis": {
-    "avgAccommodation": "за ночь",
-    "avgFood": "в день",
-    "avgTransport": "всего",
-    "avgActivities": "всего",
-    "avgMisc": "запас"
-  },
-  "visaAdvice": "Краткая справка по визам для граждан РФ",
-  "paymentAdvice": "Какие карты работают (МИР, UnionPay, наличные)",
-  "safetyInfo": { "rating": 1-10, "tips": "Советы по безопасности" },
-  "restrictions": "Текущие ограничения или null",
-  "countries": [{"name": "Название страны", "visaRequired": true, "visaType": "тип"}],
-  "tags": ["тег1", "тег2"],
-  "viralSpots": [
-    { "name": "Место", "desc": "Почему это популярно", "mapLink": "https://..." }
-  ],
-  "itinerary": [
-    {
-      "day": 1,
-      "title": "Заголовок дня",
-      "dayTotal": "Сумма за день",
-      "activities": [
-        {
-          "time": "Утро/День/Вечер",
-          "type": "transport/hotel/food/activity/free",
-          "title": "Название активности",
-          "placeName": "Название места",
-          "desc": "Описание",
-          "cost": "Стоимость в ₽",
-          "imageQuery": "English keywords for Pexels search",
-          "mapLink": "https://google.com/maps/..."
-        }
-      ]
-    }
-  ]
-}
+Верни строго JSON объект со следующими полями:
+- title, description, totalBudget
+- budgetAnalysis: { avgAccommodation, avgFood, avgTransport, avgActivities, avgMisc }
+- visaAdvice, paymentAdvice, restrictions
+- safetyInfo: { rating (число 1-10), tips }
+- countries: [{ name, visaRequired, visaType }]
+- tags: string[]
+- viralSpots: [{ name, desc, mapLink }]
+- itinerary: [{ day, title, dayTotal, tips, activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink }] }]
 `.trim())
 
     const userPrompt = userParts.join("\n\n")

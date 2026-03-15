@@ -176,21 +176,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
-    // If new user (no preferences), redirect to onboarding instead of /plan
-    try {
-      if (session?.user?.id) {
-        const { data: profile } = await adminAuth
-          .from('profiles')
-          .select('preferences')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (!profile?.preferences) {
-          return NextResponse.redirect(`${siteUrl}/onboarding`);
-        }
-      }
-    } catch (e) {}
-
+    // New users go directly to /plan — OnboardingPrompt will appear there as a non-blocking popup
     return NextResponse.redirect(`${siteUrl}/plan`);
 
   } catch (err: any) {

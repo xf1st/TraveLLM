@@ -42,12 +42,10 @@ function AuthContent() {
     } else {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile } = await supabase.from("profiles").select("preferences").eq("id", user.id).single()
-        const hasPreferences = profile?.preferences && Object.keys(profile.preferences as object).length > 0
         const next = searchParams.get("next")
-        router.push(next || (hasPreferences ? defaultRedirect : "/onboarding"))
+        router.push(next || defaultRedirect)
       } else {
-        router.push("/onboarding")
+        router.push(defaultRedirect)
       }
       localStorage.setItem("user", JSON.stringify({ email, name: "Пользователь" }))
     }

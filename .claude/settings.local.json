@@ -35,7 +35,10 @@
       "Bash(head:*)",
       "Bash(grep:*)",
       "mcp__claude_ai_Notion__notion-create-pages",
-      "Bash(printenv:*)"
+      "Bash(printenv:*)",
+      "Bash(find \"D:\\\\sites\\\\TraveLLM\\\\app\" -name \"*.tsx\" -exec grep -l \"use client\" {} ;)",
+      "Bash(find \"D:\\\\sites\\\\TraveLLM\" -name \"*.tsx\" -path \"*/components/*\" -exec grep -l \"import.*three\\\\|import.*ogl\\\\|from.*undici\" {} ;)",
+      "Bash(ls -la /d/sites/TraveLLM/lib/supabase*)"
     ]
   }
 }
