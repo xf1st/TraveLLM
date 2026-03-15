@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { ProxyAgent } from "undici"
+
+// Proxy configuration
+const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
+const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined;
 
 type Bbox = {
   south: number
@@ -106,11 +111,18 @@ const fetchOverpass = async (query: string) => {
   let lastError: unknown = null
   for (const endpoint of OVERPASS_URLS) {
     try {
-      const response = await fetch(endpoint, {
+      const fetchOptions: RequestInit = {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
         body: `data=${encodeURIComponent(query)}`,
-      })
+      };
+
+      if (proxyDispatcher) {
+        // @ts-ignore
+        fetchOptions.dispatcher = proxyDispatcher;
+      }
+
+      const response = await fetch(endpoint, fetchOptions)
       const raw = await response.text()
 
       if (!response.ok) {

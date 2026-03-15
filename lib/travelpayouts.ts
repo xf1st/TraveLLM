@@ -777,8 +777,14 @@ export async function getCheapestTickets(
   if (returnMonth) params.set("return_date", returnMonth)
 
   try {
+    const fetchOptions: RequestInit = {};
+    if (proxyDispatcher) {
+        // @ts-ignore
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
     const response = await fetch(
-      `${API_BASE_URL}/v1/prices/cheap?${params.toString()}`
+      `${API_BASE_URL}/v1/prices/cheap?${params.toString()}`,
+      fetchOptions
     )
 
     if (!response.ok) {
@@ -880,8 +886,14 @@ export async function getPriceCalendar(
   }
 
   try {
+    const fetchOptions: RequestInit = {};
+    if (proxyDispatcher) {
+        // @ts-ignore
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
     const response = await fetch(
-      `https://min-prices.aviasales.ru/calendar_preload?origin=${origin}&destination=${destination}&depart_date=${departDate}&one_way=false&token=${TRAVELPAYOUTS_API_TOKEN}`
+      `https://min-prices.aviasales.ru/calendar_preload?origin=${origin}&destination=${destination}&depart_date=${departDate}&one_way=false&token=${TRAVELPAYOUTS_API_TOKEN}`,
+      fetchOptions
     )
 
     if (!response.ok) {
@@ -936,8 +948,14 @@ export async function getWeekMatrix(
   })
 
   try {
+    const fetchOptions: RequestInit = {};
+    if (proxyDispatcher) {
+        // @ts-ignore
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
     const response = await fetch(
-      `${API_BASE_URL}/v2/prices/week-matrix?${params.toString()}`
+      `${API_BASE_URL}/v2/prices/week-matrix?${params.toString()}`,
+      fetchOptions
     )
 
     if (!response.ok) {
@@ -983,8 +1001,14 @@ export async function getSpecialOffers(
   if (origin) params.set("origin", origin)
 
   try {
+    const fetchOptions: RequestInit = {};
+    if (proxyDispatcher) {
+        // @ts-ignore
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
     const response = await fetch(
-      `${API_BASE_URL}/aviasales/v3/get_special_offers?${params.toString()}`
+      `${API_BASE_URL}/aviasales/v3/get_special_offers?${params.toString()}`,
+      fetchOptions
     )
 
     if (!response.ok) {

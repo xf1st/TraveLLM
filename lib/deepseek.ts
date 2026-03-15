@@ -1,5 +1,8 @@
-// DeepSeek API Client
-// https://api.deepseek.com
+import { ProxyAgent } from "undici";
+
+// Proxy configuration
+const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
+const proxyDispatcher = PROXY_URL ? new ProxyAgent(PROXY_URL) : undefined;
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 
@@ -8,8 +11,6 @@ export const DEEPSEEK_CHAT = "deepseek-chat";        // 8k output
 export const DEEPSEEK_REASONER = "deepseek-reasoner"; // 16k output
 
 // DeepSeek pricing (Jan 2026) - prices per 1M tokens
-// deepseek-chat: $0.14 input, $0.28 output (cache hit: $0.014 input)
-// deepseek-reasoner: $0.55 input, $2.19 output (cache hit: $0.055 input)
 const PRICING = {
     [DEEPSEEK_CHAT]: {
         input: 0.14 / 1_000_000,
@@ -156,14 +157,21 @@ async function runDeepseekInference(
 
     const startTime = Date.now();
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const fetchOptions: RequestInit = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         },
         body: JSON.stringify(bodyPayload),
-    });
+    };
+
+    if (proxyDispatcher) {
+        // @ts-ignore - dispatcher is a valid Node 18+ undici fetch option
+        fetchOptions.dispatcher = proxyDispatcher;
+    }
+
+    const response = await fetch("https://api.deepseek.com/chat/completions", fetchOptions);
 
     if (!response.ok) {
         const errorText = await response.text();
