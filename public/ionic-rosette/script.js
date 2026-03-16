@@ -1,4 +1,4 @@
-// TraveLM Standalone Landing Page Script
+// TraveLLM Standalone Landing Page Script
 
 document.addEventListener("DOMContentLoaded", () => {
   // initThemeSwitcher removed

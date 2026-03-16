@@ -86,7 +86,7 @@ function VerifyEmailContent() {
                     Что дальше?
                   </p>
                   <ul className="text-blue-800 dark:text-blue-200 space-y-1 text-xs">
-                    <li>• Откройте письмо от TraveLM в вашей почте</li>
+                    <li>• Откройте письмо от TraveLLM в вашей почте</li>
                     <li>• Нажмите на кнопку "Подтвердить email"</li>
                     <li>• Вы будете перенаправлены в приложение</li>
                   </ul>

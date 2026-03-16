@@ -490,7 +490,7 @@ export const articlesLibrary: Article[] = [
     `,
         tags: ["#тренды", "#советы", "#2024"],
         image: "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&q=80&w=1600",
-        author: { name: "Редакция TraveLM", avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&q=80&w=200" },
+        author: { name: "Редакция TraveLLM", avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&q=80&w=200" },
         readTime: "5 мин",
         publishedAt: "2024-01-20",
         category: "default"

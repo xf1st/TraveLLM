@@ -12,7 +12,7 @@ const sites = {
   }
 };
 
-console.log('=== OAuth Configuration for TraveLM ===\n');
+console.log('=== OAuth Configuration for TraveLLM ===\n');
 
 Object.entries(sites).forEach(([env, config]) => {
   console.log(`${env.toUpperCase()}:`);
@@ -24,4 +24,4 @@ Object.entries(sites).forEach(([env, config]) => {
 
 console.log('Google Cloud Console → APIs & Services → Credentials → OAuth Client ID');
 console.log('Application Type: Web application');
-console.log('Name: TraveLM Web Client\n');
+console.log('Name: TraveLLM Web Client\n');

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
         const fetchOptions: any = {
             headers: {
-                "User-Agent": "TraveLM-Image-Proxy/1.0",
+                "User-Agent": "TraveLLM-Image-Proxy/1.0",
             },
             signal: AbortSignal.timeout(8000)
         };

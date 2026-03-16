@@ -2,7 +2,7 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "3D Карта β | TraveLM",
+  title: "3D Карта β | TraveLLM",
   description: "Интерактивная 3D-карта маршрута",
 }
 
