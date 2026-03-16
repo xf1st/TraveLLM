@@ -4,6 +4,12 @@ const nextConfig = {
     unoptimized: true,
   },
   output: 'standalone',
+
+  // Required in Next.js 16 where Turbopack is the default.
+  // The actual watch exclusions are handled via .gitignore —
+  // Turbopack respects .gitignore and won't watch .cursor/, .gemini/ etc.
+  turbopack: {},
+
   async headers() {
     return [
       {

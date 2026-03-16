@@ -44,6 +44,14 @@ nul
 desktop.ini
 nul
 QWEN.md
+
+# AI IDE tool folders — must be ignored to prevent Turbopack Fast Refresh loop
+# Cursor, Gemini, and other AI tools write here constantly
+.cursor/
+.gemini/
+.tmp_head_trip_page.tsx
+*.tmp.tsx
+*.tmp.ts
 taskcal.md
 .claude/settings.local.json
 CLAUDE.md

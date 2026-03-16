@@ -1,10 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const host = request.headers.get('host') || ''
   const isAdminSubdomain = host.startsWith('admin.')
+
+  // ─── DEV MODE: skip all Supabase auth checks ──────────────────────────────
+  // In development, every getUser() + profile select = ~9-18s through proxy.
+  // Auth is enforced client-side by Supabase React hooks anyway.
+  if (process.env.NODE_ENV === 'development' && !isAdminSubdomain) {
+    return NextResponse.next()
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Early-return for fully public routes — no Supabase call needed at all
   if (!isAdminSubdomain) {
@@ -22,12 +30,9 @@ export async function middleware(request: NextRequest) {
   }
 
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   })
 
-  // Create Supabase client (needed for auth checks below)
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -37,12 +42,8 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({ request: { headers: request.headers } })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           )
@@ -51,7 +52,8 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  // Admin subdomain — requires verified user via getUser() (JWT network validation for security)
+  // ─── ADMIN subdomain ──────────────────────────────────────────────────────
+  // Requires verified JWT via getUser() — security-critical, no shortcuts
   if (isAdminSubdomain) {
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -82,11 +84,14 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // Regular routes — getUser() validates JWT with Supabase (secure)
-  const { data: { user } } = await supabase.auth.getUser()
+  // ─── Regular routes ───────────────────────────────────────────────────────
+  // Use getSession() — reads from cookie, no network round-trip (~0ms).
+  // We only need to know *if* a user exists to guard protected paths.
+  // Actual data is protected by Supabase RLS; UserAccessGuard handles
+  // the full_blocked check client-side.
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
-  // Protected Routes for Main Domain
-  // Note: /profile/[username] is public (user profiles), only /profile itself is protected
   const protectedPaths = ['/dashboard', '/plan', '/trips', '/trip', '/results', '/onboarding', '/guide']
   const isOwnProfile = pathname === '/profile' || pathname.startsWith('/profile?') || pathname.startsWith('/profile/')
   const isPublicProfilePath = /^\/profile\/[^/]+$/.test(pathname)
@@ -99,38 +104,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Site Access Gate — redirect to /blocked
-  if (user) {
-    const bypassPaths = ['/auth', '/blocked', '/waitlist', '/onboarding', '/terms', '/privacy', '/support']
-    const isBypassPath = bypassPaths.some(path => pathname.startsWith(path))
-
-    if (!isBypassPath) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('site_access, access_mode')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.access_mode === 'full_blocked') {
-        const url = request.nextUrl.clone()
-        url.pathname = '/blocked'
-        return NextResponse.redirect(url)
-      }
-    }
-  }
-
   return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder files (with extensions)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 }

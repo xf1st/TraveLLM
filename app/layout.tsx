@@ -5,18 +5,16 @@ import type { Metadata } from "next"
 import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
-import { NotificationPrompt } from "@/components/NotificationPrompt"
-import { OnboardingPrompt } from "@/components/OnboardingPrompt"
-import { CookieConsent } from "@/components/CookieConsent"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { GuardsWrapper } from "@/components/admin/guards-wrapper"
+import { ClientModals } from "@/components/client-modals"
+import { AuthProvider } from "@/components/auth-provider"
+import { ChatProvider } from "@/lib/context/chat-context"
+import { GlobalLoader } from "@/components/GlobalLoader"
 import Script from "next/script"
 import "./globals.css"
 import "material-symbols/outlined.css"
-import { AuthProvider } from "@/components/auth-provider"
-import { ChatProvider } from "@/lib/context/chat-context"
-import { WelcomeModal } from "@/components/WelcomeModal"
-import { GlobalLoader } from "@/components/GlobalLoader"
+
 const rubik = Rubik({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
@@ -75,19 +73,14 @@ export default function RootLayout({
                   {children}
                 </ErrorBoundary>
               </GuardsWrapper>
-              <WelcomeModal />
+              {/* Non-critical overlays — lazy loaded to keep framer-motion out of critical path */}
+              <ClientModals />
             </ChatProvider>
           </AuthProvider>
-          {/* Notification, TG Channel & Cookie System */}
-          <NotificationPrompt />
-          <OnboardingPrompt />
-          <CookieConsent />
           <Toaster />
           <Analytics />
           <GlobalLoader />
         </ThemeProvider>
-
-
 
         {/* Yandex.Metrika counter */}
         <Script id="yandex-metrika" strategy="afterInteractive">
