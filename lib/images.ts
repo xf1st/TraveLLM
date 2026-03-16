@@ -468,10 +468,29 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
             addUrls(wikiUrls)
         }
 
-        // 3. Local fallback
+        // 3. Retry with simplified destination-only query if specific name returned nothing
+        //    e.g. "Georgia speakeasy cocktail bar" instead of "travel landmark The Chronos Keyhole Georgia"
         if (finalUrls.length === 0) {
-            finalUrls.push("/tbilisi-old-town.jpg")
+            const words = translatedQuery.split(/\s+/).filter(w => w.length > 2)
+            if (words.length > 2) {
+                // Last 2 words are typically city/country — try them alone
+                const simpleQuery = words.slice(-2).join(" ")
+                const [u2, p2, px2] = await Promise.all([
+                    searchUnsplash(simpleQuery, count),
+                    searchPexels(simpleQuery, count),
+                    searchPixabay(simpleQuery, count),
+                ])
+                addUrls(u2); addUrls(p2); addUrls(px2)
+                if (finalUrls.length < count) {
+                    const wikiUrls2 = await searchWikimediaGallery(simpleQuery, count - finalUrls.length)
+                    addUrls(wikiUrls2)
+                }
+            }
         }
+
+        // 4. Truly last resort: return empty — PlaceGallery hides itself gracefully
+        //    (don't show a random Tbilisi photo for unrelated activities)
+        // finalUrls stays [] — caller sees empty array, gallery won't render
 
         // --- Persistency Save ---
         if (supabase && finalUrls.length > 0) {
@@ -503,6 +522,6 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
         return finalUrls
     } catch (e) {
         console.error("[getGalleryImages] generic error:", e);
-        return ["/tbilisi-old-town.jpg"]
+        return []
     }
 }

@@ -297,6 +297,44 @@ function isEnglishQuery(q: string): boolean {
   return latin > cyrillic
 }
 
+/**
+ * Detect if a name is a specific branded/fictional venue rather than a generic place.
+ * "The Chronos Keyhole", "Bar Tartine" etc. return 0 results when searched literally.
+ */
+function isSpecificVenueName(name: string): boolean {
+  if (!name || name.length < 3) return false
+  // Generic geographic/travel terms — NOT specific venue names
+  const genericTerms = /landmark|panorama|view|lake|mountain|park|beach|museum|castle|palace|market|square|street|bridge|old town|historic|district|neighborhood|quarter|coast|river|valley|island|temple|cathedral|fortress/i
+  if (genericTerms.test(name)) return false
+  // Starts with "The " → almost always a named venue
+  if (/^The\s/i.test(name)) return true
+  // Multi-word English name without common travel terms → likely a venue
+  if (isEnglishQuery(name) && name.trim().split(/\s+/).length >= 2) return true
+  return false
+}
+
+/**
+ * Extract a descriptive venue category from activity text for fallback searches.
+ * Used when the actual venue name returns 0 results from photo APIs.
+ */
+function extractVenueCategory(text: string): string {
+  const t = text.toLowerCase()
+  if (/speakeasy|спикизи|hidden bar|secret bar/.test(t)) return "speakeasy cocktail bar dark atmospheric interior"
+  if (/bar|бар|cocktail|коктейл|lounge|pub|паб/.test(t)) return "cocktail bar interior moody lighting"
+  if (/nightclub|клуб|night club|ночной клуб/.test(t)) return "nightclub dance floor lights"
+  if (/rooftop|крыш/.test(t)) return "rooftop bar city view night"
+  if (/jazz|live music|живая музыка/.test(t)) return "jazz bar live music venue"
+  if (/museum|музей/.test(t)) return "museum interior exhibit art"
+  if (/gallery|галерея/.test(t)) return "art gallery interior contemporary"
+  if (/spa|wellness|йога|yoga/.test(t)) return "spa wellness interior serene"
+  if (/market|маркет|рынок|bazaar|базар/.test(t)) return "outdoor market street food vibrant"
+  if (/theater|theatre|театр|show|концерт|concert/.test(t)) return "theater concert venue interior"
+  if (/wine|вино|winery/.test(t)) return "wine bar cellar tasting"
+  if (/cafe|кафе|coffee|кофе/.test(t)) return "cozy cafe interior coffee"
+  if (/restaurant|ресторан|dining|ужин/.test(t)) return "restaurant interior elegant dining"
+  return "travel tourism city street scenic"
+}
+
 function buildGalleryQuery(activity: Activity, destination: string): string {
   // Only use AI-generated imageQuery if it's actually in English
   if (activity.imageQuery && isEnglishQuery(activity.imageQuery)) return activity.imageQuery
@@ -306,8 +344,8 @@ function buildGalleryQuery(activity: Activity, destination: string): string {
   const destEn = Object.entries(RU_TO_EN_DESTINATIONS)
     .find(([ru]) => destLower.includes(ru))?.[1] || destination
 
-  // Use title for keyword detection (richer than placeName), placeName for display name
-  const fullText = `${activity.title || ""} ${activity.placeName || ""}`.toLowerCase()
+  // Use title + placeName + desc for keyword detection
+  const fullText = `${activity.title || ""} ${activity.placeName || ""} ${activity.desc || ""}`.toLowerCase()
   const type = activity.type || "activity"
 
   // Check for Russian nature/place keywords in title/placeName
@@ -322,6 +360,14 @@ function buildGalleryQuery(activity: Activity, destination: string): string {
 
   if (type === "hotel") return `hotel ${rawName || 'elegant interior'} ${destEn}`
   if (type === "food") return `restaurant ${rawName || 'cozy dining food'} ${destEn}`
+
+  // For specific branded/fictional venue names (e.g. "The Chronos Keyhole"):
+  // searching by name returns 0 photos — use category keywords + destination instead
+  if (isSpecificVenueName(rawName)) {
+    const category = extractVenueCategory(fullText)
+    return `${destEn} ${category}`
+  }
+
   return `travel landmark ${rawName} ${destEn}`
 }
 
