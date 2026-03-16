@@ -1,4 +1,5 @@
 // DeepSeek (Primary) -> Gemini (Fallback)
+import { jsonrepair } from "jsonrepair"
 import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/deepseek"
 import { geminiInference } from "@/lib/gemini"
 import { NextResponse } from "next/server"
@@ -113,8 +114,13 @@ export async function POST(req: Request) {
                 { role: "user", content: prompt }
             ], { maxTokens: 8000, temperature: aiTemperature, responseFormat: "json_object" });
 
-            let routeData: RouteData = JSON.parse(raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim());
-            
+            const clean1 = (raw.match(/\{[\s\S]*\}/)?.[0] ?? raw).replace(/```json\s*/g, '').replace(/```\s*/g, '')
+            let routeData: RouteData
+            try { routeData = JSON.parse(clean1) } catch {
+                console.warn('[DeepSeek] JSON malformed, attempting repair…')
+                routeData = JSON.parse(jsonrepair(clean1))
+            }
+
             // Post-processing
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
             routeData = await enrichViralSpotsWithWebSearch(routeData);
@@ -134,7 +140,12 @@ export async function POST(req: Request) {
                 { role: "user", content: prompt }
             ], { maxTokens: 8000, temperature: 0.6 });
 
-            let routeData: RouteData = JSON.parse(raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim());
+            const clean2 = (raw.match(/\{[\s\S]*\}/)?.[0] ?? raw).replace(/```json\s*/g, '').replace(/```\s*/g, '')
+            let routeData: RouteData
+            try { routeData = JSON.parse(clean2) } catch {
+                console.warn('[Gemini-Fallback] JSON malformed, attempting repair…')
+                routeData = JSON.parse(jsonrepair(clean2))
+            }
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);

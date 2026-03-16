@@ -1,4 +1,5 @@
 // Gemini (Primary) -> DeepSeek (Fallback)
+import { jsonrepair } from "jsonrepair"
 import { geminiInference, getGeminiSessionUsage, resetGeminiSessionUsage } from "@/lib/gemini"
 import { deepseekInference, getSessionUsage as getDeepSeekSessionUsage, resetSessionUsage as resetDeepSeekSessionUsage } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
@@ -182,15 +183,21 @@ export async function POST(req: Request) {
         const { systemPrompt, userPrompt: prompt } = enriched
         const aiTemperature = (body.aiCreativity || preferences?.aiCreativity) === "creative" ? 0.8 : 0.6
 
-        // Helper to parse JSON from AI response
+        // Helper to parse JSON from AI response (with jsonrepair fallback)
         function parseJsonResponse(raw: string, source: string): any {
             if (!raw) throw new Error(`Empty response from ${source}`)
-            const clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
+            const clean = (raw.match(/\{[\s\S]*\}/)?.[0] ?? raw)
+                .replace(/```json\s*/g, '').replace(/```\s*/g, '')
             try {
-                return JSON.parse(clean.replace(/```json\s*/g, '').replace(/```\s*/g, ''));
-            } catch (e) {
-                console.error(`[${source}] JSON Parse failed`, e)
-                throw e
+                return JSON.parse(clean)
+            } catch {
+                console.warn(`[${source}] JSON malformed, attempting repair…`)
+                try {
+                    return JSON.parse(jsonrepair(clean))
+                } catch (e2) {
+                    console.error(`[${source}] JSON repair failed`, e2)
+                    throw new Error(`JSON parse failed after repair attempt: ${(e2 as Error).message}`)
+                }
             }
         }
 
@@ -214,9 +221,15 @@ export async function POST(req: Request) {
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: chunkPrompt }]
-            const raw = await geminiInference(messages, { maxTokens: 4000, temperature: aiTemperature });
-            const clean = raw.match(/\[[\s\S]*\]/)?.[0] || raw;
-            return JSON.parse(clean);
+            const raw = await geminiInference(messages, { maxTokens: 8192, temperature: aiTemperature });
+            const clean = (raw.match(/\[[\s\S]*\]/)?.[0] ?? raw)
+                .replace(/```json\s*/g, '').replace(/```\s*/g, '')
+            try {
+                return JSON.parse(clean)
+            } catch {
+                console.warn(`[Gemini-Chunk] JSON malformed, attempting repair…`)
+                return JSON.parse(jsonrepair(clean))
+            }
         }
 
         async function generateParallel(): Promise<RouteData> {

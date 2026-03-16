@@ -178,6 +178,12 @@ async function runGeminiInference(
         );
     }
 
+    // ── Truncation check ──
+    const finishReason = result.choices?.[0]?.finish_reason
+    if (finishReason === 'length') {
+        console.warn('[Gemini] Response truncated by token limit (finish_reason=length) — JSON may be incomplete')
+    }
+
     // ── Content ──
     const content = result.choices?.[0]?.message?.content;
 
