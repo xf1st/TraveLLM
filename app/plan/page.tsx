@@ -63,7 +63,7 @@ export default function PlanPage() {
   const router = useRouter()
   const { resolvedTheme } = useTheme()
   const [departureCity, setDepartureCity] = useState("")
-  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("abroad") 
+  const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("custom")
   const [countryCount, setCountryCount] = useState("1")
   const [budget, setBudget] = useState("comfort")
   const [customBudget, setCustomBudget] = useState("")
@@ -257,7 +257,7 @@ export default function PlanPage() {
         errors.push("Максимальная длительность поездки — 30 дней")
       }
     }
-    if (destination === "custom" && !customDestination.trim()) {
+    if (!customDestination.trim()) {
       errors.push("Укажите направление поездки")
     }
     if (!companions) {
@@ -528,7 +528,7 @@ export default function PlanPage() {
 
   // Check if current step is valid for navigation
   const isStep1Valid = departureCity.trim() && date?.from && date?.to
-  const isStep2Valid = destination === "custom" ? customDestination.trim() : true
+  const isStep2Valid = customDestination.trim().length > 0
   const isStep3Valid = budget !== ""
   const isStep4Valid = companions !== ""
 
@@ -714,78 +714,79 @@ export default function PlanPage() {
                   <Globe className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight">Куда едем?</h2>
-                <p className="text-sm text-muted-foreground mt-1">Выберите направление путешествия</p>
+                <p className="text-sm text-muted-foreground mt-1">Введите направление или нажмите «Мне повезёт»</p>
               </div>
 
-              <RadioGroup
-                value={destination}
-                onValueChange={(v) => {
-                  if (v === 'mixed') return
-                  setDestination(v as any)
-                }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-lg mx-auto"
-              >
-                {[
-                  { id: "russia", label: "Россия", icon: <MapPin className="h-5 w-5 mb-1" /> },
-                  { id: "abroad", label: "Заграница", icon: <Globe className="h-5 w-5 mb-1" /> },
-                  { id: "custom", label: "Свой выбор", icon: <Sparkles className="h-5 w-5 mb-1" /> }
-                ].map((type) => (
-                  <Label
-                    key={type.id}
-                    htmlFor={type.id}
-                    className={cn(
-                      "flex flex-col cursor-pointer items-center justify-center gap-2 rounded-2xl py-4 sm:py-6 text-sm font-medium transition-all duration-300 border",
-                      destination === type.id
-                        ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/10"
-                        : "bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:border-black/20 dark:hover:border-white/20 text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <RadioGroupItem value={type.id} id={type.id} className="sr-only" />
-                    {type.icon}
-                    <span className="font-semibold text-sm sm:text-base">{type.label}</span>
-                  </Label>
-                ))}
-              </RadioGroup>
+              {/* Destination input + lucky button */}
+              <div className="max-w-lg mx-auto space-y-3">
+                <CityAutocomplete
+                  value={customDestination}
+                  onValueChange={(v) => {
+                    setCustomDestination(v)
+                    setDestination("custom")
+                  }}
+                  placeholder="Укажите город или страну..."
+                  className="bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10"
+                  multiselect={true}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Curated list: singles + themed combos
+                    const SINGLES = [
+                      "Бали, Индонезия", "Токио, Япония", "Тбилиси, Грузия",
+                      "Стамбул, Турция", "Барселона, Испания", "Прага, Чехия",
+                      "Дубай, ОАЭ", "Бангкок, Таиланд", "Лиссабон, Португалия",
+                      "Амстердам, Нидерланды", "Будапешт, Венгрия", "Берлин, Германия",
+                      "Краков, Польша", "Дубровник, Хорватия", "Котор, Черногория",
+                      "Ереван, Армения", "Баку, Азербайджан", "Самарканд, Узбекистан",
+                      "Марракеш, Марокко", "Вена, Австрия", "Афины, Греция",
+                      "Рим, Италия", "Париж, Франция", "Пхукет, Таиланд",
+                      "Ханой, Вьетнам", "Сингапур", "Сеул, Корея",
+                      "Куала-Лумпур, Малайзия", "Тель-Авив, Израиль", "Пафос, Кипр",
+                      "Рейкьявик, Исландия", "Берген, Норвегия", "Варшава, Польша",
+                      "Флоренция, Италия", "Венеция, Италия", "Белград, Сербия",
+                      "Алматы, Казахстан", "Хельсинки, Финляндия", "Мехико, Мексика",
+                      // Russia
+                      "Санкт-Петербург, Россия", "Казань, Россия", "Сочи, Россия",
+                      "Калининград, Россия", "Екатеринбург, Россия", "Нижний Новгород, Россия",
+                      "Иркутск, Россия", "Владивосток, Россия", "Мурманск, Россия",
+                      "Великий Новгород, Россия", "Суздаль, Россия",
+                    ]
+                    const COMBOS = [
+                      "Тбилиси, Грузия; Ереван, Армения; Баку, Азербайджан",
+                      "Рим, Италия; Флоренция, Италия; Венеция, Италия",
+                      "Стамбул, Турция; Каппадокия, Турция",
+                      "Бангкок, Таиланд; Пхукет, Таиланд",
+                      "Токио, Япония; Киото, Япония; Осака, Япония",
+                      "Прага, Чехия; Будапешт, Венгрия",
+                      "Барселона, Испания; Мадрид, Испания",
+                      "Санкт-Петербург, Россия; Великий Новгород, Россия",
+                      "Краков, Польша; Варшава, Польша",
+                      "Дубровник, Хорватия; Котор, Черногория",
+                      "Алматы, Казахстан; Самарканд, Узбекистан",
+                      "Белград, Сербия; Сараево, Босния и Герцеговина",
+                    ]
+                    // 75% single, 25% combo
+                    const pool = Math.random() < 0.75 ? SINGLES : COMBOS
+                    const pick = pool[Math.floor(Math.random() * pool.length)]
+                    setCustomDestination(pick)
+                    setDestination("custom")
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2.5 h-11 rounded-xl border text-sm font-semibold",
+                    "border-emerald-500/30 bg-emerald-500/8 text-emerald-600 dark:text-emerald-400",
+                    "hover:bg-emerald-500/15 hover:border-emerald-500/50 transition-all duration-200",
+                    "active:scale-[0.98]"
+                  )}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Мне повезёт
+                </button>
+              </div>
 
-              {destination === "custom" ? (
-                <div className="animate-in fade-in slide-in-from-top-2 max-w-lg mx-auto">
-                  <CityAutocomplete
-                    value={customDestination}
-                    onValueChange={setCustomDestination}
-                    placeholder="Укажите город или страну"
-                    className="h-12 rounded-xl text-base bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10"
-                    multiselect={true}
-                  />
-                </div>
-              ) : (
-                <div className="animate-in fade-in slide-in-from-top-2 max-w-lg mx-auto">
-                  <Select value={countryCount} onValueChange={setCountryCount}>
-                    <SelectTrigger className="h-12 w-full rounded-xl text-base px-4 bg-white/50 dark:bg-white/5 border-black/10 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
-                      <SelectValue placeholder={destination === "russia" ? "Сколько городов?" : "Количество стран"} />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {destination === "russia" ? (
-                        <>
-                          <SelectItem value="1" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 1 город</div></SelectItem>
-                          <SelectItem value="2" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 2 города</div></SelectItem>
-                          <SelectItem value="3" className="rounded-lg my-1"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" /> 3 города</div></SelectItem>
-                          <SelectItem value="more" className="rounded-lg my-1"><div className="flex items-center gap-2"><Bus className="h-4 w-4" /> Тур по городам (4+)</div></SelectItem>
-                        </>
-                      ) : (
-                        <>
-                          <SelectItem value="1" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 1 страна</div></SelectItem>
-                          <SelectItem value="2" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 2 страны</div></SelectItem>
-                          <SelectItem value="3" className="rounded-lg my-1"><div className="flex items-center gap-2"><Flag className="h-4 w-4" /> 3 страны</div></SelectItem>
-                          <SelectItem value="more" className="rounded-lg my-1"><div className="flex items-center gap-2"><Globe className="h-4 w-4" /> Евротур (4+ стран)</div></SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Documents filter — for international or custom destination trips */}
-              {(destination === "abroad" || destination === "custom") && profile?.preferences?.documents?.length > 0 && (
+              {/* Documents filter */}
+              {profile?.preferences?.documents?.length > 0 && (
                 <div className="max-w-lg mx-auto animate-in fade-in slide-in-from-top-2">
                   <button
                     type="button"
@@ -880,7 +881,11 @@ export default function PlanPage() {
                     placeholder="100.000"
                     value={customBudget ? parseInt(customBudget.replace(/\D/g, '')).toLocaleString('ru-RU').replace(/\s/g, '.') : ''}
                     onChange={(e) => {
-                      const rawValue = e.target.value.replace(/\D/g, '')
+                      let rawValue = e.target.value.replace(/\D/g, '')
+                      // Clamp to 10 000 000 ₽ max
+                      if (rawValue && parseInt(rawValue) > 10000000) {
+                        rawValue = '10000000'
+                      }
                       setCustomBudget(rawValue)
                       if (rawValue) setBudget("custom")
                     }}

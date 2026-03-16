@@ -77,8 +77,10 @@ export function UserAccessGuard({ children, allowAiBlocked = false }: UserAccess
     return () => window.removeEventListener('sidebar-change', checkSidebarState)
   }, [])
 
+  // While loading: render children immediately so the page isn't a black screen.
+  // If the user is blocked, the blocking overlay will appear after the check completes.
   if (loading) {
-    return null
+    return <>{children}</>
   }
 
   // Full block: show fullscreen message

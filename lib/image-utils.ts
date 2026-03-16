@@ -7,7 +7,11 @@ const BAD_IMAGE_PATTERNS = [
 ]
 
 const PROXY_DOMAINS = [
-  "wikimedia.org"
+  "wikimedia.org",
+  "pexels.com",
+  "unsplash.com",
+  "pixabay.com",
+  "freepik.com",
 ]
 
 export const isProbablyBlockedImage = (src?: string | null) => {

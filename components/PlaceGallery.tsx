@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ExternalLink, Maximize2, X, Camera, ChevronRight } from "lucide-react"
+import { needsProxyImage } from "@/lib/image-utils"
 
 interface PlaceGalleryProps {
     query: string
@@ -13,10 +14,39 @@ interface PlaceGalleryProps {
     displayTitle?: string
 }
 
+/** Wrap external CDN URLs through our server-side proxy so they load without VPN in Russia. */
+function proxyUrl(url: string): string {
+    if (!url || url.startsWith("/") || url.startsWith("blob:") || url.startsWith("data:")) return url
+    // Already proxied or Supabase CDN — keep as-is
+    if (url.includes("/api/proxy-image") || url.includes("supabase")) return url
+    if (needsProxyImage(url)) return `/api/proxy-image?url=${encodeURIComponent(url)}`
+    return url
+}
+
+/** On proxy failure fall back to the original URL (works with VPN / on prod server). */
+function handleImgError(e: React.SyntheticEvent<HTMLImageElement>) {
+    const img = e.currentTarget
+    const src = img.src
+    // If already showing the original URL — nothing more to try, hide element
+    if (!src.includes("/api/proxy-image")) {
+        img.style.display = "none"
+        return
+    }
+    // Extract original URL from the proxy path and try directly
+    try {
+        const original = decodeURIComponent(src.split("?url=")[1] ?? "")
+        if (original) img.src = original
+        else img.style.display = "none"
+    } catch {
+        img.style.display = "none"
+    }
+}
+
 function detectProvider(url: string): { label: string; color: string } {
     if (url.includes("pexels.com")) return { label: "pexels", color: "bg-emerald-500" }
     if (url.includes("unsplash.com")) return { label: "unsplash", color: "bg-sky-500" }
     if (url.includes("wikimedia.org")) return { label: "wiki", color: "bg-purple-500" }
+    if (url.includes("pixabay.com")) return { label: "pixabay", color: "bg-orange-500" }
     if (url.includes("googleusercontent.com") || url.includes("googleapis.com")) return { label: "google", color: "bg-blue-500" }
     if (url.includes("supabase")) return { label: "cdn", color: "bg-teal-500" }
     return { label: "local", color: "bg-slate-500" }
@@ -136,9 +166,10 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                         }}
                     >
                         <img
-                            src={img}
+                            src={proxyUrl(img)}
                             alt={`Gallery ${i}`}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={handleImgError}
                         />
                         {showProviderBadge && (() => {
                             const p = detectProvider(img)
@@ -182,9 +213,10 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                                 onClick={(e: any) => e.stopPropagation()}
                             >
                                 <img
-                                    src={images[activeIndex]}
+                                    src={proxyUrl(images[activeIndex])}
                                     alt="Preview"
                                     className="max-w-full max-h-full md:max-w-[95vw] md:max-h-[85vh] object-contain rounded-lg shadow-md md:shadow-2xl"
+                                    onError={handleImgError}
                                 />
 
                                 <div className="absolute top-0 inset-x-0 p-8 flex items-center justify-between pointer-events-none">

@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useRef } from "react"
 import { Send, Sparkles, ChevronDown, Plane, Hotel as HotelIcon, ExternalLink } from "lucide-react"
@@ -233,31 +233,34 @@ export function ItineraryChatWidget({
           embedded ? "h-full min-h-0" : isOpen ? "mt-3 opacity-100 scale-100" : "hidden opacity-0 scale-95 pointer-events-none"
         )}
       >
-        <div className="px-3 py-2 border-b border-slate-200/70 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-white/[0.02]">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-medium text-slate-500 dark:text-white/50 uppercase tracking-wider">Онлайн</span>
-          </div>
+        <div className="px-4 py-2.5 border-b border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between bg-gradient-to-r from-slate-50/90 to-white/60 dark:from-white/[0.03] dark:to-white/[0.01]">
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-slate-400 dark:text-white/30">DeepSeek</span>
+            <div className="relative">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+            </div>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-white/50 uppercase tracking-[0.1em]">Онлайн</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3 w-3 text-slate-400/60 dark:text-white/20" />
+            <span className="text-[10px] text-slate-400 dark:text-white/30 font-medium">DeepSeek</span>
           </div>
         </div>
 
         <div
           ref={scrollContainerRef}
           className={cn(
-            "overflow-y-auto px-3 py-3 space-y-3",
+            "overflow-y-auto px-4 py-4 space-y-4",
             embedded ? "flex-1 min-h-0 max-h-[60vh]" : "h-[420px] sm:h-[500px]"
           )}
         >
           {messages.map((msg, i) => (
-            <div key={i} className={cn("flex gap-3", msg.role === "user" && "flex-row-reverse")}>
+            <div key={i} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
               <div
                 className={cn(
-                  "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                  "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ring-2",
                   msg.role === "user"
-                    ? "bg-gradient-to-br from-sky-500 to-indigo-600 text-white"
-                    : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
+                    ? "bg-gradient-to-br from-sky-500 to-indigo-600 text-white ring-sky-500/20"
+                    : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white ring-emerald-500/20"
                 )}
               >
                 {msg.role === "user" ? "Я" : "AI"}
@@ -265,13 +268,13 @@ export function ItineraryChatWidget({
 
               <div
                 className={cn(
-                  "max-w-[85%] rounded-xl px-3 py-2",
+                  "max-w-[80%] rounded-2xl px-3.5 py-2.5",
                   msg.role === "user"
-                    ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-br-sm"
-                    : "bg-slate-100 border border-slate-200 text-slate-800 dark:bg-white/[0.06] dark:border-white/10 dark:text-white/90 rounded-bl-sm"
+                    ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white rounded-br-md shadow-md shadow-sky-600/20"
+                    : "bg-slate-100/80 border border-slate-200/80 text-slate-800 dark:bg-white/[0.05] dark:border-white/[0.07] dark:text-white/90 rounded-bl-md"
                 )}
               >
-                <div className={cn("text-[12px] leading-relaxed whitespace-pre-wrap", msg.role === "assistant" && "font-normal")}>{msg.content}</div>
+                <div className={cn("text-[13px] leading-[1.6] whitespace-pre-wrap", msg.role === "assistant" && "font-normal")}>{msg.content}</div>
 
                 {msg.isModification && (
                   <div className="mt-2 pt-2 border-t border-slate-300/60 dark:border-white/10">
@@ -313,38 +316,38 @@ export function ItineraryChatWidget({
           ))}
 
           {isLoading && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-xs font-bold text-white">
+            <div className="flex gap-2.5">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] font-bold text-white ring-2 ring-emerald-500/20 mt-0.5">
                 AI
               </div>
-              <div className="bg-slate-100 dark:bg-white/[0.06] border border-slate-300/70 dark:border-white/10 rounded-2xl rounded-bl-md px-4 py-3">
-                <div className="flex items-center gap-2">
+              <div className="bg-slate-100/80 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.07] rounded-2xl rounded-bl-md px-4 py-3">
+                <div className="flex items-center gap-2.5">
                   <div className="flex gap-1">
-                    <span className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
-                  <span className="text-xs text-slate-500 dark:text-white/50">Думаю...</span>
+                  <span className="text-[11px] text-slate-500 dark:text-white/40 font-medium">Думаю...</span>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        <div className="p-3 border-t border-slate-200/70 dark:border-white/10 bg-slate-50/80 dark:bg-black/30">
+        <div className="p-3 border-t border-slate-200/70 dark:border-white/[0.06] bg-gradient-to-r from-slate-50/90 to-white/60 dark:from-white/[0.02] dark:to-transparent">
           <form
             onSubmit={(e) => {
               e.preventDefault()
               handleSend()
             }}
-            className="flex gap-2"
+            className="flex gap-2 items-center"
           >
             <div className="flex-1 relative">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Спросите что-нибудь..."
-                className="w-full bg-white/90 dark:bg-white/5 border-slate-300/70 dark:border-white/10 rounded-lg h-10 pl-3 pr-10 text-sm text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:ring-1 focus:ring-sky-500/50 focus:border-sky-500/50"
+                className="w-full bg-white dark:bg-white/[0.04] border-slate-200 dark:border-white/[0.08] rounded-xl h-11 pl-4 pr-4 text-[13px] text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/25 focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/40 transition-all"
                 disabled={isLoading}
               />
             </div>
@@ -352,9 +355,9 @@ export function ItineraryChatWidget({
               type="submit"
               disabled={isLoading || !input.trim()}
               size="sm"
-              className="h-10 px-4 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-medium shadow-md disabled:opacity-40 transition-all"
+              className="h-11 w-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-lg shadow-sky-600/25 disabled:opacity-30 disabled:shadow-none transition-all flex-shrink-0"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" />
             </Button>
           </form>
         </div>

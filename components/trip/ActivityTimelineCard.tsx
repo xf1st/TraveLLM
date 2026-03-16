@@ -1,6 +1,6 @@
-﻿"use client"
+"use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { PlaceGallery } from "@/components/PlaceGallery"
 import { cn } from "@/lib/utils"
 import {
@@ -343,6 +343,7 @@ interface ActivityTimelineCardProps {
   destination: string
   dayNumber: number
   onGenerateExtraActivity?: (dayNumber: number) => void
+  onGenerateInline?: (dayNumber: number, prompt: string) => Promise<{ reply: string; success: boolean }>
   onRequestModifyInChat?: (activity: Activity, dayNumber: number) => void
   isGeneratingExtra?: boolean
 }
@@ -352,10 +353,60 @@ export function ActivityTimelineCard({
   destination,
   dayNumber,
   onGenerateExtraActivity,
+  onGenerateInline,
   onRequestModifyInChat,
   isGeneratingExtra = false,
 }: ActivityTimelineCardProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isInlineOpen, setIsInlineOpen] = useState(false)
+  const [inlinePrompt, setInlinePrompt] = useState("")
+  const [isInlineLoading, setIsInlineLoading] = useState(false)
+  const [inlineReply, setInlineReply] = useState<string | null>(null)
+  const inlineInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isInlineOpen && inlineInputRef.current) {
+      inlineInputRef.current.focus()
+    }
+  }, [isInlineOpen])
+
+  const handleOpenInlinePanel = () => {
+    const defaultPrompt = `Добавь ещё одну интересную активность в день ${dayNumber}. Что-нибудь уникальное и местное.`
+    setInlinePrompt(defaultPrompt)
+    setInlineReply(null)
+    setIsInlineOpen(true)
+  }
+
+  const handleInlineSend = async () => {
+    if (!inlinePrompt.trim() || isInlineLoading || !onGenerateInline) return
+    setIsInlineLoading(true)
+    setInlineReply(null)
+    try {
+      const result = await onGenerateInline(dayNumber, inlinePrompt)
+      if (result.success) {
+        setInlineReply(result.reply)
+        // Auto-close panel after short delay so user can see the success message
+        setTimeout(() => {
+          setIsInlineOpen(false)
+          setInlineReply(null)
+          setInlinePrompt("")
+        }, 2500)
+      } else {
+        setInlineReply(result.reply || "Не удалось сгенерировать. Попробуйте ещё раз.")
+      }
+    } catch {
+      setInlineReply("Произошла ошибка. Попробуйте позже.")
+    } finally {
+      setIsInlineLoading(false)
+    }
+  }
+
+  const handleCloseInline = () => {
+    if (isInlineLoading) return
+    setIsInlineOpen(false)
+    setInlineReply(null)
+    setInlinePrompt("")
+  }
 
   const theme = getActivityColorTheme(activity)
   const config = themeConfigs[theme]
@@ -615,8 +666,8 @@ export function ActivityTimelineCard({
               </p>
 
               <button
-                onClick={() => onGenerateExtraActivity?.(dayNumber)}
-                disabled={isGeneratingExtra}
+                onClick={onGenerateInline ? handleOpenInlinePanel : () => onGenerateExtraActivity?.(dayNumber)}
+                disabled={isGeneratingExtra || isInlineOpen}
                 className="text-white text-xs font-bold bg-indigo-500 hover:bg-indigo-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-indigo-400/20 transition-colors flex items-center gap-1 backdrop-blur-sm shadow-md shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
@@ -626,6 +677,84 @@ export function ActivityTimelineCard({
             </div>
           )}
         </div>
+
+        {/* Inline Generation Panel */}
+        {isInlineOpen && (
+          <div className="mt-3 rounded-2xl overflow-hidden border border-indigo-300/50 dark:border-indigo-500/30 bg-white/90 dark:bg-[#0a1128]/90 backdrop-blur-xl shadow-lg shadow-indigo-500/10 animate-in slide-in-from-top-2 duration-300">
+            {/* Panel Header */}
+            <div className="px-4 py-2.5 border-b border-indigo-200/50 dark:border-indigo-500/20 bg-gradient-to-r from-indigo-50/80 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/10 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_6px_rgba(99,102,241,0.6)]" />
+                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 uppercase tracking-[0.1em]">AI-генерация</span>
+              </div>
+              <button
+                onClick={handleCloseInline}
+                disabled={isInlineLoading}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 dark:text-white/40 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            {/* Panel Body */}
+            <div className="p-4">
+              {isInlineLoading ? (
+                /* Loading State */
+                <div className="flex items-center gap-3 py-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-indigo-500/20 shrink-0">
+                    AI
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      <span className="text-[11px] text-indigo-500 dark:text-indigo-300 font-medium">Генерирую активность...</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 dark:text-white/30 mt-1">Обычно занимает 5-10 секунд</p>
+                  </div>
+                </div>
+              ) : inlineReply ? (
+                /* Success Reply */
+                <div className="flex items-start gap-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-[10px] font-bold ring-2 ring-emerald-500/20 shrink-0 mt-0.5">
+                    ✓
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[12px] text-slate-700 dark:text-white/80 leading-relaxed whitespace-pre-wrap">{inlineReply}</p>
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-2 uppercase tracking-wide flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      Маршрут обновлён
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Input State */
+                <form
+                  onSubmit={(e) => { e.preventDefault(); handleInlineSend() }}
+                  className="flex gap-2 items-center"
+                >
+                  <input
+                    ref={inlineInputRef}
+                    value={inlinePrompt}
+                    onChange={(e) => setInlinePrompt(e.target.value)}
+                    placeholder="Опишите, какую активность добавить..."
+                    className="flex-1 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-xl h-10 px-3 text-[13px] text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/25 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/40 transition-all outline-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!inlinePrompt.trim()}
+                    className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/25 disabled:opacity-30 disabled:shadow-none transition-all flex-shrink-0 flex items-center justify-center"
+                  >
+                    <span className="material-symbols-outlined text-lg">send</span>
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>

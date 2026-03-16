@@ -35,6 +35,13 @@ if (typeof window === "undefined" && httpProxy) {
  */
 async function proxiedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const fetchOptions: any = { ...options };
+    // Add browser-like headers so CDNs (Pexels, Unsplash, Pixabay) don't reject server requests
+    fetchOptions.headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "Referer": "https://travellm.ru/",
+        ...(options.headers as Record<string, string> ?? {}),
+    };
     // Skip proxy if admin disabled it or if it's an internal request
     if (proxyDispatcher && !url.includes(supabaseUrl)) {
         const disabled = await isProxyDisabled()

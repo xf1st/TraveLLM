@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
@@ -798,6 +798,50 @@ export default function TripDetailPage() {
     }
   }
 
+  const handleGenerateInline = async (dayNumber: number, prompt: string) => {
+    try {
+      const response = await fetch("/api/trip-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripData: route,
+          userMessage: prompt,
+          tripId: params.id,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Ошибка сервера (${response.status})`)
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        toast.error(`Ошибка AI: ${data.error}`)
+        return { reply: `Ошибка: ${data.error}`, success: false }
+      }
+
+      if (data.type === "modification" && data.modifications?.length > 0) {
+        setRoute((prev: any) => {
+          let updatedItinerary = [...(prev.itinerary || [])]
+          for (const mod of data.modifications) {
+            if (mod.type === "replace_all_days") {
+              updatedItinerary = mod.newItinerary
+            }
+          }
+          return { ...prev, itinerary: updatedItinerary }
+        })
+        return { reply: data.reply, success: true }
+      } else {
+        return { reply: data.reply || "Не удалось сгенерировать активность.", success: false }
+      }
+    } catch (error: any) {
+      console.error("Inline generation error:", error)
+      toast.error(`Ошибка: ${error.message || "Попробуйте позже."}`)
+      return { reply: `Произошла ошибка: ${error.message}`, success: false }
+    }
+  }
+
   const handleRequestModifyInChat = (activity: any, dayNumber: number) => {
     window.dispatchEvent(
       new CustomEvent("trip-ai-prefill", {
@@ -1124,6 +1168,7 @@ export default function TripDetailPage() {
                         destination={destinationName}
                         dayNumber={activeDay}
                         onGenerateExtraActivity={handleGenerateExtraActivity}
+                        onGenerateInline={handleGenerateInline}
                         onRequestModifyInChat={handleRequestModifyInChat}
                         isGeneratingExtra={isGeneratingExtra}
                       />
