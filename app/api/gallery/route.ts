@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGalleryImages } from "@/lib/images";
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // Terms that when present in imageQuery would produce inappropriate results
 const NSFW_TERMS = ['condom', 'sex', 'porn', 'nude', 'naked', 'adult', 'erotic', 'fetish', 'bdsm', 'lingerie', 'xxx']
@@ -22,6 +23,10 @@ function sanitizeQuery(q: string): string {
 }
 
 export async function GET(req: NextRequest) {
+    // IP rate limit: 30 image searches per minute
+    const rl = checkIpRateLimit(req, "gallery", 30)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const searchParams = req.nextUrl.searchParams;
     const rawQuery = searchParams.get("query");
     const count = parseInt(searchParams.get("count") || "4");

@@ -71,11 +71,17 @@ export function ItineraryChatWidget({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight
     }
-  }, [messages, isOpen])
+  }
+
+  useEffect(() => {
+    // Small delay to let DOM render new messages before scrolling
+    const t = setTimeout(scrollToBottom, 50)
+    return () => clearTimeout(t)
+  }, [messages, isOpen, isLoading])
 
   useEffect(() => {
     if (embedded) setIsOpen(true)
@@ -241,7 +247,7 @@ export function ItineraryChatWidget({
           ref={scrollContainerRef}
           className={cn(
             "overflow-y-auto px-3 py-3 space-y-3",
-            embedded ? "flex-1 min-h-0" : "h-[420px] sm:h-[500px]"
+            embedded ? "flex-1 min-h-0 max-h-[60vh]" : "h-[420px] sm:h-[500px]"
           )}
         >
           {messages.map((msg, i) => (

@@ -1,13 +1,15 @@
 /**
  * Image Search — Multi-Provider Waterfall
  *
- * Gallery (/api/gallery):  Pexels → Wikimedia → static fallback
- * Hero    (/api/image):    Unsplash → Wikimedia → static fallback
+ * Gallery (/api/gallery):  Unsplash + Pexels + Pixabay (parallel) → Wikimedia → static fallback
+ * Hero    (/api/image):    Unsplash → Pexels → Pixabay → Wikimedia → static fallback
  * Hotels:                  Hotellook URL pattern (unchanged, in travelpayouts.ts)
  */
 
 import { searchPexels } from "./pexels"
+import { searchPixabay } from "./pixabay"
 import { searchUnsplash } from "./unsplash"
+import { isProxyDisabled } from "./proxy-config"
 import { createClient } from "@supabase/supabase-js"
 import crypto from "crypto"
 
@@ -33,9 +35,12 @@ if (typeof window === "undefined" && httpProxy) {
  */
 async function proxiedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const fetchOptions: any = { ...options };
+    // Skip proxy if admin disabled it or if it's an internal request
     if (proxyDispatcher && !url.includes(supabaseUrl)) {
-        // Use proxy only for external requests (undici ProxyAgent for Node 18+ native fetch)
-        fetchOptions.dispatcher = proxyDispatcher;
+        const disabled = await isProxyDisabled()
+        if (!disabled) {
+            fetchOptions.dispatcher = proxyDispatcher;
+        }
     }
     return fetch(url, fetchOptions);
 }
@@ -341,6 +346,20 @@ export async function getDestinationImage(query: string): Promise<string> {
         }
     }
 
+    // 2.5. Pixabay (large free library, good geo coverage)
+    if (!result) {
+        let pixabayUrls = await searchPixabay(translatedQuery, 1)
+        
+        if (pixabayUrls.length === 0 && wordCount > 2) {
+            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
+            pixabayUrls = await searchPixabay(simpleQuery, 1)
+        }
+
+        if (pixabayUrls.length > 0) {
+            result = pixabayUrls[0]
+        }
+    }
+
     // 3. Wikimedia fallback (may be blocked on RU client, but proxy handles it)
     if (!result) {
         let wikiImg = await searchWikimedia(translatedQuery)
@@ -426,13 +445,15 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
         // Auto-translate if Russian
         const translatedQuery = await translateToEnglish(query);
 
-        // 1. Unsplash + Pexels in parallel (fastest path, covers most queries)
-        const [unsplashUrls, pexelsUrls] = await Promise.all([
+        // 1. Unsplash + Pexels + Pixabay in parallel (fastest path, covers most queries)
+        const [unsplashUrls, pexelsUrls, pixabayUrls] = await Promise.all([
             searchUnsplash(translatedQuery, count),
             searchPexels(translatedQuery, count),
+            searchPixabay(translatedQuery, count),
         ])
         addUrls(unsplashUrls)
         addUrls(pexelsUrls)
+        addUrls(pixabayUrls)
 
         // 2. Wikimedia supplement — only if genuinely short on images
         if (finalUrls.length < count) {

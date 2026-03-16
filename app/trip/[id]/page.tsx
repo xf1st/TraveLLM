@@ -172,6 +172,16 @@ export default function TripDetailPage() {
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [showTipsModal, setShowTipsModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
+  const prevIsModifying = useRef(false)
+
+  // Auto-scroll to chat after AI finishes modifying itinerary
+  useEffect(() => {
+    if (prevIsModifying.current && !isModifying) {
+      const el = document.getElementById("ai-chat-section")
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+    prevIsModifying.current = isModifying
+  }, [isModifying])
   const [user, setUser] = useState<any>(null)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
@@ -1165,6 +1175,7 @@ export default function TripDetailPage() {
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
+                    id="ai-chat-section"
                     className="overflow-hidden hidden lg:block"
                   >
                     <ItineraryChatWidget

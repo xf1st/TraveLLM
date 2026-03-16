@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail, CreditCard } from "lucide-react"
+import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail, CreditCard, ChevronDown, ChevronUp, TrendingUp, Plane } from "lucide-react"
 import { appToast as toast } from "@/components/ui/sonner"
 
 interface User {
@@ -54,7 +54,6 @@ interface User {
   monthly_gen_used?: number
 }
 
-// Provider icon rendered as inline SVG to avoid extra dependencies
 function ProviderIcon({ provider }: { provider: string }) {
   if (provider === "google") {
     return (
@@ -76,11 +75,10 @@ function ProviderIcon({ provider }: { provider: string }) {
   if (provider === "yandex") {
     return (
       <div className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#FF0000] text-white" aria-label="Yandex">
-        <span className="font-bold text-[9px] leading-none pt-[1px] font-sans pr-[1px]">�</span>
+        <span className="font-bold text-[9px] leading-none pt-[1px] font-sans pr-[1px]">Я</span>
       </div>
     )
   }
-  // Default: email icon
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline-block opacity-50" aria-label="Email">
       <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -88,6 +86,9 @@ function ProviderIcon({ provider }: { provider: string }) {
     </svg>
   )
 }
+
+type SortKey = "created_at" | "last_seen_at" | "trips_count" | "total_cost_rub" | "email"
+type SortDir = "asc" | "desc"
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -109,6 +110,9 @@ export default function AdminUsersPage() {
   const [subExpiresAt, setSubExpiresAt] = useState("")
   const [subGenOverride, setSubGenOverride] = useState("")
   const [subChatOverride, setSubChatOverride] = useState("")
+  const [expandedUser, setExpandedUser] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<SortKey>("created_at")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
 
   useEffect(() => {
     fetchUsers()
@@ -123,26 +127,44 @@ export default function AdminUsersPage() {
         setProviderMap(data.providers || {})
       }
     } catch {
-      // non-critical, fail silently
+      // non-critical
     }
   }
 
   useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredUsers(users)
-      return
-    }
-
-    const query = searchQuery.toLowerCase()
-    setFilteredUsers(
-      users.filter(
+    let result = [...users]
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
         (u) =>
-          u.email.toLowerCase().includes(query) ||
-          u.full_name?.toLowerCase().includes(query) ||
-          u.id.toLowerCase().includes(query)
+          u.email.toLowerCase().includes(q) ||
+          u.full_name?.toLowerCase().includes(q) ||
+          u.id.toLowerCase().includes(q)
       )
-    )
-  }, [searchQuery, users])
+    }
+    result.sort((a, b) => {
+      let av: any, bv: any
+      if (sortKey === "email") { av = a.email; bv = b.email }
+      else if (sortKey === "trips_count") { av = a.trips_count || 0; bv = b.trips_count || 0 }
+      else if (sortKey === "total_cost_rub") { av = a.total_cost_rub || 0; bv = b.total_cost_rub || 0 }
+      else if (sortKey === "last_seen_at") { av = a.last_seen_at || ""; bv = b.last_seen_at || "" }
+      else { av = a.created_at; bv = b.created_at }
+      if (av < bv) return sortDir === "asc" ? -1 : 1
+      if (av > bv) return sortDir === "asc" ? 1 : -1
+      return 0
+    })
+    setFilteredUsers(result)
+  }, [searchQuery, users, sortKey, sortDir])
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc")
+    else { setSortKey(key); setSortDir("desc") }
+  }
+
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return null
+    return sortDir === "desc" ? <ChevronDown className="h-3 w-3 inline ml-0.5" /> : <ChevronUp className="h-3 w-3 inline ml-0.5" />
+  }
 
   const fetchUsers = async () => {
     try {
@@ -167,100 +189,57 @@ export default function AdminUsersPage() {
 
       if (tripsError) throw tripsError
       if (usageEventsError && usageEventsError.code !== "42P01") {
-        console.warn("Failed to load ai_usage_events, fallback to trips-only totals:", usageEventsError.message)
+        console.warn("ai_usage_events load error:", usageEventsError.message)
       }
       if (feedbackError && feedbackError.code !== "42P01") {
-        console.warn("Failed to load trip_feedback stats:", feedbackError.message)
+        console.warn("trip_feedback load error:", feedbackError.message)
       }
 
-      const aggregateByUser = new Map<
-        string,
-        {
-          trips_count: number
-          total_tokens: number
-          total_cost_rub: number
-          feedback_count: number
-          feedback_rating_sum: number
-        }
-      >()
+      const agg = new Map<string, { trips_count: number; total_tokens: number; total_cost_rub: number; feedback_count: number; feedback_rating_sum: number }>()
 
       for (const trip of trips || []) {
         if (!trip.user_id) continue
-        const current =
-          aggregateByUser.get(trip.user_id) || {
-            trips_count: 0,
-            total_tokens: 0,
-            total_cost_rub: 0,
-            feedback_count: 0,
-            feedback_rating_sum: 0,
-          }
-
-        current.trips_count += 1
+        const c = agg.get(trip.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
+        c.trips_count += 1
         if (trip.token_usage) {
-          current.total_tokens += Number(trip.token_usage.totalTokens || 0)
-          current.total_cost_rub += Number(trip.token_usage.costRub || 0)
+          c.total_tokens += Number(trip.token_usage.totalTokens || 0)
+          c.total_cost_rub += Number(trip.token_usage.costRub || 0)
         }
-
-        aggregateByUser.set(trip.user_id, current)
+        agg.set(trip.user_id, c)
       }
 
       for (const event of usageEvents || []) {
         if (!event.user_id) continue
-        const current =
-          aggregateByUser.get(event.user_id) || {
-            trips_count: 0,
-            total_tokens: 0,
-            total_cost_rub: 0,
-            feedback_count: 0,
-            feedback_rating_sum: 0,
-          }
-
-        current.total_tokens += Number(event.total_tokens || 0)
-        current.total_cost_rub += Number(event.cost_rub || 0)
-        aggregateByUser.set(event.user_id, current)
+        const c = agg.get(event.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
+        c.total_tokens += Number(event.total_tokens || 0)
+        c.total_cost_rub += Number(event.cost_rub || 0)
+        agg.set(event.user_id, c)
       }
 
       for (const row of feedbackRows || []) {
         if (!row.user_id) continue
-        const current =
-          aggregateByUser.get(row.user_id) || {
-            trips_count: 0,
-            total_tokens: 0,
-            total_cost_rub: 0,
-            feedback_count: 0,
-            feedback_rating_sum: 0,
-          }
-
-        current.feedback_count += 1
-        current.feedback_rating_sum += Number(row.rating || 0)
-        aggregateByUser.set(row.user_id, current)
+        const c = agg.get(row.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
+        c.feedback_count += 1
+        c.feedback_rating_sum += Number(row.rating || 0)
+        agg.set(row.user_id, c)
       }
 
       const usersWithCounts = (profiles || []).map((user) => {
-        const usage =
-          aggregateByUser.get(user.id) || {
-            trips_count: 0,
-            total_tokens: 0,
-            total_cost_rub: 0,
-            feedback_count: 0,
-            feedback_rating_sum: 0,
-          }
-
+        const u = agg.get(user.id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
         return {
           ...user,
-          trips_count: usage.trips_count,
-          total_tokens: usage.total_tokens,
-          total_cost_rub: usage.total_cost_rub,
-          feedback_count: usage.feedback_count,
-          avg_feedback_rating:
-            usage.feedback_count > 0 ? usage.feedback_rating_sum / usage.feedback_count : null,
+          trips_count: u.trips_count,
+          total_tokens: u.total_tokens,
+          total_cost_rub: u.total_cost_rub,
+          feedback_count: u.feedback_count,
+          avg_feedback_rating: u.feedback_count > 0 ? u.feedback_rating_sum / u.feedback_count : null,
         }
       })
 
       setUsers(usersWithCounts)
       setFilteredUsers(usersWithCounts)
     } catch (error: any) {
-      toast.error(`������ ��������: ${error.message}`)
+      toast.error(`Ошибка загрузки: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -268,22 +247,16 @@ export default function AdminUsersPage() {
 
   const handleBlockUser = async () => {
     if (!selectedUser) return
-
     try {
       const updateData: any = {
         access_mode: blockMode,
         block_reason: blockReason || null,
+        blocked_until: blockUntil ? new Date(blockUntil).toISOString() : null,
       }
-
-      updateData.blocked_until = blockUntil ? new Date(blockUntil).toISOString() : null
-
       const { error } = await supabase.from("profiles").update(updateData).eq("id", selectedUser.id)
       if (error) throw error
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase.from("admin_audit_log").insert({
           admin_user_id: user.id,
@@ -295,34 +268,29 @@ export default function AdminUsersPage() {
 
       toast.success(
         blockMode === "active"
-          ? "������ ������������"
+          ? "Доступ восстановлен"
           : blockMode === "ai_blocked"
-            ? "������ � AI ������������"
-            : "������������ ������������"
+            ? "Доступ к AI заблокирован"
+            : "Пользователь заблокирован"
       )
-
       setBlockDialogOpen(false)
       setSelectedUser(null)
       setBlockReason("")
       setBlockUntil("")
       fetchUsers()
     } catch (error: any) {
-      toast.error(`������: ${error.message}`)
+      toast.error(`Ошибка: ${error.message}`)
     }
   }
 
   const handleInviteAdmin = async () => {
     if (!inviteEmail.trim()) {
-      toast.error("������� email")
+      toast.error("Введите email")
       return
     }
-
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) throw new Error("�� �����������")
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Не авторизован")
 
       const { data: existing } = await supabase
         .from("profiles")
@@ -333,29 +301,26 @@ export default function AdminUsersPage() {
       if (existing) {
         const { error } = await supabase.from("profiles").update({ role: "admin" }).eq("id", existing.id)
         if (error) throw error
-        toast.success("������������ ������� �� ��������������")
+        toast.success("Пользователь назначен администратором")
       } else {
         const { error } = await supabase.from("admin_invites").insert({
           email: inviteEmail,
           invited_by: user.id,
         })
-
         if (error) throw error
-
         await supabase.from("admin_audit_log").insert({
           admin_user_id: user.id,
           action: "admin.invite",
           payload: { email: inviteEmail },
         })
-
-        toast.success("����������� ����������")
+        toast.success("Приглашение отправлено")
       }
 
       setInviteDialogOpen(false)
       setInviteEmail("")
       fetchUsers()
     } catch (error: any) {
-      toast.error(`������: ${error.message}`)
+      toast.error(`Ошибка: ${error.message}`)
     }
   }
 
@@ -387,7 +352,6 @@ export default function AdminUsersPage() {
         gen_limit_override: subGenOverride ? parseInt(subGenOverride) : null,
         chat_limit_override: subChatOverride ? parseInt(subChatOverride) : null,
       }
-
       const { error } = await supabase.from("profiles").update(updateData).eq("id", subscriptionUser.id)
       if (error) throw error
 
@@ -401,326 +365,377 @@ export default function AdminUsersPage() {
         })
       }
 
-      toast.success("�������� ���������")
+      toast.success("Подписка обновлена")
       setSubscriptionDialogOpen(false)
       setSubscriptionUser(null)
       fetchUsers()
     } catch (error: any) {
-      toast.error(`������: ${error.message}`)
+      toast.error(`Ошибка: ${error.message}`)
     }
   }
 
+  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("ru-RU") : null
+
+  // --- Summary stats ---
+  const totalUsers = users.length
+  const activeUsers = users.filter(u => u.last_seen_at && (Date.now() - new Date(u.last_seen_at).getTime()) < 7 * 86400000).length
+  const totalTrips = users.reduce((s, u) => s + (u.trips_count || 0), 0)
+  const totalCost = users.reduce((s, u) => s + (u.total_cost_rub || 0), 0)
+
   return (
     <div className="space-y-6">
-      <div>
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-              <Users className="h-8 w-8" />
-              ������������
-            </h1>
-            <p className="text-muted-foreground">
-              ���������� ��������������, ������������, ������ � ����������� ��������
-            </p>
-          </div>
-          <Button onClick={() => setInviteDialogOpen(true)}>
-            <Mail className="mr-2 h-4 w-4" />
-            ���������� ������
-          </Button>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Users className="h-6 w-6" />
+            Пользователи
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Управление аккаунтами и подписками
+          </p>
         </div>
+        <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+          <Mail className="mr-2 h-4 w-4" />
+          Пригласить админа
+        </Button>
+      </div>
 
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="����� �� email, ����� ��� ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-          </CardContent>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="p-4">
+          <div className="text-2xl font-black">{totalUsers}</div>
+          <div className="text-xs text-muted-foreground">Всего</div>
         </Card>
+        <Card className="p-4">
+          <div className="text-2xl font-black text-emerald-500">{activeUsers}</div>
+          <div className="text-xs text-muted-foreground">Активны (7д)</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-2xl font-black">{totalTrips}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1"><Plane className="h-3 w-3" /> Маршрутов</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-2xl font-black">{totalCost.toFixed(1)} <span className="text-sm font-normal text-muted-foreground">RUB</span></div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> AI расходы</div>
+        </Card>
+      </div>
 
-        {loading ? (
-          <div className="text-center py-8">��������...</div>
-        ) : (
-          <Card>
-            <CardContent className="p-0 overflow-x-auto">
-              <Table className="min-w-[1240px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>���</TableHead>
-                    <TableHead>����</TableHead>
-                    <TableHead>������</TableHead>
-                    <TableHead>��������</TableHead>
-                    <TableHead>����</TableHead>
-                    <TableHead>���������</TableHead>
-                    <TableHead>������</TableHead>
-                    <TableHead>���������</TableHead>
-                    <TableHead>�������</TableHead>
-                    <TableHead>����. ������</TableHead>
-                    <TableHead>�����������</TableHead>
-                    <TableHead>��������� ����</TableHead>
-                    <TableHead className="text-right">��������</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <span>{user.email}</span>
-                          <span className="flex items-center gap-0.5 shrink-0">
-                            {(providerMap[user.id] || []).map((p) => (
-                              <span key={p} title={p === "google" ? "Google" : p === "github" ? "GitHub" : p === "yandex" ? "Yandex" : "Email/������"}>
-                                <ProviderIcon provider={p} />
+      {/* Search */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Поиск по email, имени или ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-background"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
+      ) : (
+        <Card>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("email")}>
+                    Пользователь <SortIcon k="email" />
+                  </TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead>Подписка</TableHead>
+                  <TableHead className="cursor-pointer select-none text-center" onClick={() => toggleSort("trips_count")}>
+                    Маршруты <SortIcon k="trips_count" />
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none text-center" onClick={() => toggleSort("total_cost_rub")}>
+                    AI, RUB <SortIcon k="total_cost_rub" />
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("created_at")}>
+                    Регистрация <SortIcon k="created_at" />
+                  </TableHead>
+                  <TableHead className="text-right">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => {
+                  const isExpanded = expandedUser === user.id
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setExpandedUser(isExpanded ? null : user.id)}
+                    >
+                      {/* User info */}
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-sm truncate">{user.email}</span>
+                              <span className="flex items-center gap-0.5 shrink-0">
+                                {(providerMap[user.id] || []).map((p) => (
+                                  <span key={p} title={p}>
+                                    <ProviderIcon provider={p} />
+                                  </span>
+                                ))}
                               </span>
-                            ))}
-                          </span>
+                            </div>
+                            {user.full_name && (
+                              <div className="text-xs text-muted-foreground truncate">{user.full_name}</div>
+                            )}
+                            {isExpanded && (
+                              <div className="mt-2 text-xs space-y-1 text-muted-foreground border-t pt-2 border-dashed">
+                                <div>ID: <span className="font-mono text-[10px]">{user.id}</span></div>
+                                <div>Токены: {(user.total_tokens || 0).toLocaleString("ru-RU")}</div>
+                                {user.feedback_count ? (
+                                  <div>Отзывы: {user.feedback_count} (средн. {user.avg_feedback_rating?.toFixed(1)}/5)</div>
+                                ) : null}
+                                <div>Последний визит: {fmtDate(user.last_seen_at) || "Никогда"}</div>
+                                {user.block_reason && <div className="text-red-500">Причина блока: {user.block_reason}</div>}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell>{user.full_name || "-"}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === "admin" || user.role === "super_admin" ? "default" : "secondary"}>
-                          {user.role === "super_admin"
-                            ? "�����-�����"
-                            : user.role === "admin"
-                              ? "�����"
-                              : "������������"}
-                        </Badge>
+
+                      {/* Status */}
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={user.role === "admin" || user.role === "super_admin" ? "default" : "secondary"} className="w-fit text-[10px]">
+                            {user.role === "super_admin" ? "Супер" : user.role === "admin" ? "Админ" : "Юзер"}
+                          </Badge>
+                          <Badge
+                            variant={
+                              user.access_mode === "active" ? "default"
+                                : user.access_mode === "ai_blocked" ? "secondary"
+                                  : "destructive"
+                            }
+                            className="w-fit text-[10px]"
+                          >
+                            {user.access_mode === "active" ? "Активен"
+                              : user.access_mode === "ai_blocked" ? "AI блок"
+                                : "Заблокирован"}
+                          </Badge>
+                        </div>
                       </TableCell>
-                      <TableCell>
+
+                      {/* Subscription */}
+                      <TableCell onClick={e => e.stopPropagation()}>
                         <Badge
-                          variant={
-                            user.access_mode === "active"
-                              ? "default"
-                              : user.access_mode === "ai_blocked"
-                                ? "secondary"
-                                : "destructive"
-                          }
+                          variant={user.subscription_tier === "free" ? "secondary" : user.subscription_tier === "dev" ? "destructive" : "default"}
+                          className="text-[10px]"
                         >
-                          {user.access_mode === "active"
-                            ? "�������"
-                            : user.access_mode === "ai_blocked"
-                              ? "AI ������������"
-                              : "������������"}
-                        </Badge>
-                        {user.block_reason && (
-                          <div className="text-xs text-muted-foreground mt-1">{user.block_reason}</div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.subscription_tier === 'free' ? 'secondary' : user.subscription_tier === 'dev' ? 'destructive' : 'default'}>
-                          {user.subscription_tier || 'free'}
+                          {(user.subscription_tier || "free").toUpperCase()}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={user.site_access ? 'default' : 'secondary'}>
-                          {user.site_access ? '��' : '���'}
-                        </Badge>
+
+                      {/* Trips */}
+                      <TableCell className="text-center font-medium tabular-nums">
+                        {user.trips_count || 0}
                       </TableCell>
-                      <TableCell>{user.trips_count || 0}</TableCell>
-                      <TableCell>
-                        {typeof user.total_tokens === "number" ? user.total_tokens.toLocaleString("ru-RU") : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {typeof user.total_cost_rub === "number" ? `${user.total_cost_rub.toFixed(2)} ?` : "-"}
-                      </TableCell>
-                      <TableCell>{user.feedback_count || 0}</TableCell>
-                      <TableCell>
-                        {typeof user.avg_feedback_rating === "number"
-                          ? `${user.avg_feedback_rating.toFixed(1)}/5`
+
+                      {/* Cost */}
+                      <TableCell className="text-center tabular-nums text-sm">
+                        {typeof user.total_cost_rub === "number" && user.total_cost_rub > 0
+                          ? `${user.total_cost_rub.toFixed(2)}`
                           : "-"}
                       </TableCell>
-                      <TableCell>{new Date(user.created_at).toLocaleDateString("ru-RU")}</TableCell>
-                      <TableCell>
-                        {user.last_seen_at ? new Date(user.last_seen_at).toLocaleDateString("ru-RU") : "�������"}
+
+                      {/* Created */}
+                      <TableCell className="text-sm tabular-nums text-muted-foreground whitespace-nowrap">
+                        {fmtDate(user.created_at)}
                       </TableCell>
-                      <TableCell className="text-right">
+
+                      {/* Actions */}
+                      <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openSubscriptionDialog(user)}>
                               <CreditCard className="mr-2 h-4 w-4" />
-                              ���������� ���������
+                              Управление подпиской
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openBlockDialog(user, "active")}>
                               <UserCheck className="mr-2 h-4 w-4" />
-                              ������������ ������
+                              Восстановить доступ
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openBlockDialog(user, "ai_blocked")}>
                               <Ban className="mr-2 h-4 w-4" />
-                              ������������� AI
+                              Заблокировать AI
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openBlockDialog(user, "full_blocked")}>
                               <Shield className="mr-2 h-4 w-4" />
-                              ������ ����������
+                              Полная блокировка
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
-        <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {blockMode === "active"
-                  ? "������������ ������"
-                  : blockMode === "ai_blocked"
-                    ? "������������� ������ � AI"
-                    : "������������� ������������"}
-              </DialogTitle>
-              <DialogDescription>
-                {selectedUser ? `������������: ${selectedUser.email}` : ""}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">�������</label>
-                <Input
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder="�����������"
-                  className="mt-1"
-                />
-              </div>
-              {blockMode !== "active" && (
-                <div>
-                  <label className="text-sm font-medium">������������� �� (���� � �����)</label>
-                  <Input
-                    type="datetime-local"
-                    value={blockUntil}
-                    onChange={(e) => setBlockUntil(e.target.value)}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    �������� ������ ��� ���������� ����������
-                  </p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>
-                ������
-              </Button>
-              <Button onClick={handleBlockUser}>���������</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>���������� ���������</DialogTitle>
-              <DialogDescription>
-                {subscriptionUser ? `������������: ${subscriptionUser.email}` : ""}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">�����</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={subTier}
-                  onChange={(e) => setSubTier(e.target.value)}
-                >
-                  <option value="free">Free</option>
-                  <option value="pro">Pro</option>
-                  <option value="max">Max</option>
-                  <option value="dev">Dev</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="site-access"
-                  checked={subSiteAccess}
-                  onChange={(e) => setSubSiteAccess(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <label htmlFor="site-access" className="text-sm font-medium">������ � ����� (site_access)</label>
-              </div>
-              <div>
-                <label className="text-sm font-medium">���� ���������</label>
-                <Input
-                  type="date"
-                  value={subExpiresAt}
-                  onChange={(e) => setSubExpiresAt(e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">�������� ������ ��� ���������� ��������</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium">����� ��������� (���������������)</label>
-                <Input
-                  type="number"
-                  value={subGenOverride}
-                  onChange={(e) => setSubGenOverride(e.target.value)}
-                  placeholder="����� = �� ��������� ������"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">����� ���� �� ������� (���������������)</label>
-                <Input
-                  type="number"
-                  value={subChatOverride}
-                  onChange={(e) => setSubChatOverride(e.target.value)}
-                  placeholder="����� = �� ��������� ������"
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)}>
-                ������
-              </Button>
-              <Button onClick={handleUpdateSubscription}>���������</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>���������� ������</DialogTitle>
-              <DialogDescription>
-                ������� email ������������. ���� ������� ��� ����������, ��� ����� ��������� ���� ��������������.
-                ���� ���, ����� ������� �����������.
-              </DialogDescription>
-            </DialogHeader>
+      {/* Block Dialog */}
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {blockMode === "active"
+                ? "Восстановить доступ"
+                : blockMode === "ai_blocked"
+                  ? "Заблокировать доступ к AI"
+                  : "Заблокировать пользователя"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser ? `Пользователь: ${selectedUser.email}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
             <div>
+              <label className="text-sm font-medium">Причина</label>
               <Input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="email@example.com"
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                placeholder="Необязательно"
+                className="mt-1"
               />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
-                ������
-              </Button>
-              <Button onClick={handleInviteAdmin}>����������</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            {blockMode !== "active" && (
+              <div>
+                <label className="text-sm font-medium">Заблокировать до (дата и время)</label>
+                <Input
+                  type="datetime-local"
+                  value={blockUntil}
+                  onChange={(e) => setBlockUntil(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Оставьте пустым для постоянной блокировки
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBlockDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleBlockUser}>Применить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Subscription Dialog */}
+      <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Управление подпиской</DialogTitle>
+            <DialogDescription>
+              {subscriptionUser ? `Пользователь: ${subscriptionUser.email}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Тариф</label>
+              <select
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={subTier}
+                onChange={(e) => setSubTier(e.target.value)}
+              >
+                <option value="free">Free</option>
+                <option value="pro">Pro</option>
+                <option value="max">Max</option>
+                <option value="dev">Dev</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="site-access"
+                checked={subSiteAccess}
+                onChange={(e) => setSubSiteAccess(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="site-access" className="text-sm font-medium">Доступ к сайту (site_access)</label>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Дата окончания</label>
+              <Input
+                type="date"
+                value={subExpiresAt}
+                onChange={(e) => setSubExpiresAt(e.target.value)}
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Оставьте пустым для бессрочной подписки</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Лимит генераций (персональный)</label>
+              <Input
+                type="number"
+                value={subGenOverride}
+                onChange={(e) => setSubGenOverride(e.target.value)}
+                placeholder="Пусто = по умолчанию тарифа"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Лимит чата на маршрут (персональный)</label>
+              <Input
+                type="number"
+                value={subChatOverride}
+                onChange={(e) => setSubChatOverride(e.target.value)}
+                placeholder="Пусто = по умолчанию тарифа"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubscriptionDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleUpdateSubscription}>Сохранить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Пригласить админа</DialogTitle>
+            <DialogDescription>
+              Введите email пользователя. Если аккаунт уже существует, ему будет назначена роль администратора.
+              Если нет, будет создано приглашение.
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Input
+              type="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="email@example.com"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+              Отмена
+            </Button>
+            <Button onClick={handleInviteAdmin}>Пригласить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

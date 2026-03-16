@@ -170,7 +170,7 @@ export default function AdminTripsPage() {
 
       setTrips(normalized)
     } catch (error: any) {
-      toast.error(`������ �������� ���������: ${error.message}`)
+      toast.error(`Ошибка загрузки маршрутов: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -180,11 +180,11 @@ export default function AdminTripsPage() {
     <div className="space-y-6">
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <MapPin className="h-8 w-8" />
-            ��������
+          <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+            <MapPin className="h-6 w-6" />
+            Маршруты
           </h1>
-          <p className="text-muted-foreground">�������� ��������� ���������, ����� � ����������</p>
+          <p className="text-sm text-muted-foreground">Просмотр созданных маршрутов, модели и стоимость</p>
         </div>
 
         <Card className="mb-6">
@@ -193,7 +193,7 @@ export default function AdminTripsPage() {
               <div className="flex-1 flex items-center gap-2">
                 <Search className="h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="����� �� ��������, �����������, email ������������ ��� ID..."
+                  placeholder="Поиск по названию, направлению, email или ID..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-background"
@@ -201,16 +201,16 @@ export default function AdminTripsPage() {
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button variant={filterStatus === "all" ? "default" : "outline"} onClick={() => setFilterStatus("all")} size="sm">
-                  ���
+                  Все
                 </Button>
                 <Button variant={filterStatus === "draft" ? "default" : "outline"} onClick={() => setFilterStatus("draft")} size="sm">
-                  ���������
+                  Черновики
                 </Button>
                 <Button variant={filterStatus === "active" ? "default" : "outline"} onClick={() => setFilterStatus("active")} size="sm">
-                  ��������
+                  Активные
                 </Button>
                 <Button variant={filterStatus === "completed" ? "default" : "outline"} onClick={() => setFilterStatus("completed")} size="sm">
-                  �����������
+                  Завершено
                 </Button>
               </div>
             </div>
@@ -218,29 +218,29 @@ export default function AdminTripsPage() {
         </Card>
 
         {loading ? (
-          <div className="text-center py-8">��������...</div>
+          <div className="text-center py-8 text-muted-foreground">Загрузка...</div>
         ) : (
           <Card>
             <CardContent className="p-0 overflow-x-auto">
-              <Table className="min-w-[1020px]">
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>��������</TableHead>
-                    <TableHead>�����������</TableHead>
-                    <TableHead>������������</TableHead>
-                    <TableHead>����</TableHead>
-                    <TableHead>������</TableHead>
-                    <TableHead>������</TableHead>
-                    <TableHead>���������</TableHead>
-                    <TableHead>������</TableHead>
-                    <TableHead className="text-right">��������</TableHead>
+                    <TableHead>Название</TableHead>
+                    <TableHead>Направление</TableHead>
+                    <TableHead>Пользователь</TableHead>
+                    <TableHead className="text-center">Дни</TableHead>
+                    <TableHead>Статус</TableHead>
+                    <TableHead>Токены</TableHead>
+                    <TableHead>Стоимость</TableHead>
+                    <TableHead>Создан</TableHead>
+                    <TableHead className="text-right">Открыть</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTrips.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                        �������� �� �������
+                        Маршруты не найдены
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -250,26 +250,28 @@ export default function AdminTripsPage() {
 
                       return (
                         <TableRow key={trip.id}>
-                          <TableCell className="font-medium">{trip.title || "��� ��������"}</TableCell>
+                          <TableCell className="font-medium max-w-[200px] truncate">{trip.title || "Без названия"}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {getCountriesText(trip)}
+                            <div className="flex items-center gap-1 text-sm">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span className="truncate max-w-[150px]">{getCountriesText(trip)}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">{trip.user_email || "-"}</div>
-                            <div className="text-xs text-muted-foreground">{String(trip.user_id || "").slice(0, 8)}...</div>
+                            <div className="text-sm truncate max-w-[160px]">{trip.user_email || "-"}</div>
                           </TableCell>
-                          <TableCell>{getDaysCount(trip)}</TableCell>
+                          <TableCell className="text-center tabular-nums">{getDaysCount(trip)}</TableCell>
                           <TableCell>
-                            <Badge variant={status === "active" ? "default" : status === "completed" ? "secondary" : "outline"}>
-                              {status === "active" ? "�������" : status === "completed" ? "��������" : "��������"}
+                            <Badge
+                              variant={status === "active" ? "default" : status === "completed" ? "secondary" : "outline"}
+                              className="text-[10px]"
+                            >
+                              {status === "active" ? "Активен" : status === "completed" ? "Завершён" : "Черновик"}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {typeof tokenUsage?.totalTokens === "number" ? (
-                              <div className="flex items-center gap-1.5" title={tokenUsage.model || "Unknown model"}>
+                              <div className="flex items-center gap-1.5 text-sm tabular-nums" title={tokenUsage.model || ""}>
                                 <span>{tokenUsage.totalTokens.toLocaleString("ru-RU")}</span>
                                 {tokenUsage.model?.toLowerCase().includes("gemini") ? (
                                   <Sparkles className="h-3.5 w-3.5 text-blue-500" />
@@ -278,24 +280,23 @@ export default function AdminTripsPage() {
                                 ) : null}
                               </div>
                             ) : (
-                              "-"
+                              <span className="text-muted-foreground">-</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            {typeof tokenUsage?.costRub === "number" ? `${tokenUsage.costRub.toFixed(2)} ?` : "-"}
+                          <TableCell className="tabular-nums text-sm">
+                            {typeof tokenUsage?.costRub === "number"
+                              ? `${tokenUsage.costRub.toFixed(2)} RUB`
+                              : <span className="text-muted-foreground">-</span>}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1 text-sm">
+                            <div className="flex items-center gap-1 text-sm whitespace-nowrap">
                               <Calendar className="h-3 w-3" />
                               {new Date(trip.created_at).toLocaleDateString("ru-RU")}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {new Date(trip.created_at).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <Link href={`/trip/${trip.id}`} target="_blank">
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             </Link>
@@ -312,11 +313,10 @@ export default function AdminTripsPage() {
 
         {filteredTrips.length > 0 && (
           <div className="mt-4 text-sm text-muted-foreground text-center">
-            �������� {filteredTrips.length} �� {trips.length} ���������
+            Показано {filteredTrips.length} из {trips.length} маршрутов
           </div>
         )}
       </div>
     </div>
   )
 }
-

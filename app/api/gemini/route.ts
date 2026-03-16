@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { createClient } from '@supabase/supabase-js'
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { checkGenerationLimit, incrementGenerationCount } from "@/lib/subscription"
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
@@ -30,6 +31,10 @@ export async function POST(req: Request) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
+
+        // Rate limit: max 5 generation requests per minute per user
+        const rl = checkRateLimit(userId, "gemini-generation", 5)
+        if (!rl.allowed) return rateLimitResponse(rl)
 
         // Check maintenance mode & block status
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -76,13 +81,15 @@ export async function POST(req: Request) {
             return []
         }
 
-        // Define budget caps
+        // Define budget caps (max 10M ₽ to prevent unrealistic values)
+        const MAX_BUDGET = 10_000_000;
         let budgetCap = 15000 * durationDays;
         if (budget === "custom" && customBudget) {
-            budgetCap = parseInt(customBudget.replace(/\D/g, '')) || 100000;
+            budgetCap = Math.min(parseInt(customBudget.replace(/\D/g, '')) || 100000, MAX_BUDGET);
         } else if (budget === "economy") budgetCap = 7500 * durationDays;
         else if (budget === "comfort") budgetCap = 20000 * durationDays;
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
+        budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
         const budgetDesc = `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
 

@@ -266,8 +266,13 @@ export default function PlanPage() {
     if (!budget) {
       errors.push("Выберите бюджет")
     }
-    if (budget === "custom" && (!customBudget || parseInt(customBudget) < 10000)) {
-      errors.push("Минимальный бюджет — 10 000 ₽")
+    if (budget === "custom") {
+      const val = parseInt(customBudget || "0")
+      if (!customBudget || val < 10000) {
+        errors.push("Минимальный бюджет — 10 000 ₽")
+      } else if (val > 10000000) {
+        errors.push("Максимальный бюджет — 10 000 000 ₽")
+      }
     }
     if (tripHighlight.trim() && validateHighlight(tripHighlight)) {
       errors.push("Поле «Изюминка поездки» содержит недопустимый контент")

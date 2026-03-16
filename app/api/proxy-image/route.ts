@@ -1,12 +1,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { ProxyAgent } from "undici";
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { isProxyDisabled } from "@/lib/proxy-config";
 
 // Create a singleton dispatcher for the proxy
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
 const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
+    // IP rate limit: 60 req/min (image proxy is called often but should be bounded)
+    const rl = checkIpRateLimit(req, "proxy-image", 60)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const url = req.nextUrl.searchParams.get("url");
 
     if (!url) {
@@ -19,7 +25,9 @@ export async function GET(req: NextRequest) {
             "images.unsplash.com",
             "images.pexels.com",
             "upload.wikimedia.org",
-            "img.freepik.com"
+            "img.freepik.com",
+            "pixabay.com",
+            "cdn.pixabay.com",
         ];
 
         const parsedUrl = new URL(url);
@@ -35,7 +43,10 @@ export async function GET(req: NextRequest) {
         };
 
         if (proxyDispatcher) {
-            fetchOptions.dispatcher = proxyDispatcher;
+            const disabled = await isProxyDisabled()
+            if (!disabled) {
+                fetchOptions.dispatcher = proxyDispatcher;
+            }
         }
 
         const response = await fetch(url, fetchOptions);

@@ -55,6 +55,20 @@ export function checkRateLimit(
   return { allowed: true, remaining: maxPerMinute - entry.count, resetAt: entry.resetAt }
 }
 
+/**
+ * IP-based rate limiter for public (unauthenticated) endpoints.
+ * Extracts IP from standard headers.
+ */
+export function checkIpRateLimit(
+  req: Request,
+  endpoint: string,
+  maxPerMinute: number
+): RateLimitResult {
+  const forwarded = req.headers.get("x-forwarded-for")
+  const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown"
+  return checkRateLimit(`ip:${ip}`, endpoint, maxPerMinute)
+}
+
 /** Convenience: returns a 429 JSON response if rate limited */
 export function rateLimitResponse(result: RateLimitResult) {
   const retryAfterSec = Math.ceil((result.resetAt - Date.now()) / 1000)

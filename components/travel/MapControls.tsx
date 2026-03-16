@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import { Bot, Navigation, Settings, FileText, Wallet } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TourHint } from "@/components/TourHint"
 
 interface MapControlsProps {
   viewState: "IDLE" | "SELECTION" | "ACTIVE"
@@ -16,18 +17,18 @@ interface MapControlsProps {
 
 export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, onOpenSettings, onOpenBudget }: MapControlsProps) {
   const buttons = [
-    { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE" },
-    { icon: Wallet, label: "Бюджет", onClick: onOpenBudget, color: "text-emerald-400", show: viewState === "ACTIVE" },
-    { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-blue-400", show: true },
-    { icon: Navigation, label: "Рядом", onClick: onOpenNearby, color: "text-amber-400", show: viewState === "ACTIVE" },
-    { icon: Settings, label: "Настройки", onClick: onOpenSettings, color: "text-gray-400", show: true },
+    { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE", hintId: "map-ai-guide", hint: "AI-помощник подскажет по маршруту" },
+    { icon: Wallet, label: "Бюджет", onClick: onOpenBudget, color: "text-emerald-400", show: viewState === "ACTIVE", hintId: "", hint: "" },
+    { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-blue-400", show: true, hintId: "map-open-route", hint: "Выберите маршрут для отображения на карте" },
+    { icon: Navigation, label: "Рядом", onClick: onOpenNearby, color: "text-amber-400", show: viewState === "ACTIVE", hintId: "map-nearby", hint: "Найти кафе, аптеки и достопримечательности рядом" },
+    { icon: Settings, label: "Настройки", onClick: onOpenSettings, color: "text-gray-400", show: true, hintId: "map-settings", hint: "Стиль карты, единицы и другие настройки" },
   ].filter((b) => b.show)
 
   return (
     <div className="absolute right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom))] md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col gap-3 md:gap-4 pointer-events-auto">
       <TooltipProvider delayDuration={0}>
-        {buttons.map((btn, index) => (
-          <motion.div key={btn.label} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }}>
+        {buttons.map((btn, index) => {
+          const buttonEl = (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -47,8 +48,18 @@ export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, on
                 <p>{btn.label}</p>
               </TooltipContent>
             </Tooltip>
-          </motion.div>
-        ))}
+          )
+
+          return (
+            <motion.div key={btn.label} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }}>
+              {btn.hintId ? (
+                <TourHint id={btn.hintId} text={btn.hint} position="left" delay={2000 + index * 800}>
+                  {buttonEl}
+                </TourHint>
+              ) : buttonEl}
+            </motion.div>
+          )
+        })}
       </TooltipProvider>
     </div>
   )
