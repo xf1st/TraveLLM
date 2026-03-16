@@ -8,6 +8,7 @@ import {
     getPriceCalendar,
     getPopularDestinations,
     getIataCode,
+    resolveIataCode,
     formatPrice,
     hasApiToken
 } from "../travelpayouts"
@@ -57,7 +58,7 @@ export async function fetchFlightContext(
         }
     }
 
-    const originIata = getIataCode(departureCity)
+    const originIata = await resolveIataCode(departureCity)
     if (!originIata) {
         return {
             departureCity,
@@ -71,7 +72,7 @@ export async function fetchFlightContext(
 
     // Получаем данные для каждого направления
     for (const dest of destinations) {
-        const destIata = getIataCode(dest)
+        const destIata = await resolveIataCode(dest)
         if (!destIata) {
             flights.push({
                 from: departureCity,
@@ -168,7 +169,7 @@ export async function fetchFlightContext(
         (destinations.length > 1 && destinations[destinations.length - 1].toLowerCase() === departureCity.toLowerCase())
     if (isRoundTrip && destinations.length > 0 && endDate) {
         const lastDest = destinations[destinations.length - 1]
-        const lastDestIata = getIataCode(lastDest)
+        const lastDestIata = await resolveIataCode(lastDest)
 
         if (lastDestIata && originIata) {
             try {

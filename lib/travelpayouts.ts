@@ -43,6 +43,55 @@ export const IATA_CODES: Record<string, string> = {
   "уфа": "UFA",
   "ростов-на-дону": "ROV",
   "минеральные воды": "MRV",
+  "воронеж": "VOZ",
+  "voronezh": "VOZ",
+  "краснодар": "KRR",
+  "krasnodar": "KRR",
+  "пермь": "PEE",
+  "perm": "PEE",
+  "тюмень": "TJM",
+  "tyumen": "TJM",
+  "челябинск": "CEK",
+  "chelyabinsk": "CEK",
+  "омск": "OMS",
+  "omsk": "OMS",
+  "барнаул": "BAX",
+  "barnaul": "BAX",
+  "иркутск": "IKT",
+  "irkutsk": "IKT",
+  "хабаровск": "KHV",
+  "khabarovsk": "KHV",
+  "мурманск": "MMK",
+  "murmansk": "MMK",
+  "архангельск": "ARH",
+  "arkhangelsk": "ARH",
+  "астрахань": "ASF",
+  "astrakhan": "ASF",
+  "волгоград": "VOG",
+  "volgograd": "VOG",
+  "ставрополь": "STW",
+  "stavropol": "STW",
+  "белгород": "EGO",
+  "belgorod": "EGO",
+  "курск": "URS",
+  "kursk": "URS",
+  "липецк": "LPK",
+  "lipetsk": "LPK",
+  "тамбов": "TBW",
+  "tambov": "TBW",
+  "брянск": "BZK",
+  "bryansk": "BZK",
+  "томск": "TOF",
+  "tomsk": "TOF",
+  "якутск": "YKS",
+  "yakutsk": "YKS",
+  "магнитогорск": "MQF",
+  "magnitogorsk": "MQF",
+  "нижневартовск": "NJC",
+  "сургут": "SGC",
+  "surgut": "SGC",
+  "норильск": "NSK",
+  "norilsk": "NSK",
 
   // Европа
   "париж": "PAR",
@@ -317,15 +366,44 @@ const COUNTRY_TO_CITY: Record<string, string> = {
 }
 
 /**
- * Получить IATA код города (также проверяет названия стран через маппинг)
+ * Получить IATA код города (синхронный, только словарь).
+ * Используется во всём коде где await невозможен.
  */
 export function getIataCode(city: string): string | null {
   const normalized = city.toLowerCase().trim()
-  // Direct city lookup
   if (IATA_CODES[normalized]) return IATA_CODES[normalized]
-  // Country → capital city → IATA
   const capitalCity = COUNTRY_TO_CITY[normalized]
   if (capitalCity) return IATA_CODES[capitalCity] || null
+  return null
+}
+
+/**
+ * Получить IATA код города с async fallback через Travelpayouts autocomplete.
+ * 1) Быстрый словарный lookup (0ms) — если найден, сетевой запрос не делается.
+ * 2) Если не найден — бесплатный Travelpayouts autocomplete endpoint (без API-ключа, таймаут 2s).
+ *    Результат кешируется в IATA_CODES чтобы повторный вызов не делал сетевой запрос.
+ * Используется в checkDirectFlightsLive и flight-context.ts.
+ */
+export async function resolveIataCode(city: string): Promise<string | null> {
+  const fromDict = getIataCode(city)
+  if (fromDict) return fromDict
+
+  // Travelpayouts public autocomplete — no auth required
+  try {
+    const url = `https://autocomplete.travelpayouts.com/places2?term=${encodeURIComponent(city)}&types[]=city&locale=ru`
+    const res = await fetch(url, { signal: AbortSignal.timeout(2000) })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0 && data[0]?.code) {
+        const code: string = data[0].code
+        IATA_CODES[city.toLowerCase().trim()] = code   // cache in memory for subsequent sync calls
+        console.log(`[IATA] Autocomplete resolved "${city}" → ${code}`)
+        return code
+      }
+    }
+  } catch {
+    // network error or timeout — silent fallback
+  }
   return null
 }
 
@@ -834,9 +912,12 @@ export async function checkDirectFlightsLive(
     const originCity = extractCityName(origin)
     const destCity = extractCityName(destination)
 
-    const originIata = getIataCode(originCity) || getIataCode(origin) || origin;
-    const destIata = getIataCode(destCity) || getIataCode(destination) || destination;
-    
+    // Try sync dict first, fall back to async Travelpayouts autocomplete
+    const originIata = getIataCode(originCity) || getIataCode(origin)
+      || await resolveIataCode(originCity) || await resolveIataCode(origin) || origin;
+    const destIata = getIataCode(destCity) || getIataCode(destination)
+      || await resolveIataCode(destCity) || await resolveIataCode(destination) || destination;
+
     // Fallback: If we can't determine both IATAs, skip silently
     if (!originIata || !destIata || originIata === origin || destIata === destination) {
         console.log(`[Aviasales API] Could not resolve IATA for "${originCity}" or "${destCity}", skipping pre-check`)

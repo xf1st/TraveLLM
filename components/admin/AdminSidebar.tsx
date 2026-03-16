@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Map, Settings, Activity, ArrowLeft, Image, MessageSquare } from 'lucide-react'
+import { Home, Users, Map, Settings, Activity, ArrowLeft, Image, MessageSquare, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -13,6 +13,7 @@ const navItems = [
     { href: '/admin/settings', label: 'Настройки', icon: Settings },
     { href: '/admin/health', label: 'Health Check', icon: Activity },
     { href: '/admin/images', label: 'Image Tester', icon: Image },
+    { href: '/admin/ui-kit', label: 'UI Kit', icon: Palette },
 ]
 
 export function AdminSidebar() {

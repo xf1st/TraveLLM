@@ -323,10 +323,12 @@ export async function enrichViralSpotsWithWebSearch(routeData: any) {
       if (!spot.name) return spot
       const results = await googleSearch(`${spot.name} ${routeData.title || ''} viral spot tiktok instagram`, { num: 1 })
       if (results.length > 0) {
+        const r = results[0] as any
         return {
           ...spot,
-          realLink: results[0].link,
-          snippet: results[0].snippet
+          realLink: r.link,
+          // Don't overwrite snippet with empty string from synthetic fallback
+          ...(r.snippet && !r.isSynthetic ? { snippet: r.snippet } : {}),
         }
       }
       return spot

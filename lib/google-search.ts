@@ -43,8 +43,14 @@ export async function googleSearch(query: string, options: { num?: number; type?
 
     // 2. Perform Live Search
     if (!GOOGLE_API_KEY || !SEARCH_ENGINE_ID) {
-        console.warn('[Google Search] API keys not configured, returning empty results');
-        return [];
+        // No API keys — return a synthetic result so callers always get a usable link.
+        // When keys are added to .env.local this branch is skipped automatically.
+        return [{
+            title: query,
+            link: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+            snippet: '',
+            isSynthetic: true,
+        } as SearchResult & { isSynthetic: boolean }];
     }
 
     try {

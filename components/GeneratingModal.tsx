@@ -3,18 +3,15 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { MapPin, Plane, Hotel, Utensils, Camera, X } from "lucide-react"
-import { MeshGradient } from "@paper-design/shaders-react"
-import GradientText from "@/components/GradientText"
-import { MorphingText } from "@/components/ui/morphing-text"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 
 const STEPS = [
-    { icon: Plane, text: "Подбираем рейсы..." },
-    { icon: Hotel, text: "Бронируем отели..." },
-    { icon: MapPin, text: "Составляем маршрут..." },
-    { icon: Utensils, text: "Ищем рестораны..." },
-    { icon: Camera, text: "Добавляем достопримечательности..." },
+    { icon: Plane,    text: "Подбираем рейсы",              color: "text-sky-400" },
+    { icon: Hotel,    text: "Бронируем отели",              color: "text-violet-400" },
+    { icon: MapPin,   text: "Составляем маршрут",           color: "text-emerald-400" },
+    { icon: Utensils, text: "Ищем рестораны",               color: "text-amber-400" },
+    { icon: Camera,   text: "Добавляем достопримечательности", color: "text-rose-400" },
 ]
 
 interface GeneratingModalProps {
@@ -23,7 +20,7 @@ interface GeneratingModalProps {
     onCancel?: () => void
 }
 
-export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps & { onCancel?: () => void }) {
+export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps) {
     const [currentStep, setCurrentStep] = useState(0)
     const [progress, setProgress] = useState(0)
 
@@ -51,72 +48,110 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
         }
     }, [open])
 
-    const CurrentIcon = STEPS[currentStep].icon
+    const step = STEPS[currentStep]
+    const StepIcon = step.icon
 
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onCancel && onCancel()}>
-            <DialogContent className="sm:max-w-md border-none bg-background/80 dark:bg-black/90 p-0 overflow-hidden rounded-[2.5rem] shadow-md md:shadow-2xl [&>button]:hidden backdrop-blur-md md:backdrop-blur-xl">
+            <DialogContent className="sm:max-w-md border-none p-0 overflow-hidden rounded-[2.5rem] shadow-2xl [&>button]:hidden">
                 <DialogTitle className="sr-only">Генерация маршрута</DialogTitle>
-                <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8">
-                    {/* Background Shader - Theme Aware */}
-                    <div className="absolute inset-0 z-0">
-                        <MeshGradient
-                            className="w-full h-full opacity-30 dark:opacity-40"
-                            colors={["#6366F1", "#8B5CF6", "#A78BFA", "#6366F1"]}
-                            speed={0.1}
-                        />
-                        <div className="absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-md md:backdrop-blur-3xl hidden md:block" />
-                    </div>
 
-                    {/* Close Button */}
+                <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8 bg-zinc-950 overflow-hidden">
+
+                    {/* Grid dot pattern */}
+                    <div
+                        className="absolute inset-0 opacity-[0.04]"
+                        style={{
+                            backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+                            backgroundSize: "28px 28px",
+                        }}
+                    />
+
+                    {/* Ambient glow orbs */}
+                    <div className="absolute -top-24 -left-24 w-72 h-72 bg-violet-600/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-sky-600/15 rounded-full blur-3xl" />
+
+                    {/* Close button */}
                     {onCancel && (
                         <button
                             onClick={onCancel}
-                            className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white"
+                            className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-white/40 hover:text-white/80"
                         >
                             <span className="sr-only">Закрыть</span>
                             <X className="h-5 w-5" />
                         </button>
                     )}
 
-                    <div className="relative z-10 w-full text-center space-y-8">
-                        {/* Plane Animation */}
-                        <div className="relative h-48 w-48 mx-auto flex items-center justify-center">
-                            {/* Glow behind plane */}
-                            <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse hidden md:block" />
-                            
+                    <div className="relative z-10 w-full flex flex-col items-center gap-8">
+
+                        {/* Plane */}
+                        <div className="relative h-48 w-48 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-violet-500/10 blur-3xl rounded-full" />
                             <LottieLoader type="plane" className="h-[120%] w-[120%] relative z-10" />
                         </div>
 
-                        {/* Text Content */}
-                        <div className="space-y-3">
-                            <h2 className="text-3xl font-black text-foreground dark:text-white tracking-tighter">
-                                <GradientText>ПЛАНИРУЕМ МАРШРУТ</GradientText>
+                        {/* Title + destination */}
+                        <div className="text-center space-y-3">
+                            <h2 className="text-2xl font-black tracking-tight text-white">
+                                Планируем маршрут
                             </h2>
                             {destination && (
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/40 dark:bg-white/5 border border-black/5 dark:border-white/10 backdrop-blur-md justify-center shadow-sm">
-                                    <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{destination}</span>
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
+                                    <MapPin className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span className="text-sm font-semibold text-white/80">{destination}</span>
                                 </div>
                             )}
                         </div>
 
-                        {/* Progress Section */}
-                        <div className="space-y-6 max-w-sm mx-auto">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] uppercase tracking-widest font-black text-muted-foreground px-1">
-                                    <span>СИНХРОНИЗАЦИЯ</span>
-                                    <span className="text-primary">{Math.round(progress)}%</span>
+                        {/* Progress + step */}
+                        <div className="w-full max-w-sm space-y-4">
+
+                            {/* Progress bar */}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center px-0.5">
+                                    <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/30">Обработка</span>
+                                    <span className="text-xs font-black tabular-nums text-white/60">{Math.round(progress)}%</span>
                                 </div>
-                                <div className="h-3 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 p-0.5">
-                                    <div
-                                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-blue-500 to-emerald-500 bg-[length:200%_auto] animate-[gradient_2s_linear_infinite] shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-500"
+                                <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                                    <motion.div
+                                        className="h-full rounded-full bg-gradient-to-r from-violet-500 via-sky-400 to-emerald-400"
                                         style={{ width: `${progress}%` }}
+                                        transition={{ duration: 0.4, ease: "easeOut" }}
                                     />
                                 </div>
                             </div>
 
-                            <MorphingText className="text-xl md:text-2xl lg:text-3xl leading-none h-12 text-slate-800 dark:text-white font-heavy" texts={STEPS.map(s => s.text)} />
+                            {/* Current step */}
+                            <div className="h-10 flex items-center justify-center">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={currentStep}
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -6 }}
+                                        transition={{ duration: 0.3 }}
+                                        className="flex items-center gap-2.5"
+                                    >
+                                        <StepIcon className={`h-4 w-4 ${step.color} shrink-0`} />
+                                        <span className="text-sm font-medium text-white/70">{step.text}</span>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Step dots */}
+                            <div className="flex justify-center gap-1.5">
+                                {STEPS.map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        animate={{
+                                            width: i === currentStep ? 20 : 6,
+                                            backgroundColor: i === currentStep ? "#a78bfa" : "rgba(255,255,255,0.15)",
+                                        }}
+                                        transition={{ duration: 0.3 }}
+                                        className="h-1.5 rounded-full"
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
