@@ -80,15 +80,18 @@ export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettings
           <div className="space-y-3">
             <span className="text-xs uppercase tracking-widest text-white/40 font-bold ml-1">Слои</span>
 
-            <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">
               <div className="flex items-center gap-3">
                 <Navigation className="w-5 h-5 text-emerald-400" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white">Трафик</span>
-                  <span className="text-[10px] text-white/40">Загруженность дорог</span>
+                  <span className="text-sm font-medium text-white flex items-center gap-2">
+                    Трафик
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded-full">Скоро</span>
+                  </span>
+                  <span className="text-[10px] text-white/40">В разработке</span>
                 </div>
               </div>
-              <Switch checked={settings.showTraffic} onCheckedChange={(c) => onUpdateSettings({ ...settings, showTraffic: c })} />
+              <Switch checked={false} disabled />
             </div>
 
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
@@ -113,7 +116,7 @@ export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettings
               <Switch checked={settings.showLabels} onCheckedChange={(c) => onUpdateSettings({ ...settings, showLabels: c })} />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5 opacity-50 cursor-not-allowed">
               <div className="flex items-center gap-3">
                 <div className="p-1 bg-zinc-800 rounded">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
@@ -124,11 +127,14 @@ export function MapSettings({ onClose, settings, onUpdateSettings }: MapSettings
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium text-white">3D здания</span>
-                  <span className="text-[10px] text-white/40">Объёмные модели</span>
+                  <span className="text-sm font-medium text-white flex items-center gap-2">
+                    3D здания
+                    <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded-full">Скоро</span>
+                  </span>
+                  <span className="text-[10px] text-white/40">В разработке</span>
                 </div>
               </div>
-              <Switch checked={settings.show3DBuildings} onCheckedChange={(c) => onUpdateSettings({ ...settings, show3DBuildings: c })} />
+              <Switch checked={false} disabled />
             </div>
           </div>
 

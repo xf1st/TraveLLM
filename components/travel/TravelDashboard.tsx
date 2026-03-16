@@ -16,6 +16,7 @@ import { fetchRoute, type RouteGeometry, type RouteResult, type RoutingProfile }
 import { PoiDrawer, type PoiDrawerPoint } from "./PoiDrawer"
 import { DEFAULT_TRAVEL_IMAGE, buildImageQuery, isProbablyBlockedImage } from "@/lib/image-utils"
 import { WeatherWidget } from "./WeatherWidget"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 const MapLibreView = dynamic(() => import("./MapLibreView"), {
   ssr: false,
@@ -950,6 +951,10 @@ export default function TravelDashboard() {
           const routeResult =
             cached ||
             (await fetchRoute(fromPoint.lat, fromPoint.lng, toPoint.lat, toPoint.lng, profile).then((result) => {
+              if (segmentCacheRef.current.size >= 50) {
+                const firstKey = segmentCacheRef.current.keys().next().value
+                if (firstKey !== undefined) segmentCacheRef.current.delete(firstKey)
+              }
               segmentCacheRef.current.set(cacheKey, result)
               return result
             }))
@@ -1256,16 +1261,25 @@ export default function TravelDashboard() {
       </div>
 
       <div className="absolute inset-0 z-0 bg-black">
-        <MapLibreView
-          points={viewState === "ACTIVE" ? displayPoints : []}
-          arcs={viewState === "ACTIVE" ? (routeSegments.length ? routeSegments : displayArcs) : []}
-          flyTo={flyToCoords}
-          fitToPoints={fitToPointsRequest}
-          routingLine={routingLine}
-          settings={mapSettings}
-          nearbyPoints={viewState === "ACTIVE" || activePanel === "nearby" ? nearbyPoints : []}
-          refreshToken={`${activePanel}:${activeDay}:${trip?.id || activeRouteRef?.id || "none"}`}
-        />
+        <ErrorBoundary fallback={
+          <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
+            <div className="text-center text-white/50 p-6">
+              <div className="text-3xl mb-2">🗺️</div>
+              <p className="text-sm">Карта временно недоступна</p>
+            </div>
+          </div>
+        }>
+          <MapLibreView
+            points={viewState === "ACTIVE" ? displayPoints : []}
+            arcs={viewState === "ACTIVE" ? (routeSegments.length ? routeSegments : displayArcs) : []}
+            flyTo={flyToCoords}
+            fitToPoints={fitToPointsRequest}
+            routingLine={routingLine}
+            settings={mapSettings}
+            nearbyPoints={viewState === "ACTIVE" || activePanel === "nearby" ? nearbyPoints : []}
+            refreshToken={`${activePanel}:${activeDay}:${trip?.id || activeRouteRef?.id || "none"}`}
+          />
+        </ErrorBoundary>
       </div>
 
       <div className="absolute inset-0 pointer-events-none z-20">

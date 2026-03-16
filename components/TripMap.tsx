@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import dynamic from "next/dynamic"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 const MapLibreView = dynamic(() => import("./travel/MapLibreView"), {
     ssr: false,
@@ -197,20 +198,29 @@ export default function TripMap({ places, activePlaceId, onPlaceSelect }: TripMa
     }
 
     return (
-        <div className="relative w-full h-full bg-zinc-900 rounded-2xl overflow-hidden border border-white/10">
-            <MapLibreView
-                points={points}
-                arcs={arcs}
-                settings={{
-                    showGlobe: true,
-                    mapStyle: "satellite",
-                    showLabels: true,
-                    showSocialLayer: false,
-                    show3DBuildings: false
-                }}
-                onPointClick={handlePointClick}
-                flyTo={points.length > 0 && points[0].lat ? { lat: points[0].lat, lng: points[0].lng, altitude: 4 } : undefined}
-            />
-        </div>
+        <ErrorBoundary fallback={
+            <div className="relative w-full h-full bg-zinc-900 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
+                <div className="text-center text-white/50 p-6">
+                    <div className="text-2xl mb-2">🗺️</div>
+                    <p className="text-sm">Карта временно недоступна</p>
+                </div>
+            </div>
+        }>
+            <div className="relative w-full h-full bg-zinc-900 rounded-2xl overflow-hidden border border-white/10">
+                <MapLibreView
+                    points={points}
+                    arcs={arcs}
+                    settings={{
+                        showGlobe: true,
+                        mapStyle: "satellite",
+                        showLabels: true,
+                        showSocialLayer: false,
+                        show3DBuildings: false
+                    }}
+                    onPointClick={handlePointClick}
+                    flyTo={points.length > 0 && points[0].lat ? { lat: points[0].lat, lng: points[0].lng, altitude: 4 } : undefined}
+                />
+            </div>
+        </ErrorBoundary>
     )
 }
