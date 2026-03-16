@@ -55,13 +55,24 @@ function AuthContent() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
     if (error) {
       toast.error(error.message)
     } else {
-      toast.success("Регистрация успешна! Проверьте вашу почту.")
       localStorage.setItem("user", JSON.stringify({ email, name }))
-      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+
+      // If email confirmation is disabled in Supabase, user is immediately logged in.
+      // Grant PRO trial right away via API (auth/callback won't be called in this case).
+      if (data.session) {
+        try {
+          await fetch('/api/auth/grant-trial', { method: 'POST' })
+        } catch (_) {}
+        toast.success("Добро пожаловать! Вам выдан PRO на 7 дней 🎉")
+        router.push(defaultRedirect)
+      } else {
+        toast.success("Регистрация успешна! Проверьте вашу почту.")
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
+      }
     }
     setLoading(false)
   }
