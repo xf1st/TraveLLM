@@ -1,10 +1,12 @@
+"use client"
+
 import Link from "next/link"
 import { Logo } from "@/components/logo"
-import { getTranslations } from "next-intl/server"
+import { useTranslations } from "next-intl"
 
-export async function Footer() {
-    const t = await getTranslations("footer")
-    const tCommon = await getTranslations("common")
+export function Footer() {
+    const t = useTranslations("footer")
+    const tCommon = useTranslations("common")
 
     return (
         <footer className="border-t border-white/10 bg-background/60 backdrop-blur-md md:backdrop-blur-xl mt-auto">

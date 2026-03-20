@@ -592,6 +592,7 @@ export default function PlanPage() {
       {/* Route Builder Modal */}
       <Dialog open={showRouteModal} onOpenChange={setShowRouteModal}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden" style={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <DialogTitle className="sr-only">Конструктор маршрута</DialogTitle>
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>

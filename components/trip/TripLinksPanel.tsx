@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslations } from "next-intl"
 
 type ActivityType = "transport" | "food" | "hotel" | "activity"
 
@@ -54,14 +55,6 @@ function ActivityImage({ query, type, accent }: { query?: string; type: Activity
   )
 }
 
-/* ─── Category config (matches reference palette) ─── */
-const CAT: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }> = {
-  transport: { label: "Транспорт и перелёты",      icon: Plane,      accent: "#85adff", dim: "rgba(133,173,255,0.12)" },
-  hotel:     { label: "Проживание",                 icon: HotelIcon,  accent: "#ac89ff", dim: "rgba(172,137,255,0.12)" },
-  food:      { label: "Рестораны и кафе",           icon: Utensils,   accent: "#34d399", dim: "rgba(52,211,153,0.12)"  },
-  activity:  { label: "Активности и развлечения",   icon: Ticket,     accent: "#fbbf24", dim: "rgba(251,191,36,0.12)"  },
-}
-
 /* ─── Service branding ─── */
 const SVC: Record<string, { color: string; label: string }> = {
   "Aviasales":    { color: "#ff6d00", label: "Aviasales"    },
@@ -94,7 +87,7 @@ function parseService(url: string): string {
   if (/getyourguide/i.test(url))     return "GetYourGuide"
   if (/klook/i.test(url))            return "Klook"
   if (/viator/i.test(url))           return "Viator"
-  try { return new URL(url).hostname.replace("www.", "") } catch { return "Ссылка" }
+  try { return new URL(url).hostname.replace("www.", "") } catch { return "Link" }
 }
 
 function getTransportIcon(text: string) {
@@ -124,7 +117,7 @@ const glass = {
 } as React.CSSProperties
 
 /* ─── Flight boarding-pass card ─── */
-function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: number) => void }) {
+function FlightCard({ item, onGoToDay, t }: { item: LinkItem; onGoToDay?: (d: number) => void; t: (key: string) => string }) {
   const accent = "#85adff"
   const svc = SVC[item.service]
   const route = parseFlightRoute(item.activityTitle)
@@ -169,7 +162,7 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
           <div className="flex items-start justify-between pr-20">
             <div>
               <span className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5 block" style={{ color: accent }}>
-                Отправление
+                {t("departure")}
               </span>
               <h3 className="text-2xl font-bold text-white leading-tight">{route.from}</h3>
             </div>
@@ -183,7 +176,7 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
               style={{ background: "rgba(22,26,33,0.95)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
             >
               <Plane className="w-3 h-3" style={{ color: accent }} />
-              День {item.day}
+              {`${t("day")} ${item.day}`}
             </div>
           </div>
 
@@ -191,7 +184,7 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
           <div className="flex items-start justify-between">
             <div>
               <span className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5 block" style={{ color: "#8ff5ff" }}>
-                Назначение
+                {t("destination")}
               </span>
               <h3 className="text-2xl font-bold text-white leading-tight">{route.to}</h3>
               <p className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.38)" }}>{item.dayTitle}</p>
@@ -209,10 +202,10 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
                 onClick={() => { onGoToDay(item.day); window.scrollTo({ top: 0, behavior: "smooth" }) }}
                 className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:opacity-80 active:scale-95 flex-shrink-0"
                 style={{ background: `${accent}15`, color: accent, border: `1px solid ${accent}25` }}
-                title={`Перейти к дню ${item.day}`}
+                title={`${t("goToDay")} ${item.day}`}
               >
                 <ArrowRight className="w-3.5 h-3.5" />
-                День {item.day}
+                {`${t("day")} ${item.day}`}
               </button>
             )}
             <a
@@ -226,14 +219,14 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = svc ? `${svc.color}2e` : `${accent}2e` }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = svc ? `${svc.color}18` : `${accent}18` }}
             >
-              Проверить цены
+              {t("checkPrices")}
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
       ) : (
         /* fallback — simple row if can't parse route */
-        <RegularCard item={item} accent={accent} />
+        <RegularCard item={item} accent={accent} t={t} />
       )}
     </div>
   )
@@ -241,11 +234,12 @@ function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: numbe
 
 /* ─── Regular horizontal card ─── */
 function RegularCard({
-  item, accent, onGoToDay,
+  item, accent, onGoToDay, t,
 }: {
   item: LinkItem
   accent: string
   onGoToDay?: (d: number) => void
+  t: (key: string) => string
 }) {
   const isHotel = item.type === "hotel"
   const svc = SVC[item.service]
@@ -270,15 +264,15 @@ function RegularCard({
               onClick={() => { onGoToDay(item.day); window.scrollTo({ top: 0, behavior: "smooth" }) }}
               className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-80 active:scale-95"
               style={{ background: `${accent}20`, color: accent }}
-              title={`Перейти к дню ${item.day}`}
+              title={`${t("goToDay")} ${item.day}`}
             >
               <ArrowRight className="w-2.5 h-2.5" />
-              День {item.day}
+              {`${t("day")} ${item.day}`}
             </button>
           ) : (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
               style={{ background: `${accent}15`, color: accent }}>
-              День {item.day}
+              {`${t("day")} ${item.day}`}
             </span>
           )}
           <span className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -314,16 +308,18 @@ function RegularCard({
 
 /* ─── Section accordion ─── */
 function CategorySection({
-  typeKey, items, isOpen, onToggle, onGoToDay,
+  typeKey, items, isOpen, onToggle, onGoToDay, cat, t,
 }: {
   typeKey: ActivityType
   items: LinkItem[]
   isOpen: boolean
   onToggle: () => void
   onGoToDay?: (day: number) => void
+  cat: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }>
+  t: (key: string) => string
 }) {
   if (!items.length) return null
-  const { label, icon: Icon, accent } = CAT[typeKey]
+  const { label, icon: Icon, accent } = cat[typeKey]
 
   return (
     <div>
@@ -368,10 +364,10 @@ function CategorySection({
               {items.map((item, i) => {
                 const isFlightLike = typeKey === "transport" && /авиа|рейс|перелёт|перелет|flight|вылет|прилёт/i.test(item.activityTitle)
                 if (isFlightLike) {
-                  return <FlightCard key={i} item={item} onGoToDay={onGoToDay} />
+                  return <FlightCard key={i} item={item} onGoToDay={onGoToDay} t={t} />
                 }
                 return (
-                  <RegularCard key={i} item={item} accent={CAT[typeKey].accent} onGoToDay={onGoToDay} />
+                  <RegularCard key={i} item={item} accent={cat[typeKey].accent} onGoToDay={onGoToDay} t={t} />
                 )
               })}
             </div>
@@ -389,6 +385,15 @@ interface Props {
 }
 
 export function TripLinksPanel({ route, onGoToDay }: Props) {
+  const t = useTranslations("links")
+
+  const CAT: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }> = {
+    transport: { label: t("transport"), icon: Plane, accent: "#85adff", dim: "rgba(133,173,255,0.12)" },
+    hotel:     { label: t("accommodation"), icon: HotelIcon, accent: "#ac89ff", dim: "rgba(172,137,255,0.12)" },
+    food:      { label: t("restaurants"), icon: Utensils, accent: "#34d399", dim: "rgba(52,211,153,0.12)" },
+    activity:  { label: t("activities"), icon: Ticket, accent: "#fbbf24", dim: "rgba(251,191,36,0.12)" },
+  }
+
   const grouped = useMemo(() => {
     const result: Record<ActivityType, LinkItem[]> = {
       transport: [], hotel: [], food: [], activity: [],
@@ -397,7 +402,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
 
     for (const day of route.itinerary) {
       const dayNum: number = day.day
-      const dayTitle: string = day.title || `День ${dayNum}`
+      const dayTitle: string = day.title || `${t("day")} ${dayNum}`
 
       for (const act of day.activities ?? []) {
         const rawUrls: string[] = []
@@ -437,17 +442,17 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
     }
     for (const k of Object.keys(result) as ActivityType[]) result[k].sort((a, b) => a.day - b.day)
     return result
-  }, [route])
+  }, [route, t])
 
-  const firstNonEmpty = TYPE_ORDER.find(t => grouped[t].length > 0) ?? null
+  const firstNonEmpty = TYPE_ORDER.find(key => grouped[key].length > 0) ?? null
   const [openKey, setOpenKey] = useState<ActivityType | null>(firstNonEmpty)
 
-  const hasAny = TYPE_ORDER.some(t => grouped[t].length > 0)
+  const hasAny = TYPE_ORDER.some(key => grouped[key].length > 0)
   if (!hasAny) return (
     <div className="text-center py-16">
       <Link2 className="w-8 h-8 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.15)" }} />
-      <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>Ссылки для бронирования не найдены</p>
-      <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>Они появятся после обогащения маршрута</p>
+      <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>{t("noLinks")}</p>
+      <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>{t("noLinksHint")}</p>
     </div>
   )
 
@@ -461,6 +466,8 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           isOpen={openKey === key}
           onToggle={() => setOpenKey(prev => prev === key ? null : key)}
           onGoToDay={onGoToDay}
+          cat={CAT}
+          t={t}
         />
       ))}
     </div>

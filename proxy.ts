@@ -1,6 +1,30 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// ─── Locale detection ─────────────────────────────────────────────────────────
+const CIS_LANGS = new Set(['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'az', 'hy', 'ka', 'tk'])
+const LOCALE_COOKIE = 'NEXT_LOCALE'
+const LOCALE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
+
+function detectLocale(request: NextRequest, host: string): 'ru' | 'en' {
+  const saved = request.cookies.get(LOCALE_COOKIE)?.value
+  if (saved === 'ru' || saved === 'en') return saved
+
+  // travellm.world → English-first
+  if (host === 'travellm.world' || host.endsWith('.travellm.world')) return 'en'
+
+  const acceptLang = request.headers.get('accept-language') ?? ''
+  const langs = acceptLang.split(',').map(s => s.split(';')[0].trim().toLowerCase().split('-')[0])
+  for (const lang of langs) {
+    if (CIS_LANGS.has(lang)) return 'ru'
+    if (lang === 'en') return 'en'
+  }
+
+  // .ru domain → Russian by default
+  return host.endsWith('.ru') ? 'ru' : 'en'
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const host = request.headers.get('host') || ''
@@ -102,6 +126,15 @@ export async function proxy(request: NextRequest) {
     url.pathname = '/auth'
     url.searchParams.set('next', pathname)
     return NextResponse.redirect(url)
+  }
+
+  // Set locale cookie if not present
+  if (!request.cookies.has(LOCALE_COOKIE)) {
+    response.cookies.set(LOCALE_COOKIE, detectLocale(request, host), {
+      maxAge: LOCALE_MAX_AGE,
+      path: '/',
+      sameSite: 'lax',
+    })
   }
 
   return response

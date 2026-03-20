@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useChat } from "@/lib/context/chat-context"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 type Message = {
   role: "user" | "assistant"
@@ -32,14 +33,6 @@ interface ItineraryChatWidgetProps {
   userLocation?: { lat: number; lng: number }
 }
 
-const QUICK_ACTIONS = [
-  { id: "flight", label: "Найти билеты", icon: Plane, prompt: "Найди авиабилеты для этого маршрута" },
-  { id: "hotel", label: "Отели", icon: HotelIcon, prompt: "Порекомендуй лучшие отели по маршруту" },
-  { id: "weather", label: "Погода", icon: Sparkles, prompt: "Какая погода ожидается в эти даты?" },
-  { id: "visa", label: "Виза", icon: ExternalLink, prompt: "Нужна ли виза для этой поездки?" },
-  { id: "add_day", label: "Добавить день", icon: Sparkles, prompt: "Добавь еще один интересный день в конец маршрута" },
-]
-
 export function ItineraryChatWidget({
   itinerary,
   tripDetails,
@@ -52,12 +45,23 @@ export function ItineraryChatWidget({
   userLocation,
   className,
 }: ItineraryChatWidgetProps & { className?: string }) {
+  const t = useTranslations("chat")
+  const tCommon = useTranslations("common")
+
+  const QUICK_ACTIONS = [
+    { id: "flight", label: t("findTickets"), icon: Plane, prompt: t("promptFlight") },
+    { id: "hotel", label: t("hotels"), icon: HotelIcon, prompt: t("promptHotel") },
+    { id: "weather", label: t("weather"), icon: Sparkles, prompt: t("promptWeather") },
+    { id: "visa", label: t("visa"), icon: ExternalLink, prompt: t("promptVisa") },
+    { id: "add_day", label: t("addDay"), icon: Sparkles, prompt: t("promptAddDay") },
+  ]
+
   const [isOpen, setIsOpen] = useState(embedded)
-  
+
   const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
   const router = useRouter()
-  
-  const tripTitle = tripDetails?.title || itinerary?.title || "Мой маршрут (планирование)"
+
+  const tripTitle = tripDetails?.title || itinerary?.title || t("myItinerary")
   const existingSession = sessions.find(s => s.draftTrip?.title === tripTitle || s.title === tripTitle || s.tripId === tripId)
   
   const messages: Message[] = existingSession ? existingSession.messages.map(m => ({
@@ -68,8 +72,7 @@ export function ItineraryChatWidget({
   })) : [
     {
       role: "assistant",
-      content:
-        "Привет! Я ваш AI-помощник по маршруту.\n\nЗадайте вопрос или попросите изменить маршрут:\n• \"Какая погода будет?\"\n• \"Замени музей на кафе в день 2\"\n• \"Нужна ли виза?\"",
+      content: t("welcomeMessage"),
     },
   ]
 
@@ -143,7 +146,7 @@ export function ItineraryChatWidget({
       })
 
       if (!response.ok) {
-        throw new Error(`Ошибка сервера (${response.status})`)
+        throw new Error(`${t("serverError")} (${response.status})`)
       }
 
       const data = await response.json()
@@ -217,8 +220,8 @@ export function ItineraryChatWidget({
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="font-bold text-foreground dark:text-white text-xs sm:text-sm tracking-tight">AI-помощник</h3>
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground dark:text-white/60">Вопросы и изменения</p>
+              <h3 className="font-bold text-foreground dark:text-white text-xs sm:text-sm tracking-tight">{t("aiAssistant")}</h3>
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground dark:text-white/60">{t("questionsAndChanges")}</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -259,7 +262,7 @@ export function ItineraryChatWidget({
             <span className={cn(
               "text-[10px] font-bold uppercase tracking-widest",
               embedded ? "text-white/50" : "text-slate-500 dark:text-white/50"
-            )}>Онлайн</span>
+            )}>{tCommon("online")}</span>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
             style={{ background: "rgba(99,102,241,0.12)" }}>
@@ -285,7 +288,7 @@ export function ItineraryChatWidget({
                   ? "bg-gradient-to-br from-sky-500 to-indigo-600 text-white"
                   : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
               )}>
-                {msg.role === "user" ? "Я" : "AI"}
+                {msg.role === "user" ? t("you") : "AI"}
               </div>
 
               {/* Bubble */}
@@ -302,7 +305,7 @@ export function ItineraryChatWidget({
                 {msg.isModification && (
                   <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-                    <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">Маршрут обновлён</span>
+                    <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">{t("itineraryUpdated")}</span>
                   </div>
                 )}
 
@@ -312,7 +315,7 @@ export function ItineraryChatWidget({
                       {msg.bookingData.type === "flight"
                         ? <Plane className="h-3 w-3 text-sky-400" />
                         : <HotelIcon className="h-3 w-3 text-emerald-400" />}
-                      {msg.bookingData.type === "flight" ? "Авиабилеты" : "Отели"}
+                      {msg.bookingData.type === "flight" ? t("flights") : t("hotels")}
                     </div>
                     <Button
                       size="sm"
@@ -325,7 +328,7 @@ export function ItineraryChatWidget({
                         window.open(url, "_blank")
                       }}
                     >
-                      Открыть {msg.bookingData.type === "flight" ? "Aviasales" : "Ostrovok"}
+                      {msg.bookingData.type === "flight" ? t("openService", { service: "Aviasales" }) : t("openService", { service: "Ostrovok" })}
                       <ExternalLink className="ml-2 h-3 w-3" />
                     </Button>
                   </div>
@@ -347,7 +350,7 @@ export function ItineraryChatWidget({
                   {[0, 150, 300].map(delay => (
                     <span key={delay} className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: `${delay}ms` }} />
                   ))}
-                  <span className={cn("text-[11px] font-medium ml-1", embedded ? "text-white/40" : "text-slate-400 dark:text-white/40")}>Думаю...</span>
+                  <span className={cn("text-[11px] font-medium ml-1", embedded ? "text-white/40" : "text-slate-400 dark:text-white/40")}>{t("thinking")}</span>
                 </div>
               </div>
             </div>
@@ -395,7 +398,7 @@ export function ItineraryChatWidget({
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Спросите что-нибудь..."
+              placeholder={t("askPlaceholder")}
               className={cn(
                 "flex-1 h-10 rounded-full px-4 text-[13px] border transition-all",
                 embedded

@@ -50,7 +50,9 @@
       "WebFetch(domain:contribution.usercontent.google.com)",
       "Bash(ls:*)",
       "Bash(find /d/sites/TraveLLM -type f \\\\\\(-name *.json -path *locale* -o -name *.json -path *translation* -o -name *.json -path *i18n* \\\\\\))",
-      "Bash(find /d/sites/TraveLLM -maxdepth 3 -type d -name [locale])"
+      "Bash(find /d/sites/TraveLLM -maxdepth 3 -type d -name [locale])",
+      "Bash(del:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

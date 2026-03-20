@@ -59,7 +59,7 @@ export async function getRequestUserId(): Promise<string | null> {
   return user?.id || null;
 }
 
-const MONTHLY_GENERATION_LIMIT = 10;
+export const MONTHLY_GENERATION_LIMIT = 10;
 
 export async function checkMonthlyGenerationLimit(userId: string): Promise<{
   allowed: boolean;
@@ -68,27 +68,35 @@ export async function checkMonthlyGenerationLimit(userId: string): Promise<{
   resetAt: string; // ISO date string of first day of next month
 }> {
   const client = getServiceRoleClient();
-  const limit = MONTHLY_GENERATION_LIMIT;
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const resetAt = nextMonth.toISOString();
 
-  if (!client) return { allowed: true, count: 0, limit, resetAt };
+  if (!client) return { allowed: true, count: 0, limit: MONTHLY_GENERATION_LIMIT, resetAt };
 
-  const { count, error } = await client
-    .from("ai_usage_events")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("source", "route-generation")
-    .gte("created_at", monthStart);
+  // Fetch profile override and usage count in parallel
+  const [profileRes, countRes] = await Promise.all([
+    client.from("profiles").select("gen_limit_override").eq("id", userId).single(),
+    client
+      .from("ai_usage_events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("source", "route-generation")
+      .gte("created_at", monthStart),
+  ]);
 
-  if (error) {
-    console.error("[Generation limit] Count query failed:", error.message);
-    return { allowed: true, count: 0, limit, resetAt };
+  if (countRes.error) {
+    console.error("[Generation limit] Count query failed:", countRes.error.message);
+    return { allowed: true, count: 0, limit: MONTHLY_GENERATION_LIMIT, resetAt };
   }
 
-  const used = count ?? 0;
+  const limit =
+    profileRes.data?.gen_limit_override != null
+      ? profileRes.data.gen_limit_override
+      : MONTHLY_GENERATION_LIMIT;
+
+  const used = countRes.count ?? 0;
   return { allowed: used < limit, count: used, limit, resetAt };
 }
 

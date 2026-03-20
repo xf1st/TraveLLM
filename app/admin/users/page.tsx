@@ -171,15 +171,24 @@ export default function AdminUsersPage() {
 
       if (profilesError) throw profilesError
 
+      const now = new Date()
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
       const [
         { data: trips, error: tripsError },
         { data: usageEvents, error: usageEventsError },
         { data: feedbackRows, error: feedbackError },
+        { data: monthlyGenEvents, error: monthlyGenError },
       ] = await Promise.all([
         supabase.from("trips").select("user_id, token_usage"),
         supabase.from("ai_usage_events").select("user_id, total_tokens, cost_rub"),
         supabase.from("trip_feedback").select("user_id, rating"),
+        supabase.from("ai_usage_events").select("user_id").eq("source", "route-generation").gte("created_at", monthStart),
       ])
+
+      if (monthlyGenError && monthlyGenError.code !== "42P01") {
+        console.warn("monthly gen events load error:", monthlyGenError.message)
+      }
 
       if (tripsError) throw tripsError
       if (usageEventsError && usageEventsError.code !== "42P01") {
@@ -218,6 +227,13 @@ export default function AdminUsersPage() {
         agg.set(row.user_id, c)
       }
 
+      // Build monthly generation count map
+      const monthlyGenMap = new Map<string, number>()
+      for (const ev of monthlyGenEvents || []) {
+        if (!ev.user_id) continue
+        monthlyGenMap.set(ev.user_id, (monthlyGenMap.get(ev.user_id) || 0) + 1)
+      }
+
       const usersWithCounts = (profiles || []).map((user) => {
         const u = agg.get(user.id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
         return {
@@ -227,6 +243,7 @@ export default function AdminUsersPage() {
           total_cost_rub: u.total_cost_rub,
           feedback_count: u.feedback_count,
           avg_feedback_rating: u.feedback_count > 0 ? u.feedback_rating_sum / u.feedback_count : null,
+          monthly_gen_used: monthlyGenMap.get(user.id) || 0,
         }
       })
 
@@ -443,6 +460,7 @@ export default function AdminUsersPage() {
                   <TableHead className="cursor-pointer select-none text-center" onClick={() => toggleSort("total_cost_rub")}>
                     AI, RUB <SortIcon k="total_cost_rub" />
                   </TableHead>
+                  <TableHead className="text-center">Ген./мес.</TableHead>
                   <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("created_at")}>
                     Регистрация <SortIcon k="created_at" />
                   </TableHead>
@@ -483,6 +501,12 @@ export default function AdminUsersPage() {
                                   <div>Отзывы: {user.feedback_count} (средн. {user.avg_feedback_rating?.toFixed(1)}/5)</div>
                                 ) : null}
                                 <div>Последний визит: {fmtDate(user.last_seen_at) || "Никогда"}</div>
+                                <div className="flex items-center gap-2">
+                                  <span>Генерации (месяц):</span>
+                                  <span className={`font-semibold ${(user.monthly_gen_used || 0) >= (user.gen_limit_override ?? 10) ? "text-red-500" : "text-emerald-500"}`}>
+                                    {user.monthly_gen_used || 0}/{user.gen_limit_override ?? 10}
+                                  </span>
+                                </div>
                                 {user.block_reason && <div className="text-red-500">Причина блока: {user.block_reason}</div>}
                               </div>
                             )}
@@ -521,6 +545,19 @@ export default function AdminUsersPage() {
                         {typeof user.total_cost_rub === "number" && user.total_cost_rub > 0
                           ? `${user.total_cost_rub.toFixed(2)}`
                           : "-"}
+                      </TableCell>
+
+                      {/* Monthly gen usage */}
+                      <TableCell className="text-center tabular-nums text-sm">
+                        {(() => {
+                          const used = user.monthly_gen_used || 0
+                          const limit = user.gen_limit_override ?? 10
+                          return (
+                            <span className={used >= limit ? "text-destructive font-semibold" : used > 0 ? "text-amber-500" : "text-muted-foreground"}>
+                              {used}/{limit}
+                            </span>
+                          )
+                        })()}
                       </TableCell>
 
                       {/* Created */}
@@ -624,6 +661,23 @@ export default function AdminUsersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {subscriptionUser && (
+              <div className="p-3 rounded-xl bg-muted/40 space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Использование в этом месяце</div>
+                <div className="flex items-center justify-between text-sm">
+                  <span>Генераций маршрутов</span>
+                  <span className={`font-bold ${(subscriptionUser.monthly_gen_used || 0) >= (subscriptionUser.gen_limit_override ?? 10) ? "text-destructive" : "text-emerald-500"}`}>
+                    {subscriptionUser.monthly_gen_used || 0} / {subscriptionUser.gen_limit_override ?? 10}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${(subscriptionUser.monthly_gen_used || 0) >= (subscriptionUser.gen_limit_override ?? 10) ? "bg-destructive" : "bg-emerald-500"}`}
+                    style={{ width: `${Math.min(100, ((subscriptionUser.monthly_gen_used || 0) / (subscriptionUser.gen_limit_override ?? 10)) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium">Лимит генераций в месяц</label>
               <Input

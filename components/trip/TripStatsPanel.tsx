@@ -10,20 +10,23 @@ import {
   Sparkles, Star, TrendingUp, Quote, Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface TripStatsPanelProps {
   route: any
   tripId: string
 }
 
-const ACTIVITY_TYPES: { key: string; label: string; color: string; icon: any }[] = [
-  { key: "activity", label: "Активности", color: "#60a5fa", icon: Compass },
-  { key: "food",     label: "Гастрономия", color: "#34d399", icon: Utensils },
-  { key: "transport",label: "Транспорт",   color: "#f59e0b", icon: Plane   },
-  { key: "hotel",    label: "Проживание",  color: "#c084fc", icon: Hotel   },
-]
-
 export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
+  const t = useTranslations("stats")
+
+  const ACTIVITY_TYPES: { key: string; label: string; color: string; icon: any }[] = [
+    { key: "activity", label: t("activityType"), color: "#60a5fa", icon: Compass },
+    { key: "food",     label: t("foodType"),      color: "#34d399", icon: Utensils },
+    { key: "transport",label: t("transportType"), color: "#f59e0b", icon: Plane   },
+    { key: "hotel",    label: t("hotelType"),     color: "#c084fc", icon: Hotel   },
+  ]
+
   const [aiStats, setAiStats] = useState<any>(null)
   const [aiLoading, setAiLoading] = useState(true)
 
@@ -61,32 +64,32 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
   const maxByType = Math.max(...Object.values(byType), 1)
 
   const radarData = useMemo(() => {
-    const labels = ["Еда", "Природа", "Культура", "Шоппинг", "Жизнь", "Отдых"]
+    const labels = [t("radarFood"), t("radarNature"), t("radarCulture"), t("radarShopping"), t("radarNightlife"), t("radarRest")]
     if (!aiStats?.profile) return labels.map(s => ({ subject: s, A: 50 }))
     return labels.map((s, i) => ({ subject: s, A: aiStats.profile[i] ?? 50, fullMark: 100 }))
-  }, [aiStats])
+  }, [aiStats, t])
 
   const tags = (route.tags || []).slice(0, 8) as string[]
 
   const statCards = [
     {
-      label: "Дней в пути",
+      label: t("daysOnRoad"),
       value: days,
-      sub: "насыщенных дней",
+      sub: t("richDays"),
       color: "#60a5fa",
       icon: Calendar,
     },
     {
-      label: "Активностей",
+      label: t("activities"),
       value: totalActivities,
-      sub: "уникальных мест",
+      sub: t("uniquePlaces"),
       color: "#34d399",
       icon: MapPin,
     },
     {
-      label: "Стран",
+      label: t("countries"),
       value: countriesCount,
-      sub: (route.countries || []).map((c: any) => c.name || c).join(", ") || "пункт назначения",
+      sub: (route.countries || []).map((c: any) => c.name || c).join(", ") || (countriesCount === 1 ? t("destinationSingle") : t("destinations")),
       color: "#f59e0b",
       icon: Globe,
     },
@@ -143,15 +146,15 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             <div className="space-y-4">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500 mb-1">Профиль путешественника</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500 mb-1">{t("travelerProfile")}</div>
                 {aiLoading ? (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Анализируем маршрут…
+                    {t("analyzingRoute")}
                   </div>
                 ) : (
                   <h2 className="text-2xl sm:text-3xl font-black text-foreground">
-                    {aiStats?.personality || "Исследователь"}
+                    {aiStats?.personality || t("explorer")}
                   </h2>
                 )}
               </div>
@@ -167,7 +170,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
                 </div>
               )}
               {!aiLoading && !aiStats && (
-                <p className="text-sm text-muted-foreground">Статистика будет доступна после завершения поездки.</p>
+                <p className="text-sm text-muted-foreground">{t("statsAfterTrip")}</p>
               )}
             </div>
             <div className="h-[240px] w-full">
@@ -192,7 +195,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           transition={{ delay: 0.2 }}
           className="trip-glass rounded-2xl sm:rounded-3xl p-5 sm:p-6 flex flex-col gap-4"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Типы активностей</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t("activityTypes")}</div>
           {ACTIVITY_TYPES.map(({ key, label, color, icon: Icon }) => {
             const count = byType[key] || 0
             const pct = Math.round((count / maxByType) * 100)
@@ -221,7 +224,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           {/* Tags */}
           {tags.length > 0 && (
             <div className="pt-2 border-t border-border/50">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">Теги</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">{t("tags")}</div>
               <div className="flex flex-wrap gap-1.5">
                 {tags.map(tag => (
                   <span
@@ -245,13 +248,13 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           transition={{ delay: 0.25 }}
           className="trip-glass rounded-2xl sm:rounded-3xl p-5 sm:p-7"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Бюджет поездки</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">{t("tripBudget")}</div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Проживание", value: route.budgetAnalysis.avgAccommodation, sub: "за ночь" },
-              { label: "Питание", value: route.budgetAnalysis.avgFood, sub: "за день" },
-              { label: "Транспорт", value: route.budgetAnalysis.avgTransport, sub: "всего" },
-              { label: "Итого", value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${Math.round(totalCost).toLocaleString("ru")} ₽` : null), sub: "оценка" },
+              { label: t("accommodation"), value: route.budgetAnalysis.avgAccommodation, sub: t("perNight") },
+              { label: t("food"), value: route.budgetAnalysis.avgFood, sub: t("perDay") },
+              { label: t("transport"), value: route.budgetAnalysis.avgTransport, sub: t("total") },
+              { label: t("totalBudget"), value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${Math.round(totalCost).toLocaleString("ru")} ₽` : null), sub: t("estimate") },
             ].map(item => item.value && (
               <div key={item.label} className="rounded-2xl bg-muted/50 border border-border p-4">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>
@@ -271,7 +274,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           transition={{ delay: 0.3 }}
           className="trip-glass rounded-2xl sm:rounded-3xl p-5 sm:p-7"
         >
-          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Маршрут</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">{t("route")}</div>
           <div className="flex flex-wrap gap-3">
             {route.countries.map((c: any, i: number) => {
               const name = typeof c === "string" ? c : c.name
@@ -308,7 +311,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
             <div className="trip-glass rounded-2xl sm:rounded-3xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Безопасность</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t("safety")}</div>
                 {route.safetyInfo.rating && (
                   <span className="ml-auto text-sm font-black text-foreground">{route.safetyInfo.rating}/10</span>
                 )}
@@ -326,7 +329,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
             <div className="trip-glass rounded-2xl sm:rounded-3xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-violet-400" />
-                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Виза</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t("visa")}</div>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {typeof route.visaAdvice === "string"

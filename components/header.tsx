@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, User, LogOut, Settings, Menu, Shield, History, X, Compass } from "lucide-react"
+import { Map, User, LogOut, Settings, Shield, History, Compass } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from "next-intl"
@@ -191,48 +191,6 @@ export function Header({ floating = false }: HeaderProps) {
             <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
             <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
 
-            {/* Mobile Navigation Menu */}
-            <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8" aria-label={t("openMenu")}>
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
-                  <DropdownMenuLabel>{t("menu")}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {navLinks.map((link) => {
-                    const isCreateTrip = link.href === '/plan'
-                    return (
-                      <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                        <Link href={link.href} className={cn(
-                          "w-full cursor-pointer flex items-center justify-between group transition-all duration-300",
-                          isCreateTrip 
-                            ? "relative hover:bg-accent/50 shadow-sm" 
-                            : (pathname === link.href ? "bg-accent/50 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium")
-                        )}>
-                          {isCreateTrip && (
-                            <>
-                              <div className="absolute inset-0 rounded-[inherit] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
-                                   style={{ padding: '1.5px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
-                            </>
-                          )}
-                          <span className={cn(
-                            "z-10 relative",
-                            isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
-                          )}>
-                            {link.label}
-                          </span>
-                          {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
-                        </Link>
-                      </DropdownMenuItem>
-                    )
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
             <ModeToggle />
             {user ? (
               <DropdownMenu>
@@ -312,15 +270,21 @@ export function Header({ floating = false }: HeaderProps) {
   return (
     <div className={cn(
       "z-50 w-full transition-all duration-500",
-      pathname === "/" 
-        ? (isScrolled ? "fixed top-0 p-2 sm:p-3 md:p-4" : "absolute top-0 p-4 sm:p-6 md:p-8") 
-        : "sticky top-0 p-2 sm:p-3 md:p-4"
+      // Mobile: always sticky with padding, no scroll magic
+      "sticky top-0 p-2",
+      // md+: keep original scroll-aware behaviour
+      pathname === "/"
+        ? (isScrolled ? "md:fixed md:top-0 md:p-3 lg:p-4" : "md:absolute md:top-0 md:p-6 lg:p-8")
+        : "md:sticky md:top-0 md:p-3 lg:p-4"
     )}>
       <header className={cn(
         "mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl transition-all duration-500",
+        // Mobile: always glass
+        "trip-glass shadow-md",
+        // md+: transparent on landing before scroll
         pathname === "/"
-          ? (isScrolled ? "trip-glass shadow-md md:shadow-2xl" : "bg-transparent border-none shadow-none")
-          : "trip-glass shadow-md md:shadow-2xl"
+          ? (isScrolled ? "md:trip-glass md:shadow-2xl" : "md:bg-transparent md:border-none md:shadow-none")
+          : "md:trip-glass md:shadow-2xl"
       )}>
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
@@ -372,48 +336,6 @@ export function Header({ floating = false }: HeaderProps) {
           {/* Search triggers */}
           <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
           <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
-
-          {/* Mobile Navigation Trigger */}
-          <div className="md:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-1 h-9 w-9 min-h-[44px] min-w-[44px]" aria-label={t("openMenu")}>
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2 rounded-xl">
-                <DropdownMenuLabel>{t("menu")}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {navLinks.map((link) => {
-                  const isCreateTrip = link.href === '/plan'
-                  return (
-                    <DropdownMenuItem key={link.href} asChild className="rounded-lg">
-                      <Link href={link.href} className={cn(
-                        "w-full cursor-pointer flex items-center justify-between group transition-all duration-300 py-2.5",
-                        isCreateTrip
-                          ? "relative hover:bg-accent/50 shadow-sm"
-                          : (pathname === link.href ? "bg-accent/50 font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground font-medium")
-                      )}>
-                        {isCreateTrip && (
-                          <>
-                            <div className="absolute inset-0 rounded-[inherit] pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity duration-300" 
-                                 style={{ padding: '1.5px', background: 'linear-gradient(to right, #3b82f6, #6366f1, #a855f7)', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' } as React.CSSProperties} />
-                          </>
-                        )}
-                        <span className={cn(
-                          "z-10 relative",
-                          isCreateTrip && "bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent font-bold"
-                        )}>
-                          {link.label}
-                        </span>
-                        {isCreateTrip && <Compass className="w-4 h-4 z-10 relative text-indigo-500 animate-pulse" />}
-                      </Link>
-                    </DropdownMenuItem>
-                  )
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
 
           <ModeToggle />
 
