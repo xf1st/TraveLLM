@@ -1,20 +1,18 @@
 import { MetadataRoute } from 'next'
-import { articlesLibrary } from '@/lib/articles'
+import { headers } from 'next/headers'
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://travellm.ru'
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const headersList = await headers()
+  const host = headersList.get('host') ?? 'travellm.ru'
+  const baseUrl = `https://${host}`
 
-  // Static routes
   const staticRoutes = [
     '',
-    '/news',
     '/plan',
     '/privacy',
     '/terms',
-    '/support',
-    '/subscribe',
-    '/waitlist',
-    '/onboarding',
+    '/cookies',
+    '/guide',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
@@ -22,13 +20,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.8,
   }))
 
-  // Dynamic news routes
-  const newsRoutes = articlesLibrary.map((article) => ({
-    url: `${baseUrl}/news/${article.id}`,
-    lastModified: new Date(article.publishedAt),
-    changeFrequency: 'monthly' as const,
-    priority: 0.6,
-  }))
-
-  return [...staticRoutes, ...newsRoutes]
+  return staticRoutes
 }

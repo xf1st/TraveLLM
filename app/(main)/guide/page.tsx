@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, MessageSquare, Map as MapIcon, ChevronLeft, CheckCircle2, Plane, Hotel, ShieldCheck, MapPin, ArrowRight, PlayCircle, ExternalLink, Ticket, Building2, Sparkles, Compass, Menu, List as ListIcon, Wallet, Globe, CloudSun, Pause, Play } from "lucide-react"
+import { Loader2, MessageSquare, Map as MapIcon, ChevronLeft, CheckCircle2, Plane, Hotel, ShieldCheck, MapPin, ArrowRight, PlayCircle, ExternalLink, Ticket, Building2, Sparkles, Compass, Menu, List as ListIcon, Wallet, Globe, CloudSun } from "lucide-react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
@@ -20,8 +20,6 @@ import dynamic from "next/dynamic"
 
 import { PremiumLoader } from "@/components/PremiumLoader"
 
-// Dynamic import for Map
-const TripMap = dynamic(() => import('@/components/TripMap'), { ssr: false, loading: () => <div className="h-full w-full bg-muted/20 flex items-center justify-center"><PremiumLoader text="Загрузка карты..." /></div> })
 
 interface Place {
     id: string
@@ -73,90 +71,6 @@ function GuidePageContent() {
     const [activePlaceId, setActivePlaceId] = useState<string | null>(null)
     const [places, setPlaces] = useState<Place[]>([])
 
-    // Demo Mode State
-    const [isDemoPlaying, setIsDemoPlaying] = useState(false)
-    const [userLocation, setUserLocation] = useState<[number, number] | undefined>(undefined)
-    const [demoTargetIndex, setDemoTargetIndex] = useState(0)
-
-    // Demo Integration in TripMap
-    // We need to inject coords into 'places' from TripMap logic first, but TripMap handles that internally.
-    // So we will rely on mapped places in TripMap? No, we need coords here.
-    // For this demo, let's assume TripMap will effectively give us coords or we mock them the same way.
-    // Actually, we can just use the same CITY_COORDS logic here or let TripMap drive.
-    // Better: We will start the demo only if places have coordinates.
-    // Since TripMap mocks coords internally, we should duplicate that simple logic here or expose it.
-    // To be quick and robust, let's copy the mock logic to 'places' state effects.
-
-    const CITY_COORDS_MOCK: Record<string, [number, number]> = {
-        "Москва": [55.7558, 37.6173], "Санкт-Петербург": [59.9343, 30.3351], "Казань": [55.7963, 49.1088],
-        "Сочи": [43.6028, 39.7342], "Париж": [48.8566, 2.3522], "Рим": [41.9028, 12.4964],
-        "Лондон": [51.5074, -0.1278], "Токио": [35.6762, 139.6503], "Дубай": [25.2048, 55.2708],
-        "Нью-Йорк": [40.7128, -74.0060], "Бангкок": [13.7563, 100.5018], "Бали": [-8.3405, 115.0920]
-    }
-
-    // Effect for Demo Loop - optimized with requestAnimationFrame
-    useEffect(() => {
-        if (!isDemoPlaying || places.length < 2) return
-
-        let animationFrameId: number
-        let lastTime = performance.now()
-        const interval = 200 // 5 FPS instead of 10 - better mobile performance
-
-        const updatePosition = (currentTime: number) => {
-            if (currentTime - lastTime >= interval) {
-                lastTime = currentTime
-                
-                // Find current target place
-                const target = places[demoTargetIndex]
-                if (!target) {
-                    setDemoTargetIndex(0) // Loop back
-                    animationFrameId = requestAnimationFrame(updatePosition)
-                    return
-                }
-
-                // Get target coords (mock if missing)
-                let targetCoords = target.coords
-                if (!targetCoords) {
-                    // Try to find
-                    const foundCity = Object.keys(CITY_COORDS_MOCK).find(c => target.name.includes(c) || target.description?.includes(c))
-                    if (foundCity) targetCoords = CITY_COORDS_MOCK[foundCity]
-                    else targetCoords = [55.7558 + (Math.random() * 0.1), 37.6173 + (Math.random() * 0.1)] // Random near Moscow default
-                }
-
-                if (!userLocation) {
-                    setUserLocation(targetCoords)
-                    animationFrameId = requestAnimationFrame(updatePosition)
-                    return
-                }
-
-                // Move towards target
-                const [lat, lng] = userLocation
-                const [tLat, tLng] = targetCoords!
-
-                const dist = Math.sqrt(Math.pow(tLat - lat, 2) + Math.pow(tLng - lng, 2))
-
-                if (dist < 0.005) { // Arrived
-                    setActivePlaceId(target.id) // UI Update
-                    setDemoTargetIndex(prev => (prev + 1) % places.length) // Next target
-                } else {
-                    // Interpolate
-                    const step = 0.02 // Speed
-                    const angle = Math.atan2(tLng - lng, tLat - lat)
-                    setUserLocation([
-                        lat + Math.cos(angle) * step,
-                        lng + Math.sin(angle) * step
-                    ])
-                }
-            }
-            animationFrameId = requestAnimationFrame(updatePosition)
-        }
-
-        animationFrameId = requestAnimationFrame(updatePosition)
-
-        return () => {
-            cancelAnimationFrame(animationFrameId)
-        }
-    }, [isDemoPlaying, places, demoTargetIndex, userLocation])
 
     // Parse places when trip data changes
     useEffect(() => {
@@ -919,130 +833,6 @@ function GuidePageContent() {
                         </div>
                     </div>
 
-                    {/* Middle Panel: Interactive Map + Info Cards */}
-                    <div className="flex-1 relative h-full bg-muted/10 flex flex-col overflow-hidden">
-                        <div className="flex-1 relative min-h-0">
-                            <TripMap
-                                places={places}
-                                activePlaceId={activePlaceId || undefined}
-                                onPlaceSelect={handlePlaceSelect}
-                            />
-                            {/* Current Place Overlay */}
-                            {activePlace && (
-                                <div className="absolute top-4 left-4 z-[400] bg-background/90 backdrop-blur px-3 py-1.5 rounded-full text-xs font-medium shadow-sm border border-border flex items-center gap-2 max-w-[80%]">
-                                    <MapPin className="h-3 w-3 text-primary" />
-                                    <span className="truncate">День {activePlace.day}: {activePlace.name}</span>
-                                </div>
-                            )}
-
-                            {/* Mobile Controls Overlay */}
-                            <div className="absolute bottom-6 left-4 right-4 flex gap-4 lg:hidden z-[400]">
-                                <Button
-                                    size="lg"
-                                    className="flex-1 shadow-md md:shadow-xl"
-                                    variant={activeDrawer === "itinerary" ? "default" : "secondary"}
-                                    onClick={() => setActiveDrawer(activeDrawer === "itinerary" ? "none" : "itinerary")}
-                                >
-                                    <ListIcon className="w-4 h-4 mr-2" />
-                                    Маршрут
-                                </Button>
-                                <Button
-                                    size="lg"
-                                    className="flex-1 shadow-md md:shadow-xl"
-                                    variant={activeDrawer === "chat" ? "default" : "secondary"}
-                                    onClick={() => setActiveDrawer(activeDrawer === "chat" ? "none" : "chat")}
-                                >
-                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                    Гид
-                                </Button>
-                            </div>
-
-                            {/* Demo Mode Toggle */}
-                            <div className="absolute top-4 right-4 z-[400]">
-                                <Button
-                                    size="sm"
-                                    variant={isDemoPlaying ? "destructive" : "secondary"}
-                                    className="shadow-md md:shadow-xl rounded-full font-bold backdrop-blur-md bg-background/80 hover:bg-background"
-                                    onClick={() => {
-                                        if (!isDemoPlaying) {
-                                            // Start from current active or first
-                                            const startIdx = places.findIndex(p => p.id === activePlaceId)
-                                            setDemoTargetIndex(startIdx !== -1 ? (startIdx + 1) % places.length : 0)
-                                            if (!userLocation && places.length > 0) {
-                                                // Initialize loc approx
-                                                setUserLocation([55.75, 37.61])
-                                            }
-                                        }
-                                        setIsDemoPlaying(!isDemoPlaying)
-                                    }}
-                                >
-                                    {isDemoPlaying ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2 text-primary" />}
-                                    {isDemoPlaying ? "Стоп демо" : "Демо поездки"}
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Info Cards (Bottom Panel) */}
-                        <div className="h-48 shrink-0 bg-background border-t p-4 overflow-x-auto custom-scrollbar">
-                            <div className="flex gap-4 h-full min-w-max">
-                                {/* Budget Card */}
-                                <Card className="w-64 p-4 flex flex-col justify-between hover:border-primary/50 transition-colors cursor-pointer group">
-                                    <div className="flex items-start justify-between">
-                                        <div className="p-2 bg-green-500/10 text-green-600 rounded-lg group-hover:bg-green-500 group-hover:text-white transition-colors">
-                                            <Wallet className="h-5 w-5" />
-                                        </div>
-                                        <Badge variant="outline">Финансы</Badge>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1">Бюджет поездки</h4>
-                                        <p className="text-xs text-muted-foreground">Примерные расходы: $120/день. Карты принимают везде.</p>
-                                    </div>
-                                </Card>
-
-                                {/* Safety Card */}
-                                <Card className="w-64 p-4 flex flex-col justify-between hover:border-primary/50 transition-colors cursor-pointer group">
-                                    <div className="flex items-start justify-between">
-                                        <div className="p-2 bg-red-500/10 text-red-600 rounded-lg group-hover:bg-red-500 group-hover:text-white transition-colors">
-                                            <ShieldCheck className="h-5 w-5" />
-                                        </div>
-                                        <Badge variant="outline">Безопасно</Badge>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1">Экстренные номера</h4>
-                                        <p className="text-xs text-muted-foreground">Полиция: 112. Скорая: 103. Район спокойный.</p>
-                                    </div>
-                                </Card>
-
-                                {/* Weather Card */}
-                                <Card className="w-64 p-4 flex flex-col justify-between hover:border-primary/50 transition-colors cursor-pointer group">
-                                    <div className="flex items-start justify-between">
-                                        <div className="p-2 bg-blue-500/10 text-blue-600 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                                            <CloudSun className="h-5 w-5" />
-                                        </div>
-                                        <Badge variant="outline">Прогноз</Badge>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1">Погода</h4>
-                                        <p className="text-xs text-muted-foreground">Ожидается +20°C, солнечно. Возьмите головной убор.</p>
-                                    </div>
-                                </Card>
-
-                                {/* Visa/Docs Card */}
-                                <Card className="w-64 p-4 flex flex-col justify-between hover:border-primary/50 transition-colors cursor-pointer group">
-                                    <div className="flex items-start justify-between">
-                                        <div className="p-2 bg-purple-500/10 text-purple-600 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors">
-                                            <Globe className="h-5 w-5" />
-                                        </div>
-                                        <Badge variant="outline">Документы</Badge>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm mb-1">Виза и въезд</h4>
-                                        <p className="text-xs text-muted-foreground">Проверьте срок действия паспорта. Виза не требуется.</p>
-                                    </div>
-                                </Card>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Right Panel: Chat */}
                     <div className="hidden lg:flex w-[30%] border-l bg-background flex-col h-full z-10">

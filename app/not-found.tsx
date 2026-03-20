@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Compass, Home, Search, Sparkles } from "lucide-react"
 import { MeshGradient } from "@paper-design/shaders-react"
 import { motion } from "framer-motion"
+import { useTranslations } from "next-intl"
 
 export default function NotFound() {
+  const t = useTranslations("errors")
     return (
         <div className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-black text-white">
             {/* Premium Background */}
@@ -50,7 +52,7 @@ export default function NotFound() {
                         transition={{ delay: 0.2 }}
                         className="text-3xl md:text-5xl font-black tracking-tight"
                     >
-                        ВЫ СБИЛИСЬ <span className="text-primary">С МАРШРУТА</span>
+                        {t("notFoundHeading")}
                     </motion.h2>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
@@ -58,7 +60,7 @@ export default function NotFound() {
                         transition={{ delay: 0.3 }}
                         className="text-slate-400 text-lg md:text-xl font-medium max-w-lg mx-auto leading-relaxed"
                     >
-                        Похоже, эта локация не отмечена на нашей интерактивной карте. Позвольте ИИ проложить новый путь.
+                        {t("notFoundSubtitle")}
                     </motion.p>
                 </div>
 
@@ -72,13 +74,13 @@ export default function NotFound() {
                     <Button asChild size="lg" className="rounded-full h-14 px-8 text-lg font-bold bg-white text-black hover:bg-slate-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95">
                         <Link href="/">
                             <Home className="mr-2 h-5 w-5" />
-                            На главную
+                            {t("goHome")}
                         </Link>
                     </Button>
                     <Button asChild variant="outline" size="lg" className="rounded-full h-14 px-8 text-lg font-bold border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-md transition-all hover:scale-105 active:scale-95">
                         <Link href="/plan">
                             <Sparkles className="mr-2 h-5 w-5 text-primary" />
-                            Новый план
+                            {t("newPlan")}
                         </Link>
                     </Button>
                 </motion.div>

@@ -5,9 +5,10 @@ import { cookies } from "next/headers";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
-  const { searchParams } = new URL(request.url);
+  const reqUrl = new URL(request.url);
+  const { searchParams } = reqUrl;
   const code = searchParams.get("code");
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://travellm.ru";
+  const siteUrl = reqUrl.origin;
 
   if (!code) {
     return NextResponse.redirect(`${siteUrl}/auth?error=NoCode`);
@@ -144,35 +145,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           }
         });
 
-        // ==========================================
-        // GRANT 7-DAY PRO TRIAL FOR NEW SOCIAL USERS
-        // ==========================================
-        try {
-          // Check if profile exists and has preferences (onboarding status)
-          const { data: profile } = await adminAuth
-            .from('profiles')
-            .select('subscription_tier, preferences')
-            .eq('id', session.user.id)
-            .single();
-
-          if (!profile?.preferences || !profile?.subscription_tier || profile.subscription_tier === 'free') {
-            const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + 7);
-            
-            console.log(`[Auth] Granting 7-day PRO trial to new ${provider} user: ${userEmail}`);
-            
-            await adminAuth
-              .from('profiles')
-              .update({ 
-                subscription_tier: 'pro',
-                subscription_expires_at: expiresAt.toISOString(),
-                site_access: true
-              })
-              .eq('id', session.user.id);
-          }
-        } catch (profileErr) {
-          console.error("[Auth] Failed to grant PRO trial:", profileErr);
-        }
       }
     }
 

@@ -335,6 +335,10 @@ function extractVenueCategory(text: string): string {
   return "travel tourism city street scenic"
 }
 
+function isMapUrl(url: string): boolean {
+  return /maps\.google|goo\.gl\/maps|yandex\.ru\/maps|2gis\.com|maps\.apple|waze\.com/i.test(url)
+}
+
 function buildGalleryQuery(activity: Activity, destination: string): string {
   // Only use AI-generated imageQuery if it's actually in English
   if (activity.imageQuery && isEnglishQuery(activity.imageQuery)) return activity.imageQuery
@@ -368,6 +372,12 @@ function buildGalleryQuery(activity: Activity, destination: string): string {
     return `${destEn} ${category}`
   }
 
+  // If the place name is already in English and specific enough (2+ words),
+  // use it directly — appending a (potentially wrong) destination would hurt results
+  if (isEnglishQuery(rawName) && rawName.trim().split(/\s+/).length >= 2) {
+    return rawName
+  }
+
   return `travel landmark ${rawName} ${destEn}`
 }
 
@@ -381,6 +391,8 @@ interface Activity {
   type?: string
   mapLink?: string
   link?: string
+  bookingUrl?: string
+  ticketUrl?: string
   ticketsRequired?: boolean
 }
 
@@ -646,7 +658,24 @@ export function ActivityTimelineCard({
                       )
                     }
                     if (/такси|taxi|трансфер|transfer|авто(?!бус)|машин|переезд|дорога|трасса|пешком|walk|foot/.test(tt)) {
-                      return null
+                      return (
+                        <>
+                          {activity.link && (
+                            <a href={activity.link} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                              <span className="material-symbols-outlined text-sm mr-1.5">directions_car</span>
+                              Заказать
+                            </a>
+                          )}
+                          {(activity.mapLink || activity.placeName) && (
+                            <button onClick={handleOpenMap}
+                              className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
+                              <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">map</span>
+                              Маршрут
+                            </button>
+                          )}
+                        </>
+                      )
                     }
                     // Only show flight button if flight-related keywords are found
                     if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(tt)) {
@@ -662,7 +691,8 @@ export function ActivityTimelineCard({
                   })()
                 ) : (
                   <>
-                    {activity.placeName && (
+                    {/* Map button — direct link if mapLink exists, else Google Maps search */}
+                    {(activity.placeName || activity.mapLink) && (
                       <button
                         onClick={handleOpenMap}
                         className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
@@ -671,17 +701,51 @@ export function ActivityTimelineCard({
                         Карта
                       </button>
                     )}
-                    {activity.ticketsRequired && activity.link && (
+
+                    {/* Hotel: booking button — prefer direct URL, fallback to Booking.com search */}
+                    {theme === "hotel" && (
                       <a
-                        href={activity.link}
+                        href={
+                          activity.bookingUrl ||
+                          (!isMapUrl(activity.link || "") ? activity.link : undefined) ||
+                          `https://www.booking.com/search.html?ss=${encodeURIComponent([activity.placeName, activity.title].filter(Boolean).join(" "))}&lang=ru&selected_currency=RUB`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                        className="flex items-center text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors shadow-sm shadow-blue-600/30"
                       >
-                        <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">confirmation_number</span>
+                        <span className="material-symbols-outlined text-sm mr-1.5">hotel</span>
+                        Забронировать
+                      </a>
+                    )}
+
+                    {/* Food: reservation link if exists */}
+                    {theme === "food" && (activity.bookingUrl || activity.link) && (
+                      <a
+                        href={activity.bookingUrl || activity.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-xs font-bold text-white bg-orange-500 hover:bg-orange-400 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors shadow-sm shadow-orange-500/30"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1.5">restaurant</span>
+                        Бронь стола
+                      </a>
+                    )}
+
+                    {/* Activity: tickets */}
+                    {theme !== "hotel" && theme !== "food" && (activity.ticketUrl || (activity.ticketsRequired && activity.link)) && (
+                      <a
+                        href={activity.ticketUrl || activity.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-xs font-bold text-white bg-violet-600 hover:bg-violet-500 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors shadow-sm shadow-violet-600/30"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1.5">confirmation_number</span>
                         Билеты
                       </a>
                     )}
+
+                    {/* Generic link from description */}
                     {descLinks.map((link, i) => (
                       <a
                         key={i}

@@ -5,9 +5,8 @@ import { deepseekInference, getSessionUsage as getDeepSeekSessionUsage, resetSes
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { createClient } from '@supabase/supabase-js'
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { getRequestUserId, recordAiUsageEvent, checkMonthlyGenerationLimit } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
-import { checkGenerationLimit, incrementGenerationCount } from "@/lib/subscription"
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { 
@@ -36,6 +35,19 @@ export async function POST(req: Request) {
         const rl = checkRateLimit(userId, "gemini-generation", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
 
+        // Monthly generation limit: 10 per user
+        const genLimit = await checkMonthlyGenerationLimit(userId)
+        if (!genLimit.allowed) {
+            return NextResponse.json({
+                error: "Лимит исчерпан",
+                message: `Вы использовали все ${genLimit.limit} генераций в этом месяце. Лимит обновится ${new Date(genLimit.resetAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}.`,
+                limitExceeded: true,
+                count: genLimit.count,
+                limit: genLimit.limit,
+                resetAt: genLimit.resetAt,
+            }, { status: 429 })
+        }
+
         // Check maintenance mode & block status
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -49,22 +61,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Maintenance', message: settings.maintenance_message }, { status: 503 })
         }
 
-        // Check generation limit
-        const limitCheck = await checkGenerationLimit(userId)
-        if (!limitCheck.allowed) {
-            return NextResponse.json({
-                error: `Лимит генераций исчерпан (${limitCheck.used}/${limitCheck.limit}).`,
-                code: 'GENERATION_LIMIT_EXCEEDED'
-            }, { status: 429 })
-        }
-
         const body = await req.json()
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, requireRussianGuide,
             customDestination, customBudget, travelers, filterByDocuments, tripHighlight,
-            strictDestinations
+            strictDestinations, locale
         } = body
+        const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
 
         const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
@@ -91,7 +95,9 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        const budgetDesc = `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
+        const budgetDesc = userLocale === 'en'
+            ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
+            : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`
 
         const destinations = strictDestinations === false ? [] : (customDestination ? customDestination.split(';').map((s: string) => s.trim()).filter(Boolean) : [])
 
@@ -166,6 +172,7 @@ export async function POST(req: Request) {
 
         const travelStyles = toArray(travelStyle)
         const enriched = await buildEnrichedPrompt({
+            locale: userLocale,
             departureCity: effectiveDepartureCity,
             destinations,
             startDate,
@@ -210,6 +217,7 @@ export async function POST(req: Request) {
 
         async function generateMetadata(): Promise<any> {
             const metaPrompt = buildMetadataPrompt({
+                locale: userLocale,
                 departureCity: effectiveDepartureCity, destinations, startDate, endDate,
                 budget: budgetCap, budgetDesc, travelStyle: travelStyles, countryCount,
                 safeHighlight, warningsStr, preferences
@@ -294,7 +302,6 @@ export async function POST(req: Request) {
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
                     
                     routeData.tokenUsage = getGeminiSessionUsage();
-                    await incrementGenerationCount(userId);
                     await recordAiUsageEvent({ userId, source: "route-generation", provider: "gemini", usage: routeData.tokenUsage });
 
                     sendEvent({ type: 'result', data: routeData })

@@ -23,7 +23,6 @@ import {
     Users,
     Shield,
     Globe,
-    CreditCard
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -47,40 +46,12 @@ import { useTheme } from "next-themes"
 import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
-import { SubscriptionBadge } from "@/components/SubscriptionBadge"
-import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 import { GlobalSearch } from "@/components/GlobalSearch"
-
-const navItems = [
-    {
-        title: "Создать маршрут",
-        href: "/plan",
-        icon: Compass,
-    },
-    {
-        title: "Мои маршруты",
-        href: "/trips",
-        icon: Map,
-    },
-    {
-        title: "3D Карта β",
-        href: "/dashboard",
-        icon: Globe,
-    },
-    // {
-    //     title: "Лента",
-    //     href: "/news",
-    //     icon: Newspaper,
-    // },
-    // Hidden - preserved for future mobile app
-    // {
-    //     title: "ИИ-гид",
-    //     href: "/guide",
-    //     icon: Sparkles,
-    // },
-]
+import { useTranslations } from "next-intl"
 
 export function AppSidebar() {
+    const t = useTranslations("nav")
+    const tCommon = useTranslations("common")
     const pathname = usePathname()
     const { user } = useAuth()
     const [recentTrips, setRecentTrips] = useState<any[]>([])
@@ -90,10 +61,12 @@ export function AppSidebar() {
     const { setTheme, resolvedTheme } = useTheme()
     const [isAdmin, setIsAdmin] = useState(false)
     const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
-    const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
-    const [genUsed, setGenUsed] = useState(0)
-    const [genLimit, setGenLimit] = useState(25)
     const [searchOpen, setSearchOpen] = useState(false)
+
+    const navItems = [
+        { title: t("plan"), href: "/plan", icon: Compass },
+        { title: t("routes"), href: "/trips", icon: Map },
+    ]
 
     const tripId = pathname.startsWith('/trip/') ? pathname.split('/')[2] : null
 
@@ -115,7 +88,7 @@ export function AppSidebar() {
                 // Check if user is admin
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role, full_name, avatar_url, subscription_tier, monthly_gen_used, gen_limit_override')
+                    .select('role, full_name, avatar_url')
                     .eq('id', user.id)
                     .maybeSingle()
 
@@ -125,11 +98,6 @@ export function AppSidebar() {
                         full_name: profile.full_name || user.user_metadata?.full_name,
                         avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
                     })
-                    const tier = (profile.subscription_tier || 'free') as SubscriptionTier
-                    setSubscriptionTier(tier)
-                    setGenUsed(profile.monthly_gen_used ?? 0)
-                    const baseLimit = TIER_LIMITS[tier]?.genPerMonth ?? 25
-                    setGenLimit(profile.gen_limit_override ?? (isFinite(baseLimit) ? baseLimit : 999999))
                 } else {
                     setUserData({
                         full_name: user.user_metadata?.full_name,
@@ -202,7 +170,7 @@ export function AppSidebar() {
             const { error } = await signOut()
 
             if (error && !error.message?.includes('Auth session missing')) {
-                toast.error("Ошибка при выходе: " + error.message)
+                toast.error(t("signOut") + ": " + error.message)
                 return
             }
 
@@ -210,13 +178,13 @@ export function AppSidebar() {
             // Auth state will be updated by AuthProvider via onAuthStateChange
             await supabase.auth.signOut({ scope: 'local' })
 
-            toast.success("Вы успешно вышли из аккаунта")
+            toast.success(t("signOut"))
 
             setTimeout(() => {
                 window.location.href = "/"
             }, 1000)
         } catch (error) {
-            toast.error("Произошла ошибка при выходе")
+            toast.error(tCommon("error"))
             console.error("Logout error:", error)
         }
     }
@@ -257,7 +225,7 @@ export function AppSidebar() {
                         size="icon"
                         className="h-8 w-8 rounded-lg"
                         onClick={toggleCollapsed}
-                        aria-label="Свернуть боковую панель"
+                        aria-label={t("collapsePanel")}
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -272,7 +240,7 @@ export function AppSidebar() {
                         size="icon"
                         className="w-full h-10 rounded-xl"
                         onClick={toggleCollapsed}
-                        aria-label="Развернуть боковую панель"
+                        aria-label={t("expandPanel")}
                     >
                         <ChevronRight className="h-4 w-4" />
                     </Button>
@@ -284,7 +252,7 @@ export function AppSidebar() {
                 {/* Search Button */}
                 <button
                     onClick={() => setSearchOpen(true)}
-                    title={isCollapsed ? "Поиск (⌘K)" : undefined}
+                    title={isCollapsed ? `${t("search")} (⌘K)` : undefined}
                     className={cn(
                         "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-muted-foreground hover:bg-accent hover:text-foreground mb-1",
                         isCollapsed ? "justify-center px-2 py-3" : "px-4 py-2.5"
@@ -293,7 +261,7 @@ export function AppSidebar() {
                     <Search className="h-5 w-5 shrink-0" />
                     {!isCollapsed && (
                         <>
-                            <span className="flex-1 text-left">Поиск...</span>
+                            <span className="flex-1 text-left">{t("search")}</span>
                             <kbd className="flex h-5 select-none items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground/70">
                                 ⌘K
                             </kbd>
@@ -351,7 +319,7 @@ export function AppSidebar() {
                 {isAdmin && (
                     <Link
                         href="/admin"
-                        title={isCollapsed ? "Админ-панель" : undefined}
+                        title={isCollapsed ? t("adminPanel") : undefined}
                         className={cn(
                             "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 mt-2",
                             isCollapsed ? "justify-center px-2 py-3" : "px-4 py-3",
@@ -361,7 +329,7 @@ export function AppSidebar() {
                         )}
                     >
                         <Shield className="h-5 w-5 shrink-0" />
-                        {!isCollapsed && "Админ-панель"}
+                        {!isCollapsed && t("adminPanel")}
                     </Link>
                 )}
 
@@ -371,9 +339,9 @@ export function AppSidebar() {
                         <CollapsibleTrigger asChild>
                             <button
                                 className="flex items-center justify-between w-full px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                                aria-label={tripsOpen ? "Скрыть последние маршруты" : "Показать последние маршруты"}
+                                aria-label={tripsOpen ? t("hideTrips") : t("showTrips")}
                             >
-                                <span>Последние маршруты</span>
+                                <span>{t("recentTrips")}</span>
                                 <ChevronDown className={cn(
                                     "h-4 w-4 transition-transform",
                                     tripsOpen && "rotate-180"
@@ -405,7 +373,7 @@ export function AppSidebar() {
                     <div className="mt-6 px-4 py-2 border-t border-border/30">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground/50 mb-4">
                             <Users className="h-3 w-3" />
-                            Группа ({tripMembers.length})
+                            {t("group")} ({tripMembers.length})
                         </div>
                         <div className="flex -space-x-3 overflow-hidden p-1">
                             {tripMembers.map((member, i) => (
@@ -454,7 +422,7 @@ export function AppSidebar() {
                                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
                             >
                                 {resolvedTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                                <span>{resolvedTheme === 'dark' ? 'Тёмная тема' : 'Светлая тема'}</span>
+                                <span>{resolvedTheme === 'dark' ? t("darkTheme") : t("lightTheme")}</span>
                             </Button>
                         ) : (
                             <Button
@@ -462,7 +430,7 @@ export function AppSidebar() {
                                 size="icon"
                                 className="w-full h-10 rounded-xl text-muted-foreground hover:text-foreground"
                                 onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                                aria-label="Переключить тему"
+                                aria-label={t("darkTheme")}
                             >
                                 {resolvedTheme === 'dark' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                             </Button>
@@ -475,7 +443,7 @@ export function AppSidebar() {
                                     "flex items-center gap-3 w-full rounded-xl transition-colors hover:bg-accent p-2",
                                     isCollapsed && "justify-center"
                                 )}
-                                    aria-label="Меню пользователя"
+                                    aria-label={t("userMenu")}
                                 >
                                     <Avatar className="h-9 w-9 rounded-xl shrink-0">
                                         <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
@@ -485,12 +453,9 @@ export function AppSidebar() {
                                     </Avatar>
                                     {!isCollapsed && (
                                         <div className="flex-1 min-w-0 text-left">
-                                            <div className="flex items-center gap-1.5">
-                                                <p className="text-sm font-medium truncate">
-                                                    {userData?.full_name || user.user_metadata?.full_name || "Путешественник"}
-                                                </p>
-                                                <SubscriptionBadge tier={subscriptionTier} />
-                                            </div>
+                                            <p className="text-sm font-medium truncate">
+                                                {userData?.full_name || user.user_metadata?.full_name || tCommon("traveler")}
+                                            </p>
                                             <p className="text-xs text-muted-foreground truncate">
                                                 {user.email}
                                             </p>
@@ -500,53 +465,29 @@ export function AppSidebar() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-60 rounded-2xl p-2 bg-card/95 backdrop-blur-md md:backdrop-blur-xl border-border/50 shadow-md md:shadow-2xl animate-in slide-in-from-left-2" align={isCollapsed ? "center" : "end"} side="top">
                                 <DropdownMenuLabel className="font-normal p-3 bg-muted/30 rounded-xl mb-1">
-                                    <div className="flex flex-col space-y-1.5">
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-sm font-semibold text-primary">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
-                                            <SubscriptionBadge tier={subscriptionTier} />
-                                        </div>
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-semibold text-primary">{userData?.full_name || user.user_metadata?.full_name || tCommon("traveler")}</p>
                                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                                        <div className="space-y-1 pt-1">
-                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                <span>Генерации</span>
-                                                <span>{genUsed}/{genLimit}</span>
-                                            </div>
-                                            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-primary/70 rounded-full transition-all"
-                                                    style={{ width: `${Math.min(100, (genUsed / Math.max(genLimit, 1)) * 100)}%` }}
-                                                />
-                                            </div>
-                                        </div>
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuGroup className="space-y-1">
                                     <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
                                         <Link href="/profile" className="w-full flex items-center py-2.5 px-3">
                                             <User className="mr-3 h-4 w-4" />
-                                            Мой профиль
+                                            {t("myProfile")}
                                         </Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
                                         <Link href="/profile?tab=settings" className="w-full flex items-center py-2.5 px-3">
                                             <Settings className="mr-3 h-4 w-4" />
-                                            Настройки
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-yellow-500/10 focus:text-yellow-400 transition-colors">
-                                        <Link href="/subscribe" className="w-full flex items-center py-2.5 px-3">
-                                            <CreditCard className="mr-3 h-4 w-4 text-yellow-400" />
-                                            <span className="flex-1">Подписка</span>
-                                            {subscriptionTier !== 'free' && (
-                                                <SubscriptionBadge tier={subscriptionTier} />
-                                            )}
+                                            {t("settings")}
                                         </Link>
                                     </DropdownMenuItem>
                                     {isAdmin && (
                                         <DropdownMenuItem asChild className="rounded-xl cursor-pointer focus:bg-primary/10 focus:text-primary transition-colors">
                                             <Link href="/admin" className="w-full flex items-center py-2.5 px-3">
                                                 <Shield className="mr-3 h-4 w-4" />
-                                                Админ-панель
+                                                {t("adminPanel")}
                                             </Link>
                                         </DropdownMenuItem>
                                     )}
@@ -554,14 +495,14 @@ export function AppSidebar() {
                                 <DropdownMenuSeparator className="bg-border/50 my-1" />
                                 <DropdownMenuItem className="rounded-xl text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer py-2.5 px-3" onClick={handleLogout}>
                                     <LogOut className="mr-3 h-4 w-4" />
-                                    Выйти
+                                    {t("signOut")}
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 ) : (
                     <Button asChild className={cn("w-full rounded-xl", isCollapsed && "px-2")}>
-                        <Link href="/auth">{isCollapsed ? <User className="h-4 w-4" /> : "Войти"}</Link>
+                        <Link href="/auth">{isCollapsed ? <User className="h-4 w-4" /> : t("signIn")}</Link>
                     </Button>
                 )}
             </div>

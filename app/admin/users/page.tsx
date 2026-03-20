@@ -46,9 +46,6 @@ interface User {
   total_cost_rub?: number
   feedback_count?: number
   avg_feedback_rating?: number | null
-  subscription_tier?: string
-  site_access?: boolean
-  subscription_expires_at?: string | null
   gen_limit_override?: number | null
   chat_limit_override?: number | null
   monthly_gen_used?: number
@@ -105,9 +102,6 @@ export default function AdminUsersPage() {
   const [providerMap, setProviderMap] = useState<Record<string, string[]>>({})
   const [subscriptionDialogOpen, setSubscriptionDialogOpen] = useState(false)
   const [subscriptionUser, setSubscriptionUser] = useState<User | null>(null)
-  const [subTier, setSubTier] = useState("free")
-  const [subSiteAccess, setSubSiteAccess] = useState(false)
-  const [subExpiresAt, setSubExpiresAt] = useState("")
   const [subGenOverride, setSubGenOverride] = useState("")
   const [subChatOverride, setSubChatOverride] = useState("")
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
@@ -334,9 +328,6 @@ export default function AdminUsersPage() {
 
   const openSubscriptionDialog = (user: User) => {
     setSubscriptionUser(user)
-    setSubTier(user.subscription_tier || "free")
-    setSubSiteAccess(user.site_access ?? false)
-    setSubExpiresAt(user.subscription_expires_at ? new Date(user.subscription_expires_at).toISOString().slice(0, 10) : "")
     setSubGenOverride(user.gen_limit_override != null ? String(user.gen_limit_override) : "")
     setSubChatOverride(user.chat_limit_override != null ? String(user.chat_limit_override) : "")
     setSubscriptionDialogOpen(true)
@@ -346,9 +337,6 @@ export default function AdminUsersPage() {
     if (!subscriptionUser) return
     try {
       const updateData: any = {
-        subscription_tier: subTier,
-        site_access: subSiteAccess,
-        subscription_expires_at: subExpiresAt ? new Date(subExpiresAt).toISOString() : null,
         gen_limit_override: subGenOverride ? parseInt(subGenOverride) : null,
         chat_limit_override: subChatOverride ? parseInt(subChatOverride) : null,
       }
@@ -359,13 +347,13 @@ export default function AdminUsersPage() {
       if (user) {
         await supabase.from("admin_audit_log").insert({
           admin_user_id: user.id,
-          action: "user.subscription_update",
+          action: "user.limits_update",
           target_user_id: subscriptionUser.id,
           payload: updateData,
         })
       }
 
-      toast.success("Подписка обновлена")
+      toast.success("Лимиты обновлены")
       setSubscriptionDialogOpen(false)
       setSubscriptionUser(null)
       fetchUsers()
@@ -449,7 +437,6 @@ export default function AdminUsersPage() {
                     Пользователь <SortIcon k="email" />
                   </TableHead>
                   <TableHead>Статус</TableHead>
-                  <TableHead>Подписка</TableHead>
                   <TableHead className="cursor-pointer select-none text-center" onClick={() => toggleSort("trips_count")}>
                     Маршруты <SortIcon k="trips_count" />
                   </TableHead>
@@ -524,16 +511,6 @@ export default function AdminUsersPage() {
                         </div>
                       </TableCell>
 
-                      {/* Subscription */}
-                      <TableCell onClick={e => e.stopPropagation()}>
-                        <Badge
-                          variant={user.subscription_tier === "free" ? "secondary" : user.subscription_tier === "dev" ? "destructive" : "default"}
-                          className="text-[10px]"
-                        >
-                          {(user.subscription_tier || "free").toUpperCase()}
-                        </Badge>
-                      </TableCell>
-
                       {/* Trips */}
                       <TableCell className="text-center font-medium tabular-nums">
                         {user.trips_count || 0}
@@ -562,7 +539,7 @@ export default function AdminUsersPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openSubscriptionDialog(user)}>
                               <CreditCard className="mr-2 h-4 w-4" />
-                              Управление подпиской
+                              Лимиты пользователя
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openBlockDialog(user, "active")}>
                               <UserCheck className="mr-2 h-4 w-4" />
@@ -637,66 +614,34 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Subscription Dialog */}
+      {/* Limits Dialog */}
       <Dialog open={subscriptionDialogOpen} onOpenChange={setSubscriptionDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Управление подпиской</DialogTitle>
+            <DialogTitle>Лимиты пользователя</DialogTitle>
             <DialogDescription>
               {subscriptionUser ? `Пользователь: ${subscriptionUser.email}` : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Тариф</label>
-              <select
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={subTier}
-                onChange={(e) => setSubTier(e.target.value)}
-              >
-                <option value="free">Free</option>
-                <option value="pro">Pro</option>
-                <option value="max">Max</option>
-                <option value="dev">Dev</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="site-access"
-                checked={subSiteAccess}
-                onChange={(e) => setSubSiteAccess(e.target.checked)}
-                className="h-4 w-4"
-              />
-              <label htmlFor="site-access" className="text-sm font-medium">Доступ к сайту (site_access)</label>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Дата окончания</label>
-              <Input
-                type="date"
-                value={subExpiresAt}
-                onChange={(e) => setSubExpiresAt(e.target.value)}
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Оставьте пустым для бессрочной подписки</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Лимит генераций (персональный)</label>
+              <label className="text-sm font-medium">Лимит генераций в месяц</label>
               <Input
                 type="number"
                 value={subGenOverride}
                 onChange={(e) => setSubGenOverride(e.target.value)}
-                placeholder="Пусто = по умолчанию тарифа"
+                placeholder="Пусто = стандартный лимит (10)"
                 className="mt-1"
               />
+              <p className="text-xs text-muted-foreground mt-1">Персональный override. Пусто — использует глобальный лимит 10/месяц.</p>
             </div>
             <div>
-              <label className="text-sm font-medium">Лимит чата на маршрут (персональный)</label>
+              <label className="text-sm font-medium">Лимит сообщений чата на маршрут</label>
               <Input
                 type="number"
                 value={subChatOverride}
                 onChange={(e) => setSubChatOverride(e.target.value)}
-                placeholder="Пусто = по умолчанию тарифа"
+                placeholder="Пусто = стандартный лимит"
                 className="mt-1"
               />
             </div>

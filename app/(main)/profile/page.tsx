@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   User, Settings, Heart, Map as MapIcon, Clock as ClockIcon, LogOut, Camera, Edit2,
   Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet,
-  Medal, Hotel as HotelIcon, FileText, CreditCard, Star, Calendar,
+  Medal, Hotel as HotelIcon, FileText, Star, Calendar,
   LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
   Bell, Bookmark, Wand2, Plane, Banknote, Ruler, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
   Loader2,
@@ -22,8 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { SubscriptionBadge } from "@/components/SubscriptionBadge"
-import { TIER_LIMITS, type SubscriptionTier } from "@/lib/subscription-config"
 import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -298,8 +296,32 @@ function ProfileContent() {
   const [usernameEditing, setUsernameEditing] = useState(false)
   const [usernameTemp, setUsernameTemp] = useState("")
   const [savingUsername, setSavingUsername] = useState(false)
+  const [nameEditing, setNameEditing] = useState(false)
+  const [nameTemp, setNameTemp] = useState("")
+  const [savingName, setSavingName] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  const saveNameInline = async () => {
+    if (!user) return
+    const val = nameTemp.trim()
+    if (!val) {
+      toast.error("Имя не может быть пустым")
+      return
+    }
+    setSavingName(true)
+    const { error } = await supabase.from("profiles").update({ full_name: val }).eq("id", user.id)
+    setSavingName(false)
+    if (error) {
+      toast.error("Ошибка при сохранении имени: " + error.message)
+    } else {
+      setProfile((p: any) => ({ ...p, full_name: val }))
+      setEditForm(prev => ({ ...prev, full_name: val }))
+      setNameEditing(false)
+      toast.success("Имя обновлено")
+      window.dispatchEvent(new Event('profile_updated'))
+    }
+  }
 
   const completedTrips = useMemo(() => {
     return userRoutes.filter((trip: any) => {
@@ -715,9 +737,6 @@ function ProfileContent() {
   const tabs = [
     { id: "overview", label: "Обзор", icon: LayoutDashboard },
     { id: "achievements", label: "Поездки", icon: Trophy },
-    { id: "preferences", label: "Предпочтения", icon: SlidersHorizontal },
-    { id: "history", label: "История", icon: ClockIcon },
-    { id: "subscription", label: "Подписка", icon: CreditCard },
     { id: "settings", label: "Настройки", icon: SettingsIcon },
   ]
 
@@ -799,20 +818,50 @@ function ProfileContent() {
 
               {/* Name + email + username + badge */}
               <div className="flex-1 min-w-0 pb-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-black truncate text-foreground leading-tight">
-                    {profile?.full_name || user?.user_metadata?.full_name || "Путешественник"}
-                  </h1>
-                  {profile?.subscription_tier && profile.subscription_tier !== 'free' && (
-                    <SubscriptionBadge tier={profile.subscription_tier} />
+                <div className="flex items-center gap-2 flex-wrap min-h-[28px]">
+                  {nameEditing ? (
+                    <div className="flex items-center gap-1 w-full max-w-[240px]">
+                      <input
+                        autoFocus
+                        value={nameTemp}
+                        onChange={(e) => setNameTemp(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveNameInline()
+                          if (e.key === "Escape") setNameEditing(false)
+                        }}
+                        className="text-xl font-black bg-transparent border-b-2 border-primary outline-none w-full text-foreground leading-tight py-0"
+                        placeholder="Ваше имя"
+                      />
+                      <button
+                        onClick={saveNameInline}
+                        disabled={savingName}
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 transition-colors shrink-0"
+                      >
+                        {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => setNameEditing(false)}
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors text-xs shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setNameTemp(profile?.full_name || user?.user_metadata?.full_name || ""); setNameEditing(true) }}
+                      className="text-xl font-black truncate text-foreground leading-tight hover:text-primary transition-colors flex items-center gap-2 group text-left"
+                    >
+                      {profile?.full_name || user?.user_metadata?.full_name || "Путешественник"}
+                      <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    </button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground/70 truncate">{user?.email}</p>
+                
                 {/* Username inline */}
-                <div className="mt-0.5 flex items-center gap-1">
+                <div className="mt-0.5 flex items-center gap-1 min-h-[20px]">
                   {usernameEditing ? (
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">@</span>
+                      <span className="text-xs text-muted-foreground font-mono">@</span>
                       <input
                         autoFocus
                         value={usernameTemp}
@@ -850,64 +899,77 @@ function ProfileContent() {
                   ) : (
                     <button
                       onClick={() => { setUsernameTemp(""); setUsernameEditing(true) }}
-                      className="text-xs text-primary/60 hover:text-primary transition-colors"
+                      className="text-xs text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
                     >
-                      + Добавить username
+                      <span className="font-mono">@</span>
+                      <span>Добавить username</span>
                     </button>
                   )}
                 </div>
               </div>
 
               {/* Buttons */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 self-center">
                 {profile?.username && profile?.public_profile && (
                   <Button
                     onClick={handleShareProfile}
                     variant="outline"
-                    size="sm"
+                    size="icon"
                     className={cn(
-                      "rounded-full gap-1.5 transition-all",
+                      "rounded-xl transition-all h-10 w-10 md:w-auto md:px-4 md:gap-2",
                       copiedProfile
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         : "border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md"
                     )}
                   >
-                    {copiedProfile ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
-                    <span className="hidden sm:inline">{copiedProfile ? "Скопировано" : "Поделиться"}</span>
+                    {copiedProfile ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                    <span className="hidden md:inline">{copiedProfile ? "Скопировано" : "Поделиться"}</span>
                   </Button>
                 )}
                 <Button
                   onClick={() => setIsEditing(!isEditing)}
                   variant="outline"
-                  size="sm"
-                  className="rounded-full border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md gap-1.5"
+                  size="icon"
+                  className="rounded-xl border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md h-10 w-10 md:w-auto md:px-4 md:gap-2"
                 >
-                  <Edit2 className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{isEditing ? "Отменить" : "Изменить"}</span>
+                  <Edit2 className="h-4 w-4" />
+                  <span className="hidden md:inline">{isEditing ? "Отменить" : "Настроить"}</span>
                 </Button>
               </div>
             </div>
 
             {/* Bio */}
-            {profile?.bio && (
-              <p className="px-6 text-sm text-muted-foreground mt-1 mb-3 max-w-lg">{profile.bio}</p>
-            )}
+            <div className="px-6 mt-2 relative group">
+              {profile?.bio ? (
+                <p className="text-sm text-muted-foreground line-clamp-2 max-w-lg">{profile.bio}</p>
+              ) : (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="text-xs text-muted-foreground/50 hover:text-primary transition-colors"
+                >
+                  Расскажите немного о себе...
+                </button>
+              )}
+            </div>
 
-            {/* Stats strip */}
-            <div className="px-6 mt-3">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {/* Stats strip modernized */}
+            <div className="px-6 mt-5">
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                 {[
-                  { value: userRoutes.length, label: "маршрутов" },
-                  { value: visitedSummary.countries.length, label: "стран" },
-                  { value: paceLabel, label: "" },
-                  { value: profile?.languages?.length || 0, label: "языков" },
-                ].map((chip, i) => (
+                  { value: userRoutes.length, label: "поездок", icon: MapIcon, color: "text-blue-400" },
+                  { value: visitedSummary.countries.length, label: "стран", icon: Globe, color: "text-emerald-400" },
+                  { value: paceLabel.split(' ')[0], label: "темп", icon: Zap, color: "text-amber-400" },
+                  { value: profile?.languages?.length || 0, label: "языков", icon: Languages, color: "text-purple-400" },
+                ].map((stat, i) => (
                   <div
                     key={i}
-                    className="shrink-0 flex items-center gap-1.5 bg-white/10 dark:bg-white/5 border border-white/15 rounded-full px-3 py-1.5 text-sm font-medium"
+                    className="shrink-0 flex items-center gap-2.5 bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 transition-all hover:bg-white/10"
                   >
-                    <span className="font-bold text-foreground">{chip.value}</span>
-                    {chip.label && <span className="text-muted-foreground">{chip.label}</span>}
+                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                    <div className="flex flex-col leading-none">
+                      <span className="font-black text-sm text-foreground uppercase">{stat.value}</span>
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">{stat.label}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1678,82 +1740,6 @@ function ProfileContent() {
                     )
                   })()}
 
-                  {/* ====== SUBSCRIPTION TAB ====== */}
-                  {activeTab === "subscription" && (() => {
-                    const tier = (profile?.subscription_tier || 'free') as SubscriptionTier
-                    const baseLimits = TIER_LIMITS[tier] || TIER_LIMITS.free
-                    const genLimit = profile?.gen_limit_override ?? (isFinite(baseLimits.genPerMonth) ? baseLimits.genPerMonth : 999999)
-                    const chatLimit = profile?.chat_limit_override ?? (isFinite(baseLimits.chatPerTrip) ? baseLimits.chatPerTrip : 999999)
-                    const genUsed = profile?.monthly_gen_used ?? 0
-                    const genPercent = Math.min(100, (genUsed / Math.max(genLimit, 1)) * 100)
-                    const expiresAt = profile?.subscription_expires_at
-
-                    return (
-                      <div className="max-w-2xl mx-auto space-y-6 pb-20">
-                        <Card className="p-6 trip-glass border-white/20 space-y-5">
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            <CreditCard className="h-5 w-5" /> Подписка
-                          </h3>
-
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                              <Zap className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-lg capitalize">
-                                  {tier === 'free' ? 'Бесплатный' : tier === 'pro' ? 'Pro' : tier === 'max' ? 'Max' : 'Dev'}
-                                </span>
-                                <SubscriptionBadge tier={tier} />
-                              </div>
-                              {expiresAt && (
-                                <p className="text-sm text-muted-foreground">
-                                  Действует до: {new Date(expiresAt).toLocaleDateString('ru-RU')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Генерации маршрутов</span>
-                                <span className="font-medium">{genUsed} / {isFinite(genLimit) ? genLimit : '∞'} в месяц</span>
-                              </div>
-                              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={cn("h-full rounded-full transition-all", genPercent > 80 ? 'bg-destructive' : 'bg-primary')}
-                                  style={{ width: `${genPercent}%` }}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">Сообщений AI-ассистента</span>
-                              <span className="font-medium">{isFinite(chatLimit) ? chatLimit : '∞'} на маршрут</span>
-                            </div>
-                          </div>
-                        </Card>
-
-                        {tier === 'free' && (
-                          <Card className="p-6 trip-glass border-yellow-400/20 space-y-4">
-                            <h3 className="font-bold flex items-center gap-2">
-                              <Zap className="h-5 w-5 text-yellow-400" /> Поддержи проект
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Подписка Pro даёт 50 генераций и 25 сообщений на маршрут в месяц, плюс значок в профиле.
-                            </p>
-                            <a href="/subscribe">
-                              <Button className="w-full bg-yellow-400 text-black hover:bg-yellow-300 rounded-xl">
-                                Узнать о подписке →
-                              </Button>
-                            </a>
-                          </Card>
-                        )}
-                      </div>
-                    )
-                  })()}
-
                   {/* ====== SETTINGS TAB (redesigned) ====== */}
                   {activeTab === "settings" && (
                     <div className="max-w-2xl mx-auto space-y-4 pb-20">
@@ -1960,6 +1946,11 @@ function ProfileContent() {
                                 const newPrefs = { ...profile.preferences, language: val }
                                 setProfile({ ...profile, preferences: newPrefs })
                                 supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                // Apply locale: set cookie and reload
+                                const expires = new Date()
+                                expires.setFullYear(expires.getFullYear() + 1)
+                                document.cookie = `NEXT_LOCALE=${val};path=/;expires=${expires.toUTCString()};SameSite=Lax`
+                                window.location.reload()
                               }}
                             >
                               <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>

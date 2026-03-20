@@ -193,14 +193,14 @@ export function WelcomeModal() {
                     </p>
                   </motion.div>
 
-                  {/* Free badge */}
+                  {/* Free tier badge */}
                   <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.38 }}
                     className="mt-5 flex items-center gap-2 rounded-2xl px-4 py-3 w-full"
-                    style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)" }}>
-                    <Gift className="h-5 w-5 flex-shrink-0" style={{ color: "#34d399" }} />
+                    style={{ background: "rgba(133,173,255,0.1)", border: "1px solid rgba(133,173,255,0.2)" }}>
+                    <Gift className="h-5 w-5 flex-shrink-0" style={{ color: "#85adff" }} />
                     <div className="text-left">
-                      <div className="text-xs font-bold" style={{ color: "#34d399" }}>7 дней PRO-подписки бесплатно</div>
-                      <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Без привязки карты · Без ограничений по функциям</div>
+                      <div className="text-xs font-bold" style={{ color: "#85adff" }}>10 генераций маршрутов каждый месяц</div>
+                      <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Бесплатно · Без привязки карты · Лимит обновляется 1-го числа</div>
                     </div>
                   </motion.div>
 
@@ -308,20 +308,20 @@ export function WelcomeModal() {
                   {/* Free tier callout */}
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
                     className="mb-4 rounded-2xl p-4"
-                    style={{ background: "linear-gradient(135deg, rgba(52,211,153,0.1) 0%, rgba(16,185,129,0.06) 100%)", border: "1px solid rgba(52,211,153,0.22)" }}>
+                    style={{ background: "linear-gradient(135deg, rgba(133,173,255,0.1) 0%, rgba(172,137,255,0.06) 100%)", border: "1px solid rgba(133,173,255,0.22)" }}>
                     <div className="flex items-center gap-2 mb-2">
-                      <Gift className="h-4 w-4" style={{ color: "#34d399" }} />
-                      <span className="text-sm font-bold" style={{ color: "#34d399" }}>Подарок на старте</span>
+                      <Gift className="h-4 w-4" style={{ color: "#85adff" }} />
+                      <span className="text-sm font-bold" style={{ color: "#85adff" }}>Бесплатно навсегда</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       {[
-                        "7 дней PRO-подписки бесплатно",
+                        "10 генераций маршрутов каждый месяц",
                         "Доступ к генераторам маршрутов и чату",
                         "Сохранение маршрута в профиле",
                         "Все ссылки на бронирование",
                       ].map(item => (
                         <div key={item} className="flex items-center gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#34d399" }} />
+                          <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#85adff" }} />
                           <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{item}</span>
                         </div>
                       ))}

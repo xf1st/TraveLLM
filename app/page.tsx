@@ -395,7 +395,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-black mb-2">Интерактивная карта</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Все точки маршрута на карте MapLibre. Кластеры, маршруты, 2D/3D вид.
+                Все точки маршрута наглядно. Места, маршруты, активности по дням.
               </p>
             </motion.div>
 
@@ -472,10 +472,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          PRICING
-      ═══════════════════════════════════════════════ */}
-      <section className="py-28 px-4" id="pricing">
+      {/* PRICING section removed */}
+      {false && <section className="py-28 px-4" id="pricing">
         <div className="max-w-5xl mx-auto">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
@@ -610,18 +608,8 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <motion.p
-            variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-center text-xs text-muted-foreground/60 mt-8"
-          >
-            После оплаты напишите в{" "}
-            <a href="https://t.me/myszf" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-              Telegram @myszf
-            </a>{" "}
-            — активируем вручную в течение 24 часов.
-          </motion.p>
         </div>
-      </section>
+      </section>}
 
       {/* ═══════════════════════════════════════════════
           FINAL CTA

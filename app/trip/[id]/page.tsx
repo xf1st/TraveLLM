@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Compass,
-  Map,
-  MapPin,
   Shield,
   Star,
   Sparkles,
@@ -33,6 +31,8 @@ import {
   Lock,
   Eye,
   CheckCircle2,
+  BarChart2,
+  ExternalLink,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 const MeshGradient = dynamic(
@@ -68,6 +68,8 @@ import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/A
 import { clearTripGalleryCache } from "@/components/PlaceGallery"
 import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 import { TripTooltips } from "@/components/trip/TripTooltips"
+import { TripStatsPanel } from "@/components/trip/TripStatsPanel"
+import { TripLinksPanel } from "@/components/trip/TripLinksPanel"
 
 import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
 import { TripWeatherWidget } from "@/components/trip/TripWeatherWidget"
@@ -77,18 +79,8 @@ import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } f
 import { addDays } from "date-fns"
 
 
-// Dynamic import for TripMap to avoid SSR issues with Leaflet
-const TripMap = dynamic(
-  () => import("@/components/TripMap"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[300px] bg-muted/20 rounded-xl animate-pulse flex items-center justify-center">
-        <MapPin className="h-8 w-8 text-muted-foreground/30 animate-bounce" />
-      </div>
-    ),
-  }
-)
+
+import { ReelsView } from "@/components/travel/ReelsView"
 
 // ===== Constants =====
 
@@ -171,6 +163,8 @@ export default function TripDetailPage() {
   const [activeDay, setActiveDay] = useState<number>(1)
   const [showBudgetModal, setShowBudgetModal] = useState(false)
   const [showTipsModal, setShowTipsModal] = useState(false)
+  const [showWeatherModal, setShowWeatherModal] = useState(false)
+  const [showLinksModal, setShowLinksModal] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
   const prevIsModifying = useRef(false)
 
@@ -187,17 +181,41 @@ export default function TripDetailPage() {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [isMapOpen, setIsMapOpen] = useState(false)
+
   const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
   const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
+  const [activeView, setActiveView] = useState<"itinerary" | "stats">("itinerary")
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
   const [tripWeather, setTripWeather] = useState<WeatherData[]>([])
+  const [isReelsOpen, setIsReelsOpen] = useState(false)
+  const [reelsStartIndex, setReelsStartIndex] = useState(0)
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
+
+  const allActivities = useMemo(() => {
+    if (!route?.itinerary) return []
+    const activities: any[] = []
+    route.itinerary.forEach((day: any) => {
+      if (Array.isArray(day.activities)) {
+        day.activities.forEach((act: any) => {
+          activities.push({
+            ...act,
+            id: act.id || `${day.day}-${act.title || act.placeName}`,
+            day: day.day,
+            location: act.location || act.placeName || route.destination || "Место",
+            title: act.title || act.placeName || "Активность",
+            description: act.description || act.desc,
+            imageUrl: act.imageUrl || act.image,
+          })
+        })
+      }
+    })
+    return activities
+  }, [route?.itinerary])
 
   useEffect(() => {
     // Auto-scroll active day into view in the horizontal selector
@@ -219,64 +237,6 @@ export default function TripDetailPage() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150])
   const heroScale = useTransform(scrollY, [0, 500], [1, 1.15])
 
-  // Memoized places for map — includes all fields needed by MapLibreView popup
-  const mapPlaces = useMemo(
-    () =>
-      route?.itinerary?.flatMap((day: any, dayIdx: number) =>
-        day.activities?.map((activity: any, actIdx: number) => {
-          // Try to extract IATA codes for transport activities from logistics
-          const lg = day.logistics
-          let lat: number | undefined
-          let lng: number | undefined
-          let originIata: string | undefined
-          let destIata: string | undefined
-
-          if (activity.type === "transport" && lg?.from) {
-            const fromMatch = String(lg.from).match(/\(([A-Z]{3})\)/)
-            if (fromMatch) originIata = fromMatch[1]
-          }
-          if (activity.type === "transport" && lg?.to) {
-            const toMatch = String(lg.to).match(/\(([A-Z]{3})\)/)
-            if (toMatch) destIata = toMatch[1]
-          }
-          // Also parse IATA from activity title: "Перелёт Москва (SVO) → Вена (VIE)"
-          if (activity.type === "transport") {
-            const titleOrigin = String(activity.title || "").match(/^[^→]+\(([A-Z]{3})\)/)
-            if (titleOrigin && !originIata) originIata = titleOrigin[1]
-            const titleDest = String(activity.title || "").match(/→[^(]+\(([A-Z]{3})\)/)
-            if (titleDest && !destIata) destIata = titleDest[1]
-          }
-
-          // Explicit coords from activity (if geocoded) — skip for transport (AI puts destination coords)
-          const isTransport = activity.type === "transport"
-          if (!isTransport && activity.lat && activity.lng) {
-            lat = Number(activity.lat)
-            lng = Number(activity.lng)
-          }
-
-          return {
-            id: `${dayIdx}-${actIdx}`,
-            name: activity.title || activity.placeName || activity.desc?.split(".")[0] || `День ${day.day}`,
-            description: activity.desc,
-            status: activeDay === day.day ? "active" : dayIdx === 0 ? "visited" : "pending",
-            day: day.day,
-            // Fields for popup
-            image: activity.image || activity.photo || (Array.isArray(activity.photos) ? activity.photos[0] : undefined),
-            time: activity.time,
-            price: activity.cost,
-            bookingLink: activity.link,
-            type: activity.type,
-            // Explicit coords (if available)
-            lat,
-            lng,
-            // IATA data for TripMap coordinate resolution
-            originIata,
-            destIata,
-          }
-        }) || []
-      ) || [],
-    [route, activeDay]
-  )
 
   const { calculatedTotal, hasUnknownCosts, dayTotals } = useMemo(() => {
     if (!route?.itinerary) return { calculatedTotal: null, hasUnknownCosts: false, dayTotals: {} as Record<number, number> }
@@ -525,6 +485,22 @@ export default function TripDetailPage() {
   // Active day data
   const currentDay = route.itinerary?.find((d: any) => d.day === activeDay)
   const TransportIcon = transportIcons[currentDay?.logistics?.mode] || Zap
+
+  // Per-day destination: try to match day title against known countries/cities
+  const currentDayDestination = (() => {
+    if (!currentDay) return destinationName
+    const dayTitle = `${currentDay.title || ""} ${currentDay.logistics?.to || ""}`.toLowerCase()
+    if (route.countries?.length > 1) {
+      for (const c of route.countries) {
+        const cName = (c.name || "").toLowerCase()
+        const cCity = (c.city || "").toLowerCase()
+        if ((cName && dayTitle.includes(cName)) || (cCity && dayTitle.includes(cCity))) {
+          return c.name
+        }
+      }
+    }
+    return destinationName
+  })()
 
   // Flights for active day
   const isFirstDay = activeDay === 1
@@ -985,36 +961,86 @@ export default function TripDetailPage() {
                   </span>
                 )}
                 {route.status === 'completed' && (
-                  <Link href={`/trip/completed?tripId=${route.id}`}>
+                  <button onClick={() => setActiveView("stats")}>
                     <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Завершен
                     </span>
-                  </Link>
+                  </button>
                 )}
               </div>
 
               {/* Big Title */}
-              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight drop-shadow-md md:shadow-xl leading-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight leading-tight">
                 {route.title}
               </h2>
 
               {/* Description — subtle */}
               {route.description && (
-                <p className="text-white/70 max-w-2xl text-sm sm:text-base drop-shadow-md font-medium leading-relaxed line-clamp-2">
+                <p className="text-white/70 max-w-2xl text-sm sm:text-base font-medium leading-relaxed line-clamp-2">
                   {route.description}
                 </p>
               )}
+
+              {/* Hero action pills: weather + tips */}
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {currentDayWeather && (
+                  <button
+                    onClick={() => setShowWeatherModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 bg-white/10 hover:bg-white/20 transition-colors text-white text-xs font-bold shadow-sm"
+                  >
+                    <span>{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
+                    <span>{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
+                    <span className="opacity-60 text-[10px]">· Погода в поездке</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowTipsModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-amber-400/30 bg-amber-500/15 hover:bg-amber-500/25 transition-colors text-amber-200 text-xs font-bold shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-sm">lightbulb</span>
+                  Советы по маршруту
+                </button>
+                {allActivities.length > 0 && (
+                  <button
+                    onClick={() => { setReelsStartIndex(0); setIsReelsOpen(true) }}
+                    className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-indigo-400/30 bg-indigo-500/20 hover:bg-indigo-500/30 transition-colors text-indigo-200 text-xs font-bold shadow-sm"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Смотреть Reels
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* 3D Map Button */}
+            {/* Links button — bottom-right of hero */}
             <button
-              onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
-              className="bg-blue-600 hover:bg-blue-500 backdrop-blur-md md:backdrop-blur-xl text-white px-6 sm:px-8 py-3 sm:py-4 rounded-3xl text-sm font-bold transition-all shadow-[0_0_30px_rgba(37,99,235,0.6)] flex items-center gap-3 transform hover:-translate-y-1 border border-blue-400/50 hover:shadow-blue-500/50 shrink-0"
+              onClick={() => setShowLinksModal(true)}
+              className="flex-shrink-0 group relative flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-200 hover:scale-105 overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.28) 100%)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 8px 32px rgba(56,189,248,0.20), inset 0 1px 0 rgba(255,255,255,0.15)",
+              }}
             >
-              <span className="material-symbols-outlined text-2xl">view_in_ar</span>
-              <span className="text-base">3D-карта</span>
+              {/* glow spot */}
+              <div className="absolute -top-4 -right-6 w-20 h-20 rounded-full opacity-50 pointer-events-none"
+                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.5) 0%, transparent 70%)" }} />
+              <div
+                className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: "rgba(56,189,248,0.20)", border: "1px solid rgba(56,189,248,0.35)" }}
+              >
+                <ExternalLink className="text-sky-300" style={{ width: 18, height: 18 }} />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-[11px] font-black text-white/90 leading-tight tracking-wider uppercase whitespace-nowrap">
+                  Проверить цены
+                </span>
+                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Билеты · Отели · Карты</span>
+              </div>
             </button>
+
           </div>
         </div>
 
@@ -1101,6 +1127,23 @@ export default function TripDetailPage() {
                 <span className="material-symbols-outlined text-lg">chevron_right</span>
               </button>
             )}
+            {/* Stats tab */}
+            <div className="flex border-l border-slate-300/40 dark:border-white/10 pl-2 ml-1 shrink-0">
+              <button
+                onClick={() => setActiveView(v => v === "stats" ? "itinerary" : "stats")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all",
+                  activeView === "stats"
+                    ? "bg-violet-500 text-white shadow-lg shadow-violet-500/30"
+                    : "text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10"
+                )}
+                title="Статистика маршрута"
+              >
+                <BarChart2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Статистика</span>
+              </button>
+            </div>
+
             <div className="hidden md:flex border-l border-slate-300/40 dark:border-white/10 pl-2 ml-1">
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
@@ -1131,8 +1174,13 @@ export default function TripDetailPage() {
           </div>
         </div>
 
+        {/* ===== STATS VIEW ===== */}
+        {activeView === "stats" && (
+          <TripStatsPanel route={route} tripId={params.id as string} />
+        )}
+
         {/* ===== MAIN CONTENT GRID ===== */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-20 relative z-30">
+        <div className={cn("max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-20 relative z-30", activeView === "stats" && "hidden")}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start mt-3 sm:mt-4">
 
             {/* ===== LEFT COLUMN: Timeline ===== */}
@@ -1151,12 +1199,6 @@ export default function TripDetailPage() {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => router.push(`/dashboard?tripId=${route.id}`)}
-                      className="text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-sky-500/30 dark:shadow-blue-600/30 border border-sky-400/20 dark:border-blue-400/50 shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-sm">view_in_ar</span> <span className="hidden sm:inline">3D-карта</span>
-                    </button>
                   </div>
 
                   {/* Activity Timeline */}
@@ -1165,7 +1207,7 @@ export default function TripDetailPage() {
                       <ActivityTimelineCard
                         key={`act-${activeDay}-${i}`}
                         activity={activity}
-                        destination={destinationName}
+                        destination={currentDayDestination}
                         dayNumber={activeDay}
                         onGenerateExtraActivity={handleGenerateExtraActivity}
                         onGenerateInline={handleGenerateInline}
@@ -1236,40 +1278,6 @@ export default function TripDetailPage() {
                 )}
               </AnimatePresence>}
 
-              {/* Weather section */}
-              {route.start_date && route.end_date ? (
-                <TripWeatherWidget
-                  destination={destinationName}
-                  startDate={route.start_date}
-                  endDate={route.end_date}
-                />
-              ) : (
-                <CurrentWeatherWidget
-                  destination={destinationName}
-                  date={undefined}
-                />
-              )}
-
-              {/* Tips Card */}
-              <div className="trip-glass bg-gradient-to-br from-amber-100/60 dark:from-transparent to-white/60 dark:to-transparent p-3 sm:p-5 rounded-[2rem] shadow-lg flex flex-col justify-between h-28 sm:h-32 lg:h-36 hover:bg-white/80 dark:hover:bg-amber-900/30 transition-colors">
-                  <div className="flex justify-between items-start">
-                    <div className="bg-white/60 dark:bg-white/5 p-2.5 rounded-2xl shadow-sm dark:shadow-inner backdrop-blur-md border border-white/40 dark:border-white/5">
-                      <span className="material-symbols-outlined text-amber-500 dark:text-amber-300">lightbulb</span>
-                    </div>
-                    <span className="text-xs font-bold text-amber-700 dark:text-amber-200/70 uppercase tracking-wide">Советы</span>
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-slate-800 dark:text-white line-clamp-2 leading-tight drop-shadow-sm">
-                      {currentDay?.tips || "Важная информация по маршруту"}
-                    </span>
-                    <button
-                      onClick={() => setShowTipsModal(true)}
-                      className="text-[10px] font-bold text-amber-600 dark:text-amber-300 hover:text-amber-800 dark:hover:text-white mt-1 block uppercase tracking-wide transition-colors"
-                    >
-                      Все советы
-                    </button>
-                  </div>
-                </div>
 
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
@@ -1302,18 +1310,20 @@ export default function TripDetailPage() {
                       Подтверждено
                     </span>
                     <button
-                      onClick={async () => {
+                      onClick={() => {
+                        if (sidebarHotel.bookingUrl) {
+                          window.open(sidebarHotel.bookingUrl, "_blank")
+                          return
+                        }
+                        // Build Booking.com deep-search for the specific hotel name + city
                         const checkInDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
                         const checkOutDate = checkInDate ? addDays(checkInDate, 1) : undefined
-
-                        const link = sidebarHotel.bookingUrl || await getHotelSearchLink({
-                             destination: sidebarHotel.city || destinationName,
-                             checkIn: checkInDate,
-                             checkOut: checkOutDate,
-                             adults: route.travelers || 2,
-                             subId: "sidebar_card"
-                        })
-                        window.open(link, "_blank")
+                        const q = [sidebarHotel.hotelName, sidebarHotel.city || destinationName].filter(Boolean).join(", ")
+                        const p = new URLSearchParams({ ss: q, lang: "ru", selected_currency: "RUB" })
+                        if (checkInDate) p.set("checkin", checkInDate.toISOString().slice(0, 10))
+                        if (checkOutDate) p.set("checkout", checkOutDate.toISOString().slice(0, 10))
+                        p.set("group_adults", String(route.travelers || 2))
+                        window.open(`https://www.booking.com/search.html?${p.toString()}`, "_blank")
                       }}
                       className="text-[10px] sm:text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
                     >
@@ -1394,6 +1404,53 @@ export default function TripDetailPage() {
               <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-md md:shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
                 Понятно
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== Links Modal ===== */}
+        <Dialog open={showLinksModal} onOpenChange={setShowLinksModal}>
+          <DialogContent className="max-w-4xl w-full rounded-3xl p-0 overflow-hidden" style={{ background: "#0b0e14", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
+                <ExternalLink className="w-5 h-5 text-sky-400" />
+                Проверить цены
+              </DialogTitle>
+              <DialogDescription className="text-white/40">
+                Транспорт · Отели · Рестораны · Активности
+              </DialogDescription>
+            </DialogHeader>
+            <div className="px-4 py-4 max-h-[78vh] overflow-y-auto">
+              <TripLinksPanel route={route} onGoToDay={(day) => { setActiveDay(day); setShowLinksModal(false) }} />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ===== Weather Modal ===== */}
+        <Dialog open={showWeatherModal} onOpenChange={setShowWeatherModal}>
+          <DialogContent className="max-w-lg rounded-3xl p-6 sm:p-8">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <span className="text-2xl">{currentDayWeather ? getWeatherEmoji(currentDayWeather.weatherCode) : "🌤"}</span>
+                Погода в поездке
+              </DialogTitle>
+              <DialogDescription>
+                Прогноз погоды на все дни маршрута
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-2">
+              {route.start_date && route.end_date ? (
+                <TripWeatherWidget
+                  destination={destinationName}
+                  startDate={route.start_date}
+                  endDate={route.end_date}
+                />
+              ) : (
+                <CurrentWeatherWidget
+                  destination={destinationName}
+                  date={undefined}
+                />
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1490,56 +1547,13 @@ export default function TripDetailPage() {
         {/* ===== MOBILE FAB BUTTON (chat only) ===== */}
         <div className="lg:hidden fixed bottom-6 right-4 z-50">
           <button
-            onClick={() => { setIsMobileAIChatOpen(true); setIsMapOpen(false) }}
+            onClick={() => { setIsMobileAIChatOpen(true) }}
             className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-md md:shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
           >
             <MessageCircle className="w-6 h-6" />
           </button>
         </div>
 
-        {/* ===== MOBILE MAP BOTTOM SHEET ===== */}
-        <AnimatePresence>
-          {isMapOpen && (
-            <motion.div
-              className="lg:hidden fixed inset-0 z-[60]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMapOpen(false)} />
-              <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-md md:shadow-2xl overflow-hidden"
-                style={{ maxHeight: "75vh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <Map className="h-5 w-5 text-primary" />
-                    Карта маршрута
-                  </h3>
-                  <button onClick={() => setIsMapOpen(false)} className="p-2 rounded-full hover:bg-muted transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="h-[60vh]">
-                  <TripMap
-                    places={mapPlaces}
-                    activePlaceId={activeDay ? `${activeDay - 1}-0` : undefined}
-                    onPlaceSelect={(placeId: string) => {
-                      const [dayIdx] = placeId.split("-").map(Number)
-                      setActiveDay(dayIdx + 1)
-                      setIsMapOpen(false)
-                    }}
-                  />
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ===== MOBILE AI CHAT BOTTOM SHEET — owner only ===== */}
         {isOwner && <AnimatePresence>
@@ -1585,54 +1599,6 @@ export default function TripDetailPage() {
           )}
         </AnimatePresence>}
 
-        {/* ===== DESKTOP MAP MODAL ===== */}
-        <AnimatePresence>
-          {isMapOpen && (
-            <motion.div
-              className="hidden lg:flex fixed inset-0 z-50 items-center justify-center p-4 sm:p-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={() => setIsMapOpen(false)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
-              <motion.div
-                className="relative w-full max-w-4xl h-[50vh] sm:h-[60vh] lg:h-[70vh] bg-card rounded-3xl overflow-hidden shadow-md md:shadow-2xl border border-border/50 dark:border-white/10"
-                initial={{ scale: 0.9, y: 50 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 50 }}
-                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              >
-                <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-card via-card/95 to-transparent">
-                  <h3 className="text-lg font-bold flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    Карта маршрута
-                  </h3>
-                  <Button variant="ghost" size="icon" onClick={() => setIsMapOpen(false)} className="rounded-full hover:bg-muted h-9 w-9">
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                <div className="h-full w-full">
-                  {mapPlaces?.length > 0 ? (
-                    <TripMap places={mapPlaces} />
-                  ) : (
-                    <div className="h-full flex items-center justify-center bg-muted/20">
-                      <div className="text-center">
-                        <MapPin className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">Нет данных о локациях</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {showScrollTop && (
           <button
@@ -1645,6 +1611,16 @@ export default function TripDetailPage() {
             </svg>
           </button>
         )}
+
+        <AnimatePresence>
+          {isReelsOpen && (
+            <ReelsView
+              activities={allActivities}
+              initialIndex={reelsStartIndex}
+              onClose={() => setIsReelsOpen(false)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

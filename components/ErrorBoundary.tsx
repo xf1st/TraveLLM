@@ -26,6 +26,24 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo)
+
+    // ChunkLoadError = stale browser cache after redeploy → hard reload once
+    const isChunkError =
+      error.name === "ChunkLoadError" ||
+      /loading chunk/i.test(error.message) ||
+      /failed to load chunk/i.test(error.message) ||
+      /loading css chunk/i.test(error.message)
+
+    if (isChunkError) {
+      const reloadKey = "travellm_chunk_reload"
+      const lastReload = parseInt(sessionStorage.getItem(reloadKey) || "0", 10)
+      const now = Date.now()
+      // Prevent reload loop: max once per 10 seconds
+      if (now - lastReload > 10_000) {
+        sessionStorage.setItem(reloadKey, String(now))
+        window.location.reload()
+      }
+    }
   }
 
   public handleRetry = () => {

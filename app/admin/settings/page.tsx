@@ -244,7 +244,7 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="rate_limit">Максимум генераций на пользователя в день</Label>
+                <Label htmlFor="rate_limit">Максимум генераций на пользователя в месяц</Label>
                 <Input
                   id="rate_limit"
                   type="number"
@@ -259,8 +259,7 @@ export default function AdminSettingsPage() {
                   }
                 />
                 <p className="text-sm text-muted-foreground">
-                  После превышения лимита пользователь не сможет создавать новые маршруты до
-                  следующего дня
+                  Глобальный месячный лимит. Персональный override — в разделе «Пользователи». Лимит сбрасывается 1-го числа каждого месяца.
                 </p>
               </div>
             </CardContent>

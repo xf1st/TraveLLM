@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { Map, User, LogOut, Settings, Menu, Shield, History, X, Compass } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
+import { useTranslations } from "next-intl"
 import { GlobalSearch, SearchTriggerDesktop, SearchTriggerMobile } from "@/components/GlobalSearch"
 import {
   DropdownMenu,
@@ -22,19 +23,17 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { appToast as toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
-import { SubscriptionBadge } from "@/components/SubscriptionBadge"
-
 interface HeaderProps {
   /** Floating pill-shaped header style for landing pages */
   floating?: boolean
 }
 
 export function Header({ floating = false }: HeaderProps) {
+  const t = useTranslations("nav")
   const pathname = usePathname()
   const { user } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
   const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
-  const [subscriptionTier, setSubscriptionTier] = useState<string>("free")
   const [searchOpen, setSearchOpen] = useState(false)
 
   // -- Fix: Hydration Mismatch --
@@ -49,14 +48,13 @@ export function Header({ floating = false }: HeaderProps) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, full_name, avatar_url, subscription_tier')
+          .select('role, full_name, avatar_url')
           .eq('id', user.id)
           .maybeSingle()
 
         if (profile) {
           // console.log("Header: Profile loaded", profile)
           setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
-          setSubscriptionTier(profile.subscription_tier || 'free')
           setUserData({
             full_name: profile.full_name || user.user_metadata?.full_name,
             avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
@@ -115,14 +113,14 @@ export function Header({ floating = false }: HeaderProps) {
       const { error } = await signOut()
 
       if (error && !error.message?.includes('Auth session missing')) {
-        toast.error("Ошибка при выходе: " + error.message)
+        toast.error(t("signOut") + ": " + error.message)
         return
       }
 
       localStorage.removeItem("user")
       // Auth state will be updated by AuthProvider via onAuthStateChange
 
-      toast.success("Вы успешно вышли из аккаунта")
+      toast.success(t("signOut"))
 
       setTimeout(() => {
         window.location.href = "/"
@@ -134,9 +132,8 @@ export function Header({ floating = false }: HeaderProps) {
   }
 
   const navLinks = [
-    { href: "/trips", label: "Маршруты" },
-    { href: "/dashboard", label: "3D Карта β" },
-    { href: "/plan", label: "Спланировать" },
+    { href: "/trips", label: t("routes") },
+    { href: "/plan", label: t("plan") },
   ]
 
   // Hide on auth pages
@@ -198,12 +195,12 @@ export function Header({ floating = false }: HeaderProps) {
             <div className="md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8" aria-label="Открыть меню">
+                  <Button variant="ghost" size="icon" className="mr-1 h-8 w-8" aria-label={t("openMenu")}>
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 p-2 rounded-xl">
-                  <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("menu")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {navLinks.map((link) => {
                     const isCreateTrip = link.href === '/plan'
@@ -240,7 +237,7 @@ export function Header({ floating = false }: HeaderProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label="Меню пользователя">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label={t("userMenu")}>
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                       <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
@@ -253,8 +250,7 @@ export function Header({ floating = false }: HeaderProps) {
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex flex-col space-y-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
-                        <SubscriptionBadge tier={subscriptionTier} />
+                        <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
@@ -264,20 +260,20 @@ export function Header({ floating = false }: HeaderProps) {
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                       <Link href="/profile" className="w-full flex items-center p-2">
                         <User className="mr-3 h-4 w-4" />
-                        <span>Мой профиль</span>
+                        <span>{t("myProfile")}</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                       <Link href="/profile?tab=history" className="w-full flex items-center p-2">
                         <History className="mr-3 h-4 w-4" />
-                        <span>История генераций</span>
+                        <span>{t("generationHistory")}</span>
                       </Link>
                     </DropdownMenuItem>
                     {isAdmin && (
                       <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                         <Link href="/admin" className="w-full flex items-center p-2">
                           <Shield className="mr-3 h-4 w-4" />
-                          <span>Админ-панель</span>
+                          <span>{t("adminPanel")}</span>
                         </Link>
                       </DropdownMenuItem>
                     )}
@@ -285,13 +281,13 @@ export function Header({ floating = false }: HeaderProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="rounded-lg text-destructive cursor-pointer p-2" onClick={handleLogout}>
                     <LogOut className="mr-3 h-4 w-4" />
-                    <span>Выйти</span>
+                    <span>{t("signOut")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Button asChild size="sm" className="rounded-lg h-8 px-4">
-                <Link href="/auth">Войти</Link>
+                <Link href="/auth">{t("signIn")}</Link>
               </Button>
             )}
           </div>
@@ -381,12 +377,12 @@ export function Header({ floating = false }: HeaderProps) {
           <div className="md:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="mr-1 h-9 w-9 min-h-[44px] min-w-[44px]" aria-label="Открыть меню">
+                <Button variant="ghost" size="icon" className="mr-1 h-9 w-9 min-h-[44px] min-w-[44px]" aria-label={t("openMenu")}>
                   <Menu className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-2 rounded-xl">
-                <DropdownMenuLabel>Меню</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("menu")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {navLinks.map((link) => {
                   const isCreateTrip = link.href === '/plan'
@@ -424,7 +420,7 @@ export function Header({ floating = false }: HeaderProps) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label="Меню пользователя">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label={t("userMenu")}>
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
@@ -437,8 +433,7 @@ export function Header({ floating = false }: HeaderProps) {
                 <DropdownMenuLabel className="font-normal p-3">
                   <div className="flex flex-col space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || "Путешественник"}</p>
-                      <SubscriptionBadge tier={subscriptionTier} />
+                      <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
@@ -448,26 +443,26 @@ export function Header({ floating = false }: HeaderProps) {
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                     <Link href="/profile" className="w-full flex items-center p-2">
                       <User className="mr-3 h-4 w-4" />
-                      <span>Мой профиль</span>
+                      <span>{t("myProfile")}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                     <Link href="/profile?tab=history" className="w-full flex items-center p-2">
                       <History className="mr-3 h-4 w-4" />
-                      <span>История генераций</span>
+                      <span>{t("generationHistory")}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                     <Link href="/profile?tab=settings" className="w-full flex items-center p-2">
                       <Settings className="mr-3 h-4 w-4" />
-                      <span>Настройки</span>
+                      <span>{t("settings")}</span>
                     </Link>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                       <Link href="/admin" className="w-full flex items-center p-2">
                         <Shield className="mr-3 h-4 w-4" />
-                        <span>Админ-панель</span>
+                        <span>{t("adminPanel")}</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -478,13 +473,13 @@ export function Header({ floating = false }: HeaderProps) {
                   onClick={handleLogout}
                 >
                   <LogOut className="mr-3 h-4 w-4" />
-                  <span>Выйти</span>
+                  <span>{t("signOut")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button asChild size="sm" className="rounded-lg h-8 px-4">
-              <Link href="/auth">Войти</Link>
+              <Link href="/auth">{t("signIn")}</Link>
             </Button>
           )}
         </div>

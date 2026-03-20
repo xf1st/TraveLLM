@@ -10,6 +10,9 @@ import { type ValidationResult } from "./real-time-validation"
 import { GROUNDING_DATA_2026 } from "./grounding"
 
 export interface PromptBuilderParams {
+    // Locale
+    locale?: 'ru' | 'en'
+
     // Базовые параметры
     departureCity: string
     destinations: string[]
@@ -78,6 +81,7 @@ export interface EnrichedPrompt {
  */
 export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<EnrichedPrompt> {
     const {
+        locale = 'ru',
         departureCity,
         destinations,
         startDate,
@@ -106,6 +110,11 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
         airportValidationContext
     } = params
 
+    const isEn = locale === 'en'
+    const currencySymbol = isEn ? '$' : '₽'
+    const currencyLocale = isEn ? 'en-US' : 'ru-RU'
+    const outputLang = isEn ? 'English' : 'Russian (РУССКОМ)'
+
     // Рассчитываем длительность
     const durationDays = startDate && endDate 
         ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -118,9 +127,9 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
     // ========================
     // СИСТЕМНЫЙ ПРОМПТ
     // ========================
-    const systemPrompt = `Ты — эксперт-планировщик путешествий TraveLLM для русских туристов. Отвечаешь ТОЛЬКО JSON. Будь конкретен.
-
-${ITINERARY_STRUCTURE}`
+    const systemPrompt = isEn
+        ? `You are a TraveLLM expert travel planner. Respond with ONLY valid JSON. Be specific and detailed.\n\n${ITINERARY_STRUCTURE}`
+        : `Ты — эксперт-планировщик путешествий TraveLLM для русских туристов. Отвечаешь ТОЛЬКО JSON. Будь конкретен.\n\n${ITINERARY_STRUCTURE}`
 
     // ========================
     // ПОЛЬЗОВАТЕЛЬСКИЙ ПРОМПТ
@@ -128,7 +137,21 @@ ${ITINERARY_STRUCTURE}`
     const userParts: string[] = []
 
     // 1. ИСХОДНЫЕ ДАННЫЕ
-    userParts.push(`
+    const budgetFormatted = budgetDesc || `${effectiveBudget.toLocaleString(currencyLocale)} ${currencySymbol}`
+    userParts.push(isEn ? `
+Create a detailed professional travel itinerary in ENGLISH.
+
+TRIP DATA:
+- Departure city: ${departureCity}
+- Destination: ${destinations.join(", ")}
+${destinationType === 'russia' && destinations.length === 0 ? `⚠️ CRITICAL: Route ONLY within Russia (RF). All cities and places MUST be on the territory of the Russian Federation.` : ''}
+- Number of countries/cities: ${destinations.length > 0 ? destinations.length : (countryCount === "more" ? 4 : parseInt(countryCount as string) || 1)}
+- Dates: ${startDate || 'Flexible'} — ${endDate || 'Flexible'} (${durationDays} days)
+${warningsStr ? `⚠️ CURRENT WARNINGS FOR THESE DATES: ${warningsStr}` : ''}
+${dynamicContextStr ? `\nCURRENT CONTEXT (GROUNDING):\n${dynamicContextStr}` : ''}
+- Budget: ${budgetFormatted}
+⚠️ STRICT BUDGET LIMIT: ${budgetFormatted} MAXIMUM FOR THE ENTIRE TRIP.
+`.trim() : `
 Создай детальный профессиональный маршрут путешествия на РУССКОМ языке.
 
 ИСХОДНЫЕ ДАННЫЕ:
@@ -139,8 +162,8 @@ ${destinationType === 'russia' && destinations.length === 0 ? `⚠️ КРИТИ
 - Даты: ${startDate || 'Гибкие'} — ${endDate || 'Гибкие'} (${durationDays} дней)
 ${warningsStr ? `⚠️ АКТУАЛЬНЫЕ ПРЕДУПРЕЖДЕНИЯ ДЛЯ ЭТИХ ДАТ: ${warningsStr}` : ''}
 ${dynamicContextStr ? `\nАКТУАЛЬНЫЙ КОНТЕКСТ (GROUNDING):\n${dynamicContextStr}` : ''}
-- Бюджет: ${budgetDesc || `${effectiveBudget.toLocaleString("ru-RU")} ₽`}
-⚠️ ЖЁСТКИЙ ЛИМИТ БЮДЖЕТА: ${effectiveBudget.toLocaleString('ru-RU')} ₽ МАКСИМУМ НА ВСЮ ПОЕЗДКУ. 
+- Бюджет: ${budgetFormatted}
+⚠️ ЖЁСТКИЙ ЛИМИТ БЮДЖЕТА: ${budgetFormatted} МАКСИМУМ НА ВСЮ ПОЕЗДКУ.
 `.trim())
 
     // 2. ОБЯЗАТЕЛЬНЫЕ МЕСТА
@@ -209,16 +232,64 @@ ${airportValidationContext ? `- АЭРОПОРТЫ: ${airportValidationContext}`
     userParts.push(`
 ТЕХНИЧЕСКИЕ ПРАВИЛА:
 1. ЛОГИСТИКА: Прямые рейсы — приоритет! Расстояние < 600км — поезд.
-2. ФОРМАТ ТРАНСПОРТА: В title указывай IATA коды, например: "Перелёт Москва (SVO) → Стамбул (IST)".
-3. ССЫЛКИ: 
-   - Авиа: https://www.aviasales.ru/search/{ORIG}{DDMM}{DEST}1 (MOW1502DXB1)
-   - Отели: Ostrovok.ru или Booking.com
-4. VIRAL SPOTS: Добавь 3-5 популярных в TikTok/Instagram локаций в отдельный массив viralSpots.
-5. IMAGE QUERY: Для каждой активности (hotel, food, activity) добавь imageQuery на АНГЛИЙСКОМ для Pexels (например: "Art Deco hotel rooftop pool skyline Istanbul golden hour"). НЕ используй собственные имена.
+2. ФОРМАТ ТРАНСПОРТА: В title указывай IATA коды, например: "Перелёт Москва (MOW) → Стамбул (IST)".
+3. VIRAL SPOTS: Добавь 3-5 популярных в TikTok/Instagram локаций в отдельный массив viralSpots.
+4. IMAGE QUERY: Для каждой активности (hotel, food, activity) добавь imageQuery на АНГЛИЙСКОМ для Pexels (например: "Art Deco hotel rooftop pool skyline Istanbul golden hour"). НЕ используй собственные имена.
+
+5. ССЫЛКИ — КРИТИЧЕСКИ ВАЖНО, заполняй для КАЖДОЙ активности:
+
+   mapLink (ВСЕГДА, кроме перелётов):
+     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
+
+   transport (авиа) → link:
+     "https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1"
+     Пример: "https://www.aviasales.ru/search/MOW1506BKK1"
+     (mapLink НЕ нужен для перелётов)
+
+   transport (поезд) → link:
+     "https://ticket.rzd.ru/"
+
+   transport (трансфер/такси) → link:
+     "https://kiwitaxi.ru/"
+
+   hotel → bookingUrl (НЕ карта!):
+     "https://www.booking.com/hotel/{cc}/{hotel-slug}.ru.html"
+     Если нет прямой ссылки: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
+     Запасной: "https://ostrovok.ru/hotel/russia/{city}/{hotel-slug}/"
+
+   food → link:
+     TripAdvisor или официальный сайт ресторана
+     Пример: "https://www.tripadvisor.ru/Restaurant_Review-g..."
+
+   activity (музей/экскурсия) → link + ticketUrl:
+     Официальный сайт ИЛИ GetYourGuide: "https://www.getyourguide.ru/s/?q={PlaceName}+{City}"
+     Если продаёт онлайн-билеты — ticketUrl = та же ссылка
+
+   ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ (дайвинг, серфинг, парашют, параглайдинг, яхта, рафтинг,
+   вертолётная экскурсия, джип-тур, квадроциклы, зиплайн, скалолазание, каяк, теплоход) → link:
+     GetYourGuide: "https://www.getyourguide.ru/s/?q={activity+keyword}+{city}"
+     Klook: "https://www.klook.com/ru/search/?q={activity}+{city}"
+     Viator: "https://www.viator.com/ru-RU/search?q={activity}+{city}"
+     (Россия, прыжок с парашютом): "https://skydiving.ru/"
+     (Россия, рафтинг): "https://www.rafting.ru/"
+     (Москва/СПб, теплоход): "https://rechnoyflot.ru/"
+     Правило: ВСЕГДА выбирай ту платформу, где реально можно забронировать данную активность в данном городе.
 `.trim())
 
     // 8. ФОРМАТ ОТВЕТА
-    userParts.push(`
+    userParts.push(isEn ? `
+RESPONSE FORMAT:
+Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in USD $):
+- title, description, totalBudget
+- budgetAnalysis: { avgAccommodation, avgFood, avgTransport, avgActivities, avgMisc }
+- visaAdvice, paymentAdvice, restrictions
+- safetyInfo: { rating (number 1-10), tips }
+- countries: [{ name, visaRequired, visaType }]
+- tags: string[]
+- viralSpots: [{ name, desc, mapLink }]
+- itinerary: [{ day, title, dayTotal, tips, activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }] }]
+  Link fields: mapLink (place map), link (booking/site), bookingUrl (hotel/food only), ticketUrl (paid activities only)
+`.trim() : `
 ФОРМАТ ОТВЕТА:
 Верни строго JSON объект со следующими полями:
 - title, description, totalBudget
@@ -228,7 +299,8 @@ ${airportValidationContext ? `- АЭРОПОРТЫ: ${airportValidationContext}`
 - countries: [{ name, visaRequired, visaType }]
 - tags: string[]
 - viralSpots: [{ name, desc, mapLink }]
-- itinerary: [{ day, title, dayTotal, tips, activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink }] }]
+- itinerary: [{ day, title, dayTotal, tips, activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }] }]
+  Поля ссылок: mapLink (карта места), link (бронирование/сайт), bookingUrl (только hotel/food), ticketUrl (только платные activities)
 `.trim())
 
     const userPrompt = userParts.join("\n\n")

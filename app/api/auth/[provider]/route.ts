@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback/${provider}`;
+  const origin = new URL(request.url).origin;
+  const redirectUri = `${origin}/api/auth/callback/${provider}`;
 
   if (provider === "yandex") {
     const clientId = process.env.YANDEX_CLIENT_ID;

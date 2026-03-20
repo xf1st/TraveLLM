@@ -23,10 +23,95 @@ export const ITINERARY_STRUCTURE = `
   "placeName": "Крепость Калемегдан",
   "desc": "Средневековая крепость на слиянии Савы и Дуная. Панорамные виды на Нови-Сад.",
   "cost": "1 500 ₽",
-  "mapLink": "https://www.google.com/maps/search/?api=1&query=Kalemegdan+Fortress+Belgrade"
+  "mapLink": "https://www.google.com/maps/search/?api=1&query=Kalemegdan+Fortress+Belgrade",
+  "link": "https://www.getyourguide.ru/belgrade-l33/kalemegdan-fortress-guided-tour-t12345/",
+  "ticketUrl": "https://www.getyourguide.ru/belgrade-l33/kalemegdan-fortress-guided-tour-t12345/"
 }
 
-Поля обязательны: time, type, title, placeName, desc, cost.
+Поля обязательны: time, type, title, placeName, desc, cost, mapLink.
+ВАЖНО: placeName = КОНКРЕТНОЕ название места/отеля/ресторана (не "Отель", не "Ресторан", не "Заселение в отель").
+Поля ссылок (заполняй по типу активности):
+• mapLink — ВСЕГДА: Google Maps поиск места
+• link — ссылка на бронирование/официальный сайт (не карта!)
+• bookingUrl — ТОЛЬКО для hotel (Booking.com/Ostrovok) и food (резервация стола)
+• ticketUrl — ТОЛЬКО для платных activity (музеи, экскурсии, аттракционы)
+
+=== ПРАВИЛА ССЫЛОК ПО ТИПУ ===
+
+TRANSPORT (авиа):
+  link = Aviasales: "https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1"
+  Пример: "https://www.aviasales.ru/search/MOW1506BKK1"
+  (не добавляй mapLink для перелётов)
+
+TRANSPORT (поезд):
+  link = "https://ticket.rzd.ru/" или "https://www.rzd.ru/"
+
+TRANSPORT (трансфер/такси):
+  link = "https://kiwitaxi.ru/" или "https://intui.travel/"
+
+HOTEL:
+  ВАЖНО: placeName и title ОБЯЗАТЕЛЬНО должны содержать КОНКРЕТНОЕ название отеля!
+  ✅ ПРАВИЛЬНО: "placeName": "Hotel Moskva 4*", "title": "Заселение в Hotel Moskva 4*"
+  ❌ НЕПРАВИЛЬНО: "placeName": "Заселение в отель", "title": "Отель"
+  mapLink = Google Maps с КОНКРЕТНЫМ названием отеля
+  bookingUrl = "https://www.booking.com/hotel/{cc}/{hotel-slug}.ru.html"
+  Пример: "https://www.booking.com/hotel/rs/moskva.ru.html"
+  Запасной вариант: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
+
+FOOD (ресторан):
+  mapLink = Google Maps ресторана
+  link = TripAdvisor или официальный сайт: "https://www.tripadvisor.ru/Restaurant_Review-..."
+  bookingUrl = ссылка на бронь стола (если есть онлайн-запись)
+
+ACTIVITY (музей, достопримечательность):
+  mapLink = Google Maps места
+  link = официальный сайт или GetYourGuide: "https://www.getyourguide.ru/..."
+  ticketUrl = ссылка на покупку билетов (если есть онлайн-продажа)
+
+=== ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ — РЕАЛЬНЫЕ САЙТЫ ===
+
+Для экстремальных и приключенческих активностей ОБЯЗАТЕЛЬНО добавляй link на реальную платформу бронирования:
+
+Дайвинг / снорклинг:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=diving+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=diving+{city}"
+
+Прыжок с парашютом (Россия):
+  link = "https://skydiving.ru/"
+
+Параглайдинг / парапланеризм:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=paragliding+{city}"
+
+Вертолётная экскурсия:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=helicopter+tour+{city}"
+  Viator: "https://www.viator.com/ru-RU/search?q=helicopter+{city}"
+
+Морская прогулка / яхта / теплоход:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=boat+tour+{city}"
+  (Москва/СПб): "https://rechnoyflot.ru/" или "https://flotpobedy.ru/"
+
+Рафтинг / каяк:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=rafting+{city}"
+  (Россия): "https://www.rafting.ru/"
+
+Серфинг / кайтсёрфинг / виндсёрфинг:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=surfing+lessons+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=surf+{city}"
+
+Зиплайн / верёвочный парк:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=zipline+{city}"
+
+Джип-тур / квадроциклы / ATV:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=jeep+tour+{city}"
+  Viator: "https://www.viator.com/ru-RU/search?q=ATV+{city}"
+
+Горный треккинг / хайкинг:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=hiking+{city}"
+
+Скалолазание:
+  GetYourGuide: "https://www.getyourguide.ru/s/?q=rock+climbing+{city}"
+
+ПРАВИЛО: Для ЛЮБОЙ приключенческой активности, если нет конкретного сайта — используй GetYourGuide или Viator с поисковым запросом по названию активности и городу.
 
 === ШАБЛОНЫ ДНЕЙ ===
 

@@ -13,9 +13,11 @@ import { ArrowRight, Loader2, Mail, Lock, User } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { appToast as toast } from "@/components/ui/sonner"
 import { motion } from "framer-motion"
+import { useTranslations } from "next-intl"
 
 
 function AuthContent() {
+  const t = useTranslations("auth")
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -61,16 +63,11 @@ function AuthContent() {
     } else {
       localStorage.setItem("user", JSON.stringify({ email, name }))
 
-      // If email confirmation is disabled in Supabase, user is immediately logged in.
-      // Grant PRO trial right away via API (auth/callback won't be called in this case).
       if (data.session) {
-        try {
-          await fetch('/api/auth/grant-trial', { method: 'POST' })
-        } catch (_) {}
-        toast.success("Добро пожаловать! Вам выдан PRO на 7 дней 🎉")
+        toast.success(t("signIn"))
         router.push(defaultRedirect)
       } else {
-        toast.success("Регистрация успешна! Проверьте вашу почту.")
+        toast.success(t("verifyEmail"))
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)
       }
     }
@@ -201,12 +198,12 @@ function AuthContent() {
               className="mb-6"
             >
               <h2 className="text-2xl sm:text-3xl font-black text-white lg:text-foreground">
-                {activeTab === "login" ? "С возвращением!" : "Добро пожаловать!"}
+                {activeTab === "login" ? t("welcomeBack") : t("welcome")}
               </h2>
               <p className="text-white/70 lg:text-muted-foreground mt-1.5 text-sm sm:text-base">
                 {activeTab === "login"
-                  ? "Продолжите путешествие там, где остановились"
-                  : "Создайте аккаунт и спланируйте первый маршрут"}
+                  ? t("continueJourney")
+                  : t("createAndPlan")}
               </p>
             </motion.div>
 
@@ -225,7 +222,7 @@ function AuthContent() {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
-                Войти через Google
+                {t("continueWithGoogle")}
               </Button>
 
               {/*
@@ -270,7 +267,7 @@ function AuthContent() {
                 <span className="px-3 text-[11px] uppercase tracking-widest font-medium
                   bg-transparent text-white/50
                   lg:bg-background lg:text-muted-foreground">
-                  или через email
+                  {t("or")} email
                 </span>
               </div>
             </div>
@@ -285,7 +282,7 @@ function AuthContent() {
                     data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
                     lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
-                  Войти
+                  {t("signIn")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
@@ -293,7 +290,7 @@ function AuthContent() {
                     data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
                     lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
-                  Регистрация
+                  {t("signUp")}
                 </TabsTrigger>
               </TabsList>
 
@@ -301,7 +298,7 @@ function AuthContent() {
               <TabsContent value="login" className="space-y-4 mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="login-email" className="text-sm font-medium text-white/80 lg:text-foreground">Email адрес</Label>
+                    <Label htmlFor="login-email" className="text-sm font-medium text-white/80 lg:text-foreground">{t("email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
@@ -319,9 +316,9 @@ function AuthContent() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password" className="text-sm font-medium text-white/80 lg:text-foreground">Пароль</Label>
+                      <Label htmlFor="login-password" className="text-sm font-medium text-white/80 lg:text-foreground">{t("password")}</Label>
                       <Link href="/auth/reset-password" className="text-xs text-white/60 hover:text-white underline-offset-4 hover:underline lg:text-primary lg:hover:text-primary/80">
-                        Забыли пароль?
+                        {t("forgotPassword")}
                       </Link>
                     </div>
                     <div className="relative">
@@ -340,7 +337,7 @@ function AuthContent() {
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Войти <ArrowRight className="ml-2 h-4 w-4" /></>}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("signIn")} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                 </form>
               </TabsContent>
@@ -349,7 +346,7 @@ function AuthContent() {
               <TabsContent value="signup" className="space-y-4 mt-0">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-name" className="text-sm font-medium text-white/80 lg:text-foreground">Как вас зовут?</Label>
+                    <Label htmlFor="signup-name" className="text-sm font-medium text-white/80 lg:text-foreground">{t("yourName")}</Label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
@@ -365,7 +362,7 @@ function AuthContent() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-email" className="text-sm font-medium text-white/80 lg:text-foreground">Email адрес</Label>
+                    <Label htmlFor="signup-email" className="text-sm font-medium text-white/80 lg:text-foreground">{t("email")}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
@@ -382,7 +379,7 @@ function AuthContent() {
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="signup-password" className="text-sm font-medium text-white/80 lg:text-foreground">Пароль</Label>
+                    <Label htmlFor="signup-password" className="text-sm font-medium text-white/80 lg:text-foreground">{t("password")}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
                       <Input
@@ -417,16 +414,16 @@ function AuthContent() {
                     )}
                   </div>
                   <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Создать аккаунт <ArrowRight className="ml-2 h-4 w-4" /></>}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("signUp")} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
 
             <p className="mt-5 text-center text-xs text-white/45 lg:text-muted-foreground">
-              Продолжая, вы соглашаетесь с{" "}
-              <Link href="#" className="underline underline-offset-4 text-white/60 hover:text-white lg:text-muted-foreground lg:hover:text-foreground transition-colors">
-                условиями использования
+              {t("agreeWith")}{" "}
+              <Link href="/terms" className="underline underline-offset-4 text-white/60 hover:text-white lg:text-muted-foreground lg:hover:text-foreground transition-colors">
+                {t("terms")}
               </Link>
             </p>
           </div>

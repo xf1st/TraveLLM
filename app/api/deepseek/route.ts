@@ -5,9 +5,8 @@ import { geminiInference } from "@/lib/gemini"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { createClient } from '@supabase/supabase-js'
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import { getRequestUserId, recordAiUsageEvent, checkMonthlyGenerationLimit } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
-import { checkGenerationLimit, incrementGenerationCount } from "@/lib/subscription"
 import { validateRouteRequest } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import { 
@@ -33,20 +32,31 @@ export async function POST(req: Request) {
         const rl = checkRateLimit(userId, "deepseek-generation", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
 
+        // Monthly generation limit: 10 per user
+        const genLimit = await checkMonthlyGenerationLimit(userId)
+        if (!genLimit.allowed) {
+            return NextResponse.json({
+                error: "Лимит исчерпан",
+                message: `Вы использовали все ${genLimit.limit} генераций в этом месяце. Лимит обновится ${new Date(genLimit.resetAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}.`,
+                limitExceeded: true,
+                count: genLimit.count,
+                limit: genLimit.limit,
+                resetAt: genLimit.resetAt,
+            }, { status: 429 })
+        }
+
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
         if (!supabaseUrl || !supabaseKey) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        const limitCheck = await checkGenerationLimit(userId)
-        if (!limitCheck.allowed) return NextResponse.json({ error: "Limit exceeded", code: 'GENERATION_LIMIT_EXCEEDED' }, { status: 429 })
-
         const body = await req.json()
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
-            travelStyle, companions, preferences, paymentMethods, customDestination, 
-            customBudget, travelers, filterByDocuments, tripHighlight, strictDestinations
+            travelStyle, companions, preferences, paymentMethods, customDestination,
+            customBudget, travelers, filterByDocuments, tripHighlight, strictDestinations, locale
         } = body
+        const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
 
         const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
@@ -70,7 +80,9 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        const budgetDesc = `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
+        const budgetDesc = userLocale === 'en'
+            ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
+            : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
         const destinations = strictDestinations === false ? [] : (customDestination ? customDestination.split(';').map((s: string) => s.trim()).filter(Boolean) : [])
 
         let dynamicContextStr = ""
@@ -104,6 +116,7 @@ export async function POST(req: Request) {
         }
 
         const enriched = await buildEnrichedPrompt({
+            locale: userLocale,
             departureCity: effectiveDepartureCity, destinations, startDate, endDate,
             budget: budgetCap, adjustedBudget, budgetDesc, travelStyle: toArray(travelStyle),
             companions, travelers: parseInt(travelers) || 2, preferences, dynamicContextStr,
@@ -136,7 +149,6 @@ export async function POST(req: Request) {
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
             
             routeData.tokenUsage = getSessionUsage();
-            await incrementGenerationCount(userId);
             await recordAiUsageEvent({ userId, source: "route-generation", provider: "deepseek", usage: routeData.tokenUsage });
 
             return NextResponse.json(routeData);
@@ -158,7 +170,6 @@ export async function POST(req: Request) {
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
 
-            await incrementGenerationCount(userId);
             return NextResponse.json(routeData);
         }
     } catch (error: any) {

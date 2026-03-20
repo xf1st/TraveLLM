@@ -1,0 +1,468 @@
+"use client"
+
+import { useMemo, useState, useEffect } from "react"
+import {
+  ExternalLink, Plane, Utensils, Hotel as HotelIcon,
+  Compass, ChevronDown, Ticket, Car, Train, Bus, Link2, ArrowRight,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
+
+type ActivityType = "transport" | "food" | "hotel" | "activity"
+
+interface LinkItem {
+  day: number
+  dayTitle: string
+  activityTitle: string
+  url: string
+  service: string
+  type: ActivityType
+  rawType: string
+  imageQuery?: string
+}
+
+/* ─── Image thumbnail with lazy fetch ─── */
+function ActivityImage({ query, type, accent }: { query?: string; type: ActivityType; accent: string }) {
+  const [src, setSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!query) return
+    let cancelled = false
+    fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=1`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!cancelled && d?.images?.[0]) setSrc(d.images[0])
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [query])
+
+  if (!src) return (
+    <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+      style={{ background: `${accent}18` }}>
+      {type === "food" ? <Utensils className="w-5 h-5" style={{ color: accent }} />
+        : type === "hotel" ? <HotelIcon className="w-5 h-5" style={{ color: accent }} />
+        : type === "transport" ? <Plane className="w-5 h-5" style={{ color: accent }} />
+        : <Compass className="w-5 h-5" style={{ color: accent }} />}
+    </div>
+  )
+
+  return (
+    <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden" style={{ border: `1px solid ${accent}20` }}>
+      <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+    </div>
+  )
+}
+
+/* ─── Category config (matches reference palette) ─── */
+const CAT: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }> = {
+  transport: { label: "Транспорт и перелёты",      icon: Plane,      accent: "#85adff", dim: "rgba(133,173,255,0.12)" },
+  hotel:     { label: "Проживание",                 icon: HotelIcon,  accent: "#ac89ff", dim: "rgba(172,137,255,0.12)" },
+  food:      { label: "Рестораны и кафе",           icon: Utensils,   accent: "#34d399", dim: "rgba(52,211,153,0.12)"  },
+  activity:  { label: "Активности и развлечения",   icon: Ticket,     accent: "#fbbf24", dim: "rgba(251,191,36,0.12)"  },
+}
+
+/* ─── Service branding ─── */
+const SVC: Record<string, { color: string; label: string }> = {
+  "Aviasales":    { color: "#ff6d00", label: "Aviasales"    },
+  "Skyscanner":   { color: "#0770e3", label: "Skyscanner"   },
+  "Booking.com":  { color: "#57b8f0", label: "Booking.com"  },
+  "Ostrovok":     { color: "#ed1c24", label: "Ostrovok"     },
+  "Airbnb":       { color: "#ff5a5f", label: "Airbnb"       },
+  "Hotels.com":   { color: "#d4370c", label: "Hotels.com"   },
+  "GetYourGuide": { color: "#ff5f00", label: "GetYourGuide" },
+  "Klook":        { color: "#ff5722", label: "Klook"        },
+  "Viator":       { color: "#328276", label: "Viator"       },
+  "TripAdvisor":  { color: "#34e0a1", label: "TripAdvisor"  },
+}
+
+const TYPE_ORDER: ActivityType[] = ["transport", "hotel", "food", "activity"]
+
+/* ─── Helpers ─── */
+function isMapUrl(url: string) {
+  return /maps\.google|goo\.gl\/maps|yandex\.ru\/maps|2gis\.com|maps\.apple|waze\.com/i.test(url)
+}
+
+function parseService(url: string): string {
+  if (/aviasales/i.test(url))        return "Aviasales"
+  if (/skyscanner/i.test(url))       return "Skyscanner"
+  if (/booking\.com/i.test(url))     return "Booking.com"
+  if (/ostrovok/i.test(url))         return "Ostrovok"
+  if (/airbnb/i.test(url))           return "Airbnb"
+  if (/hotels\.com/i.test(url))      return "Hotels.com"
+  if (/tripadvisor/i.test(url))      return "TripAdvisor"
+  if (/getyourguide/i.test(url))     return "GetYourGuide"
+  if (/klook/i.test(url))            return "Klook"
+  if (/viator/i.test(url))           return "Viator"
+  try { return new URL(url).hostname.replace("www.", "") } catch { return "Ссылка" }
+}
+
+function getTransportIcon(text: string) {
+  const t = text.toLowerCase()
+  if (/поезд|train|сапсан|ласточка|жд|аэроэкспресс/.test(t)) return Train
+  if (/автобус|bus/.test(t)) return Bus
+  if (/такси|taxi|трансфер|transfer|авто|машин/.test(t)) return Car
+  return Plane
+}
+
+function parseFlightRoute(title: string): { from: string; to: string } | null {
+  for (const sep of [" – ", " — ", " → ", " - ", "→", "–"]) {
+    if (title.includes(sep)) {
+      const parts = title.split(sep)
+      if (parts.length === 2) return { from: parts[0].trim(), to: parts[1].trim() }
+    }
+  }
+  return null
+}
+
+/* ─── Liquid glass style helper ─── */
+const glass = {
+  background: "rgba(34, 38, 47, 0.45)",
+  backdropFilter: "blur(40px)",
+  WebkitBackdropFilter: "blur(40px)",
+  border: "1px solid rgba(255,255,255,0.08)",
+} as React.CSSProperties
+
+/* ─── Flight boarding-pass card ─── */
+function FlightCard({ item, onGoToDay }: { item: LinkItem; onGoToDay?: (d: number) => void }) {
+  const accent = "#85adff"
+  const svc = SVC[item.service]
+  const route = parseFlightRoute(item.activityTitle)
+  const [bgSrc, setBgSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!item.imageQuery) return
+    let cancelled = false
+    fetch(`/api/gallery?query=${encodeURIComponent(item.imageQuery)}&count=1`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (!cancelled && d?.images?.[0]) setBgSrc(d.images[0]) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [item.imageQuery])
+
+  return (
+    <div className="relative rounded-2xl p-6 overflow-hidden" style={glass}>
+      {/* Background photo overlay */}
+      {bgSrc && (
+        <div className="absolute inset-0 z-0 rounded-2xl overflow-hidden pointer-events-none">
+          <img src={bgSrc} alt="" className="w-full h-full object-cover opacity-[0.12]" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(11,14,20,0.85) 100%)" }} />
+        </div>
+      )}
+      {/* Service badge top-right */}
+      <div className="absolute top-4 right-4">
+        <span
+          className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full"
+          style={{
+            background: svc ? `${svc.color}20` : `${accent}20`,
+            color: svc?.color ?? accent,
+            border: `1px solid ${svc ? svc.color : accent}30`,
+          }}
+        >
+          {item.service}
+        </span>
+      </div>
+
+      {route ? (
+        <div className="relative z-10 flex flex-col gap-5">
+          {/* From */}
+          <div className="flex items-start justify-between pr-20">
+            <div>
+              <span className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5 block" style={{ color: accent }}>
+                Отправление
+              </span>
+              <h3 className="text-2xl font-bold text-white leading-tight">{route.from}</h3>
+            </div>
+          </div>
+
+          {/* Duration separator */}
+          <div className="relative flex items-center justify-center py-1">
+            <div className="absolute w-full border-t border-dashed" style={{ borderColor: "rgba(255,255,255,0.1)" }} />
+            <div
+              className="relative px-4 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5"
+              style={{ background: "rgba(22,26,33,0.95)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)" }}
+            >
+              <Plane className="w-3 h-3" style={{ color: accent }} />
+              День {item.day}
+            </div>
+          </div>
+
+          {/* To */}
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5 block" style={{ color: "#8ff5ff" }}>
+                Назначение
+              </span>
+              <h3 className="text-2xl font-bold text-white leading-tight">{route.to}</h3>
+              <p className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.38)" }}>{item.dayTitle}</p>
+            </div>
+            <div className="w-10 h-10 flex items-center justify-center rounded-full flex-shrink-0"
+              style={{ background: "rgba(143,245,255,0.1)" }}>
+              <Plane className="w-5 h-5 rotate-45" style={{ color: "#8ff5ff" }} />
+            </div>
+          </div>
+
+          {/* CTA row */}
+          <div className="flex gap-2">
+            {onGoToDay && (
+              <button
+                onClick={() => { onGoToDay(item.day); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold transition-all hover:opacity-80 active:scale-95 flex-shrink-0"
+                style={{ background: `${accent}15`, color: accent, border: `1px solid ${accent}25` }}
+                title={`Перейти к дню ${item.day}`}
+              >
+                <ArrowRight className="w-3.5 h-3.5" />
+                День {item.day}
+              </button>
+            )}
+            <a
+              href={item.url} target="_blank" rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+              style={{
+                background: svc ? `${svc.color}18` : `${accent}18`,
+                border: `1px solid ${svc ? svc.color : accent}28`,
+                color: svc?.color ?? accent,
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = svc ? `${svc.color}2e` : `${accent}2e` }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = svc ? `${svc.color}18` : `${accent}18` }}
+            >
+              Проверить цены
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      ) : (
+        /* fallback — simple row if can't parse route */
+        <RegularCard item={item} accent={accent} />
+      )}
+    </div>
+  )
+}
+
+/* ─── Regular horizontal card ─── */
+function RegularCard({
+  item, accent, onGoToDay,
+}: {
+  item: LinkItem
+  accent: string
+  onGoToDay?: (d: number) => void
+}) {
+  const isHotel = item.type === "hotel"
+  const svc = SVC[item.service]
+
+  return (
+    <div
+      className="flex items-center gap-4 rounded-2xl p-4 group transition-all"
+      style={{
+        ...glass,
+        ...(isHotel ? { borderLeft: `3px solid ${accent}` } : {}),
+      }}
+    >
+      {/* Thumbnail / Icon */}
+      <ActivityImage query={item.imageQuery} type={item.type} accent={accent} />
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className="text-white font-bold text-[14px] leading-tight line-clamp-1">{item.activityTitle}</h4>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {onGoToDay ? (
+            <button
+              onClick={() => { onGoToDay(item.day); window.scrollTo({ top: 0, behavior: "smooth" }) }}
+              className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-80 active:scale-95"
+              style={{ background: `${accent}20`, color: accent }}
+              title={`Перейти к дню ${item.day}`}
+            >
+              <ArrowRight className="w-2.5 h-2.5" />
+              День {item.day}
+            </button>
+          ) : (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: `${accent}15`, color: accent }}>
+              День {item.day}
+            </span>
+          )}
+          <span className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
+            {item.dayTitle}
+          </span>
+        </div>
+        {item.service && (
+          <span
+            className="inline-block text-[9px] font-black uppercase tracking-wider mt-1.5 px-2 py-0.5 rounded-full"
+            style={{ background: svc ? `${svc.color}18` : `${accent}15`, color: svc?.color ?? accent }}
+          >
+            {item.service}
+          </span>
+        )}
+      </div>
+
+      {/* Right: link only */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <a
+          href={item.url} target="_blank" rel="noopener noreferrer"
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0"
+          style={{ background: "rgba(255,255,255,0.06)" }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = `${accent}20` }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)" }}
+          onClick={e => e.stopPropagation()}
+        >
+          <Link2 className="w-4 h-4" style={{ color: accent }} />
+        </a>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Section accordion ─── */
+function CategorySection({
+  typeKey, items, isOpen, onToggle, onGoToDay,
+}: {
+  typeKey: ActivityType
+  items: LinkItem[]
+  isOpen: boolean
+  onToggle: () => void
+  onGoToDay?: (day: number) => void
+}) {
+  if (!items.length) return null
+  const { label, icon: Icon, accent } = CAT[typeKey]
+
+  return (
+    <div>
+      {/* Section header */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-3 px-2 py-3 transition-all rounded-xl"
+        style={{ background: isOpen ? `${accent}08` : "transparent" }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accent }} />
+        <span className="flex-1 text-left text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: "rgba(255,255,255,0.45)" }}>
+          {label}
+        </span>
+        <span
+          className="text-[10px] font-black px-2 py-0.5 rounded-full"
+          style={{ background: `${accent}20`, color: accent }}
+        >
+          {items.length}
+        </span>
+        <ChevronDown
+          className={cn("w-4 h-4 transition-transform duration-300 flex-shrink-0", isOpen && "rotate-180")}
+          style={{ color: "rgba(255,255,255,0.25)" }}
+        />
+      </button>
+
+      {/* Divider */}
+      {isOpen && (
+        <div className="h-px mb-3" style={{ background: `linear-gradient(90deg, ${accent}30 0%, transparent 80%)` }} />
+      )}
+
+      {/* Items */}
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-3 pb-4">
+              {items.map((item, i) => {
+                const isFlightLike = typeKey === "transport" && /авиа|рейс|перелёт|перелет|flight|вылет|прилёт/i.test(item.activityTitle)
+                if (isFlightLike) {
+                  return <FlightCard key={i} item={item} onGoToDay={onGoToDay} />
+                }
+                return (
+                  <RegularCard key={i} item={item} accent={CAT[typeKey].accent} onGoToDay={onGoToDay} />
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ─── Main ─── */
+interface Props {
+  route: any
+  onGoToDay?: (day: number) => void
+}
+
+export function TripLinksPanel({ route, onGoToDay }: Props) {
+  const grouped = useMemo(() => {
+    const result: Record<ActivityType, LinkItem[]> = {
+      transport: [], hotel: [], food: [], activity: [],
+    }
+    if (!Array.isArray(route?.itinerary)) return result
+
+    for (const day of route.itinerary) {
+      const dayNum: number = day.day
+      const dayTitle: string = day.title || `День ${dayNum}`
+
+      for (const act of day.activities ?? []) {
+        const rawUrls: string[] = []
+
+        // Collect non-map URLs from all fields; mapLink is included only if it's NOT actually a map URL
+        if (act.link       && typeof act.link       === "string" && act.link.startsWith("http")       && !isMapUrl(act.link))       rawUrls.push(act.link)
+        if (act.mapLink    && typeof act.mapLink    === "string" && act.mapLink.startsWith("http")    && !isMapUrl(act.mapLink))    rawUrls.push(act.mapLink)
+        if (act.bookingUrl && typeof act.bookingUrl === "string" && act.bookingUrl.startsWith("http") && !isMapUrl(act.bookingUrl)) rawUrls.push(act.bookingUrl)
+        if (act.ticketUrl  && typeof act.ticketUrl  === "string" && act.ticketUrl.startsWith("http")  && !isMapUrl(act.ticketUrl))  rawUrls.push(act.ticketUrl)
+
+        // Deduplicate & remove generic google.com search URLs when real service URLs exist
+        const dedupedUrls = [...new Set(rawUrls)]
+        const hasNonGoogle = dedupedUrls.some(u => !/google\.com/i.test(u))
+        const finalUrls = hasNonGoogle ? dedupedUrls.filter(u => !/google\.com/i.test(u)) : dedupedUrls
+
+        const actTitle: string = act.placeName || act.title || "Активность"
+        const rawType: string  = act.type || "activity"
+        const actType: ActivityType = rawType === "transport" ? "transport"
+          : rawType === "hotel" ? "hotel"
+          : rawType === "food"  ? "food"
+          : "activity"
+        const imageQuery: string | undefined = act.imageQuery || undefined
+
+        // For hotels with no direct booking link, generate Booking.com search fallback
+        if (actType === "hotel" && finalUrls.length === 0) {
+          finalUrls.push(`https://www.booking.com/search.html?ss=${encodeURIComponent(actTitle)}`)
+        }
+
+        for (const url of finalUrls) {
+          result[actType].push({
+            day: dayNum, dayTitle, activityTitle: actTitle,
+            url, service: parseService(url),
+            type: actType, rawType, imageQuery,
+          })
+        }
+      }
+    }
+    for (const k of Object.keys(result) as ActivityType[]) result[k].sort((a, b) => a.day - b.day)
+    return result
+  }, [route])
+
+  const firstNonEmpty = TYPE_ORDER.find(t => grouped[t].length > 0) ?? null
+  const [openKey, setOpenKey] = useState<ActivityType | null>(firstNonEmpty)
+
+  const hasAny = TYPE_ORDER.some(t => grouped[t].length > 0)
+  if (!hasAny) return (
+    <div className="text-center py-16">
+      <Link2 className="w-8 h-8 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.15)" }} />
+      <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>Ссылки для бронирования не найдены</p>
+      <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>Они появятся после обогащения маршрута</p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-1">
+      {TYPE_ORDER.map(key => (
+        <CategorySection
+          key={key}
+          typeKey={key}
+          items={grouped[key]}
+          isOpen={openKey === key}
+          onToggle={() => setOpenKey(prev => prev === key ? null : key)}
+          onGoToDay={onGoToDay}
+        />
+      ))}
+    </div>
+  )
+}
