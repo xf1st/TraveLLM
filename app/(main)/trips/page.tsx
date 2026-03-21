@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import { AppLayout } from "@/components/app-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,6 +75,8 @@ function getTagStyle(tag: string) {
 
 // ─── Featured Card (first / hero trip) ───────────────────────────────────────
 function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: boolean; onToggleFav: (id: string, e: React.MouseEvent) => void }) {
+  const t = useTranslations("trips");
+  const locale = useLocale();
   return (
     <Link href={`/trip/${trip.id}`} className="group block">
       <div className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] h-[200px] sm:h-[320px] md:h-[380px] shadow-md md:shadow-2xl border border-white/10">
@@ -93,12 +96,12 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
         <div className="absolute top-3 sm:top-5 left-3 sm:left-5 right-3 sm:right-5 flex items-center justify-between z-10">
           <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/90 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full">
             <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-            Последний маршрут
+            {t("latestBadge")}
           </span>
           {/* Mobile: compact label */}
           <span className="sm:hidden flex items-center gap-1 text-[9px] font-black uppercase text-amber-300">
             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-            Новейший
+            {t("newest")}
           </span>
           <button
             onClick={(e) => onToggleFav(trip.id, e)}
@@ -135,26 +138,26 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
                 );
               })}
             </div>
-            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4">
               {trip.budget && (
                 <span className="text-white font-black text-lg">
                   {typeof trip.budget === "number"
-                    ? new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(trip.budget)
+                    ? new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
                     : trip.budget.toString().replace("₽", " ₽")}
                 </span>
               )}
               <div className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-full font-bold text-sm group-hover:bg-primary group-hover:text-white transition-all shadow-lg">
-                Открыть <ArrowRight className="h-4 w-4" />
+                {t("open")} <ArrowRight className="h-4 w-4" />
               </div>
             </div>
           </div>
 
-          {/* Mobile: только бюджет */}
+          {/* Mobile: budget only */}
           <div className="sm:hidden flex items-center justify-between">
             {trip.budget && (
               <span className="text-white font-black text-xs">
                 {typeof trip.budget === "number"
-                  ? new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
+                  ? new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
                   : trip.budget.toString().replace("₽", " ₽")}
               </span>
             )}
@@ -170,9 +173,11 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
 function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boolean; onToggleFav: (id: string, e: React.MouseEvent) => void; index: number }) {
+  const t = useTranslations("trips");
+  const locale = useLocale();
   const budget = trip.budget
     ? (typeof trip.budget === "number"
-      ? new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(trip.budget)
+      ? new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
       : trip.budget.toString().replace("₽", " ₽"))
     : null;
 
@@ -202,7 +207,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
               <div className="absolute bottom-1.5 left-1.5">
                 <span className="flex items-center gap-0.5 text-[8px] font-black uppercase bg-blue-500/90 text-white px-1.5 py-0.5 rounded-full">
                   <CheckCircle2 className="h-2 w-2" />
-                  Готово
+                  {t("completed")}
                 </span>
               </div>
             )}
@@ -272,7 +277,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/trip/completed?tripId=${trip.id}` }}
                 className="flex items-center gap-1 text-[9px] font-black uppercase bg-blue-500/80 text-white px-2 py-1 rounded-full backdrop-blur-md hover:bg-blue-500 transition-colors"
               >
-                <CheckCircle2 className="h-2.5 w-2.5" />Завершён
+                <CheckCircle2 className="h-2.5 w-2.5" />{t("completed")}
               </button>
             </div>
           )}
@@ -315,6 +320,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 function EmptyState({ view }: { view: "my" | "favorites" }) {
+  const t = useTranslations("trips");
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
       <div className="relative mb-6">
@@ -331,18 +337,16 @@ function EmptyState({ view }: { view: "my" | "favorites" }) {
       </div>
 
       <h3 className="text-2xl font-black text-foreground mb-2">
-        {view === "favorites" ? "Нет избранного" : "Пока пусто"}
+        {view === "favorites" ? t("noFavorites") : t("empty")}
       </h3>
       <p className="text-muted-foreground max-w-xs mb-8">
-        {view === "my"
-          ? "Вы ещё не создали ни одного маршрута. Начните прямо сейчас!"
-          : "Добавляйте понравившиеся маршруты в избранное, нажав ♥ на карточке."}
+        {view === "my" ? t("emptySubtitle") : t("noFavoritesHint")}
       </p>
       {view === "my" && (
         <Button asChild className="rounded-full px-8 py-5 text-base font-bold shadow-lg hover:scale-105 transition-transform">
           <Link href="/plan">
             <Plus className="h-4 w-4 mr-2" />
-            Создать маршрут
+            {t("createFirst")}
           </Link>
         </Button>
       )}
@@ -352,6 +356,8 @@ function EmptyState({ view }: { view: "my" | "favorites" }) {
 
 // ─── Main content ─────────────────────────────────────────────────────────────
 function TripsContent() {
+  const t = useTranslations("trips");
+  const tc = useTranslations("common");
   const searchParams = useSearchParams();
   const source = searchParams.get("source");
 
@@ -452,7 +458,7 @@ function TripsContent() {
   const normalize = (r: any) => ({
     ...r,
     image: r.cover_image || undefined,
-    duration: `${r.itinerary?.length || 0} дней`,
+    duration: `${r.itinerary?.length || 0} ${t("days")}`,
     safetyLevel: r.safety_info?.level || 10,
     budget: r.total_cost || r.budget || r.budget_range,
     tags: r.tags || [],
@@ -489,15 +495,15 @@ function TripsContent() {
   const hasMore = view === "my" ? hasMoreRoutes : false;
 
   return (
-    <AppLayout title="Путешествия" description="Ваши маршруты и избранное" className="trip-bg">
+    <AppLayout title={t("title")} description={t("description")} className="trip-bg">
       <div className="relative z-10 max-w-7xl mx-auto space-y-8">
 
         {/* ─── Header ─── */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Коллекция</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">{t("collectionLabel")}</p>
             <h1 className="text-3xl md:text-4xl font-black text-foreground leading-none">
-              Мои путешествия
+              {t("title")}
             </h1>
           </div>
           {/* Stats row */}
@@ -505,17 +511,17 @@ function TripsContent() {
             <div className="flex items-center gap-2 trip-glass px-4 py-2.5 rounded-2xl border border-white/20 text-sm">
               <TrendingUp className="h-4 w-4 text-primary" />
               <span className="font-black text-foreground">{totalRoutes}</span>
-              <span className="text-muted-foreground font-medium">маршрутов</span>
+              <span className="text-muted-foreground font-medium">{t("routesCount")}</span>
             </div>
             <div className="flex items-center gap-2 trip-glass px-4 py-2.5 rounded-2xl border border-white/20 text-sm">
               <Globe className="h-4 w-4 text-emerald-400" />
               <span className="font-black text-foreground">{uniqueDests}</span>
-              <span className="text-muted-foreground font-medium">направлений</span>
+              <span className="text-muted-foreground font-medium">{t("destinationsCount")}</span>
             </div>
             <Button asChild size="sm" className="rounded-full px-5 py-2.5 h-auto font-bold shadow-lg hover:scale-105 transition-transform">
               <Link href="/plan">
                 <Plus className="h-4 w-4 mr-1.5" />
-                Новый маршрут
+                {t("newTrip")}
               </Link>
             </Button>
           </div>
@@ -538,9 +544,9 @@ function TripsContent() {
                   )}
                 >
                   {v === "my" ? (
-                    <><Globe className="h-3.5 w-3.5" /> Мои маршруты {totalRoutes > 0 && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-black">{totalRoutes}</span>}</>
+                    <><Globe className="h-3.5 w-3.5" /> {t("myTrips")} {totalRoutes > 0 && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-black">{totalRoutes}</span>}</>
                   ) : (
-                    <><Heart className="h-3.5 w-3.5" /> Избранное {favoriteRoutes.length > 0 && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded-full font-black">{favoriteRoutes.length}</span>}</>
+                    <><Heart className="h-3.5 w-3.5" /> {t("favorites")} {favoriteRoutes.length > 0 && <span className="text-[10px] bg-rose-500/20 text-rose-400 px-1.5 py-0.5 rounded-full font-black">{favoriteRoutes.length}</span>}</>
                   )}
                 </button>
               ))}
@@ -551,7 +557,7 @@ function TripsContent() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
               <input
                 type="text"
-                placeholder="Поиск по маршрутам..."
+                placeholder={t("search")}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full h-12 pl-11 pr-4 rounded-2xl border border-white/20 bg-white/30 dark:bg-white/5 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
@@ -571,7 +577,7 @@ function TripsContent() {
                     : "border-white/20 text-muted-foreground hover:text-foreground hover:border-white/40"
                 )}
               >
-                Все
+                {tc("all")}
               </button>
               {allTags.map(tag => {
                 const { color, Icon } = getTagStyle(tag);
@@ -601,7 +607,7 @@ function TripsContent() {
           <div className="flex items-center justify-center py-32">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground font-medium">Загружаем маршруты...</p>
+              <p className="text-sm text-muted-foreground font-medium">{t("loading")}</p>
             </div>
           </div>
         ) : filteredRoutes.length === 0 ? (
@@ -645,9 +651,9 @@ function TripsContent() {
                   className="flex items-center gap-2 px-8 py-3 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isLoadingMore ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Загружаем...</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> {t("loadingMore")}</>
                   ) : (
-                    <>Загрузить ещё</>
+                    <>{t("loadMore")}</>
                   )}
                 </button>
               </div>

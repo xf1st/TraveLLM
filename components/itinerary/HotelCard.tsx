@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 // Amenity icon mapping
 const AMENITY_ICONS: Record<string, any> = {
@@ -82,21 +83,13 @@ interface HotelCardProps {
     className?: string
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
     try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+        return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "short" })
     } catch {
         return dateStr
     }
-}
-
-function getRatingLabel(rating: number): string {
-    if (rating >= 9) return "Превосходно"
-    if (rating >= 8) return "Отлично"
-    if (rating >= 7) return "Хорошо"
-    if (rating >= 6) return "Нормально"
-    return "Средне"
 }
 
 function getRatingColor(rating: number): string {
@@ -127,7 +120,18 @@ export function HotelCard({
     isFallback,
     className
 }: HotelCardProps) {
+    const t = useTranslations("hotel")
+    const tCurr = useTranslations("currency")
+    const locale = tCurr("code") === "RUB" ? "ru" : "en"
     const [currentPhoto, setCurrentPhoto] = useState(0)
+
+    function getRatingLabel(r: number): string {
+        if (r >= 9) return t("rating.excellent")
+        if (r >= 8) return t("rating.great")
+        if (r >= 7) return t("rating.good")
+        if (r >= 6) return t("rating.ok")
+        return t("rating.average")
+    }
 
     const hasPhotos = photos && photos.length > 0
     const photoCount = hasPhotos ? photos!.length : 0
@@ -237,7 +241,7 @@ export function HotelCard({
                                     </div>
                                     {reviewsCount > 0 && (
                                         <div className="text-[10px] text-muted-foreground/60">
-                                            {reviewsCount.toLocaleString("ru-RU")} отзывов
+                                            {t("reviews", { count: reviewsCount })}
                                         </div>
                                     )}
                                 </div>
@@ -263,19 +267,19 @@ export function HotelCard({
                         {checkIn && checkOut && (
                             <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
                                 <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
-                                <span>{formatDate(checkIn)} — {formatDate(checkOut)}</span>
+                                <span>{formatDate(checkIn, locale)} — {formatDate(checkOut, locale)}</span>
                             </div>
                         )}
                         {nights && (
                             <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
                                 <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
-                                <span>{nights} {nights === 1 ? "ночь" : nights < 5 ? "ночи" : "ночей"}</span>
+                                <span>{t("nights", { count: nights })}</span>
                             </div>
                         )}
                         {guests && (
                             <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/50 dark:bg-white/5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg">
                                 <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500/70" />
-                                <span>{guests} {guests === 1 ? "гость" : guests < 5 ? "гостя" : "гостей"}</span>
+                                <span>{t("guests", { count: guests })}</span>
                             </div>
                         )}
                     </div>
@@ -286,18 +290,18 @@ export function HotelCard({
                             {hasPriceData ? (
                                 <>
                                     <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                                        <span className="text-sm font-bold">от </span>{pricePerNight.toLocaleString("ru-RU")} ₽
-                                        <span className="text-xs sm:text-sm font-medium text-muted-foreground ml-1">/ ночь</span>
+                                        <span className="text-sm font-bold">{t("priceFrom")} </span>{pricePerNight.toLocaleString("ru-RU")} ₽
+                                        <span className="text-xs sm:text-sm font-medium text-muted-foreground ml-1">{t("perNight")}</span>
                                     </div>
                                     {nights && nights > 1 && (
                                         <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                                            Итого: <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
+                                            {t("total")} <span className="font-bold text-foreground">{calculatedTotal.toLocaleString("ru-RU")} ₽</span>
                                         </div>
                                     )}
                                 </>
                             ) : (
                                 <div className="text-xs sm:text-sm font-medium text-muted-foreground">
-                                    Смотреть цены
+                                    {t("checkPrices")}
                                 </div>
                             )}
                         </div>
@@ -306,7 +310,7 @@ export function HotelCard({
                             className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] sm:text-xs px-3 sm:px-5 h-8 sm:h-9 shadow-md shadow-amber-500/20 shrink-0"
                             onClick={() => window.open(buyUrl, "_blank")}
                         >
-                            {hasPriceData ? "Забронировать" : "Найти отели"}
+                            {hasPriceData ? t("book") : t("findHotels")}
                             <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                     </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { MapPin, Ticket, ChevronLeft, ChevronRight, CloudSun, Cloud, Sun, Wallet, Bot, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useTranslations, useLocale } from "next-intl"
 
 /* ─── Types ──────────────────────────────────────────────────── */
 
@@ -31,9 +32,9 @@ type Day = {
   aiTip: string
 }
 
-/* ─── Data ───────────────────────────────────────────────────── */
+/* ─── Data (RU) ──────────────────────────────────────────────── */
 
-const TOKYO: Day[] = [
+const TOKYO_RU: Day[] = [
   {
     day: 1,
     title: "Токио: Прибытие и Синдзюку",
@@ -231,6 +232,206 @@ const TOKYO: Day[] = [
   },
 ]
 
+/* ─── Data (EN) ──────────────────────────────────────────────── */
+
+const TOKYO_EN: Day[] = [
+  {
+    day: 1,
+    title: "Tokyo: Arrival & Shinjuku",
+    subtitle: "Your first steps in the megacity",
+    dayTotal: "$33",
+    coverImage: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=900&auto=format&fit=crop",
+    weather: { icon: "sun", temp: "+64°F" },
+    aiTip: "Hit Kabukicho on your first night — neon-soaked Shinjuku hits different after a long flight.",
+    activities: [
+      {
+        time: "Noon", placeName: "Narita Airport → Shinjuku",
+        desc: "Narita Express, 35 min. Grab a Suica IC card at the station — you'll use it everywhere.",
+        cost: "$15", ticketsRequired: true, category: "transport", emoji: "🚄",
+        mapLink: "https://maps.google.com/?q=Narita+Airport",
+        imageUrl: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Tokyo Metropolitan Government Building",
+        desc: "Free observatory on the 45th floor — panoramic Tokyo views with Mt. Fuji on clear days.",
+        cost: "Free", ticketsRequired: false, category: "culture", emoji: "🏙️",
+        mapLink: "https://maps.google.com/?q=Tokyo+Metropolitan+Government+Building",
+        imageUrl: "https://images.unsplash.com/photo-1513407030348-c983a97b98d8?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Evening", placeName: "Dinner at Ichiran Ramen",
+        desc: "Legendary solo-booth ramen — each seat has a private partition for pure noodle immersion.",
+        cost: "$7", ticketsRequired: false, category: "food", emoji: "🍜",
+        mapLink: "https://maps.google.com/?q=Ichiran+Ramen+Shinjuku",
+        imageUrl: "https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Night", placeName: "Kabukicho Night Walk",
+        desc: "Tokyo's neon-drenched entertainment district: street food, Sega arcades, pure cyberpunk energy.",
+        cost: "$11", ticketsRequired: false, category: "night", emoji: "🌃",
+        mapLink: "https://maps.google.com/?q=Kabukicho+Shinjuku",
+        imageUrl: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?q=80&w=200&auto=format&fit=crop",
+      },
+    ]
+  },
+  {
+    day: 2,
+    title: "Tokyo: Asakusa & Ueno",
+    subtitle: "Old Tokyo & cultural heart",
+    dayTotal: "$32",
+    coverImage: "https://images.unsplash.com/photo-1492571350019-22de08371fd3?q=80&w=900&auto=format&fit=crop",
+    weather: { icon: "partly", temp: "+61°F" },
+    aiTip: "Senso-ji opens at 6 AM — get there before 8 for crowd-free photos in golden morning light.",
+    activities: [
+      {
+        time: "Morning", placeName: "Senso-ji Temple, Asakusa",
+        desc: "Tokyo's oldest Buddhist temple (628 AD). The massive red Kaminarimon lantern gate is iconic.",
+        cost: "Free", ticketsRequired: false, category: "culture", emoji: "⛩️",
+        mapLink: "https://maps.google.com/?q=Senso-ji+Temple+Asakusa",
+        imageUrl: "https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Tokyo National Museum, Ueno",
+        desc: "Japan's largest museum: 89,000 artifacts including samurai armor and katana galleries.",
+        cost: "$11", ticketsRequired: true, category: "culture", emoji: "🏛️",
+        mapLink: "https://maps.google.com/?q=Tokyo+National+Museum+Ueno",
+        imageUrl: "https://images.unsplash.com/photo-1601042879364-f3947d3f9c16?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Ueno Park — street food",
+        desc: "Street food by the park: takoyaki, yakisoba, roasted chestnuts. Perfect picnic spot.",
+        cost: "$6", ticketsRequired: false, category: "food", emoji: "🐙",
+        mapLink: "https://maps.google.com/?q=Ueno+Park+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Evening", placeName: "Akihabara — Electric Town",
+        desc: "Anime, manga, and electronics mecca. Multi-floor arcades, retro games, maid cafes.",
+        cost: "$15", ticketsRequired: false, category: "night", emoji: "🎮",
+        mapLink: "https://maps.google.com/?q=Akihabara+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?q=80&w=200&auto=format&fit=crop",
+      },
+    ]
+  },
+  {
+    day: 3,
+    title: "Tokyo: Shibuya & Harajuku",
+    subtitle: "Pop culture & youth Tokyo",
+    dayTotal: "$48",
+    coverImage: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=900&auto=format&fit=crop",
+    weather: { icon: "sun", temp: "+68°F" },
+    aiTip: "Best view of Shibuya Crossing? The Starbucks on the 2nd floor — grab a window seat early.",
+    activities: [
+      {
+        time: "Morning", placeName: "Shibuya Crossing",
+        desc: "The world's busiest intersection: 3,000+ people cross on every signal change.",
+        cost: "Free", ticketsRequired: false, category: "culture", emoji: "🚦",
+        mapLink: "https://maps.google.com/?q=Shibuya+Crossing+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Yoyogi Memorial Park",
+        desc: "Huge urban park in the heart of the city: bike paths, buskers, locals walking their dogs.",
+        cost: "$4", ticketsRequired: false, category: "nature", emoji: "🌿",
+        mapLink: "https://maps.google.com/?q=Yoyogi+Park+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Takeshita Street, Harajuku",
+        desc: "Tokyo's fashion epicenter: gothic lolita, kawaii, steampunk. Rainbow cotton candy is the iconic shot.",
+        cost: "$11", ticketsRequired: false, category: "culture", emoji: "🛍️",
+        mapLink: "https://maps.google.com/?q=Takeshita+Street+Harajuku",
+        imageUrl: "https://images.unsplash.com/photo-1563906267088-b029e7101114?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Evening", placeName: "Dinner at Gonpachi Nishi-Azabu",
+        desc: "The restaurant that inspired the Kill Bill fight scene. Multi-level interior, killer yakitori.",
+        cost: "$33", ticketsRequired: false, category: "food", emoji: "🍢",
+        mapLink: "https://maps.google.com/?q=Gonpachi+Nishi-Azabu+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=200&auto=format&fit=crop",
+      },
+    ]
+  },
+  {
+    day: 4,
+    title: "Day Trip: Nikko",
+    subtitle: "Mountain temple complex (UNESCO)",
+    dayTotal: "$46",
+    coverImage: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=900&auto=format&fit=crop",
+    weather: { icon: "cloud", temp: "+54°F" },
+    aiTip: "Grab the Nikko Pass ($23) — it covers the round-trip train and all local buses in town.",
+    activities: [
+      {
+        time: "Morning", placeName: "Train Tokyo → Nikko",
+        desc: "Tobu Spacia from Asakusa — 2 hours through the mountains in a comfy express.",
+        cost: "$23", ticketsRequired: true, category: "transport", emoji: "🚃",
+        mapLink: "https://maps.google.com/?q=Asakusa+Station+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Toshogu Shrine",
+        desc: "Lavishly ornate Shinto shrine (1617). 5,000 carvings, the golden Yomeimon gate is breathtaking.",
+        cost: "$10", ticketsRequired: true, category: "culture", emoji: "🏯",
+        mapLink: "https://maps.google.com/?q=Toshogu+Shrine+Nikko",
+        imageUrl: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Kegon Falls",
+        desc: "One of Japan's three great waterfalls. An elevator reveals the cascading base up close.",
+        cost: "$4", ticketsRequired: false, category: "nature", emoji: "💧",
+        mapLink: "https://maps.google.com/?q=Kegon+Falls+Nikko",
+        imageUrl: "https://images.unsplash.com/photo-1433086966358-54859d0ed716?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Evening", placeName: "Return via Ginza Walk",
+        desc: "Ginza's pedestrian zone after dark: luxury storefronts, street performers, neon-lit cafes.",
+        cost: "$9", ticketsRequired: false, category: "night", emoji: "✨",
+        mapLink: "https://maps.google.com/?q=Ginza+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?q=80&w=200&auto=format&fit=crop",
+      },
+    ]
+  },
+  {
+    day: 5,
+    title: "Tokyo: Odaiba & Farewell",
+    subtitle: "Japan's future on the bay",
+    dayTotal: "$39",
+    coverImage: "https://images.unsplash.com/photo-1567386699854-3b655a55aff5?q=80&w=900&auto=format&fit=crop",
+    weather: { icon: "sun", temp: "+66°F" },
+    aiTip: "Stash your bags in a station coin locker ($3/day) and enjoy the last day hands-free.",
+    activities: [
+      {
+        time: "Morning", placeName: "Odaiba — TeamLab Borderless",
+        desc: "Immersive digital art on the futuristic island. Views of Rainbow Bridge and a mini Statue of Liberty.",
+        cost: "$22", ticketsRequired: true, category: "culture", emoji: "🤖",
+        mapLink: "https://maps.google.com/?q=teamLab+Borderless+Odaiba",
+        imageUrl: "https://images.unsplash.com/photo-1535016120720-40c646be5580?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Toyota Mega Web",
+        desc: "Interactive Toyota museum with concept cars. Free test drive on the electric track.",
+        cost: "Free", ticketsRequired: false, category: "culture", emoji: "🚗",
+        mapLink: "https://maps.google.com/?q=Toyota+Mega+Web+Odaiba",
+        imageUrl: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Afternoon", placeName: "Bay Area — lunch",
+        desc: "Waterfront food court: fresh sushi, ramen, uni — all with a stunning bay view.",
+        cost: "$11", ticketsRequired: false, category: "food", emoji: "🍱",
+        mapLink: "https://maps.google.com/?q=Daiba+Station+Odaiba",
+        imageUrl: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?q=80&w=200&auto=format&fit=crop",
+      },
+      {
+        time: "Evening", placeName: "Departure from Haneda",
+        desc: "30 min from downtown by monorail. Duty-free must-buys: matcha KitKats, premium sake.",
+        cost: "$6", ticketsRequired: true, category: "transport", emoji: "✈️",
+        mapLink: "https://maps.google.com/?q=Haneda+Airport+Tokyo",
+        imageUrl: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=200&auto=format&fit=crop",
+      },
+    ]
+  },
+]
+
 /* ─── Helpers ─────────────────────────────────────────────────── */
 
 const CATEGORY_STYLE: Record<Activity["category"], { bg: string; border: string; dot: string; timeBg: string; timeText: string }> = {
@@ -250,6 +451,7 @@ function WeatherIcon({ type, className }: { type: Day["weather"]["icon"]; classN
 /* ─── Activity card ───────────────────────────────────────────── */
 
 function ActivityRow({ act, index }: { act: Activity; index: number }) {
+  const t = useTranslations("landing")
   const s = CATEGORY_STYLE[act.category]
   return (
     <motion.div
@@ -280,7 +482,7 @@ function ActivityRow({ act, index }: { act: Activity; index: number }) {
           </span>
           {act.ticketsRequired && (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 flex items-center gap-0.5">
-              <Ticket className="w-2 h-2" /> Билеты
+              <Ticket className="w-2 h-2" /> {t("previewTickets")}
             </span>
           )}
         </div>
@@ -303,7 +505,7 @@ function ActivityRow({ act, index }: { act: Activity; index: number }) {
             className="text-[10px] text-primary/50 hover:text-primary flex items-center gap-0.5 transition-colors"
             onClick={e => e.stopPropagation()}
           >
-            <MapPin className="w-2.5 h-2.5" /> Карта
+            <MapPin className="w-2.5 h-2.5" /> {t("previewMap")}
           </a>
         </div>
       </div>
@@ -314,8 +516,12 @@ function ActivityRow({ act, index }: { act: Activity; index: number }) {
 /* ─── Main component ─────────────────────────────────────────── */
 
 export function ItineraryPreview() {
+  const locale = useLocale()
+  const t = useTranslations("landing")
+  const days = locale === "en" ? TOKYO_EN : TOKYO_RU
+
   const [activeDay, setActiveDay] = useState(0)
-  const day = TOKYO[activeDay]
+  const day = days[activeDay]
 
   return (
     <div className="w-full max-w-5xl mx-auto">
@@ -361,7 +567,7 @@ export function ItineraryPreview() {
           {/* Trip meta */}
           <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex items-end justify-between">
             <div>
-              <div className="text-[10px] text-foreground/50 uppercase tracking-widest font-bold mb-0.5">🇯🇵 Токио — 5 дней</div>
+              <div className="text-[10px] text-foreground/50 uppercase tracking-widest font-bold mb-0.5">{t("previewTripTitle")}</div>
               <h3 className="font-black text-foreground text-base leading-tight drop-shadow">{day.title}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">{day.subtitle}</p>
             </div>
@@ -371,7 +577,7 @@ export function ItineraryPreview() {
                 <span className="text-xs font-bold text-foreground">{day.weather.temp}</span>
               </div>
               <div className="text-right">
-                <div className="text-[10px] text-white/40">День</div>
+                <div className="text-[10px] text-white/40">{t("previewDay")}</div>
                 <div className="text-sm font-black text-emerald-400">{day.dayTotal}</div>
               </div>
             </div>
@@ -383,7 +589,7 @@ export function ItineraryPreview() {
 
           {/* Day selector sidebar */}
           <div className="flex sm:flex-col gap-1 p-3 sm:w-[110px] border-b sm:border-b-0 sm:border-r border-border/50 overflow-x-auto sm:overflow-visible">
-            {TOKYO.map((d, i) => (
+            {days.map((d, i) => (
               <button
                 key={d.day}
                 onClick={() => setActiveDay(i)}
@@ -395,7 +601,7 @@ export function ItineraryPreview() {
                 )}
               >
                 <span className={cn("text-[9px] font-black uppercase tracking-widest hidden sm:block", activeDay === i ? "text-primary/50" : "text-muted-foreground/40")}>
-                  День
+                  {t("previewDay")}
                 </span>
                 <span className={cn("text-xl font-black leading-none", activeDay === i ? "text-primary" : "")}>
                   {d.day}
@@ -430,7 +636,7 @@ export function ItineraryPreview() {
                       <Bot className="w-3.5 h-3.5 text-primary" />
                     </div>
                     <div>
-                      <div className="text-[9px] font-black text-primary/60 uppercase tracking-widest mb-0.5">Совет AI-гида</div>
+                      <div className="text-[9px] font-black text-primary/60 uppercase tracking-widest mb-0.5">{t("previewAiTip")}</div>
                       <p className="text-[11px] text-muted-foreground leading-relaxed">{day.aiTip}</p>
                     </div>
                   </div>
@@ -447,11 +653,11 @@ export function ItineraryPreview() {
             disabled={activeDay === 0}
             className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-25 transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" /> Пред.
+            <ChevronLeft className="w-4 h-4" /> {t("previewPrev")}
           </button>
 
           <div className="flex gap-1.5 items-center">
-            {TOKYO.map((_, i) => (
+            {days.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActiveDay(i)}
@@ -464,17 +670,17 @@ export function ItineraryPreview() {
           </div>
 
           <button
-            onClick={() => setActiveDay(d => Math.min(TOKYO.length - 1, d + 1))}
-            disabled={activeDay === TOKYO.length - 1}
+            onClick={() => setActiveDay(d => Math.min(days.length - 1, d + 1))}
+            disabled={activeDay === days.length - 1}
             className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-foreground disabled:opacity-25 transition-colors"
           >
-            След. <ChevronRight className="w-4 h-4" />
+            {t("previewNext")} <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       <p className="text-center text-xs text-muted-foreground/50 mt-4 font-medium">
-        Реальный пример маршрута — именно так выглядит план в TraveLLM
+        {t("previewCaption")}
       </p>
     </div>
   )

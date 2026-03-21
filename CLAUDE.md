@@ -1,4 +1,4 @@
-# CLAUDE.md — TraveLLM AI Guide
+# CLAUDE.md — TraveLLM AI Assistant
 
 ## Project Overview
 
@@ -39,9 +39,9 @@ app/                    # Next.js App Router pages
   api/
     gemini/             # Основной API генерации (Gemini primary → DeepSeek fallback)
     deepseek/           # Резервный API генерации (DeepSeek primary → Gemini fallback)
-    trip-assistant/     # AI чат для редактирования маршрута (DeepSeek)
+    trip-assistant/     # AI чат на `/trip/[id]` — Gemini: классификатор намерений, правка одной активности, rewrite_segment (диапазон дней), вопросы; multipart + vision (фото); `lib/trip-assistant-segment.ts` — merge/валидация сегмента
     modify-itinerary/   # Изменение дней/активностей (DeepSeek)
-    guide-chat/         # AI гид-чат (OpenRouter / Gemini Flash)
+    guide-chat/         # AI ассистент-чат (OpenRouter / Gemini Flash)
     enrich-trip/        # Обогащение координатами и ценами (DeepSeek)
     flights/            # Цены на авиабилеты (TravelPayouts)
     auth/[provider]/    # OAuth initiation (redirectUri из request.url origin)
@@ -49,8 +49,8 @@ app/                    # Next.js App Router pages
   admin/                # Admin panel & stats
   (main)/               # Route group — основные страницы приложения
     dashboard/          # Редиректит на /trips
-    guide/              # AI guide chat страница
-    plan/               # Trip creation form (Bento Grid, 5 шагов)
+    guide/              # AI assistant chat страница
+    plan/               # Trip creation form (хаб: travelMode flight|train|car); после → `/plan/vibe`, затем генерация
     profile/            # User profile (inline editing, язык, history)
     trips/              # My trips listing
     trip/[id]/          # Trip detail page
@@ -74,12 +74,15 @@ components/             # React components
   WelcomeModal.tsx      # Приветственный экран для новых пользователей
   TourHint.tsx          # Подсказки интерфейса (пульсирующие tooltips)
   GeneratingModal.tsx   # Лоадер генерации маршрута (Framer Motion анимация)
-  ItineraryChatWidget.tsx # AI чат-виджет на странице маршрута
+  ItineraryChatWidget.tsx # AI чат-виджет на странице маршрута; фото, linkify URL, бейдж Gemini
+  linkify-message.tsx     # кликабельные ссылки в ответах ассистента
   CookieConsent.tsx     # Баннер согласия с cookie
   Aurora.tsx            # Background shader effects
   PlaceGallery.tsx      # Location image gallery
 lib/                    # Core logic
-  gemini.ts             # Gemini API client (через OpenRouter, primary)
+  gemini.ts             # Gemini API client (через OpenRouter); текст + multimodal (parts: text + image_url)
+  trip-assistant-segment.ts # merge сегмента дней в itinerary, валидация, dayTotal
+  chat-image.ts         # клиент: resize JPEG вложений для чата
   deepseek.ts           # DeepSeek API client (fallback)
   openrouter.ts         # OpenRouter клиент (guide-chat, fallback)
   prompt-builder.ts     # AI Context injection (locale-aware: RU/EN + RUB/USD)
@@ -147,9 +150,9 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 | Роут                    | Модель                  | Назначение                     |
 | ----------------------- | ----------------------- | ------------------------------ |
-| `/api/trip-assistant`   | DeepSeek-chat           | Редактирование маршрута в чате |
+| `/api/trip-assistant`   | Gemini Flash (OpenRouter) | Чат маршрута: вопросы, правка активности, переписать дни `startDay`–`endDay`, vision (фото) |
 | `/api/modify-itinerary` | DeepSeek-chat           | Изменение дней/активностей     |
-| `/api/guide-chat`       | OpenRouter/Gemini Flash | AI гид (500 токенов)           |
+| `/api/guide-chat`       | OpenRouter/Gemini Flash | AI ассистент (500 токенов)     |
 | `/api/enrich-trip`      | DeepSeek → OpenRouter   | Координаты, цены, ссылки       |
 
 ## Лимиты генераций
@@ -174,7 +177,7 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 - **Supabase**: PostgreSQL с RLS
 - **JSONB**: `itinerary`, `preferences`, `safety_info`, `visa_advice`
-- **Tables**: `trips`, `trip_members`, `messages`, `achievements`, `viral_spots`, `profiles`, `ai_usage_events`
+- **Tables**: `trips` (в т.ч. `travel_mode`: flight|train|car с формы `/plan`), `trip_members`, `messages`, `achievements`, `viral_spots`, `profiles`, `ai_usage_events`
 - `profiles` содержит: `role`, `access_mode`, `gen_limit_override`, `chat_limit_override`, `block_reason`, `blocked_until`
 
 ## Environment Variables

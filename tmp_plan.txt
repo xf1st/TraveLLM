@@ -1,10 +1,10 @@
-// Force HMR update
+﻿// Force HMR update
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { useLocale, useTranslations } from "next-intl"
+import { useLocale } from "next-intl"
 import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { ru, enUS } from "date-fns/locale"
+import { ru } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
 import { CityAutocomplete } from "@/components/ui/city-autocomplete"
 import {
@@ -34,22 +34,23 @@ import {
   GripVertical,
   Route,
   Navigation,
-  Plane,
-  Train,
-  Car,
   Zap,
   Clock,
   ChevronUp,
   ChevronDown,
   Plus,
   Minus,
-  AlertTriangle,
 } from "lucide-react"
+const GeneratingModal = dynamic(
+  () => import("@/components/GeneratingModal").then(m => ({ default: m.GeneratingModal })),
+  { ssr: false }
+)
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { AlertTriangle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import dynamic from "next/dynamic"
 import { PlanTooltips } from "@/components/plan/PlanTooltips"
-import { PLAN_PENDING_GENERATION_KEY } from "@/lib/trip-generation-stream"
 
 // ─── Budget donut helpers ────────────────────────────────────────────────────
 const CIRC = 2 * Math.PI * 60 // r=60, ≈376.99
@@ -70,31 +71,27 @@ const BUDGET_COLORS: Record<string, string> = {
   premium: "#f59e0b",
   custom: "#8b5cf6",
 }
+const BUDGET_LABELS: Record<string, string> = {
+  economy: "Эконом",
+  comfort: "Комфорт",
+  premium: "Премиум",
+  custom: "Свой",
+}
+const BUDGET_DAILY: Record<string, string> = {
+  economy: "~7,5k ₽/д",
+  comfort: "~20k ₽/д",
+  premium: "~50k+ ₽/д",
+  custom: "",
+}
 
 export default function PlanPage() {
   const router = useRouter()
   const locale = useLocale()
-  const t = useTranslations('plan')
-  const dateFnsLocale = locale === 'ru' ? ru : enUS
-
-  const BUDGET_LABELS: Record<string, string> = {
-    economy: t('budgets.economy'),
-    comfort: t('budgets.comfort'),
-    premium: t('budgets.premium'),
-    custom: t('budgets.custom'),
-  }
-  const BUDGET_DAILY: Record<string, string> = {
-    economy: t('budgets.economyDaily'),
-    comfort: t('budgets.comfortDaily'),
-    premium: t('budgets.premiumDaily'),
-    custom: "",
-  }
 
   // ── Core form state ──────────────────────────────────────────────────────
   const [departureCity, setDepartureCity] = useState("")
   const [returnToOrigin, setReturnToOrigin] = useState(true)
   const [returnCity, setReturnCity] = useState("")
-  const [travelMode, setTravelMode] = useState<"flight" | "train" | "car">("flight")
   const [destination, setDestination] = useState<"russia" | "abroad" | "mixed" | "custom">("custom")
   const [customDestination, setCustomDestination] = useState("")
   const [budget, setBudget] = useState("comfort")
@@ -106,16 +103,21 @@ export default function PlanPage() {
   const [paymentMethods, setPaymentMethods] = useState<string[]>([])
   const [tripHighlight, setTripHighlight] = useState("")
   const [highlightError, setHighlightError] = useState<string | null>(null)
+  const [filterByDocuments, setFilterByDocuments] = useState(false)
   const [aiCreativity, setAiCreativity] = useState("balanced")
   const [autoFavorites, setAutoFavorites] = useState(false)
 
   // ── UI state ─────────────────────────────────────────────────────────────
+  const [loading, setLoading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [accessMode, setAccessMode] = useState<string>("active")
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [highlightFocused, setHighlightFocused] = useState(false)
+  const [showEconomyWarning, setShowEconomyWarning] = useState(false)
+  const [pendingPayload, setPendingPayload] = useState<any>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // ── Route builder ─────────────────────────────────────────────────────────
   const [showRouteModal, setShowRouteModal] = useState(false)
@@ -189,37 +191,140 @@ export default function PlanPage() {
   const validateHighlight = (text: string): string | null => {
     if (!text.trim()) return null
     const lower = text.toLowerCase()
-    for (const stem of FORBIDDEN_STEMS) if (lower.includes(stem)) return t('validation.highlightInvalid')
-    if (/\b(ты теперь|ты являешься|ты — это)\b/i.test(lower)) return t('validation.aiJailbreak')
+    for (const stem of FORBIDDEN_STEMS) if (lower.includes(stem)) return "Напишите пожелание в приличной форме 😊"
+    if (/\b(ты теперь|ты являешься|ты — это)\b/i.test(lower)) return "Это похоже на попытку обмануть AI. Просто опишите своё желание!"
     return null
   }
 
-  const HIGHLIGHT_KEYS = ['cats','streetFood','sunrise','hiddenPlaces','streetArt','wineViews','photoshoot','liveMusic','coffee'] as const
-  const HIGHLIGHT_SUGGESTIONS = HIGHLIGHT_KEYS.map(k => ({
-    label: t(`highlightSuggestions.${k}`),
-    value: t(`highlightValues.${k}`),
-  }))
+  const HIGHLIGHT_SUGGESTIONS = [
+    { label: "🐱 Котики", value: "Хочу встретить котиков" },
+    { label: "🍜 Стрит-фуд", value: "Найти лучший уличный стрит-фуд" },
+    { label: "🌅 Рассвет", value: "Встретить рассвет в особом месте" },
+    { label: "🏛️ Скрытые места", value: "Побывать в местах, куда не ходят туристы" },
+    { label: "🎨 Стрит-арт", value: "Увидеть самый крутой стрит-арт и граффити" },
+    { label: "🍷 Вино и виды", value: "Посетить винный бар с лучшим видом на город" },
+    { label: "📸 Фотосессия", value: "Найти идеальный спот для фото в Instagram" },
+    { label: "🎸 Живая музыка", value: "Вечер в атмосферном месте с живой музыкой" },
+    { label: "☕ Спешелти кофе", value: "Найти лучшие кофейни третьей волны" },
+  ]
 
   const validateForm = (): string[] => {
     const errors: string[] = []
-    if (!departureCity.trim()) errors.push(t('validation.departureRequired'))
+    if (!departureCity.trim()) errors.push("Укажите город отправления")
     if (!date?.from || !date?.to) {
-      errors.push(t('validation.datesRequired'))
+      errors.push("Выберите даты поездки")
     } else {
       const days = Math.ceil((date.to.getTime() - date.from.getTime()) / 86400000) + 1
-      if (days < 2) errors.push(t('validation.minDays'))
-      if (days > 30) errors.push(t('validation.maxDays'))
+      if (days < 2) errors.push("Минимальная длительность поездки — 2 дня")
+      if (days > 30) errors.push("Максимальная длительность поездки — 30 дней")
     }
-    if (!customDestination.trim()) errors.push(t('validation.destinationRequired'))
-    if (!companions) errors.push(t('validation.companionsRequired'))
-    if (!budget) errors.push(t('validation.budgetRequired'))
+    if (!customDestination.trim()) errors.push("Укажите направление поездки")
+    if (!companions) errors.push("Выберите тип компании")
+    if (!budget) errors.push("Выберите бюджет")
     if (budget === "custom") {
       const val = parseInt(customBudget || "0")
-      if (!customBudget || val < 10000) errors.push(t('validation.minBudget'))
-      else if (val > 10000000) errors.push(t('validation.maxBudget'))
+      if (!customBudget || val < 10000) errors.push("Минимальный бюджет — 10 000 ₽")
+      else if (val > 10000000) errors.push("Максимальный бюджет — 10 000 000 ₽")
     }
-    if (tripHighlight.trim() && validateHighlight(tripHighlight)) errors.push(t('validation.highlightInvalid'))
+    if (tripHighlight.trim() && validateHighlight(tripHighlight)) errors.push("Поле «Изюминка поездки» содержит недопустимый контент")
     return errors
+  }
+
+  const proceedGeneration = async (requestPayload: any) => {
+    try {
+      if (abortControllerRef.current) abortControllerRef.current.abort()
+      abortControllerRef.current = new AbortController()
+      const endpoint = "/api/gemini"
+      const response = await globalThis.fetch(endpoint, {
+        signal: abortControllerRef.current.signal,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestPayload),
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || `API Error: ${response.status}`)
+      }
+      let routeData: any = null
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const parts = buffer.split("\n\n"); buffer = parts.pop() ?? ""
+        for (const part of parts) {
+          const line = part.trim()
+          if (!line || line.startsWith(":") || !line.startsWith("data: ")) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+            if (event.type === "error") throw new Error(event.message || "Generation failed")
+            if (event.type === "result") routeData = event.data
+          } catch (e) { if (e instanceof SyntaxError) continue; throw e }
+        }
+      }
+      if (!routeData || typeof routeData !== "object") throw new Error("Invalid response format")
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const tripRecord = {
+          user_id: user.id,
+          title: routeData.title || "Новый маршрут",
+          destination: routeData.countries?.[0]?.name || requestPayload.customDestination || "Путешествие",
+          description: routeData.description || "",
+          itinerary: routeData.itinerary || [],
+          total_cost: routeData.totalBudget || "",
+          tags: routeData.tags || [],
+          cover_image: routeData.coverImage || "",
+          countries: routeData.countries || [],
+          budget_analysis: routeData.budgetAnalysis || null,
+          visa_advice: routeData.visaAdvice || "",
+          payment_advice: routeData.paymentAdvice || "",
+          safety_info: routeData.safetyInfo || null,
+          restrictions: routeData.restrictions || null,
+          viral_spots: routeData.viralSpots || [],
+          flights: routeData.flights || [],
+          hotels: routeData.hotels || [],
+          token_usage: routeData.tokenUsage || null,
+          travelers: requestPayload.travelers,
+          start_date: requestPayload.startDate || null,
+          end_date: requestPayload.endDate || null,
+        }
+        const { data: insertedTrip, error } = await supabase.from("trips").insert(tripRecord).select().single()
+        if (!error && insertedTrip && autoFavorites) {
+          await supabase.from("favorites").insert({ user_id: user.id, trip_id: insertedTrip.id })
+        }
+        if (error) {
+          console.error("Failed to save trip:", JSON.stringify(error, null, 2))
+          const localId = `local-${Date.now()}`
+          localStorage.setItem(`trip-${localId}`, JSON.stringify(routeData))
+          router.push(`/trip/${localId}`)
+          return
+        }
+        router.push(`/trip/${insertedTrip.id}`)
+      } else {
+        const localId = `${Date.now()}`
+        localStorage.setItem(`trip-local-${localId}`, JSON.stringify(routeData))
+        localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
+        router.push(`/trip/local-${localId}`)
+      }
+    } catch (error: any) {
+      if (error.name === "AbortError") return
+      console.error("Generation error:", error)
+      setErrorModal({ open: true, title: "Ошибка генерации", message: error.message || "Произошла ошибка при создании маршрута", details: error.stack })
+    } finally {
+      setLoading(false)
+      abortControllerRef.current = null
+    }
+  }
+
+  const handleEconomyChoice = async (strict: boolean) => {
+    setShowEconomyWarning(false)
+    if (!pendingPayload) return
+    const finalPayload = { ...pendingPayload, strictDestinations: strict }
+    setPendingPayload(null)
+    setLoading(true)
+    await proceedGeneration(finalPayload)
   }
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -227,7 +332,7 @@ export default function PlanPage() {
     const errors = validateForm()
     if (errors.length > 0) {
       setValidationErrors(errors)
-      setErrorModal({ open: true, title: t('validation.checkTitle'), message: t('errors.fillRequired'), blockers: errors.map((err, i) => ({ code: `VAL${i}`, message: err })) })
+      setErrorModal({ open: true, title: "Проверьте данные", message: "Пожалуйста, заполните все обязательные поля:", blockers: errors.map((err, i) => ({ code: `VAL${i}`, message: err })) })
       return
     }
     setValidationErrors([])
@@ -248,31 +353,33 @@ export default function PlanPage() {
       endDate: date?.to ? format(date.to, "yyyy-MM-dd") : undefined,
       travelers: companions === "family" || companions === "friends" ? travelers : companions === "solo" ? 1 : 2,
       aiCreativity,
+      filterByDocuments,
       locale,
       tripHighlight: tripHighlight.trim() ? sanitizeInput(tripHighlight) : undefined,
-      preferences: profile ? {
-        citizenship: profile.preferences?.citizenship || profile.citizenship,
-        languages: profile.languages || profile.preferences?.languages,
-        visitedCountries: profile.preferences?.visitedCountries,
-        interestsDetailed: profile.preferences?.interestsDetailed,
-        dietaryRestrictions: profile.preferences?.dietaryRestrictions,
-        dietaryCustom: profile.preferences?.dietaryCustom,
-        pace: profile.preferences?.pace,
-        gender: profile.preferences?.gender,
-        age: profile.preferences?.age,
+      preferences: profile?.preferences ? {
+        citizenship: profile.preferences.citizenship || profile.citizenship,
+        languages: profile.preferences.languages,
+        interestsDetailed: profile.preferences.interestsDetailed,
+        dietaryRestrictions: profile.preferences.dietaryRestrictions,
+        dietaryCustom: profile.preferences.dietaryCustom,
+        pace: profile.preferences.pace,
+        gender: profile.preferences.gender,
+        age: profile.preferences.age,
+        documents: profile.preferences.documents,
       } : undefined,
-      autoFavorites,
-      travelMode,
-      /** Только города из формы; снятие — диалог Economy «гибкий маршрут» на /plan/vibe */
-      strictDestinations: true,
     }
-    try {
-      sessionStorage.setItem(PLAN_PENDING_GENERATION_KEY, JSON.stringify(requestPayload))
-    } catch {
-      setErrorModal({ open: true, title: t('validation.checkTitle'), message: t('errors.storageFailed'), details: undefined })
+    if (budget === "economy" && customDestination.trim()) {
+      setPendingPayload(requestPayload)
+      setShowEconomyWarning(true)
       return
     }
-    router.push("/plan/vibe")
+    setLoading(true)
+    await proceedGeneration(requestPayload)
+  }
+
+  const handleCancelGeneration = () => {
+    abortControllerRef.current?.abort()
+    setLoading(false)
   }
 
   const toggleStyle = (style: string) =>
@@ -282,8 +389,8 @@ export default function PlanPage() {
   const donutOffset = getBudgetOffset(budget, customBudget)
   const donutColor = BUDGET_COLORS[budget] || "#007AFF"
   const budgetDailyText = budget === "custom" && customBudget
-    ? `${parseInt(customBudget).toLocaleString(locale === 'ru' ? "ru-RU" : "en-US")} ${locale === 'ru' ? '₽' : '$'}`
-    : BUDGET_DAILY[budget] || t('budgets.comfortDaily')
+    ? `${parseInt(customBudget).toLocaleString("ru-RU")} ₽`
+    : BUDGET_DAILY[budget] || "~20k ₽/д"
   // font size shrinks for long custom budget strings
   const budgetFontSize = budget === "custom" && customBudget && parseInt(customBudget) >= 1000000
     ? "text-sm"
@@ -293,35 +400,21 @@ export default function PlanPage() {
 
   // ── Lucky destinations ────────────────────────────────────────────────────
   const handleLucky = () => {
-    const isRu = locale === 'ru'
-    const SINGLES = isRu ? [
+    const SINGLES = [
       "Бали, Индонезия","Токио, Япония","Тбилиси, Грузия","Стамбул, Турция","Барселона, Испания",
       "Прага, Чехия","Дубай, ОАЭ","Бангкок, Таиланд","Лиссабон, Португалия","Амстердам, Нидерланды",
       "Будапешт, Венгрия","Берлин, Германия","Краков, Польша","Дубровник, Хорватия","Ереван, Армения",
       "Баку, Азербайджан","Самарканд, Узбекистан","Марракеш, Марокко","Вена, Австрия","Афины, Греция",
       "Рим, Италия","Париж, Франция","Пхукет, Таиланд","Ханой, Вьетнам","Сингапур","Сеул, Корея",
       "Санкт-Петербург, Россия","Казань, Россия","Сочи, Россия","Калининград, Россия",
-    ] : [
-      "Bali, Indonesia","Tokyo, Japan","Tbilisi, Georgia","Istanbul, Turkey","Barcelona, Spain",
-      "Prague, Czech Republic","Dubai, UAE","Bangkok, Thailand","Lisbon, Portugal","Amsterdam, Netherlands",
-      "Budapest, Hungary","Berlin, Germany","Krakow, Poland","Dubrovnik, Croatia","Yerevan, Armenia",
-      "Baku, Azerbaijan","Samarkand, Uzbekistan","Marrakech, Morocco","Vienna, Austria","Athens, Greece",
-      "Rome, Italy","Paris, France","Phuket, Thailand","Hanoi, Vietnam","Singapore","Seoul, South Korea",
     ]
-    const COMBOS = isRu ? [
+    const COMBOS = [
       "Тбилиси, Грузия; Ереван, Армения; Баку, Азербайджан",
       "Рим, Италия; Флоренция, Италия; Венеция, Италия",
       "Стамбул, Турция; Каппадокия, Турция",
       "Токио, Япония; Киото, Япония; Осака, Япония",
       "Прага, Чехия; Будапешт, Венгрия",
       "Дубровник, Хорватия; Котор, Черногория",
-    ] : [
-      "Tbilisi, Georgia; Yerevan, Armenia; Baku, Azerbaijan",
-      "Rome, Italy; Florence, Italy; Venice, Italy",
-      "Istanbul, Turkey; Cappadocia, Turkey",
-      "Tokyo, Japan; Kyoto, Japan; Osaka, Japan",
-      "Prague, Czech Republic; Budapest, Hungary",
-      "Dubrovnik, Croatia; Kotor, Montenegro",
     ]
     const pool = Math.random() < 0.75 ? SINGLES : COMBOS
     setCustomDestination(pool[Math.floor(Math.random() * pool.length)])
@@ -459,6 +552,7 @@ export default function PlanPage() {
       </div>
 
       <PlanTooltips />
+      <GeneratingModal open={loading} onCancel={handleCancelGeneration} />
       <ErrorModal
         open={errorModal.open}
         onClose={() => setErrorModal({ ...errorModal, open: false })}
@@ -470,18 +564,43 @@ export default function PlanPage() {
         details={errorModal.details}
       />
 
+      {/* Economy warning dialog */}
+      <Dialog open={showEconomyWarning} onOpenChange={setShowEconomyWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Эконом-бюджет + конкретные города
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground pt-1">
+              Вы выбрали эконом (~7 500 ₽/день) и указали конкретные города. В некоторых (Токио, Дубай, Лондон) это потребует хостелов и уличной еды.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-2">
+            <button onClick={() => handleEconomyChoice(true)} className="w-full rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 text-left">
+              <p className="font-semibold text-sm">Генерировать именно в этих городах</p>
+              <p className="text-xs text-muted-foreground mt-1">AI найдёт самые дешёвые варианты и объяснит, как сэкономить</p>
+            </button>
+            <button onClick={() => handleEconomyChoice(false)} className="w-full rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 text-left">
+              <p className="font-semibold text-sm">Дать AI выбрать похожие, но дешевле</p>
+              <p className="text-xs text-muted-foreground mt-1">AI подберёт направления, которые лучше вписываются в бюджет</p>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Route Builder Modal */}
       <Dialog open={showRouteModal} onOpenChange={setShowRouteModal}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden" style={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <DialogTitle className="sr-only">{t('routeBuilder.title')}</DialogTitle>
+          <DialogTitle className="sr-only">Конструктор маршрута</DialogTitle>
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-1">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
                 <Route className="h-5 w-5 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">{t('routeBuilder.title')}</h2>
-                <p className="text-xs text-white/40">{t('routeBuilder.subtitle')}</p>
+                <h2 className="text-lg font-bold text-white">Конструктор маршрута</h2>
+                <p className="text-xs text-white/40">Перетащите города для изменения порядка · Назначьте дни</p>
               </div>
             </div>
           </div>
@@ -494,11 +613,11 @@ export default function PlanPage() {
             return (
               <div className="px-6 pb-3">
                 <div className="flex items-center justify-between text-[10px] mb-1.5">
-                  <span className="text-white/40">{t('routeBuilder.distributed')}</span>
+                  <span className="text-white/40">Распределено вручную</span>
                   <span className={overflow ? "text-red-400 font-bold" : "text-white/50"}>
-                    {totalAssigned} / {totalTripDays} {t('routeBuilder.d')}
-                    {overflow && ` · ${t('routeBuilder.overflowBy')} ${totalAssigned - totalTripDays}${t('routeBuilder.d')}`}
-                    {!overflow && totalAssigned < totalTripDays && ` · ${totalTripDays - totalAssigned}${t('routeBuilder.d')} ${t('routeBuilder.aiAssigned')}`}
+                    {totalAssigned} / {totalTripDays} дн
+                    {overflow && ` · превышение на ${totalAssigned - totalTripDays}д`}
+                    {!overflow && totalAssigned < totalTripDays && ` · ${totalTripDays - totalAssigned}д → AI`}
                   </span>
                 </div>
                 <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
@@ -511,7 +630,7 @@ export default function PlanPage() {
 
           <div className="px-6 pb-3 space-y-2 max-h-[48vh] overflow-y-auto">
             {destinations.length === 0 ? (
-              <div className="text-center py-10 text-white/30 text-sm">{t('routeBuilder.empty')}</div>
+              <div className="text-center py-10 text-white/30 text-sm">Сначала добавьте города в поле «Куда едем»</div>
             ) : destinations.map((city, idx) => {
               const days = getCityDays(city)
               // Days already assigned to OTHER cities
@@ -553,7 +672,7 @@ export default function PlanPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">{city}</p>
                     <p className="text-[10px]" style={{ color: getCityCoords(city) ? "rgba(255,255,255,0.25)" : "rgba(251,191,36,0.6)" }}>
-                      {getCityCoords(city) ? t('routeBuilder.maxDaysHint', { max: maxDays }) : t('routeBuilder.unknownCoords')}
+                      {getCityCoords(city) ? `макс. ${maxDays}д · оптимизация доступна` : "координаты неизвестны · порядок вручную"}
                     </p>
                   </div>
 
@@ -578,7 +697,7 @@ export default function PlanPage() {
                     {/* Badge — click toggles auto/explicit */}
                     <button
                       type="button"
-                      title={days === "auto" ? t('routeBuilder.autoTitle') : t('routeBuilder.manualTitle')}
+                      title={days === "auto" ? "Нажми чтобы задать дни вручную" : "Нажми чтобы вернуть AI-режим"}
                       onClick={() => {
                         if (days === "auto") {
                           const def = Math.min(Math.max(1, Math.ceil((totalTripDays || 7) / destinations.length)), maxDays)
@@ -594,7 +713,7 @@ export default function PlanPage() {
                       }}
                     >
                       <span className="text-xs font-bold" style={{ color: days === "auto" ? "#a5b4fc" : isAtMax ? "#f87171" : "#fff" }}>
-                        {days === "auto" ? "AI" : `${days}${t('routeBuilder.d')}`}
+                        {days === "auto" ? "AI" : `${days}д`}
                       </span>
                     </button>
 
@@ -634,11 +753,11 @@ export default function PlanPage() {
             <details className="group">
               <summary className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/50 cursor-pointer transition-colors list-none select-none">
                 <Navigation className="h-3 w-3 shrink-0" />
-                {t('routeBuilder.howWorks')}
+                Как работает автооптимизация?
                 <ChevronDown className="h-3 w-3 ml-auto group-open:rotate-180 transition-transform" />
               </summary>
               <p className="mt-2 text-[10px] leading-relaxed text-white/35 pl-4 border-l border-white/10">
-                {t('routeBuilder.explanation')}
+                Используется алгоритм «ближайшего соседа» (Nearest Neighbor): начиная от города отправления, каждый раз выбирается ближайший ещё не посещённый город по формуле Хаверсина (расстояние по дуге земного шара). Это даёт маршрут без лишних «зигзагов», хотя и не гарантирует абсолютный минимум пути — для коротких списков это практически оптимально.
               </p>
             </details>
           </div>
@@ -654,16 +773,16 @@ export default function PlanPage() {
                 style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.25)", color: "#34d399" }}
               >
                 <Zap className="h-4 w-4" />
-                {t('routeBuilder.optimize')}
+                Оптимизировать автоматически
               </button>
-              {!departureCity.trim() && <span className="text-[10px] text-white/30">{t('routeBuilder.enterDeparture')}</span>}
+              {!departureCity.trim() && <span className="text-[10px] text-white/30">Укажите город отправления</span>}
             </div>
             <div className="flex items-center gap-2">
-                  {totalTripDays && (
-                  <span className="text-xs text-white/40 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {totalTripDays} {t('routeBuilder.d')} · {destinations.length}
-                  </span>
+              {totalTripDays && (
+                <span className="text-xs text-white/40 flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {totalTripDays} дн · {destinations.length} {destinations.length === 1 ? "город" : destinations.length <= 4 ? "города" : "городов"}
+                </span>
               )}
               <button
                 type="button"
@@ -672,7 +791,7 @@ export default function PlanPage() {
                 className="px-5 h-10 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)" }}
               >
-                {t('routeBuilder.apply')}
+                Применить
               </button>
             </div>
           </div>
@@ -684,14 +803,14 @@ export default function PlanPage() {
 
         {/* Header */}
         <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h1 className="font-black text-4xl sm:text-5xl tracking-tight text-foreground dark:text-white mb-2">
-            {t('heroTitle')}{" "}
+          <h1 className="font-black text-4xl sm:text-5xl tracking-tight text-on-surface dark:text-white mb-2">
+            Создайте свою{" "}
             <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-              {t('heroWord')}
+              Одиссею
             </span>
           </h1>
           <p className="text-muted-foreground max-w-xl text-sm sm:text-base">
-            {t('heroSubtitle')}
+            AI-логистика и редакционная экспертиза для вашего следующего незабываемого путешествия.
           </p>
         </header>
 
@@ -704,27 +823,27 @@ export default function PlanPage() {
           <section className="lg:row-span-1 rounded-3xl p-6 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center gap-3 mb-6">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">01</span>
-              <h2 className="font-bold text-lg tracking-tight">{t('sections.routeHub')}</h2>
+              <h2 className="font-bold text-lg tracking-tight">Хаб маршрута</h2>
             </div>
 
             <div className="space-y-5">
               {/* Departure city */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.departureCity')}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">Город отправления</label>
                 <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 z-0 h-4 w-4 -translate-y-1/2 text-blue-400 pointer-events-none" aria-hidden />
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400 pointer-events-none z-10" />
                   <CityAutocomplete
-                    placeholder={t('placeholders.departure')}
+                    placeholder="Москва, Санкт-Петербург…"
                     value={departureCity}
                     onValueChange={setDepartureCity}
-                    className="relative z-[1] h-12 !pl-12 rounded-xl border-blue-100 bg-blue-50/95 text-base dark:border-blue-500/20 dark:bg-blue-950/50 focus:bg-white dark:focus:bg-blue-500/15 transition-colors"
+                    className="h-12 pl-10 rounded-xl text-base bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 focus:bg-white dark:focus:bg-blue-500/10 transition-all"
                   />
                 </div>
               </div>
 
               {/* Return destination toggle */}
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.returnTo')}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">Куда возвращаемся?</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -737,7 +856,7 @@ export default function PlanPage() {
                     )}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    {t('fieldLabels.returnSame')}
+                    В тот же город
                   </button>
                   <button
                     type="button"
@@ -750,14 +869,14 @@ export default function PlanPage() {
                     )}
                   >
                     <ArrowRightLeft className="h-4 w-4" />
-                    {t('fieldLabels.returnOther')}
+                    В другой город
                   </button>
                 </div>
 
                 {!returnToOrigin && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <CityAutocomplete
-                      placeholder={t('placeholders.returnCity')}
+                      placeholder="Город возврата…"
                       value={returnCity}
                       onValueChange={setReturnCity}
                       className="h-12 rounded-xl text-base bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 focus:bg-white dark:focus:bg-blue-500/10 transition-all"
@@ -766,39 +885,9 @@ export default function PlanPage() {
                 )}
               </div>
 
-              {/* Primary transport (hub-to-hub) */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.travelMode')}</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(
-                    [
-                      { id: "flight" as const, icon: Plane, label: t("travelMode.flight") },
-                      { id: "train" as const, icon: Train, label: t("travelMode.train") },
-                      { id: "car" as const, icon: Car, label: t("travelMode.car") },
-                    ]
-                  ).map(({ id, icon: Icon, label }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setTravelMode(id)}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-1 h-[4.25rem] rounded-xl text-xs font-semibold transition-all duration-200 border",
-                        travelMode === id
-                          ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25"
-                          : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-500/40",
-                      )}
-                    >
-                      <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                      <span className="leading-tight text-center px-1">{label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[11px] text-muted-foreground leading-snug">{t("travelMode.hint")}</p>
-              </div>
-
               {/* Date picker */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.travelDates')}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">Даты поездки</label>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger asChild>
                     <button
@@ -815,17 +904,15 @@ export default function PlanPage() {
                         date.to ? (
                           <span className="flex-1 flex items-center justify-between">
                             <span className="font-semibold">
-                              {format(date.from, locale === 'ru' ? "dd MMM" : "MMM dd", { locale: dateFnsLocale })} — {format(date.to, locale === 'ru' ? "dd MMM yyyy" : "MMM dd, yyyy", { locale: dateFnsLocale })}
+                              {format(date.from, "dd MMM", { locale: ru })} — {format(date.to, "dd MMM yyyy", { locale: ru })}
                             </span>
                             <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-bold">
-                              {t("fieldLabels.durationDaysBadge", {
-                                count: Math.ceil((date.to.getTime() - date.from.getTime()) / 86400000) + 1,
-                              })}
+                              {Math.ceil((date.to.getTime() - date.from.getTime()) / 86400000) + 1} дн
                             </span>
                           </span>
-                        ) : <span className="font-semibold">{format(date.from, locale === 'ru' ? "dd MMMM yyyy" : "MMMM dd, yyyy", { locale: dateFnsLocale })}</span>
+                        ) : <span className="font-semibold">{format(date.from, "dd MMMM yyyy", { locale: ru })}</span>
                       ) : (
-                        <span>{t('placeholders.dates')}</span>
+                        <span>Выберите даты</span>
                       )}
                     </button>
                   </PopoverTrigger>
@@ -838,11 +925,11 @@ export default function PlanPage() {
                       onSelect={setDate}
                       numberOfMonths={isMobile ? 1 : 2}
                       disabled={{ before: new Date() }}
-                      locale={dateFnsLocale}
+                      locale={ru}
                       className="rounded-2xl"
                     />
                     <div className="p-3 border-t border-border flex justify-end">
-                      <Button size="sm" onClick={() => setIsCalendarOpen(false)} className="rounded-xl">{t('actions.done')}</Button>
+                      <Button size="sm" onClick={() => setIsCalendarOpen(false)} className="rounded-xl">Готово</Button>
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -857,7 +944,7 @@ export default function PlanPage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/30">02</span>
-                <h2 className="font-bold text-lg tracking-tight">{t('sections.inspiration')}</h2>
+                <h2 className="font-bold text-lg tracking-tight">Вдохновение</h2>
               </div>
               <button
                 type="button"
@@ -865,17 +952,17 @@ export default function PlanPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                {t('actions.lucky')}
+                Повезёт
               </button>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 ml-1">{t('fieldLabels.whereTo')}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 ml-1">Куда едем</label>
                 <CityAutocomplete
                   value={customDestination}
                   onValueChange={(v) => { setCustomDestination(v); setDestination("custom") }}
-                  placeholder={t('placeholders.destination')}
+                  placeholder="Город, страна или несколько…"
                   className="bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-500/20 focus:bg-white dark:focus:bg-emerald-500/10"
                   multiselect={true}
                 />
@@ -891,7 +978,7 @@ export default function PlanPage() {
                     style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#34d399" }}
                   >
                     <Route className="h-3.5 w-3.5" />
-                    {t('routeBuilder.constructor', { count: destinations.length })}
+                    Конструктор ({destinations.length})
                   </button>
                   {isSuboptimal && (
                     <button
@@ -901,7 +988,7 @@ export default function PlanPage() {
                       style={{ background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.25)", color: "#fbbf24" }}
                     >
                       <Zap className="h-3.5 w-3.5" />
-                      {t('actions.optimizeOrder')}
+                      Оптимизировать порядок
                     </button>
                   )}
                 </div>
@@ -909,9 +996,9 @@ export default function PlanPage() {
 
               {/* Popular chips — multi-select */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">{t('fieldLabels.popular')}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Популярные</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {(t.raw('popularCities') as string[]).map(city => {
+                  {["Токио","Бали","Тбилиси","Стамбул","Барселона","Прага","Дубай","Сеул","Вена","Лиссабон"].map(city => {
                     const parts = customDestination.split(";").map(s => s.trim()).filter(Boolean)
                     const active = parts.some(p => p.toLowerCase().startsWith(city.toLowerCase()))
                     return (
@@ -943,6 +1030,33 @@ export default function PlanPage() {
                 </div>
               </div>
 
+              {/* Documents filter */}
+              {profile?.preferences?.documents?.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFilterByDocuments(!filterByDocuments)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all",
+                    filterByDocuments
+                      ? "border-emerald-500/60 bg-emerald-500/8 text-foreground"
+                      : "border-border bg-white/30 dark:bg-white/5 text-muted-foreground hover:bg-white/50 dark:hover:bg-white/10"
+                  )}
+                >
+                  <span className={cn("text-xl shrink-0 transition-all", filterByDocuments && "scale-110")}>🛂</span>
+                  <div className="flex-1 text-left">
+                    <span className="font-semibold block text-foreground text-xs">Учитывать мои документы</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {profile.preferences.documents.map((d: string) => {
+                        const labels: Record<string, string> = { ru_passport:"🪪РФ", foreign_passport:"📘Загран", schengen:"🇪🇺Шенген", us_visa:"🇺🇸США", uk_visa:"🇬🇧UK" }
+                        return labels[d] || d
+                      }).join(" · ")}
+                    </span>
+                  </div>
+                  <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all", filterByDocuments ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground/40")}>
+                    {filterByDocuments && <span className="text-white text-[8px] font-bold">✓</span>}
+                  </div>
+                </button>
+              )}
             </div>
           </section>
 
@@ -952,7 +1066,7 @@ export default function PlanPage() {
           <section className="lg:row-span-2 rounded-3xl p-6 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.06)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center gap-3 mb-6">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-500/30">03</span>
-              <h2 className="font-bold text-lg tracking-tight">{t('sections.budgetMatrix')}</h2>
+              <h2 className="font-bold text-lg tracking-tight">Матрица бюджета</h2>
             </div>
 
             {/* Donut chart */}
@@ -978,9 +1092,9 @@ export default function PlanPage() {
             {/* Budget options */}
             <div className="space-y-2 mb-6">
               {[
-                { id: "economy", label: t('budgets.economy'), sub: t('budgets.economyDaily'), color: "emerald" },
-                { id: "comfort", label: t('budgets.comfort'), sub: t('budgets.comfortDaily'), color: "blue" },
-                { id: "premium", label: t('budgets.premium'), sub: t('budgets.premiumDaily'), color: "amber" },
+                { id: "economy", label: "Эконом", sub: "~7,5k ₽/день", color: "emerald" },
+                { id: "comfort", label: "Комфорт", sub: "~20k ₽/день", color: "blue" },
+                { id: "premium", label: "Премиум", sub: "~50k+ ₽/день", color: "amber" },
               ].map(b => (
                 <button
                   key={b.id}
@@ -1007,12 +1121,12 @@ export default function PlanPage() {
                 budget === "custom" ? "border-violet-500/60 bg-violet-500/8 ring-1 ring-violet-500/20" : "border-border bg-white/30 dark:bg-white/5"
               )}>
                 <div className={cn("w-2.5 h-2.5 rounded-full shrink-0 transition-all", budget === "custom" ? "bg-violet-500" : "bg-muted-foreground/30")} />
-                <span className="font-bold text-sm shrink-0">{t('fieldLabels.customBudget')}</span>
+                <span className="font-bold text-sm shrink-0">Свой:</span>
                 <Input
                   type="text"
                   inputMode="numeric"
                   placeholder="100.000"
-                  value={customBudget ? parseInt(customBudget.replace(/\D/g, "")).toLocaleString(locale === 'ru' ? "ru-RU" : "en-US").replace(/\s/g, ".") : ""}
+                  value={customBudget ? parseInt(customBudget.replace(/\D/g, "")).toLocaleString("ru-RU").replace(/\s/g, ".") : ""}
                   onChange={(e) => {
                     let raw = e.target.value.replace(/\D/g, "")
                     if (raw && parseInt(raw) > 10000000) raw = "10000000"
@@ -1021,25 +1135,25 @@ export default function PlanPage() {
                   }}
                   className="flex-1 h-8 text-center font-bold bg-transparent border-0 border-b-2 border-muted/30 focus:border-violet-500 rounded-none px-2 focus-visible:ring-0"
                 />
-                <span className="font-bold text-sm shrink-0">{locale === 'ru' ? '₽' : '$'}</span>
+                <span className="font-bold text-sm shrink-0">₽</span>
               </div>
             </div>
 
             {/* Interests */}
             <div className="border-t border-border/50 pt-5">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80 mb-4 block">{t('fieldLabels.interests')}</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80 mb-4 block">Что вас зажигает?</label>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { id: "culture",   label: t('interests.culture'),   icon: Compass,     color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
-                  { id: "nature",    label: t('interests.nature'),    icon: Mountain,    color: "#10b981", glow: "rgba(16,185,129,0.25)" },
-                  { id: "food",      label: t('interests.food'),      icon: Utensils,    color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
-                  { id: "relax",     label: t('interests.relax'),     icon: Bed,         color: "#6366f1", glow: "rgba(99,102,241,0.25)" },
-                  { id: "adventure", label: t('interests.adventure'), icon: Map,         color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
-                  { id: "shopping",  label: t('interests.shopping'),  icon: ShoppingBag, color: "#ec4899", glow: "rgba(236,72,153,0.25)" },
-                  { id: "photo",     label: t('interests.photo'),     icon: Camera,      color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
-                  { id: "luxury",    label: t('interests.luxury'),    icon: Gem,         color: "#a855f7", glow: "rgba(168,85,247,0.25)" },
-                  { id: "events",    label: t('interests.events'),    icon: Sparkles,    color: "#f43f5e", glow: "rgba(244,63,94,0.25)"  },
-                  { id: "nightlife", label: t('interests.nightlife'), icon: Palette,     color: "#8b5cf6", glow: "rgba(139,92,246,0.25)" },
+                  { id: "culture",   label: "Культура", icon: Compass,     color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "nature",    label: "Природа",  icon: Mountain,    color: "#10b981", glow: "rgba(16,185,129,0.25)" },
+                  { id: "food",      label: "Еда",      icon: Utensils,    color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "relax",     label: "Релакс",   icon: Bed,         color: "#6366f1", glow: "rgba(99,102,241,0.25)" },
+                  { id: "adventure", label: "Активный", icon: Map,         color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "shopping",  label: "Шоппинг",  icon: ShoppingBag, color: "#ec4899", glow: "rgba(236,72,153,0.25)" },
+                  { id: "photo",     label: "Фото",     icon: Camera,      color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "luxury",    label: "Люкс",     icon: Gem,         color: "#a855f7", glow: "rgba(168,85,247,0.25)" },
+                  { id: "events",    label: "Ивенты",   icon: Sparkles,    color: "#f43f5e", glow: "rgba(244,63,94,0.25)"  },
+                  { id: "nightlife", label: "Ночная жизнь", icon: Palette, color: "#8b5cf6", glow: "rgba(139,92,246,0.25)" },
                 ].map(style => {
                   const Icon = style.icon
                   const sel = travelStyle.includes(style.id)
@@ -1091,10 +1205,10 @@ export default function PlanPage() {
                 <div className="flex items-center gap-2.5">
                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/40 shrink-0">04</span>
                   <Sparkles className="h-4 w-4 text-blue-400 shrink-0" />
-                  <h2 className="font-bold text-lg tracking-tight">{t('sections.highlight')}</h2>
-                  <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0">{t('fieldLabels.personalBadge')}</span>
+                  <h2 className="font-bold text-lg tracking-tight">Изюминка поездки</h2>
+                  <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0">PERSONAL</span>
                 </div>
-                <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest shrink-0">{t('fieldLabels.optional')}</span>
+                <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest shrink-0">необязательно</span>
               </div>
 
               {/* textarea card with glow border */}
@@ -1108,7 +1222,7 @@ export default function PlanPage() {
                 }}
               >
                 <Textarea
-                  placeholder={t('placeholders.highlight')}
+                  placeholder="Например: 'Хочу найти лучший рамен' или 'Устроить пикник на закате'..."
                   value={tripHighlight}
                   onChange={(e) => {
                     const v = e.target.value.slice(0, 300)
@@ -1125,7 +1239,7 @@ export default function PlanPage() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[10px] text-white/45 font-bold uppercase tracking-wider">{t('fieldLabels.aiWillRealize')}</span>
+                      <span className="text-[10px] text-white/45 font-bold uppercase tracking-wider">AI воплотит это в маршруте</span>
                     </div>
                   )}
                   <span className={cn("text-[10px] font-bold shrink-0", tripHighlight.length > 250 ? "text-amber-400" : "text-white/25")}>
@@ -1150,7 +1264,7 @@ export default function PlanPage() {
                 </div>
               ) : (
                 <button onClick={() => setTripHighlight("")} className="text-[10px] font-bold text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors">
-                  <span>✕</span> {t('actions.clearHighlight')}
+                  <span>✕</span> Очистить пожелание
                 </button>
               )}
             </div>
@@ -1168,23 +1282,21 @@ export default function PlanPage() {
               <div className="flex-1 w-full">
                 <div className="flex items-center gap-3 mb-5">
                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/40">05</span>
-                  <h2 className="font-bold text-lg tracking-tight">{t('sections.teamConfig')}</h2>
+                  <h2 className="font-bold text-lg tracking-tight">Конфигурация команды</h2>
                 </div>
 
                 {/* Companions */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/10 mb-4">
                   {[
-                    { id: "solo",    label: t('companions.solo'),    icon: "👤" },
-                    { id: "couple",  label: t('companions.couple'),  icon: "💑" },
-                    { id: "family",  label: t('companions.family'),  icon: "👨‍👩‍👧‍👦" },
-                    { id: "friends", label: t('companions.friends'), icon: "👥" },
+                    { id: "solo", label: "Соло", icon: "👤" },
+                    { id: "couple", label: "Пара", icon: "💑" },
+                    { id: "family", label: "Семья", icon: "👨‍👩‍👧‍👦" },
+                    { id: "friends", label: "Друзья", icon: "👥" },
                   ].map(c => (
-                    <div
+                    <button
                       key={c.id}
-                      role="button"
-                      tabIndex={0}
+                      type="button"
                       onClick={() => setCompanions(c.id)}
-                      onKeyDown={(e) => e.key === "Enter" || e.key === " " ? setCompanions(c.id) : null}
                       className={cn(
                         "flex flex-col items-center gap-2 py-4 px-3 rounded-xl cursor-pointer transition-all duration-200",
                         companions === c.id
@@ -1209,7 +1321,7 @@ export default function PlanPage() {
                           <button type="button" onClick={(e) => { e.stopPropagation(); setTravelers(Math.min(20, travelers + 1)) }} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-all">+</button>
                         </div>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
 
@@ -1218,8 +1330,8 @@ export default function PlanPage() {
               {/* Right: CTA */}
               <div className="w-full lg:w-64 flex flex-col items-stretch lg:items-end gap-3">
                 <p className="text-[11px] text-white/40 font-medium text-center lg:text-right leading-relaxed">
-                  {companions === "solo" ? t('info.for1') : companions === "couple" ? t('info.for2') : t('info.forN', { count: travelers })}<br />
-                  <span className="text-emerald-400/70">{t('info.accuracy')}</span>
+                  {companions === "solo" ? "Маршрут для 1 путешественника" : companions === "couple" ? "Маршрут для 2 путешественников" : `Маршрут для ${travelers} путешественников`}<br />
+                  <span className="text-emerald-400/70">Точность: 98.4%</span>
                 </p>
 
                 {/* Suboptimal order warning */}
@@ -1227,10 +1339,10 @@ export default function PlanPage() {
                   <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs animate-in fade-in duration-300"
                     style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                    <span className="text-amber-300/80 flex-1">{t('info.orderWarning')}</span>
+                    <span className="text-amber-300/80 flex-1">Порядок городов можно улучшить</span>
                     <button type="button" onClick={handleOptimize}
                       className="text-amber-400 font-bold hover:text-amber-300 transition-colors shrink-0">
-                      {t('actions.fixOrder')}
+                      Исправить
                     </button>
                   </div>
                 )}
@@ -1240,7 +1352,7 @@ export default function PlanPage() {
                   onClick={handleSubmit}
                   className="w-full flex items-center justify-center gap-3 py-4 px-8 rounded-2xl font-bold text-lg bg-blue-500 text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] transition-all duration-200"
                 >
-                  {t('actions.continueToVibe')}
+                  Создать маршрут
                   <Sparkles className="h-5 w-5" />
                 </button>
               </div>
@@ -1251,3 +1363,4 @@ export default function PlanPage() {
     </AppLayout>
   )
 }
+

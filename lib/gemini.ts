@@ -49,9 +49,16 @@ interface GeminiOptions {
     responseFormat?: "json_object" | "text";
 }
 
-interface ChatMessage {
+/** OpenRouter multimodal parts (vision). */
+export type GeminiContentPart =
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string } };
+
+export type GeminiMessageContent = string | GeminiContentPart[];
+
+export interface ChatMessage {
     role: "system" | "user" | "assistant";
-    content: string;
+    content: GeminiMessageContent;
 }
 
 // ─── Session usage accumulator ────────────────────────────────────────────────
@@ -116,7 +123,11 @@ async function runGeminiInference(
         temperature,
     };
 
-    if (options.responseFormat === "json_object") {
+    // json_object mode is not reliably supported with multimodal user messages on some providers
+    const hasMultimodal = messages.some(
+        (m) => Array.isArray(m.content)
+    );
+    if (options.responseFormat === "json_object" && !hasMultimodal) {
         bodyPayload.response_format = { type: "json_object" };
     }
 

@@ -133,7 +133,7 @@ function AuthContent() {
             <h1 className="text-4xl xl:text-5xl font-black text-white leading-[1.08] tracking-tight mb-4">
               Откройте мир<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-300 via-blue-500 to-indigo-200">
-                с AI‑гидом
+                с AI‑ассистентом
               </span>
             </h1>
             <p className="text-base xl:text-lg text-white/75 leading-relaxed mb-8 max-w-sm">

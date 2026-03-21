@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react"
 import Link from "next/link"
+import { useTranslations, useLocale } from "next-intl"
 import { AppLayout } from "@/components/app-layout"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   User, Settings, Heart, Map as MapIcon, Clock as ClockIcon, LogOut, Camera, Edit2,
   Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet,
-  Medal, Hotel as HotelIcon, FileText, Star, Calendar,
+  Medal, Hotel as HotelIcon, Star, Calendar,
   LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
   Bell, Bookmark, Wand2, Plane, Banknote, Ruler, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
   Loader2,
@@ -34,31 +35,31 @@ import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
 import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { cn } from "@/lib/utils"
 
-// Interest categories with Russian labels and unique colors
-const INTEREST_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  nature: { label: "Природа", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800" },
-  history: { label: "История", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800" },
-  local: { label: "Местная культура", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800" },
-  photo: { label: "Фотография", color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-100 dark:bg-pink-900/30 border-pink-200 dark:border-pink-800" },
-  tech: { label: "Технологии", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800" },
-  nightlife: { label: "Ночная жизнь", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800" },
-  shopping: { label: "Шоппинг", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800" },
-  spiritual: { label: "Духовное", color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800" },
-  food: { label: "Гастрономия", color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800" },
-  museums: { label: "Музеи", color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800" },
+// Interest categories — colors only (labels come from i18n)
+const INTEREST_CONFIG: Record<string, { color: string; bg: string }> = {
+  nature: { color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800" },
+  history: { color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800" },
+  local: { color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800" },
+  photo: { color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-100 dark:bg-pink-900/30 border-pink-200 dark:border-pink-800" },
+  tech: { color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800" },
+  nightlife: { color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-100 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800" },
+  shopping: { color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800" },
+  spiritual: { color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800" },
+  food: { color: "text-red-600 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-800" },
+  museums: { color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800" },
 }
 
-// Profile background presets
+// Profile background presets — labels come from i18n
 const PROFILE_BACKGROUNDS = [
-  { id: "avatar", label: "Аватар", gradient: "" }, // Special: uses blurred avatar
-  { id: "aurora", label: "Северное сияние", gradient: "from-emerald-500/30 via-cyan-500/20 to-purple-500/30" },
-  { id: "sunset", label: "Закат", gradient: "from-orange-500/30 via-rose-500/20 to-pink-500/30" },
-  { id: "ocean", label: "Океан", gradient: "from-blue-500/30 via-cyan-500/20 to-teal-500/30" },
-  { id: "forest", label: "Лес", gradient: "from-green-500/30 via-emerald-500/20 to-lime-500/30" },
-  { id: "galaxy", label: "Космос", gradient: "from-purple-600/30 via-indigo-500/20 to-blue-600/30" },
-  { id: "mountains", label: "Горы", gradient: "from-slate-500/30 via-zinc-500/20 to-gray-500/30" },
-  { id: "desert", label: "Пустыня", gradient: "from-amber-500/30 via-orange-500/20 to-yellow-500/30" },
-  { id: "abstract", label: "Абстракция", gradient: "from-fuchsia-500/30 via-violet-500/20 to-indigo-500/30" },
+  { id: "avatar", gradient: "" }, // Special: uses blurred avatar
+  { id: "aurora", gradient: "from-emerald-500/30 via-cyan-500/20 to-purple-500/30" },
+  { id: "sunset", gradient: "from-orange-500/30 via-rose-500/20 to-pink-500/30" },
+  { id: "ocean", gradient: "from-blue-500/30 via-cyan-500/20 to-teal-500/30" },
+  { id: "forest", gradient: "from-green-500/30 via-emerald-500/20 to-lime-500/30" },
+  { id: "galaxy", gradient: "from-purple-600/30 via-indigo-500/20 to-blue-600/30" },
+  { id: "mountains", gradient: "from-slate-500/30 via-zinc-500/20 to-gray-500/30" },
+  { id: "desert", gradient: "from-amber-500/30 via-orange-500/20 to-yellow-500/30" },
+  { id: "abstract", gradient: "from-fuchsia-500/30 via-violet-500/20 to-indigo-500/30" },
 ]
 
 const COUNTRY_BY_CITY: Record<string, string> = {
@@ -103,42 +104,6 @@ const COUNTRY_FLAG_BY_KEY: Record<string, string> = {
   "сша": "US",
 }
 
-const TRAVEL_DOCUMENTS_PROFILE = [
-  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪" },
-  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘" },
-  { value: "schengen", label: "Шенгенская виза", icon: "🇪🇺" },
-  { value: "us_visa", label: "Виза США", icon: "🇺🇸" },
-  { value: "uk_visa", label: "Виза Великобритании", icon: "🇬🇧" },
-  { value: "canada_visa", label: "Виза Канады (TRV)", icon: "🇨🇦" },
-  { value: "australia_visa", label: "Виза Австралии (Sub 600)", icon: "🇦🇺" },
-  { value: "japan_visa", label: "Виза Японии", icon: "🇯🇵" },
-  { value: "korea_visa", label: "Виза Кореи (K-ETA)", icon: "🇰🇷" },
-  { value: "india_evisa", label: "E-виза Индии", icon: "🇮🇳" },
-  { value: "thailand_evisa", label: "Таиланд (Штамп/Виза)", icon: "🇹🇭" },
-  { value: "vietnam_evisa", label: "E-виза Вьетнама", icon: "🇻🇳" },
-  { value: "china_visa", label: "Виза Китая", icon: "🇨🇳" },
-  { value: "uae_visa", label: "ОАЭ (Виза по прибытии)", icon: "🇦🇪" },
-  { value: "saudi_visa", label: "Виза Саудовской Аравии", icon: "🇸🇦" },
-  { value: "israel_visa", label: "Израиль (ETA-IL)", icon: "🇮🇱" },
-  { value: "albania_evisa", label: "E-виза Албании", icon: "🇦🇱" },
-]
-
-function docLabel(d: string): string {
-  const labels: Record<string, string> = {
-    ru_passport: "🪪 Паспорт РФ", foreign_passport: "📘 Загранпаспорт РФ",
-    schengen: "🇪🇺 Шенген", us_visa: "🇺🇸 Виза США", uk_visa: "🇬🇧 Виза UK",
-    canada_visa: "🇨🇦 Виза Канады (TRV)", australia_visa: "🇦🇺 Виза Австралии",
-    japan_visa: "🇯🇵 Виза Японии", korea_visa: "🇰🇷 Виза Кореи",
-    india_evisa: "🇮🇳 E-виза Индии", thailand_evisa: "🇹🇭 Таиланд (Штамп/Виза)",
-    vietnam_evisa: "🇻🇳 E-виза Вьетнама", china_visa: "🇨🇳 Виза Китая",
-    uae_visa: "🇦🇪 ОАЭ (По прибытии)", saudi_visa: "🇸🇦 Виза Саудовской Аравии",
-    israel_visa: "🇮🇱 Израиль (ETA-IL)", albania_evisa: "🇦🇱 E-виза Албании",
-  }
-  if (d.startsWith('passport:')) return `🌍 Паспорт ${d.split(':')[1]}`
-  if (d.startsWith('id:')) return `🆔 ID ${d.split(':')[1]}`
-  if (d.startsWith('visa:')) return `✈️ Виза ${d.split(':')[1]}`
-  return labels[d] || d
-}
 
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ")
 const toKey = (value: string) => normalizeName(value).toLowerCase()
@@ -254,6 +219,9 @@ function SettingsRow({
 }
 
 function ProfileContent() {
+  const tp = useTranslations("profile")
+  const tc = useTranslations("common")
+  const locale = useLocale()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
@@ -268,7 +236,6 @@ function ProfileContent() {
     nationality: "",
     gender: "",
     age: "",
-    documents: [] as string[],
     pace: "moderate",
     religion: "none",
     languages: [] as string[],
@@ -306,19 +273,19 @@ function ProfileContent() {
     if (!user) return
     const val = nameTemp.trim()
     if (!val) {
-      toast.error("Имя не может быть пустым")
+      toast.error(tp("toast.nameEmpty"))
       return
     }
     setSavingName(true)
     const { error } = await supabase.from("profiles").update({ full_name: val }).eq("id", user.id)
     setSavingName(false)
     if (error) {
-      toast.error("Ошибка при сохранении имени: " + error.message)
+      toast.error(tp("toast.nameSaveError", { message: error.message }))
     } else {
       setProfile((p: any) => ({ ...p, full_name: val }))
       setEditForm(prev => ({ ...prev, full_name: val }))
       setNameEditing(false)
-      toast.success("Имя обновлено")
+      toast.success(tp("toast.nameUpdated"))
       window.dispatchEvent(new Event('profile_updated'))
     }
   }
@@ -405,7 +372,6 @@ function ProfileContent() {
             nationality: data.nationality || "",
             gender: prefs.gender || "",
             age: prefs.age ? String(prefs.age) : "",
-            documents: prefs.documents || [],
             pace: prefs.pace || "moderate",
             religion: prefs.religion || "none",
             languages: data.languages || [],
@@ -550,8 +516,8 @@ function ProfileContent() {
               <Medal className="w-8 h-8 animate-bounce" />
             </div>
             <div>
-              <h4 className="font-bold text-lg">Новое достижение!</h4>
-              <p className="text-sm opacity-90">{ach.title}</p>
+              <h4 className="font-bold text-lg">{tp("achievement.newAchievement")}!</h4>
+              <p className="text-sm opacity-90">{tp(`achievement.${ach.titleKey}`)}</p>
             </div>
           </div>
         ), { duration: 5000 })
@@ -569,7 +535,6 @@ function ProfileContent() {
       ...(profile.preferences || {}),
       gender: editForm.gender,
       age: editForm.age ? Number(editForm.age) : null,
-      documents: editForm.documents,
       pace: editForm.pace,
       religion: editForm.religion,
       visitedCountries: editForm.visitedCountries,
@@ -596,11 +561,11 @@ function ProfileContent() {
 
     if (error) {
       console.error("Error updating profile:", error)
-      toast.error(`Ошибка при сохранении профиля: ${error.message}`)
+      toast.error(tp("toast.profileSaveError", { message: error.message }))
     } else {
       setProfile({ ...profile, full_name: editForm.full_name, citizenship: editForm.citizenship, nationality: editForm.nationality, languages: editForm.languages, preferences: updatedPreferences })
       setIsEditing(false)
-      toast.success("Профиль успешно обновлен")
+      toast.success(tp("toast.profileUpdated"))
       window.dispatchEvent(new Event('profile_updated'))
     }
     setLoading(false)
@@ -613,7 +578,7 @@ function ProfileContent() {
     if (!profile?.username || !profile?.public_profile) return
     const url = `${typeof window !== "undefined" ? window.location.origin : "https://travellm.ru"}/profile/${profile.username}`
     if (navigator.share) {
-      try { await navigator.share({ title: "Мой профиль — TraveLLM", url }) } catch {}
+      try { await navigator.share({ title: `${tp("title")} — TraveLLM`, url }) } catch {}
     } else {
       await navigator.clipboard.writeText(url)
       setCopiedProfile(true)
@@ -625,7 +590,7 @@ function ProfileContent() {
     if (!user) return
     const usernameValue = editForm.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "")
     if (usernameValue && (usernameValue.length < 3 || usernameValue.length > 20)) {
-      toast.error("Username должен быть от 3 до 20 символов")
+      toast.error(tp("toast.usernameLength"))
       return
     }
     setSavingPublicProfile(true)
@@ -637,13 +602,13 @@ function ProfileContent() {
     setSavingPublicProfile(false)
     if (error) {
       if (error.code === "23505") {
-        toast.error("Этот username уже занят, выберите другой")
+        toast.error(tp("toast.usernameTaken"))
       } else {
-        toast.error("Ошибка при сохранении: " + error.message)
+        toast.error(tp("toast.saveError", { message: error.message }))
       }
     } else {
       setProfile((p: any) => ({ ...p, username: usernameValue || null, public_profile: editForm.publicProfile, bio: editForm.bio || null }))
-      toast.success("Публичный профиль сохранён")
+      toast.success(tp("toast.publicProfileSaved"))
     }
   }
 
@@ -658,8 +623,8 @@ function ProfileContent() {
     const { error } = await supabase.from("profiles").update({ username: val || null }).eq("id", user.id)
     setSavingUsername(false)
     if (error) {
-      if (error.code === "23505") toast.error("Этот username уже занят")
-      else toast.error("Ошибка: " + error.message)
+      if (error.code === "23505") toast.error(tp("toast.usernameTaken"))
+      else toast.error(tp("toast.error", { message: error.message }))
     } else {
       setProfile((p: any) => ({ ...p, username: val || null }))
       setEditForm(prev => ({ ...prev, username: val }))
@@ -676,12 +641,12 @@ function ProfileContent() {
       })
 
       if (res.ok) {
-        toast.success("Аккаунт успешно удален")
+        toast.success(tp("toast.accountDeleted"))
         await supabase.auth.signOut()
         window.location.href = "/"
       } else {
         const data = await res.json()
-        toast.error(data.error || "Ошибка при удалении аккаунта")
+        toast.error(data.error || tp("toast.accountDeleteError"))
       }
     } catch (err) {
       toast.error("Произошла ошибка")
@@ -726,7 +691,7 @@ function ProfileContent() {
       }
 
       setAvatarUrl(publicUrl)
-      toast.success("Аватар обновлен")
+      toast.success(tp("toast.avatarUpdated"))
     } catch (error: any) {
       toast.error('Error uploading avatar: ' + error.message)
     } finally {
@@ -735,16 +700,16 @@ function ProfileContent() {
   }
 
   const tabs = [
-    { id: "overview", label: "Обзор", icon: LayoutDashboard },
-    { id: "achievements", label: "Поездки", icon: Trophy },
-    { id: "settings", label: "Настройки", icon: SettingsIcon },
+    { id: "overview", label: tp("overview"), icon: LayoutDashboard },
+    { id: "achievements", label: tp("achievements"), icon: Trophy },
+    { id: "settings", label: tp("settings"), icon: SettingsIcon },
   ]
 
   const paceLabel = profile?.preferences?.pace === 'fast'
-    ? "Активный темп"
+    ? tp("stats.activePace")
     : profile?.preferences?.pace === 'slow'
-    ? "Размеренный темп"
-    : "Сбалансированный"
+    ? tp("stats.relaxedPace")
+    : tp("stats.balanced")
 
   const currentBg = PROFILE_BACKGROUNDS.find(b => b.id === editForm.profileBackground)
 
@@ -851,7 +816,7 @@ function ProfileContent() {
                       onClick={() => { setNameTemp(profile?.full_name || user?.user_metadata?.full_name || ""); setNameEditing(true) }}
                       className="text-xl font-black truncate text-foreground leading-tight hover:text-primary transition-colors flex items-center gap-2 group text-left"
                     >
-                      {profile?.full_name || user?.user_metadata?.full_name || "Путешественник"}
+                      {profile?.full_name || user?.user_metadata?.full_name || tp("defaultTraveler")}
                       <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                     </button>
                   )}
@@ -923,7 +888,7 @@ function ProfileContent() {
                     )}
                   >
                     {copiedProfile ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                    <span className="hidden md:inline">{copiedProfile ? "Скопировано" : "Поделиться"}</span>
+                    <span className="hidden md:inline">{copiedProfile ? tp("copied") : tp("share")}</span>
                   </Button>
                 )}
                 <Button
@@ -933,7 +898,7 @@ function ProfileContent() {
                   className="rounded-xl border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md h-10 w-10 md:w-auto md:px-4 md:gap-2"
                 >
                   <Edit2 className="h-4 w-4" />
-                  <span className="hidden md:inline">{isEditing ? "Отменить" : "Настроить"}</span>
+                  <span className="hidden md:inline">{isEditing ? tp("cancel") : tp("configure")}</span>
                 </Button>
               </div>
             </div>
@@ -947,7 +912,7 @@ function ProfileContent() {
                   onClick={() => setIsEditing(true)}
                   className="text-xs text-muted-foreground/50 hover:text-primary transition-colors"
                 >
-                  Расскажите немного о себе...
+                  {tp("bioHint")}
                 </button>
               )}
             </div>
@@ -956,10 +921,10 @@ function ProfileContent() {
             <div className="px-6 mt-5">
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
                 {[
-                  { value: userRoutes.length, label: "поездок", icon: MapIcon, color: "text-blue-400" },
-                  { value: visitedSummary.countries.length, label: "стран", icon: Globe, color: "text-emerald-400" },
-                  { value: paceLabel.split(' ')[0], label: "темп", icon: Zap, color: "text-amber-400" },
-                  { value: profile?.languages?.length || 0, label: "языков", icon: Languages, color: "text-purple-400" },
+                  { value: userRoutes.length, label: tp("statsTrips"), icon: MapIcon, color: "text-blue-400" },
+                  { value: visitedSummary.countries.length, label: tp("statsCountries"), icon: Globe, color: "text-emerald-400" },
+                  { value: paceLabel.split(' ')[0], label: tp("statsPace"), icon: Zap, color: "text-amber-400" },
+                  { value: profile?.languages?.length || 0, label: tp("statsLanguages"), icon: Languages, color: "text-purple-400" },
                 ].map((stat, i) => (
                   <div
                     key={i}
@@ -988,7 +953,7 @@ function ProfileContent() {
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-muted/20">
                   <div className="flex items-center gap-2">
                     <Edit2 className="h-4 w-4 text-primary" />
-                    <h2 className="text-base font-bold">Редактировать профиль</h2>
+                    <h2 className="text-base font-bold">{tp("editProfileTitle")}</h2>
                   </div>
                   <button
                     onClick={() => setIsEditing(false)}
@@ -1002,10 +967,10 @@ function ProfileContent() {
                 <div className="max-h-[80vh] overflow-y-auto p-5 space-y-3">
 
                   {/* Section 1: Личные данные */}
-                  <EditSection title="Личные данные" icon={<User className="h-4 w-4" />} defaultOpen={true}>
+                  <EditSection title={tp("personalSection")} icon={<User className="h-4 w-4" />} defaultOpen={true}>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Полное имя</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("fullNameLabel")}</label>
                         <Input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="bg-background/50" />
                       </div>
                       <div className="space-y-1.5">
@@ -1022,11 +987,11 @@ function ProfileContent() {
                         </div>
                       </div>
                       <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">О себе</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("aboutMeLabel")}</label>
                         <textarea
                           value={editForm.bio}
                           onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                          placeholder="Расскажите о себе..."
+                          placeholder={tp("aboutMePlaceholder")}
                           maxLength={200}
                           rows={2}
                           className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
@@ -1034,41 +999,41 @@ function ProfileContent() {
                         <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/200</p>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Загрузить аватар</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("uploadAvatar")}</label>
                         <label htmlFor="avatar-upload-edit" className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background/50 cursor-pointer hover:bg-muted/30 transition-colors text-sm text-muted-foreground">
                           <Camera className="h-4 w-4" />
-                          {uploading ? "Загружается..." : "Выбрать фото"}
+                          {uploading ? tp("uploading") : tp("selectPhoto")}
                           <input id="avatar-upload-edit" type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploading} />
                         </label>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Гражданство</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("citizenshipLabel")}</label>
                         <Input value={editForm.citizenship} onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })} className="bg-background/50" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Национальность</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("nationalityLabel")}</label>
                         <Input value={editForm.nationality} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} className="bg-background/50" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Пол</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("genderLabel")}</label>
                         <Select value={editForm.gender || "unspecified"} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
-                          <SelectTrigger className="bg-background/50"><SelectValue placeholder="Выберите..." /></SelectTrigger>
+                          <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="unspecified">Не указываю</SelectItem>
-                            <SelectItem value="male">Мужской</SelectItem>
-                            <SelectItem value="female">Женский</SelectItem>
+                            <SelectItem value="unspecified">{tp("genderUnspecified")}</SelectItem>
+                            <SelectItem value="male">{tp("genderMale")}</SelectItem>
+                            <SelectItem value="female">{tp("genderFemale")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Возраст</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("ageLabel")}</label>
                         <Input type="number" min={10} max={100} placeholder="28" value={editForm.age} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} className="bg-background/50" />
                       </div>
                     </div>
                   </EditSection>
 
                   {/* Section 2: Фон профиля */}
-                  <EditSection title="Фон профиля" icon={<Camera className="h-4 w-4" />} defaultOpen={false}>
+                  <EditSection title={tp("backgroundSection")} icon={<Camera className="h-4 w-4" />} defaultOpen={false}>
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                       {PROFILE_BACKGROUNDS.map((bg) => (
                         <button
@@ -1094,7 +1059,7 @@ function ProfileContent() {
                             <div className={cn("absolute inset-0 bg-gradient-to-br", bg.gradient)} />
                           )}
                           <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] py-1 text-center font-medium">
-                            {bg.label}
+                            {tp(`backgrounds.${bg.id}` as any)}
                           </span>
                           {editForm.profileBackground === bg.id && (
                             <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -1106,120 +1071,54 @@ function ProfileContent() {
                     </div>
                   </EditSection>
 
-                  {/* Section 3: Документы */}
-                  <EditSection title="Документы" icon={<FileText className="h-4 w-4" />} defaultOpen={false}>
-                    <div className="grid grid-cols-2 gap-2">
-                      {TRAVEL_DOCUMENTS_PROFILE.map((doc) => {
-                        const isChecked = editForm.documents.includes(doc.value)
-                        return (
-                          <button
-                            key={doc.value}
-                            type="button"
-                            onClick={() => {
-                              const newDocs = isChecked
-                                ? editForm.documents.filter(d => d !== doc.value)
-                                : [...editForm.documents, doc.value]
-                              setEditForm({ ...editForm, documents: newDocs })
-                            }}
-                            className={cn(
-                              "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-all text-left",
-                              isChecked
-                                ? "border-primary/60 bg-primary/8 text-foreground"
-                                : "border-border bg-card/50 text-muted-foreground hover:bg-accent/50"
-                            )}
-                          >
-                            <span className="text-base shrink-0">{doc.icon}</span>
-                            <span className="font-medium text-xs leading-tight">{doc.label}</span>
-                            {isChecked && <Check className="h-3 w-3 ml-auto text-primary shrink-0" />}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                      {[
-                        { prefix: "passport", placeholder: "Паспорт другой страны (Enter)" },
-                        { prefix: "id", placeholder: "ID-карта страны (Enter)" },
-                        { prefix: "visa", placeholder: "Другая виза (Enter)" },
-                      ].map(({ prefix, placeholder }) => (
-                        <input
-                          key={prefix}
-                          className="bg-background/50 border border-input rounded-xl px-3 py-2 text-sm outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
-                          placeholder={placeholder}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const val = e.currentTarget.value.trim()
-                              if (val) {
-                                const key = `${prefix}:${val}`
-                                if (!editForm.documents.includes(key)) {
-                                  setEditForm({ ...editForm, documents: [...editForm.documents, key] })
-                                }
-                                e.currentTarget.value = ''
-                              }
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-                    {editForm.documents.filter(d => d.includes(':')).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {editForm.documents.filter(d => d.includes(':')).map(d => (
-                          <Badge key={d} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground rounded-full" onClick={() => setEditForm({ ...editForm, documents: editForm.documents.filter(x => x !== d) })}>
-                            {docLabel(d)} ×
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </EditSection>
-
-                  {/* Section 4: Путешествия */}
-                  <EditSection title="Путешествия" icon={<Plane className="h-4 w-4" />} defaultOpen={false}>
+                  {/* Section 3: Travel */}
+                  <EditSection title={tp("travelSection")} icon={<Plane className="h-4 w-4" />} defaultOpen={false}>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Темп поездок</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("paceLabel")}</label>
                         <Select value={editForm.pace} onValueChange={(v) => setEditForm({ ...editForm, pace: v })}>
                           <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="slow">Размеренный</SelectItem>
-                            <SelectItem value="moderate">Сбалансированный</SelectItem>
-                            <SelectItem value="fast">Активный</SelectItem>
+                            <SelectItem value="slow">{tp("paceOptions.slow")}</SelectItem>
+                            <SelectItem value="moderate">{tp("paceOptions.moderate")}</SelectItem>
+                            <SelectItem value="fast">{tp("paceOptions.fast")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Предпочтение жилья</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("accommodationLabel")}</label>
                         <Select value={editForm.accommodation} onValueChange={(v) => setEditForm({ ...editForm, accommodation: v })}>
                           <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="hotel">Отель</SelectItem>
-                            <SelectItem value="hostel">Хостел</SelectItem>
-                            <SelectItem value="airbnb">Апартаменты/Airbnb</SelectItem>
-                            <SelectItem value="resort">Курорт</SelectItem>
+                            <SelectItem value="hotel">{tp("accom.hotel")}</SelectItem>
+                            <SelectItem value="hostel">{tp("accom.hostel")}</SelectItem>
+                            <SelectItem value="airbnb">{tp("accom.airbnb")}</SelectItem>
+                            <SelectItem value="resort">{tp("accom.resort")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Религия (для халяль/кошер)</label>
+                        <label className="text-xs font-medium text-muted-foreground">{tp("religionLabel")}</label>
                         <Select value={editForm.religion} onValueChange={(v) => setEditForm({ ...editForm, religion: v })}>
                           <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Не важно</SelectItem>
-                            <SelectItem value="islam">Ислам (Халяль)</SelectItem>
-                            <SelectItem value="judaism">Иудаизм (Кошер)</SelectItem>
-                            <SelectItem value="hinduism">Индуизм</SelectItem>
-                            <SelectItem value="buddhism">Буддизм</SelectItem>
-                            <SelectItem value="christianity">Христианство</SelectItem>
+                            <SelectItem value="none">{tp("religion.none")}</SelectItem>
+                            <SelectItem value="islam">{tp("religion.islam")}</SelectItem>
+                            <SelectItem value="judaism">{tp("religion.judaism")}</SelectItem>
+                            <SelectItem value="hinduism">{tp("religion.hinduism")}</SelectItem>
+                            <SelectItem value="buddhism">{tp("religion.buddhism")}</SelectItem>
+                            <SelectItem value="christianity">{tp("religion.christianity")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Город вылета</label>
-                        <Input placeholder="Москва" value={editForm.departureCity} onChange={(e) => setEditForm({ ...editForm, departureCity: e.target.value })} className="bg-background/50" />
+                        <label className="text-xs font-medium text-muted-foreground">{tp("departureCityLabel")}</label>
+                        <Input placeholder={tp("departureCityPlaceholder")} value={editForm.departureCity} onChange={(e) => setEditForm({ ...editForm, departureCity: e.target.value })} className="bg-background/50" />
                       </div>
                     </div>
                     {/* Visited Countries tags */}
                     <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">Посещённые страны (Enter чтобы добавить)</label>
+                      <label className="text-xs font-medium text-muted-foreground">{tp("visitedCountriesLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.visitedCountries.map((tag, i) => (
                           <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
@@ -1232,7 +1131,7 @@ function ProfileContent() {
                         ))}
                         <input
                           className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.visitedCountries.length === 0 ? "Италия, Япония..." : ""}
+                          placeholder={editForm.visitedCountries.length === 0 ? tp("visitedCountriesPlaceholder") : ""}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault()
@@ -1248,7 +1147,7 @@ function ProfileContent() {
                     </div>
                     {/* Dietary */}
                     <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">Диетические ограничения</label>
+                      <label className="text-xs font-medium text-muted-foreground">{tp("dietaryLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.dietaryRestrictions.map((tag, i) => (
                           <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
@@ -1261,7 +1160,7 @@ function ProfileContent() {
                         ))}
                         <input
                           className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.dietaryRestrictions.length === 0 ? "Веган, Без глютена..." : ""}
+                          placeholder={editForm.dietaryRestrictions.length === 0 ? tp("dietaryPlaceholder") : ""}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault()
@@ -1277,11 +1176,11 @@ function ProfileContent() {
                     </div>
                   </EditSection>
 
-                  {/* Section 5: Языки и интересы */}
-                  <EditSection title="Языки и интересы" icon={<Heart className="h-4 w-4" />} defaultOpen={false}>
+                  {/* Section 5: Languages & interests */}
+                  <EditSection title={tp("languagesSection")} icon={<Heart className="h-4 w-4" />} defaultOpen={false}>
                     {/* Languages */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Языки (Enter чтобы добавить)</label>
+                      <label className="text-xs font-medium text-muted-foreground">{tp("languagesLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.languages.map((lang, i) => (
                           <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
@@ -1294,7 +1193,7 @@ function ProfileContent() {
                         ))}
                         <input
                           className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.languages.length === 0 ? "Русский, English..." : ""}
+                          placeholder={editForm.languages.length === 0 ? tp("languagesPlaceholder") : ""}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault()
@@ -1311,7 +1210,7 @@ function ProfileContent() {
 
                     {/* Interests */}
                     <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">Интересы (Enter чтобы добавить)</label>
+                      <label className="text-xs font-medium text-muted-foreground">{tp("interestsLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.interests.map((tag, i) => (
                           <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
@@ -1324,7 +1223,7 @@ function ProfileContent() {
                         ))}
                         <input
                           className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.interests.length === 0 ? "Архитектура, Спорт, Еда..." : ""}
+                          placeholder={editForm.interests.length === 0 ? tp("interestsPlaceholder") : ""}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault()
@@ -1344,9 +1243,9 @@ function ProfileContent() {
 
                 {/* Sticky footer */}
                 <div className="sticky bottom-0 border-t border-border/50 bg-card/80 backdrop-blur-md px-6 py-4 flex justify-end gap-3">
-                  <Button onClick={() => setIsEditing(false)} variant="ghost">Отмена</Button>
+                  <Button onClick={() => setIsEditing(false)} variant="ghost">{tp("cancel")}</Button>
                   <Button onClick={handleUpdateProfile} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    {loading ? "Сохранение..." : "Сохранить изменения"}
+                    {loading ? tp("saving") : tp("saveChanges")}
                   </Button>
                 </div>
               </div>
@@ -1394,10 +1293,10 @@ function ProfileContent() {
                       {/* Stats cards row */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {[
-                          { value: userRoutes.length, label: "МАРШРУТОВ" },
-                          { value: visitedSummary.countries.length, label: "СТРАН" },
-                          { value: completedTrips.length, label: "ЗАВЕРШЕНО" },
-                          { value: profile?.preferences?.interestsDetailed?.length || 0, label: "ИНТЕРЕСОВ" },
+                          { value: userRoutes.length, label: tp("overlayRoutes") },
+                          { value: visitedSummary.countries.length, label: tp("overlayCountries") },
+                          { value: completedTrips.length, label: tp("overlayCompleted") },
+                          { value: profile?.preferences?.interestsDetailed?.length || 0, label: tp("overlayInterests") },
                         ].map((stat, i) => (
                           <div key={i} className="trip-glass border border-white/20 rounded-2xl p-4 text-center">
                             <div className="text-2xl font-black text-foreground">{stat.value}</div>
@@ -1426,7 +1325,7 @@ function ProfileContent() {
                                     config ? `${config.bg} ${config.color}` : "border-border text-foreground hover:bg-muted"
                                   )}
                                 >
-                                  {config?.label || interest}
+                                  {INTEREST_CONFIG[interest.toLowerCase()] ? tp(`interests.${interest.toLowerCase()}` as any) : interest}
                                 </Badge>
                               )
                             })
@@ -1436,66 +1335,42 @@ function ProfileContent() {
                         </div>
                       </div>
 
-                      {/* Documents + Travel style */}
+                      {/* Travel style */}
                       <div className="grid sm:grid-cols-2 gap-3">
-                        {/* Documents card */}
-                        <div className="trip-glass border border-white/20 rounded-2xl p-5">
-                          <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
-                            <FileText className="h-4 w-4 text-blue-400" />
-                            Документы
-                          </h3>
-                          {(() => {
-                            const docs: string[] = profile?.preferences?.documents || []
-                            if (docs.length === 0) return <p className="text-sm text-muted-foreground">Не указаны</p>
-                            return (
-                              <div className="flex flex-wrap gap-1.5">
-                                {docs.map((d: string) => (
-                                  <Badge key={d} variant="outline" className="rounded-full px-2.5 py-1 text-xs border-blue-500/20 bg-blue-500/10 text-blue-300">
-                                    {docLabel(d)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )
-                          })()}
-                        </div>
-
                         {/* Travel style card */}
                         <div className="trip-glass border border-white/20 rounded-2xl p-5">
                           <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
                             <Zap className="h-4 w-4 text-yellow-400" />
-                            Стиль путешествий
+                            {tp("travelStyleSection")}
                           </h3>
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Темп</span>
+                              <span className="text-muted-foreground">{tp("paceSection")}</span>
                               <Badge variant="outline" className="border-blue-500/20 text-blue-400">
                                 {paceLabel}
                               </Badge>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Жильё</span>
+                              <span className="text-muted-foreground">{tp("accommodationSection")}</span>
                               <Badge variant="outline" className="border-purple-500/20 text-purple-400">
-                                {profile?.preferences?.accommodation === 'hostel' ? 'Хостел' :
-                                  profile?.preferences?.accommodation === 'airbnb' ? 'Апартаменты' :
-                                  profile?.preferences?.accommodation === 'resort' ? 'Курорт' : 'Отель'}
+                                {profile?.preferences?.accommodation === 'hostel' ? tp("accom.hostel") :
+                                  profile?.preferences?.accommodation === 'airbnb' ? tp("accom.airbnb") :
+                                  profile?.preferences?.accommodation === 'resort' ? tp("accom.resort") : tp("accom.hotel")}
                               </Badge>
                             </div>
                             {profile?.preferences?.religion && profile.preferences.religion !== 'none' && (
                               <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Религия</span>
+                                <span className="text-muted-foreground">{tp("religionSection")}</span>
                                 <Badge variant="outline" className="border-emerald-500/20 text-emerald-400">
-                                  {profile.preferences.religion === 'islam' ? 'Ислам' :
-                                    profile.preferences.religion === 'judaism' ? 'Иудаизм' :
-                                    profile.preferences.religion === 'hinduism' ? 'Индуизм' :
-                                    profile.preferences.religion === 'buddhism' ? 'Буддизм' : 'Христианство'}
+                                  {tp(`religion.${profile.preferences.religion}` as any)}
                                 </Badge>
                               </div>
                             )}
                             {profile?.preferences?.dietaryRestrictions?.length > 0 && (
                               <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">Питание</span>
+                                <span className="text-muted-foreground">{tp("foodSection")}</span>
                                 <Badge variant="outline" className="border-orange-500/20 text-orange-400">
-                                  Есть ограничения
+                                  {tp("hasRestrictions")}
                                 </Badge>
                               </div>
                             )}
@@ -1507,7 +1382,7 @@ function ProfileContent() {
                       <div className="trip-glass border border-white/20 rounded-2xl p-5">
                         <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
                           <Medal className="h-4 w-4 text-amber-400" />
-                          Достижения
+                          {tp("achievementsTab")}
                         </h3>
                         <Achievements visitedCountries={visitedSummary.countries} completedTripsCount={completedTrips.length} />
                       </div>
@@ -1520,9 +1395,9 @@ function ProfileContent() {
                       <div className="space-y-4">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                           <MapPin className="w-6 h-6 text-cyan-500" />
-                          Завершенные поездки
+                          {tp("completedTripsTitle")}
                         </h2>
-                        <p className="text-muted-foreground text-sm">Здесь хранятся завершённые маршруты. Для каждого можно оставить оценку и отзыв.</p>
+                        <p className="text-muted-foreground text-sm">{tp("completedTripsSubtitle")}</p>
 
                         {completedTrips.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1539,7 +1414,7 @@ function ProfileContent() {
                                           </Badge>
                                         ) : (
                                           <Badge variant="secondary" className="bg-black/40 backdrop-blur-md border-white/10 text-white/70">
-                                            Без оценки
+                                            {tp("noRating")}
                                           </Badge>
                                         )}
                                       </div>
@@ -1550,13 +1425,13 @@ function ProfileContent() {
                                         </div>
                                       </div>
                                       <div className="p-4 flex flex-col flex-grow">
-                                        <div className="font-bold text-foreground line-clamp-1 mb-1 group-hover:text-cyan-400 transition-colors">{trip.title || "Незабываемое путешествие"}</div>
+                                        <div className="font-bold text-foreground line-clamp-1 mb-1 group-hover:text-cyan-400 transition-colors">{trip.title || tp("defaultTripTitle")}</div>
                                         <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3">
-                                          <span>{trip.destination || "Мир"}</span>
+                                          <span>{trip.destination || tp("defaultDestination")}</span>
                                         </div>
                                         <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
-                                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(trip.created_at || Date.now()).toLocaleDateString("ru-RU")}</span>
-                                          <span className="flex items-center gap-1 text-cyan-500 group-hover:translate-x-1 transition-transform">Смотреть <ArrowRight className="w-3 h-3" /></span>
+                                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(trip.created_at || Date.now()).toLocaleDateString()}</span>
+                                          <span className="flex items-center gap-1 text-cyan-500 group-hover:translate-x-1 transition-transform">{tp("view")} <ArrowRight className="w-3 h-3" /></span>
                                         </div>
                                       </div>
                                     </Card>
@@ -1567,7 +1442,7 @@ function ProfileContent() {
                           </div>
                         ) : (
                           <Card className="border-white/20 trip-glass p-8 text-center text-muted-foreground">
-                            Пока нет завершённых маршрутов.
+                            {tp("noCompletedTrips")}
                           </Card>
                         )}
                       </div>
@@ -1577,10 +1452,10 @@ function ProfileContent() {
                         <Card className="p-5 border-white/20 trip-glass">
                           <h3 className="text-lg font-semibold flex items-center gap-2">
                             <MapIcon className="h-5 w-5 text-cyan-500" />
-                            Города по странам
+                            {tp("citiesByCountry")}
                           </h3>
                           <p className="text-xs text-muted-foreground mt-1 mb-4">
-                            {visitedSummary.countries.length} стран, {visitedSummary.totalCities} городов
+                            {tp("citiesSummary", { countries: visitedSummary.countries.length, cities: visitedSummary.totalCities })}
                           </p>
                           <div className="mt-3 space-y-3 max-h-72 overflow-y-auto pr-1">
                             {visitedSummary.citiesByCountry.map((entry) => (
@@ -1591,7 +1466,7 @@ function ProfileContent() {
                                     <div className="font-semibold text-foreground truncate">{entry.country}</div>
                                   </div>
                                   <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400">
-                                    {entry.cities.length} {entry.cities.length === 1 ? "город" : "города"}
+                                    {tp("cityCount", { count: entry.cities.length })}
                                   </Badge>
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
@@ -1604,7 +1479,7 @@ function ProfileContent() {
                               </div>
                             ))}
                             {visitedSummary.citiesByCountry.length === 0 && (
-                              <span className="text-sm text-muted-foreground">Пока нет данных.</span>
+                              <span className="text-sm text-muted-foreground">{tp("noData")}</span>
                             )}
                           </div>
                         </Card>
@@ -1614,7 +1489,7 @@ function ProfileContent() {
                       <div className="space-y-4">
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                           <Medal className="w-6 h-6 text-amber-500" />
-                          Достижения
+                          {tp("achievementsTab")}
                         </h2>
                         <Achievements visitedCountries={visitedSummary.countries} completedTripsCount={completedTrips.length} />
                       </div>
@@ -1629,16 +1504,16 @@ function ProfileContent() {
                           <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                             <Utensils className="h-5 w-5" />
                           </div>
-                          <h3 className="font-medium text-lg">Питание</h3>
+                          <h3 className="font-medium text-lg">{tp("foodSection")}</h3>
                         </div>
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Ограничения:</p>
+                          <p className="text-sm text-muted-foreground">{tp("foodRestrictions")}</p>
                           <div className="flex flex-wrap gap-2">
                             {profile?.preferences?.dietaryRestrictions?.length > 0 ? (
                               profile.preferences.dietaryRestrictions.map((r: string) => (
                                 <Badge key={r} variant="secondary" className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{r}</Badge>
                               ))
-                            ) : <span className="text-sm">Нет ограничений</span>}
+                            ) : <span className="text-sm">{tp("noRestrictions")}</span>}
                           </div>
                           {profile?.preferences?.dietaryCustom && (
                             <p className="text-sm italic text-muted-foreground mt-2">"{profile.preferences.dietaryCustom}"</p>
@@ -1651,13 +1526,13 @@ function ProfileContent() {
                           <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
                             <ClockIcon className="h-5 w-5" />
                           </div>
-                          <h3 className="font-medium text-lg">Темп</h3>
+                          <h3 className="font-medium text-lg">{tp("paceSection")}</h3>
                         </div>
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Предпочитаемый ритм:</p>
+                          <p className="text-sm text-muted-foreground">{tp("preferredPace")}</p>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 capitalize">
-                              {profile?.preferences?.pace === 'fast' ? "Активный" : profile?.preferences?.pace === 'slow' ? "Размеренный" : "Сбалансированный"}
+                              {paceLabel}
                             </Badge>
                           </div>
                         </div>
@@ -1668,16 +1543,16 @@ function ProfileContent() {
                           <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
                             <BookOpen className="h-5 w-5" />
                           </div>
-                          <h3 className="font-medium text-lg">Языки</h3>
+                          <h3 className="font-medium text-lg">{tp("languagesSectionTitle")}</h3>
                         </div>
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Владение языками:</p>
+                          <p className="text-sm text-muted-foreground">{tp("languagesSpoken")}</p>
                           <div className="flex flex-wrap gap-2">
                             {profile?.languages?.length > 0 ? (
                               profile.languages.map((l: string) => (
                                 <Badge key={l} variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">{l}</Badge>
                               ))
-                            ) : <span className="text-sm">Не указано</span>}
+                            ) : <span className="text-sm">{tp("notSpecified")}</span>}
                           </div>
                         </div>
                       </Card>
@@ -1694,9 +1569,9 @@ function ProfileContent() {
                         <div className="p-6 border-b border-border/50">
                           <h3 className="font-bold text-xl flex items-center gap-2">
                             <Zap className="h-5 w-5 text-primary" />
-                            История генераций
+                            {tp("historyTitle")}
                           </h3>
-                          <p className="text-muted-foreground text-sm">Все маршруты, созданные AI-помощником</p>
+                          <p className="text-muted-foreground text-sm">{tp("historySubtitle")}</p>
                         </div>
                         <div className="divide-y divide-border/30">
                           {dbTrips.map((trip: any) => (
@@ -1713,8 +1588,8 @@ function ProfileContent() {
                                   <h4 className="font-medium group-hover:text-primary transition-colors">{trip.title}</h4>
                                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                     <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{trip.destination}</Badge>
-                                    {trip.duration_days && <Badge variant="outline" className="text-[10px] px-2 py-0.5">{trip.duration_days} дней</Badge>}
-                                    <span className="text-muted-foreground/60">{new Date(trip.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                    {trip.duration_days && <Badge variant="outline" className="text-[10px] px-2 py-0.5">{trip.duration_days} {tc("days")}</Badge>}
+                                    <span className="text-muted-foreground/60">{new Date(trip.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1728,10 +1603,10 @@ function ProfileContent() {
                               <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
                                 <Zap className="h-8 w-8 text-muted-foreground/30" />
                               </div>
-                              <p className="font-medium text-muted-foreground">История пуста</p>
-                              <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs mx-auto">Здесь будут отображаться все маршруты, сгенерированные AI-помощником</p>
+                              <p className="font-medium text-muted-foreground">{tp("historyEmpty")}</p>
+                              <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs mx-auto">{tp("historyEmptyDesc")}</p>
                               <Button variant="outline" className="mt-4" onClick={() => window.location.href = '/plan'}>
-                                Создать первый маршрут
+                                {tp("createFirst")}
                               </Button>
                             </div>
                           )}
@@ -1746,7 +1621,7 @@ function ProfileContent() {
 
                       {/* Section 1: Профиль */}
                       <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<User className="h-3.5 w-3.5" />} title="Профиль" />
+                        <SettingsSectionHeader icon={<User className="h-3.5 w-3.5" />} title={tp("sectionProfile")} />
                         <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="h-10 w-10 rounded-full bg-muted overflow-hidden shrink-0">
@@ -1759,7 +1634,7 @@ function ProfileContent() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold truncate">{profile?.full_name || user?.user_metadata?.full_name || "Путешественник"}</div>
+                              <div className="text-sm font-semibold truncate">{profile?.full_name || user?.user_metadata?.full_name || tp("defaultTraveler")}</div>
                               <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
                             </div>
                           </div>
@@ -1770,7 +1645,7 @@ function ProfileContent() {
                             onClick={() => setIsEditing(true)}
                           >
                             <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                            Изменить
+                            {tp("edit")}
                           </Button>
                         </div>
                         <div className="flex items-center justify-between px-5 py-3.5">
@@ -1809,7 +1684,7 @@ function ProfileContent() {
                                 onClick={() => { setUsernameTemp(""); setUsernameEditing(true) }}
                                 className="text-sm text-primary/70 hover:text-primary transition-colors"
                               >
-                                + Добавить
+                                {tp("addUsername")}
                               </button>
                             )}
                           </div>
@@ -1818,74 +1693,74 @@ function ProfileContent() {
 
                       {/* Section 2: Приложение */}
                       <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title="Приложение" />
+                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionApp")} />
                         <SettingsRow
                           icon={<Bell className="h-4 w-4" />}
-                          label="Уведомления"
-                          description="Уведомлять когда маршрут готов"
+                          label={tp("notificationsLabel")}
+                          description={tp("notificationsDesc")}
                           control={
                             <Checkbox
                               checked={editForm.notifications_enabled}
-                              onCheckedChange={(checked) => {
+                              onCheckedChange={async (checked) => {
                                 setEditForm({ ...editForm, notifications_enabled: !!checked })
-                                supabase.from('profiles').update({ notifications_enabled: !!checked }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ notifications_enabled: !!checked }).eq('id', user.id)
                               }}
                             />
                           }
                         />
                         <SettingsRow
                           icon={<Bookmark className="h-4 w-4" />}
-                          label="Авто-избранное"
-                          description="Автоматически сохранять созданные маршруты"
+                          label={tp("autoFavoritesLabel")}
+                          description={tp("autoFavoritesDesc")}
                           control={
                             <Checkbox
                               checked={editForm.autoFavorites}
-                              onCheckedChange={(checked) => {
+                              onCheckedChange={async (checked) => {
                                 const newVal = !!checked
                                 setEditForm({ ...editForm, autoFavorites: newVal })
                                 const newPrefs = { ...profile.preferences, autoFavorites: newVal }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                               }}
                             />
                           }
                         />
                         <SettingsRow
                           icon={<Wand2 className="h-4 w-4" />}
-                          label="Креативность AI"
-                          description="Степень необычности маршрутов"
+                          label={tp("aiCreativityLabel")}
+                          description={tp("aiCreativityDesc")}
                           control={
                             <Select
                               value={profile?.preferences?.aiCreativity ?? "balanced"}
-                              onValueChange={(val) => {
+                              onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, aiCreativity: val }
                                 setProfile({ ...profile, preferences: newPrefs })
                                 setEditForm((prev: any) => ({ ...prev, aiCreativity: val }))
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                               }}
                             >
                               <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="conservative">Консервативный</SelectItem>
-                                <SelectItem value="balanced">Сбалансированный</SelectItem>
-                                <SelectItem value="creative">Креативный</SelectItem>
+                                <SelectItem value="conservative">{tp("creativity.conservative")}</SelectItem>
+                                <SelectItem value="balanced">{tp("creativity.balanced")}</SelectItem>
+                                <SelectItem value="creative">{tp("creativity.creative")}</SelectItem>
                               </SelectContent>
                             </Select>
                           }
                         />
                         <SettingsRow
                           icon={<Plane className="h-4 w-4" />}
-                          label="Город вылета"
-                          description="Откуда вы обычно начинаете путешествие"
+                          label={tp("departureCityLabel")}
+                          description={tp("departureCityDesc")}
                           control={
                             <Input
-                              placeholder="Москва"
+                              placeholder={tp("departureCityPlaceholder")}
                               value={editForm.departureCity}
                               onChange={(e) => setEditForm({ ...editForm, departureCity: e.target.value })}
-                              onBlur={() => {
+                              onBlur={async () => {
                                 const newPrefs = { ...profile.preferences, departureCity: editForm.departureCity }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                               }}
                               className="w-[140px] bg-background/50 h-8 text-sm"
                             />
@@ -1893,15 +1768,15 @@ function ProfileContent() {
                         />
                         <SettingsRow
                           icon={<Banknote className="h-4 w-4" />}
-                          label="Валюта"
-                          description="Основная валюта для расчётов"
+                          label={tp("currencyLabel")}
+                          description={tp("currencyDesc")}
                           control={
                             <Select
                               value={profile?.preferences?.currency ?? "rub"}
-                              onValueChange={(val) => {
+                              onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, currency: val }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                               }}
                             >
                               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
@@ -1915,38 +1790,37 @@ function ProfileContent() {
                         />
                         <SettingsRow
                           icon={<Ruler className="h-4 w-4" />}
-                          label="Единицы измерения"
-                          description="Километры или мили"
+                          label={tp("unitsLabel")}
+                          description={tp("unitsDesc")}
                           control={
                             <Select
                               value={profile?.preferences?.units ?? "metric"}
-                              onValueChange={(val) => {
+                              onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, units: val }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                               }}
                             >
                               <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="metric">Метрика</SelectItem>
-                                <SelectItem value="imperial">Имперская</SelectItem>
+                                <SelectItem value="metric">{tp("units.metric")}</SelectItem>
+                                <SelectItem value="imperial">{tp("units.imperial")}</SelectItem>
                               </SelectContent>
                             </Select>
                           }
                         />
                         <SettingsRow
                           icon={<Languages className="h-4 w-4" />}
-                          label="Язык интерфейса"
-                          description="Язык приложения"
+                          label={tp("languageLabel")}
+                          description={tp("languageDesc")}
                           last
                           control={
                             <Select
-                              value={profile?.preferences?.language ?? "ru"}
-                              onValueChange={(val) => {
+                              value={locale}
+                              onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, language: val }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id).then()
-                                // Apply locale: set cookie and reload
+                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
                                 const expires = new Date()
                                 expires.setFullYear(expires.getFullYear() + 1)
                                 document.cookie = `NEXT_LOCALE=${val};path=/;expires=${expires.toUTCString()};SameSite=Lax`
@@ -1965,7 +1839,7 @@ function ProfileContent() {
 
                       {/* Section 3: Публичный профиль */}
                       <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Globe className="h-3.5 w-3.5" />} title="Публичный профиль" />
+                        <SettingsSectionHeader icon={<Globe className="h-3.5 w-3.5" />} title={tp("sectionPublicProfile")} />
                         <div className="p-5 space-y-4">
                           <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground">Username</label>
@@ -1979,18 +1853,18 @@ function ProfileContent() {
                                 className="bg-background/50 font-mono"
                               />
                             </div>
-                            <p className="text-xs text-muted-foreground">От 3 до 20 символов: a–z, 0–9, _</p>
+                            <p className="text-xs text-muted-foreground">{tp("usernameHint")}</p>
                             {editForm.username && (
                               <p className="text-xs text-sky-500">travellm.ru/profile/{editForm.username}</p>
                             )}
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground">О себе</label>
+                            <label className="text-xs font-medium text-muted-foreground">{tp("aboutLabel")}</label>
                             <textarea
                               value={editForm.bio}
                               onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
-                              placeholder="Расскажите о себе..."
+                              placeholder={tp("bioPlaceholder")}
                               maxLength={200}
                               rows={3}
                               className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
@@ -2000,8 +1874,8 @@ function ProfileContent() {
 
                           <div className="flex items-center justify-between py-2 border-t border-border/30">
                             <div>
-                              <div className="text-sm font-medium">Публичный профиль</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">Другие смогут посетить вашу страницу</div>
+                              <div className="text-sm font-medium">{tp("publicProfile")}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{tp("shareHint")}</div>
                             </div>
                             <Checkbox
                               checked={editForm.publicProfile}
@@ -2014,25 +1888,25 @@ function ProfileContent() {
                             disabled={savingPublicProfile}
                             className="w-full sm:w-auto"
                           >
-                            {savingPublicProfile ? "Сохранение..." : "Сохранить изменения"}
+                            {savingPublicProfile ? tp("saving") : tp("saveChanges")}
                           </Button>
                         </div>
                       </div>
 
                       {/* Section 4: Управление */}
                       <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title="Управление" />
+                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionManagement")} />
                         <div className="px-5 py-4">
                           <Button variant="outline" className="w-full justify-start hover:bg-primary/10 hover:text-primary" onClick={() => window.location.href = "/onboarding"}>
                             <RotateCcw className="h-4 w-4 mr-2" />
-                            Перепройти опрос предпочтений
+                            {tp("resetPreferences")}
                           </Button>
                         </div>
                       </div>
 
                       {/* Section 5: Аккаунт */}
                       <div className="rounded-2xl border border-red-500/20 bg-red-500/5 overflow-hidden">
-                        <SettingsSectionHeader icon={<LogOut className="h-3.5 w-3.5 text-red-400" />} title="Аккаунт" />
+                        <SettingsSectionHeader icon={<LogOut className="h-3.5 w-3.5 text-red-400" />} title={tp("sectionAccount")} />
                         <div className="p-5 flex flex-col gap-3">
                           <Button
                             variant="outline"
@@ -2043,7 +1917,7 @@ function ProfileContent() {
                             }}
                           >
                             <LogOut className="h-4 w-4 mr-2" />
-                            Выйти из аккаунта
+                            {tp("signOutLabel")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -2051,7 +1925,7 @@ function ProfileContent() {
                             onClick={() => setDeleteDialogOpen(true)}
                           >
                             <X className="h-4 w-4 mr-2" />
-                            Удалить аккаунт
+                            {tp("deleteAccountLabel")}
                           </Button>
                         </div>
                       </div>
@@ -2070,14 +1944,14 @@ function ProfileContent() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Удалить аккаунт?</DialogTitle>
+            <DialogTitle>{tp("deleteAccountTitle")}</DialogTitle>
             <DialogDescription>
-              Это действие необратимо. Все ваши маршруты, предпочтения и данные будут безвозвратно удалены.
+              {tp("deleteAccountDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
-              Отмена
+              {tp("cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -2087,10 +1961,10 @@ function ProfileContent() {
               {isDeleting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Удаление...
+                  {tp("deleting")}
                 </>
               ) : (
-                "Удалить навсегда"
+                tp("deleteForever")
               )}
             </Button>
           </DialogFooter>

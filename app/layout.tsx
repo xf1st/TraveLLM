@@ -43,9 +43,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const altUrl = isWorldDomain ? 'https://travellm.ru' : 'https://travellm.world'
 
   return {
-    title: meta.title ?? "TraveLLM — AI Travel Guide",
+    title: meta.title ?? "TraveLLM — AI Travel Assistant",
     description: meta.description ?? "Plan your perfect trip with AI",
-    keywords: meta.keywords ? meta.keywords.split(", ") : ["AI travel guide", "trip planner"],
+    keywords: meta.keywords ? meta.keywords.split(", ") : ["AI travel assistant", "trip planner"],
     verification: {
       yandex: "7b52a6c68729b348",
     },

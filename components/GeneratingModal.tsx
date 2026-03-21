@@ -5,14 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { MapPin, Plane, Hotel, Utensils, Camera, X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { LottieLoader } from "@/components/ui/LottieLoader"
-
-const STEPS = [
-    { icon: Plane,    text: "Подбираем рейсы",              color: "text-sky-400" },
-    { icon: Hotel,    text: "Бронируем отели",              color: "text-violet-400" },
-    { icon: MapPin,   text: "Составляем маршрут",           color: "text-emerald-400" },
-    { icon: Utensils, text: "Ищем рестораны",               color: "text-amber-400" },
-    { icon: Camera,   text: "Добавляем достопримечательности", color: "text-rose-400" },
-]
+import { useTranslations } from "next-intl"
 
 interface GeneratingModalProps {
     open: boolean
@@ -21,6 +14,14 @@ interface GeneratingModalProps {
 }
 
 export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps) {
+    const t = useTranslations("generating")
+    const STEPS = [
+        { icon: Plane,    text: t("steps.flights"),       color: "text-sky-400" },
+        { icon: Hotel,    text: t("steps.hotels"),        color: "text-violet-400" },
+        { icon: MapPin,   text: t("steps.route"),         color: "text-emerald-400" },
+        { icon: Utensils, text: t("steps.restaurants"),   color: "text-amber-400" },
+        { icon: Camera,   text: t("steps.sights"),        color: "text-rose-400" },
+    ]
     const [currentStep, setCurrentStep] = useState(0)
     const [progress, setProgress] = useState(0)
 
@@ -54,7 +55,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
     return (
         <Dialog open={open} onOpenChange={(val) => !val && onCancel && onCancel()}>
             <DialogContent className="sm:max-w-md border-none p-0 overflow-hidden rounded-[2.5rem] shadow-2xl [&>button]:hidden">
-                <DialogTitle className="sr-only">Генерация маршрута</DialogTitle>
+                <DialogTitle className="sr-only">{t("title")}</DialogTitle>
 
                 <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8 bg-zinc-950 overflow-hidden">
 
@@ -77,7 +78,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                             onClick={onCancel}
                             className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-white/40 hover:text-white/80"
                         >
-                            <span className="sr-only">Закрыть</span>
+                            <span className="sr-only">{t("close")}</span>
                             <X className="h-5 w-5" />
                         </button>
                     )}
@@ -93,7 +94,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                         {/* Title + destination */}
                         <div className="text-center space-y-3">
                             <h2 className="text-2xl font-black tracking-tight text-white">
-                                Планируем маршрут
+                                {t("title")}
                             </h2>
                             {destination && (
                                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
@@ -109,7 +110,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                             {/* Progress bar */}
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center px-0.5">
-                                    <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/30">Обработка</span>
+                                    <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/30">{t("processing")}</span>
                                     <span className="text-xs font-black tabular-nums text-white/60">{Math.round(progress)}%</span>
                                 </div>
                                 <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">

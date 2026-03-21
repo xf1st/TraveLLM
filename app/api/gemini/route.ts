@@ -20,6 +20,7 @@ import {
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { validateAirports } from "@/lib/api/airport-validator"
 import { buildEnrichedPrompt, buildMetadataPrompt, buildDayChunkPrompt } from "@/lib/prompt-builder"
+import { normalizeTravelMode } from "@/lib/travel-mode"
 import { type RouteData, type ItineraryDay } from "@/types/itinerary"
 
 export const maxDuration = 60; // Allow long-running generations
@@ -65,12 +66,14 @@ export async function POST(req: Request) {
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, requireRussianGuide,
-            customDestination, customBudget, travelers, filterByDocuments, tripHighlight,
-            strictDestinations, locale
+            customDestination, customBudget, travelers, filterByDocuments, tripHighlight, tripVibe,
+            strictDestinations, locale, travelMode: travelModeBody,
         } = body
         const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
+        const travelMode = normalizeTravelMode(travelModeBody)
 
         const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
+        const safeTripVibe = tripVibe ? String(tripVibe).replace(/"/g, "'").slice(0, 2000) : ''
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
         const travelersCount = parseInt(travelers) || 2
         const durationDays = startDate && endDate
@@ -140,14 +143,20 @@ export async function POST(req: Request) {
             }
         }
 
-        // Live check for first destination
+        // Live check for first destination (flight-oriented; skip when user chose train/car as primary mode)
         if (destinations.length > 0) {
             try {
-                const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
-                if (flightCheck.hasDirect) {
-                    dynamicContextStr += `\n🛫 Прямые рейсы в ${destinations[0]} доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
+                if (travelMode === "flight") {
+                    const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
+                    if (flightCheck.hasDirect) {
+                        dynamicContextStr += `\n🛫 Прямые рейсы в ${destinations[0]} доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
+                    } else {
+                        dynamicContextStr += `\n🚆 Прямых рейсов в ${destinations[0]} нет, предложи поезд или рейс с пересадкой.`
+                    }
+                } else if (travelMode === "train") {
+                    dynamicContextStr += `\n🚆 РЕЖИМ МАРШРУТА: пользователь выбрал ж/д как основной транспорт — не навязывай авиа без необходимости.`
                 } else {
-                    dynamicContextStr += `\n🚆 Прямых рейсов в ${destinations[0]} нет, предложи поезд или рейс с пересадкой.`
+                    dynamicContextStr += `\n🚗 РЕЖИМ МАРШРУТА: пользователь выбрал автопутешествие — планируй переезды на машине; авиа только если дорога нереалистична.`
                 }
                 const searchContext = await collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate)
                 if (searchContext) dynamicContextStr += searchContext
@@ -187,11 +196,13 @@ export async function POST(req: Request) {
             dynamicContextStr,
             warningsStr,
             safeHighlight,
+            tripVibe: safeTripVibe || undefined,
             destinationType,
             strictDestinations,
             countryCount,
             filterByDocuments,
-            airportValidationContext
+            airportValidationContext,
+            travelMode,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
@@ -220,7 +231,10 @@ export async function POST(req: Request) {
                 locale: userLocale,
                 departureCity: effectiveDepartureCity, destinations, startDate, endDate,
                 budget: budgetCap, budgetDesc, travelStyle: travelStyles, countryCount,
-                safeHighlight, warningsStr, preferences
+                safeHighlight, warningsStr, preferences,
+                tripVibe: safeTripVibe || undefined,
+                travelMode,
+                strictDestinations,
             })
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: metaPrompt }]
             const raw = await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature });
@@ -231,7 +245,10 @@ export async function POST(req: Request) {
             const chunkPrompt = buildDayChunkPrompt({
                 startDay, endDay, durationDays, departureCity: effectiveDepartureCity,
                 destination, budgetDesc, travelStyle: travelStyles, preferences,
-                safeHighlight, warningsStr, previousContext, 
+                safeHighlight, warningsStr, previousContext,
+                tripVibe: safeTripVibe || undefined,
+                locale: userLocale,
+                travelMode,
                 planForChunk: (tripPlan || []).filter((s: any) => s.startDay <= endDay && s.endDay >= startDay)
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })

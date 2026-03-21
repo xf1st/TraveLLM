@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useTranslations, useLocale } from "next-intl"
 import Link from "next/link"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
@@ -84,19 +85,22 @@ import { ReelsView } from "@/components/travel/ReelsView"
 
 // ===== Constants =====
 
-const monthsShort = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+const monthsShortRu = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+const monthsShortEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-function formatDayDate(startDate: Date | null, dayIndex: number): string {
+function formatDayDate(startDate: Date | null, dayIndex: number, locale = "ru"): string {
   if (!startDate) return ""
   const d = new Date(startDate)
   d.setDate(d.getDate() + dayIndex)
-  return `${d.getDate()} ${monthsShort[d.getMonth()]}`
+  const months = locale === "ru" ? monthsShortRu : monthsShortEn
+  return `${d.getDate()} ${months[d.getMonth()]}`
 }
 
-function formatDateRange(start: Date | null, end: Date | null): string {
+function formatDateRange(start: Date | null, end: Date | null, locale = "ru"): string {
   if (!start || !end) return ""
-  const s = `${start.getDate()} ${monthsShort[start.getMonth()]}`
-  const e = `${end.getDate()} ${monthsShort[end.getMonth()]}`
+  const months = locale === "ru" ? monthsShortRu : monthsShortEn
+  const s = `${start.getDate()} ${months[start.getMonth()]}`
+  const e = `${end.getDate()} ${months[end.getMonth()]}`
   const year = end.getFullYear()
   return `${s} — ${e} ${year}`
 }
@@ -112,16 +116,7 @@ const transportIcons: Record<string, any> = {
   None: Zap,
 }
 
-const modeTranslations: Record<string, string> = {
-  Flight: "Перелёт",
-  Plane: "Перелёт",
-  Train: "Поезд",
-  Taxi: "Такси",
-  Transfer: "Трансфер",
-  Car: "Автомобиль",
-  Walk: "Пешком",
-  None: "Нет",
-}
+// modeTranslations moved inside component as getModeLabel(t, mode)
 
 const tagConfig: Record<string, { color: string; icon: any }> = {
   "пляж": { color: "bg-sky-100/80 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 border-sky-200/50 dark:border-sky-500/30", icon: Umbrella },
@@ -158,6 +153,13 @@ function getTagConfig(tag: string) {
 export default function TripDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const t = useTranslations('trip')
+  const locale = useLocale()
+
+  const getModeLabel = (mode: string) => {
+    const key = `modes.${mode}` as any
+    try { return t(key) } catch { return mode }
+  }
   const [route, setRoute] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [activeDay, setActiveDay] = useState<number>(1)
@@ -206,8 +208,8 @@ export default function TripDetailPage() {
             ...act,
             id: act.id || `${day.day}-${act.title || act.placeName}`,
             day: day.day,
-            location: act.location || act.placeName || route.destination || "Место",
-            title: act.title || act.placeName || "Активность",
+            location: act.location || act.placeName || route.destination || t('locationDefault'),
+            title: act.title || act.placeName || t('activityDefault'),
             description: act.description || act.desc,
             imageUrl: act.imageUrl || act.image,
           })
@@ -255,8 +257,9 @@ export default function TripDetailPage() {
     return { calculatedTotal: total, hasUnknownCosts: hasUnknown, dayTotals }
   }, [route?.itinerary])
 
+  const currencySymbol = locale === "en" ? "$" : "₽"
   const displayBudget = calculatedTotal !== null
-    ? `${hasUnknownCosts ? "≈ " : ""}${calculatedTotal.toLocaleString("ru-RU")} ₽`
+    ? `${hasUnknownCosts ? "≈ " : ""}${currencySymbol}${calculatedTotal.toLocaleString(locale === "en" ? "en-US" : "ru-RU")}`
     : route?.totalBudget
 
   useEffect(() => {
@@ -385,6 +388,8 @@ export default function TripDetailPage() {
             start_date: data.start_date,
             end_date: data.end_date,
             travelers: data.travelers || data.passengers || 2,
+            departure_city: data.departure_city ?? data.departureCity ?? null,
+            travelMode: data.travel_mode || data.travelMode,
           })
 
           if (currentUser && data.id) {
@@ -438,8 +443,8 @@ export default function TripDetailPage() {
                 <div className="absolute inset-0 bg-violet-500/20 blur-3xl rounded-full -z-10 animate-pulse hidden md:block" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">Загрузка маршрута</h3>
-                <p className="text-muted-foreground font-medium animate-pulse tracking-wide">Готовим детали вашего приключения...</p>
+                <h3 className="text-2xl font-black text-foreground tracking-tighter uppercase">{t('loading')}</h3>
+                <p className="text-muted-foreground font-medium animate-pulse tracking-wide">{t('loadingSubtitle')}</p>
               </div>
             </div>
           </main>
@@ -457,11 +462,11 @@ export default function TripDetailPage() {
           <div className="lg:hidden"><Header /></div>
           <main className="flex h-[60vh] items-center justify-center">
             <div className="text-center px-4">
-              <h1 className="text-2xl font-bold mb-4">Маршрут не найден</h1>
+              <h1 className="text-2xl font-bold mb-4">{t('notFound')}</h1>
               <p className="text-muted-foreground mb-8 text-balance">
-                Мы не смогли найти указанный маршрут. Попробуйте создать новый или проверьте ссылку.
+                {t('notFoundDesc')}
               </p>
-              <Button onClick={() => router.push("/plan")}>Создать новый маршрут</Button>
+              <Button onClick={() => router.push("/plan")}>{t('createNew')}</Button>
             </div>
           </main>
         </div>
@@ -538,7 +543,7 @@ export default function TripDetailPage() {
 
   // Build sidebar hotel: AI activity data takes priority, API data fills gaps
   const sidebarHotel = hotelActivityForDay ? {
-    hotelName: hotelActivityForDay.placeName || hotelActivityForDay.title?.replace(/^заселение в\s*/i, "") || apiHotel?.hotelName || "Отель",
+    hotelName: hotelActivityForDay.placeName || hotelActivityForDay.title?.replace(/^заселение в\s*/i, "") || apiHotel?.hotelName || t('hotelDefault'),
     stars: apiHotel?.stars || (hotelActivityForDay.desc?.match(/(\d)\*/)?.[1] ? Number(hotelActivityForDay.desc.match(/(\d)\*/)[1]) : null),
     rating: apiHotel?.rating,
     checkIn: hotelActivityForDay.desc?.match(/(\d{2}:\d{2})/)?.[1] || apiHotel?.checkIn || "14:00",
@@ -564,18 +569,18 @@ export default function TripDetailPage() {
 
   // Activities for active day
   const rawActivities = currentDay?.activities || [
-    { time: "Утро", desc: currentDay?.morning, type: "activity" },
-    { time: "День", desc: currentDay?.daytime, type: "food" },
-    { time: "Вечер", desc: currentDay?.night, type: "activity" },
+    { time: t('morningTime'), desc: currentDay?.morning, type: "activity" },
+    { time: t('afternoonTime'), desc: currentDay?.daytime, type: "food" },
+    { time: t('eveningTime'), desc: currentDay?.night, type: "activity" },
   ].filter((i: any) => i.desc)
 
   // Always append free time as the 4th activity
   const dayActivities = [
     ...rawActivities,
     {
-      time: "Свободное время",
-      title: "Свободное время",
-      desc: "Свободное время для отдыха, прогулки по городу или собственных планов.",
+      time: t('freeTimeTitle'),
+      title: t('freeTimeTitle'),
+      desc: t('freeTimeDesc'),
       type: "free",
     },
   ]
@@ -603,7 +608,7 @@ export default function TripDetailPage() {
 
         return {
           ...activity,
-          cost: activity.cost || (flight.price ? `${flight.price.toLocaleString("ru-RU")} ₽` : undefined),
+          cost: activity.cost || (flight.price ? `${locale === "en" ? "$" : ""}${flight.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")}${locale !== "en" ? " ₽" : ""}` : undefined),
           ticketsRequired: true,
           link: url
         }
@@ -655,10 +660,10 @@ export default function TripDetailPage() {
       })
 
       finalDayActivities.unshift({
-        time: f.departureTime || "Утро",
-        title: `Перелёт ${origin} → ${dest}`,
-        desc: `${f.airline || "Авиаперелет"} ${f.duration ? `• ${f.duration}` : ""}`,
-        cost: f.price ? `${f.price.toLocaleString("ru-RU")} ₽` : undefined,
+        time: f.departureTime || t('morningTime'),
+        title: t('flightTitle', { from: origin, to: dest }),
+        desc: `${f.airline || t('airlineDefault')} ${f.duration ? `• ${f.duration}` : ""}`,
+        cost: f.price ? `${locale === "en" ? "$" : ""}${f.price.toLocaleString(locale === "en" ? "en-US" : "ru-RU")}${locale !== "en" ? " ₽" : ""}` : undefined,
         type: "transport",
         ticketsRequired: true,
         link: url
@@ -686,9 +691,9 @@ export default function TripDetailPage() {
         })
 
         finalDayActivities.unshift({
-          time: lg.departureTime || "Утро",
-          title: `Перелёт ${fromP.city || lg.from || fromIata} → ${toP.city || lg.to || toIata}`,
-          desc: `${lg.airline || "Авиаперелет"} ${lg.duration ? `• ${lg.duration}` : ""}`,
+          time: lg.departureTime || t('morningTime'),
+          title: t('flightTitle', { from: fromP.city || lg.from || fromIata, to: toP.city || lg.to || toIata }),
+          desc: `${lg.airline || t('airlineDefault')} ${lg.duration ? `• ${lg.duration}` : ""}`,
           cost: undefined,
           type: "transport",
           ticketsRequired: true,
@@ -709,11 +714,11 @@ export default function TripDetailPage() {
       .update({ is_public: newValue })
       .eq("id", route.id)
     if (error) {
-      toast.error("Не удалось изменить видимость поездки")
+      toast.error(t('toast.visibilityError'))
       return
     }
     setRoute((r: any) => ({ ...r, is_public: newValue }))
-    toast.success(newValue ? "Поездка опубликована — доступна по ссылке" : "Поездка скрыта")
+    toast.success(newValue ? t('toast.published') : t('toast.hidden'))
   }
 
   const handleShare = async () => {
@@ -723,11 +728,11 @@ export default function TripDetailPage() {
         await navigator.share({ title: route.title, url })
       } else {
         await navigator.clipboard.writeText(url)
-        toast.success("Ссылка скопирована!")
+        toast.success(t('toast.linkCopied'))
       }
     } catch {
       await navigator.clipboard.writeText(url)
-      toast.success("Ссылка скопирована!")
+      toast.success(t('toast.linkCopied'))
     }
   }
 
@@ -735,7 +740,7 @@ export default function TripDetailPage() {
     e.preventDefault()
     e.stopPropagation()
     if (!user) {
-      toast.error("Войдите, чтобы добавить маршрут в избранное")
+      toast.error(t('toast.loginRequired'))
       router.push(`/auth?next=/trip/${route.id}`)
       return
     }
@@ -744,10 +749,10 @@ export default function TripDetailPage() {
     setIsFavorite(newFav)
     try {
       await toggleFavorite(route.id)
-      toast.success(newFav ? "Маршрут добавлен в избранное" : "Маршрут удалён из избранного")
+      toast.success(newFav ? t('toast.favoriteAdded') : t('toast.favoriteRemoved'))
     } catch {
       setIsFavorite(!newFav)
-      toast.error("Не удалось обновить избранное")
+      toast.error(t('toast.favoriteError'))
     } finally {
       setFavoriteLoading(false)
     }
@@ -759,7 +764,7 @@ export default function TripDetailPage() {
       // Open AI chat with prefilled prompt
       window.dispatchEvent(
         new CustomEvent("trip-ai-prefill", {
-          detail: { text: `Добавь ещё одну интересную активность в день ${dayNumber}. Что-нибудь уникальное и местное.` },
+          detail: { text: t('aiAddActivity', { day: dayNumber }) },
         })
       )
       // On mobile open the AI chat sheet, on desktop open sidebar chat
@@ -768,7 +773,7 @@ export default function TripDetailPage() {
       } else {
         setIsAIChatOpen(true)
       }
-      toast.info("Генерируем активность через AI...")
+      toast.info(t('toast.generatingAI'))
     } finally {
       setIsGeneratingExtra(false)
     }
@@ -787,14 +792,14 @@ export default function TripDetailPage() {
       })
 
       if (!response.ok) {
-        throw new Error(`Ошибка сервера (${response.status})`)
+        throw new Error(t('toast.serverError', { status: response.status }))
       }
 
       const data = await response.json()
 
       if (data.error) {
-        toast.error(`Ошибка AI: ${data.error}`)
-        return { reply: `Ошибка: ${data.error}`, success: false }
+        toast.error(t('toast.aiError', { message: data.error }))
+        return { reply: t('errorReply', { message: data.error }), success: false }
       }
 
       if (data.type === "modification" && data.modifications?.length > 0) {
@@ -809,19 +814,19 @@ export default function TripDetailPage() {
         })
         return { reply: data.reply, success: true }
       } else {
-        return { reply: data.reply || "Не удалось сгенерировать активность.", success: false }
+        return { reply: data.reply || t('toast.aiError', { message: 'generation failed' }), success: false }
       }
     } catch (error: any) {
       console.error("Inline generation error:", error)
-      toast.error(`Ошибка: ${error.message || "Попробуйте позже."}`)
-      return { reply: `Произошла ошибка: ${error.message}`, success: false }
+      toast.error(t('toast.aiError', { message: error.message || '' }))
+      return { reply: t('errorGeneral', { message: error.message }), success: false }
     }
   }
 
   const handleRequestModifyInChat = (activity: any, dayNumber: number) => {
     window.dispatchEvent(
       new CustomEvent("trip-ai-prefill", {
-        detail: { text: `Измени активность "${activity.title || activity.placeName || activity.desc?.slice(0, 30)}" в день ${dayNumber}.` },
+        detail: { text: t('aiModifyActivity', { title: activity.title || activity.placeName || activity.desc?.slice(0, 30) || '', day: dayNumber }) },
       })
     )
     if (window.innerWidth < 1024) {
@@ -841,9 +846,9 @@ export default function TripDetailPage() {
       {!isOwner && !loading && route?.id && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-sky-600/95 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
           <Eye className="w-4 h-4 flex-shrink-0" />
-          <span>Вы просматриваете чужую поездку в режиме чтения</span>
+          <span>{t('readOnlyBanner')}</span>
           {!user && (
-            <a href={`/auth?next=/trip/${route.id}`} className="ml-2 underline font-medium hover:text-sky-200">Войти</a>
+            <a href={`/auth?next=/trip/${route.id}`} className="ml-2 underline font-medium hover:text-sky-200">{t('signIn')}</a>
           )}
         </div>
       )}
@@ -884,7 +889,7 @@ export default function TripDetailPage() {
                     <div className="flex items-center text-[10px] sm:text-xs text-white/80 gap-3 font-bold shrink-0">
                       <span className="flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">calendar_month</span>
-                        {formatDateRange(tripStartDate, tripEndDate) || `${tripDurationDays} дней`}
+                        {formatDateRange(tripStartDate, tripEndDate, locale) || t('noDates', { days: tripDurationDays })}
                       </span>
                       <span className="flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">person</span>
@@ -908,7 +913,7 @@ export default function TripDetailPage() {
               </div>
               <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                 <button onClick={() => setShowBudgetModal(true)} className="text-right group cursor-pointer mr-1 sm:mr-0 flex flex-col items-end">
-                  <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">Общий бюджет</p>
+                  <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">{t('totalBudgetLabel')}</p>
                   <p className="text-sm sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors bg-white/10 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-lg sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/20 sm:border-none">{displayBudget}</p>
                 </button>
                 <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
@@ -916,7 +921,7 @@ export default function TripDetailPage() {
                   {isOwner && (
                     <button
                       onClick={handleTogglePublic}
-                      title={route.is_public ? "Публичная поездка — нажмите чтобы скрыть" : "Приватная поездка — нажмите чтобы опубликовать"}
+                      title={route.is_public ? t('publicTitle') : t('privateTitle')}
                       className={cn(
                         "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all backdrop-blur-md",
                         route.is_public
@@ -925,8 +930,8 @@ export default function TripDetailPage() {
                       )}
                     >
                       {route.is_public
-                        ? <><Globe className="w-3.5 h-3.5" /> Публичная</>
-                        : <><Lock className="w-3.5 h-3.5" /> Приватная</>
+                        ? <><Globe className="w-3.5 h-3.5" /> {t('publicTrip')}</>
+                        : <><Lock className="w-3.5 h-3.5" /> {t('privateTrip')}</>
                       }
                     </button>
                   )}
@@ -964,7 +969,7 @@ export default function TripDetailPage() {
                   <button onClick={() => setActiveView("stats")}>
                     <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Завершен
+                      {t('completed')}
                     </span>
                   </button>
                 )}
@@ -991,7 +996,7 @@ export default function TripDetailPage() {
                   >
                     <span>{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
                     <span>{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
-                    <span className="opacity-60 text-[10px]">· Погода в поездке</span>
+                    <span className="opacity-60 text-[10px]">· {t('weatherTrip')}</span>
                   </button>
                 )}
                 <button
@@ -999,7 +1004,7 @@ export default function TripDetailPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-amber-400/30 bg-amber-500/15 hover:bg-amber-500/25 transition-colors text-amber-200 text-xs font-bold shadow-sm"
                 >
                   <span className="material-symbols-outlined text-sm">lightbulb</span>
-                  Советы по маршруту
+                  {t('routeTips')}
                 </button>
                 {allActivities.length > 0 && (
                   <button
@@ -1007,7 +1012,7 @@ export default function TripDetailPage() {
                     className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-indigo-400/30 bg-indigo-500/20 hover:bg-indigo-500/30 transition-colors text-indigo-200 text-xs font-bold shadow-sm"
                   >
                     <Sparkles className="h-3.5 w-3.5" />
-                    Смотреть Reels
+                    {t('watchReels')}
                   </button>
                 )}
               </div>
@@ -1035,9 +1040,9 @@ export default function TripDetailPage() {
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-[11px] font-black text-white/90 leading-tight tracking-wider uppercase whitespace-nowrap">
-                  Проверить цены
+                  {t('checkPrices')}
                 </span>
-                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Билеты · Отели · Карты</span>
+                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">{t('ticketsHotelsMap')}</span>
               </div>
             </button>
 
@@ -1097,14 +1102,14 @@ export default function TripDetailPage() {
                       isCompact ? "text-[9px]" : "text-[10px]",
                       isActive ? "opacity-90" : "opacity-70 group-hover:opacity-100"
                     )}>
-                      {formatDayDate(tripStartDate, day.day - 1) ? `День ${day.day}` : ""}
+                      {formatDayDate(tripStartDate, day.day - 1, locale) ? t('dayLabel', { day: day.day }) : ""}
                     </span>
                     <span className={cn(
                       "font-bold",
                       isCompact ? "text-xs" : "text-base sm:text-lg",
                       isActive ? "font-extrabold" : "group-hover:text-sky-800 dark:group-hover:text-white"
                     )}>
-                      {formatDayDate(tripStartDate, day.day - 1) || `День ${day.day}`}
+                      {formatDayDate(tripStartDate, day.day - 1, locale) || t('dayLabel', { day: day.day })}
                     </span>
                     {tripWeather[day.day - 1] && (
                       <span className={cn(
@@ -1137,10 +1142,10 @@ export default function TripDetailPage() {
                     ? "bg-violet-500 text-white shadow-lg shadow-violet-500/30"
                     : "text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10"
                 )}
-                title="Статистика маршрута"
+                title={t('stats')}
               >
                 <BarChart2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Статистика</span>
+                <span className="hidden sm:inline">{t('stats')}</span>
               </button>
             </div>
 
@@ -1153,7 +1158,7 @@ export default function TripDetailPage() {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl" align="end">
                   <div className="p-4">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">Даты поездки</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">{t('tripDates')}</p>
                     {tripStartDate && tripEndDate ? (
                       <Calendar
                         mode="multiple"
@@ -1163,8 +1168,8 @@ export default function TripDetailPage() {
                       />
                     ) : (
                       <div className="p-4 text-center text-sm text-muted-foreground">
-                        <p className="font-medium">{tripDurationDays} дней</p>
-                        <p className="text-xs mt-1">Точные даты не указаны</p>
+                        <p className="font-medium">{t('noDates', { days: tripDurationDays })}</p>
+                        <p className="text-xs mt-1">{t('noDatesExact')}</p>
                       </div>
                     )}
                   </div>
@@ -1191,7 +1196,7 @@ export default function TripDetailPage() {
                   <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-lg">
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm truncate">
-                        День {currentDay.day}: {currentDay.title || "Продолжение приключения"}
+                        {t('dayTitle', { day: currentDay.day, title: currentDay.title || t('dayDefaultTitle') })}
                       </h3>
                       {currentDayWeather && (
                         <span className="shrink-0 text-xs sm:text-sm font-semibold text-sky-600 dark:text-sky-300 whitespace-nowrap">
@@ -1221,7 +1226,7 @@ export default function TripDetailPage() {
                   {currentDay.tips && (
                     <div className="trip-glass rounded-2xl p-4 flex gap-3 text-sm text-amber-900 dark:text-amber-200 bg-amber-50/50 dark:!bg-amber-900/20 !border-amber-200/50 dark:!border-amber-900/30">
                       <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                      <p><strong>Совет:</strong> {currentDay.tips}</p>
+                      <p><strong>{t('tip')}:</strong> {currentDay.tips}</p>
                     </div>
                   )}
                 </>
@@ -1244,8 +1249,8 @@ export default function TripDetailPage() {
                       <span className="material-symbols-outlined text-lg">smart_toy</span>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-slate-800 dark:text-white group-hover/btn:text-sky-600 dark:group-hover/btn:text-blue-300 transition-colors">AI помощник</p>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-400 uppercase tracking-wide">вопросы и изменения</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white group-hover/btn:text-sky-600 dark:group-hover/btn:text-blue-300 transition-colors">{t('aiAssistant')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-gray-400 uppercase tracking-wide">{t('aiAssistantSub')}</p>
                     </div>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover/btn:bg-sky-500 dark:group-hover/btn:bg-blue-600 group-hover/btn:text-white transition-all text-slate-400 dark:text-white/70">
@@ -1282,7 +1287,7 @@ export default function TripDetailPage() {
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
                 <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-md md:shadow-xl transition-colors">
-                  <h4 className="text-[10px] sm:text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-3 sm:mb-4 opacity-80">Проживание</h4>
+                  <h4 className="text-[10px] sm:text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-3 sm:mb-4 opacity-80">{t('accommodation')}</h4>
                   <div className="flex items-center gap-3 sm:gap-5">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
                       <TripImage
@@ -1298,7 +1303,7 @@ export default function TripDetailPage() {
                         <span>{sidebarHotel.stars || sidebarHotel.rating || "5.0"}</span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-slate-500 dark:text-blue-100/70 mt-1 font-medium truncate">
-                        Заселение: {sidebarHotel.checkIn || "14:00"}
+                        {t('checkInTime', { time: sidebarHotel.checkIn || "14:00" })}
                       </p>
                       {sidebarHotel.cost && (
                         <p className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-0.5 sm:mt-1">{sidebarHotel.cost}</p>
@@ -1307,7 +1312,7 @@ export default function TripDetailPage() {
                   </div>
                   <div className="mt-3 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center">
                     <span className="px-2 sm:px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[9px] sm:text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
-                      Подтверждено
+                      {t('confirmed')}
                     </span>
                     <button
                       onClick={() => {
@@ -1327,7 +1332,7 @@ export default function TripDetailPage() {
                       }}
                       className="text-[10px] sm:text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
                     >
-                      Бронирование
+                      {t('bookNow')}
                     </button>
                   </div>
                 </div>
@@ -1347,62 +1352,62 @@ export default function TripDetailPage() {
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                 <PieChart className="h-6 w-6 text-primary" />
-                Аналитика бюджета
+                {t('budget_modal.title')}
               </DialogTitle>
               <DialogDescription>
-                Детальный разбор расходов на вашу поездку
+                {t('budget_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Проживание</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.accommodation')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за ночь</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.accommodationPer')}</div>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Питание</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.food')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgFood || "—"}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за день</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.foodPer')}</div>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Транспорт</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.transport')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgTransport || "—"}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">всего за маршрут</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.transportPer')}</div>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Развлечения</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.activities')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgActivities || "—"}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">в среднем за день</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.activitiesPer')}</div>
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-muted/50 border border-border col-span-2 flex flex-col justify-between">
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">Прочее</div>
+                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.misc')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgMisc || "—"}</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">чаевые, сувениры и т.д.</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.miscPer')}</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
-                <h4 className="text-sm font-bold">Общие итоги</h4>
+                <h4 className="text-sm font-bold">{t('budget_modal.totals')}</h4>
                 <div className="flex justify-between items-center py-2 border-b border-border italic text-sm">
-                  <span className="text-muted-foreground font-medium">Предполагаемый бюджет:</span>
+                  <span className="text-muted-foreground font-medium">{t('budget_modal.estimatedBudget')}</span>
                   <span className="font-bold">{displayBudget}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  * Цены являются оценочными на основе средних показателей региона и выбранного стиля &quot;{route.budget_range || "Комфорт"}&quot;. Реальная стоимость может отличаться.
+                  {t('budget_modal.disclaimer', { style: route.budget_range || t('budgetStyleDefault') })}
                 </p>
               </div>
               <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-md md:shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
-                Понятно
+                {t('budget_modal.ok')}
               </Button>
             </div>
           </DialogContent>
@@ -1414,10 +1419,10 @@ export default function TripDetailPage() {
             <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
               <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
                 <ExternalLink className="w-5 h-5 text-sky-400" />
-                Проверить цены
+                {t('links_modal.title')}
               </DialogTitle>
               <DialogDescription className="text-white/40">
-                Транспорт · Отели · Рестораны · Активности
+                {t('links_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
             <div className="px-4 py-4 max-h-[78vh] overflow-y-auto">
@@ -1432,10 +1437,10 @@ export default function TripDetailPage() {
             <DialogHeader>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <span className="text-2xl">{currentDayWeather ? getWeatherEmoji(currentDayWeather.weatherCode) : "🌤"}</span>
-                Погода в поездке
+                {t('weather_modal.title')}
               </DialogTitle>
               <DialogDescription>
-                Прогноз погоды на все дни маршрута
+                {t('weather_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
             <div className="mt-2">
@@ -1461,17 +1466,17 @@ export default function TripDetailPage() {
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                 <Compass className="h-6 w-6 text-amber-500" />
-                Советы по маршруту
+                {t('tips_modal.title')}
               </DialogTitle>
               <DialogDescription>
-                Рекомендации по дням и важная информация по поездке.
+                {t('tips_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto pr-1">
               <div className="space-y-3">
                 <h4 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">
-                  Советы по дням
+                  {t('tips_modal.dayTips')}
                 </h4>
                 {itineraryTips.length > 0 ? (
                   <div className="space-y-3">
@@ -1480,39 +1485,39 @@ export default function TripDetailPage() {
                         key={`tip-day-${day.day}`}
                         className="trip-glass rounded-2xl p-4 text-sm text-slate-700 dark:text-blue-100/90"
                       >
-                        <p className="font-bold text-slate-900 dark:text-white mb-1">День {day.day}</p>
+                        <p className="font-bold text-slate-900 dark:text-white mb-1">{t('tips_modal.dayN', { day: day.day })}</p>
                         <p className="leading-relaxed">{day.tips}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Советы по дням пока не добавлены.</p>
+                  <p className="text-sm text-muted-foreground">{t('tips_modal.noTips')}</p>
                 )}
               </div>
 
               <div className="trip-glass rounded-2xl p-5 sm:p-6">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white">
                   <Shield className="h-5 w-5 text-sky-500 dark:text-blue-400" />
-                  Важная информация
+                  {t('tips_modal.importantInfo')}
                 </h3>
                 <div className="space-y-5">
                   <div>
-                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Виза</h4>
-                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.visaAdvice || "Информация о визе будет доступна после генерации"}</p>
+                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.visa')}</h4>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.visaAdvice || t('visaDefault')}</p>
                   </div>
                   <div>
-                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Оплата</h4>
-                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.paymentAdvice || "Информация об оплате будет доступна после генерации"}</p>
+                    <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.payment')}</h4>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.paymentAdvice || t('paymentDefault')}</p>
                   </div>
                   {route.restrictions && (
                     <div>
-                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Ограничения</h4>
+                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.restrictions')}</h4>
                       <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.restrictions}</p>
                     </div>
                   )}
                   {route.safetyInfo && (
                     <div>
-                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">Безопасность</h4>
+                      <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.safety')}</h4>
                       <div className="flex items-center gap-2 mb-2">
                         <div className="flex items-center gap-1">
                           {[...Array(10)].map((_, i) => (
@@ -1577,7 +1582,7 @@ export default function TripDetailPage() {
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <MessageCircle className="h-5 w-5 text-blue-500" />
-                    AI Ассистент
+                    {t('aiAssistant')}
                   </h3>
                   <button onClick={() => setIsMobileAIChatOpen(false)} className="p-2 rounded-full hover:bg-muted transition-colors">
                     <X className="w-5 h-5" />
@@ -1604,7 +1609,7 @@ export default function TripDetailPage() {
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-md md:shadow-xl"
-            aria-label="Наверх"
+            aria-label={t('scrollTop')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 19V5M5 12l7-7 7 7" />

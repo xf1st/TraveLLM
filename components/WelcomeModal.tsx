@@ -4,48 +4,18 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   Sparkles, Map, MessageCircle, Plane, ArrowRight, X,
   Zap, Star, Globe, ChevronRight, Gift, CheckCircle2,
   ClipboardList, Bot, CalendarDays,
 } from "lucide-react"
 
-/* ───────────────────────────────────────────────
-   CONTENT DATA
-─────────────────────────────────────────────── */
+const STEP_ICONS = [ClipboardList, Bot, CalendarDays]
+const STEP_COLORS = ["#60a5fa", "#c084fc", "#34d399"]
 
-const HOW_TO_STEPS = [
-  {
-    icon: ClipboardList,
-    color: "#60a5fa",
-    step: "01",
-    title: "Заполни форму",
-    desc: "Укажи страну, город назначения, даты поездки, бюджет и свои предпочтения (пляж, культура, гастро и т.д.).",
-  },
-  {
-    icon: Bot,
-    color: "#c084fc",
-    step: "02",
-    title: "AI строит маршрут",
-    desc: "За несколько секунд нейросеть создаёт детальный план по дням с активностями, отелями и ресторанами.",
-  },
-  {
-    icon: CalendarDays,
-    color: "#34d399",
-    step: "03",
-    title: "Редактируй и бронируй",
-    desc: "Доработай маршрут в AI-чате, смотри на карте, переходи на Aviasales и Яндекс.Отели по готовым ссылкам.",
-  },
-]
-
-const SITE_FEATURES = [
-  { icon: Zap, color: "#60a5fa", title: "AI-генерация", desc: "Маршруты от Gemini и DeepSeek" },
-  { icon: Map, color: "#34d399", title: "2D / 3D карты", desc: "Все точки маршрута на карте" },
-  { icon: MessageCircle, color: "#c084fc", title: "Мини-чат", desc: "Редактируй план в диалоге с AI" },
-  { icon: Globe, color: "#fbbf24", title: "Ссылки на сервисы", desc: "Aviasales, Яндекс.Отели и др." },
-  { icon: Plane, color: "#f87171", title: "История поездок", desc: "Все маршруты сохраняются в профиле" },
-  { icon: Star, color: "#a78bfa", title: "Viral Spots", desc: "TikTok-тренды и хайповые места" },
-]
+const FEATURE_ICONS = [Zap, Map, MessageCircle, Globe, Plane, Star]
+const FEATURE_COLORS = ["#60a5fa", "#34d399", "#c084fc", "#fbbf24", "#f87171", "#a78bfa"]
 
 /* ───────────────────────────────────────────────
    STORAGE HELPERS
@@ -95,6 +65,8 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
 export function WelcomeModal() {
   const { user } = useAuth()
   const router = useRouter()
+  const t = useTranslations("onboarding")
+  const tc = useTranslations("common")
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0) // 0=hero, 1=how-to, 2=features+free
 
@@ -150,7 +122,7 @@ export function WelcomeModal() {
               style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }}
               onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)" }}
               onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.color = "rgba(255,255,255,0.4)" }}
-              aria-label="Закрыть"
+              aria-label={tc("close")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -186,10 +158,10 @@ export function WelcomeModal() {
                     </div>
                     <h1 className="mt-3 text-3xl font-black leading-tight tracking-tight"
                       style={{ background: "linear-gradient(135deg, #fff 30%, #a5b4fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                      Добро пожаловать<br />в TraveLLM!
+                      {t("welcome")}
                     </h1>
                     <p className="mt-3 text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
-                      Умный AI-помощник для планирования идеальных путешествий. Маршрут, отели, билеты — за несколько секунд.
+                      {t("subtitle")}
                     </p>
                   </motion.div>
 
@@ -199,19 +171,19 @@ export function WelcomeModal() {
                     style={{ background: "rgba(133,173,255,0.1)", border: "1px solid rgba(133,173,255,0.2)" }}>
                     <Gift className="h-5 w-5 flex-shrink-0" style={{ color: "#85adff" }} />
                     <div className="text-left">
-                      <div className="text-xs font-bold" style={{ color: "#85adff" }}>10 генераций маршрутов каждый месяц</div>
-                      <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>Бесплатно · Без привязки карты · Лимит обновляется 1-го числа</div>
+                      <div className="text-xs font-bold" style={{ color: "#85adff" }}>{t("freeTier.generations")}</div>
+                      <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>{t("freeTier.noCard")}</div>
                     </div>
                   </motion.div>
 
                   <motion.div className="mt-6 flex w-full flex-col gap-2.5" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
                     <PrimaryButton onClick={next}>
-                      <Sparkles className="h-4 w-4" /> Как это работает? <ArrowRight className="h-4 w-4" />
+                      <Sparkles className="h-4 w-4" /> {t("howItWorks")} <ArrowRight className="h-4 w-4" />
                     </PrimaryButton>
                     <button onClick={start} className="text-xs font-medium transition-colors" style={{ color: "rgba(255,255,255,0.28)" }}
                       onMouseEnter={e => { e.currentTarget.style.color = "rgba(255,255,255,0.6)" }}
                       onMouseLeave={e => { e.currentTarget.style.color = "rgba(255,255,255,0.28)" }}>
-                      Пропустить — сразу к маршруту
+                      {t("skip")}
                     </button>
                   </motion.div>
                 </motion.div>
@@ -224,31 +196,32 @@ export function WelcomeModal() {
                   <div className="mb-5 text-center">
                     <h2 className="text-xl font-black tracking-tight"
                       style={{ background: "linear-gradient(135deg, #fff 30%, #a5b4fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                      Как создать маршрут
+                      {t("howToCreate")}
                     </h2>
                     <p className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-                      Три простых шага до идеальной поездки
+                      {t("threeSteps")}
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-3 mb-5">
-                    {HOW_TO_STEPS.map((s, i) => {
-                      const Icon = s.icon
+                    {STEP_ICONS.map((Icon, i) => {
+                      const stepKey = String(i) as "0" | "1" | "2"
+                      const color = STEP_COLORS[i]
                       return (
-                        <motion.div key={s.step}
+                        <motion.div key={i}
                           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
                           className="flex items-start gap-3 rounded-2xl p-4"
                           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
                           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
-                            style={{ background: `${s.color}22` }}>
-                            <Icon className="h-4.5 w-4.5" style={{ color: s.color, width: "18px", height: "18px" }} />
+                            style={{ background: `${color}22` }}>
+                            <Icon style={{ color, width: "18px", height: "18px" }} />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[10px] font-bold tabular-nums" style={{ color: s.color }}>Шаг {s.step}</span>
-                              <span className="text-xs font-bold text-white">{s.title}</span>
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color }}>{t(`steps.${stepKey}.step`)}</span>
+                              <span className="text-xs font-bold text-white">{t(`steps.${stepKey}.title`)}</span>
                             </div>
-                            <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>{s.desc}</p>
+                            <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>{t(`steps.${stepKey}.desc`)}</p>
                           </div>
                         </motion.div>
                       )
@@ -260,13 +233,13 @@ export function WelcomeModal() {
                     style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
                     <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#818cf8" }} />
                     <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
-                      Нажми <strong className="text-white">«Создать маршрут»</strong> в сайдбаре слева или кнопку в шапке сайта — откроется форма плана.
+                      {t("tip")}
                     </p>
                   </div>
 
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.32 }}>
                     <PrimaryButton onClick={next}>
-                      Что ещё есть на сайте? <ArrowRight className="h-4 w-4" />
+                      {t("whatElse")} <ArrowRight className="h-4 w-4" />
                     </PrimaryButton>
                   </motion.div>
                 </motion.div>
@@ -279,27 +252,28 @@ export function WelcomeModal() {
                   <div className="mb-4 text-center">
                     <h2 className="text-xl font-black tracking-tight"
                       style={{ background: "linear-gradient(135deg, #fff 30%, #a5b4fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                      Что есть на сайте
+                      {t("whatElse")}
                     </h2>
                     <p className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-                      Всё что нужно — в одном месте
+                      {t("allInOne")}
                     </p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    {SITE_FEATURES.map((f, i) => {
-                      const Icon = f.icon
+                    {FEATURE_ICONS.map((Icon, i) => {
+                      const fKey = String(i) as "0" | "1" | "2" | "3" | "4" | "5"
+                      const color = FEATURE_COLORS[i]
                       return (
-                        <motion.div key={f.title}
+                        <motion.div key={i}
                           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                           className="flex flex-col items-center rounded-xl p-3 text-center"
                           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
                           <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg"
-                            style={{ background: `${f.color}22` }}>
-                            <Icon className="h-4 w-4" style={{ color: f.color }} />
+                            style={{ background: `${color}22` }}>
+                            <Icon className="h-4 w-4" style={{ color }} />
                           </div>
-                          <div className="text-[11px] font-bold text-white leading-tight mb-0.5">{f.title}</div>
-                          <div className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.4)" }}>{f.desc}</div>
+                          <div className="text-[11px] font-bold text-white leading-tight mb-0.5">{t(`features.${fKey}.title`)}</div>
+                          <div className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.4)" }}>{t(`features.${fKey}.desc`)}</div>
                         </motion.div>
                       )
                     })}
@@ -311,18 +285,13 @@ export function WelcomeModal() {
                     style={{ background: "linear-gradient(135deg, rgba(133,173,255,0.1) 0%, rgba(172,137,255,0.06) 100%)", border: "1px solid rgba(133,173,255,0.22)" }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Gift className="h-4 w-4" style={{ color: "#85adff" }} />
-                      <span className="text-sm font-bold" style={{ color: "#85adff" }}>Бесплатно навсегда</span>
+                      <span className="text-sm font-bold" style={{ color: "#85adff" }}>{t("freeTierTitle")}</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      {[
-                        "10 генераций маршрутов каждый месяц",
-                        "Доступ к генераторам маршрутов и чату",
-                        "Сохранение маршрута в профиле",
-                        "Все ссылки на бронирование",
-                      ].map(item => (
-                        <div key={item} className="flex items-center gap-2">
+                      {(["generations", "access", "save", "links"] as const).map(key => (
+                        <div key={key} className="flex items-center gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#85adff" }} />
-                          <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{item}</span>
+                          <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{t(`freeTier.${key}`)}</span>
                         </div>
                       ))}
                     </div>
@@ -330,7 +299,7 @@ export function WelcomeModal() {
 
                   <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
                     <PrimaryButton onClick={start}>
-                      <Sparkles className="h-4 w-4" /> Начать планировать <ArrowRight className="h-4 w-4" />
+                      <Sparkles className="h-4 w-4" /> {t("finish")} <ArrowRight className="h-4 w-4" />
                     </PrimaryButton>
                   </motion.div>
                 </motion.div>

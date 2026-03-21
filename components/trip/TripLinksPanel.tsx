@@ -7,7 +7,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
+import { normalizeTravelMode, type TravelMode } from "@/lib/travel-mode"
 
 type ActivityType = "transport" | "food" | "hotel" | "activity"
 
@@ -309,6 +310,7 @@ function RegularCard({
 /* ─── Section accordion ─── */
 function CategorySection({
   typeKey, items, isOpen, onToggle, onGoToDay, cat, t,
+  travelMode,
 }: {
   typeKey: ActivityType
   items: LinkItem[]
@@ -317,6 +319,7 @@ function CategorySection({
   onGoToDay?: (day: number) => void
   cat: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }>
   t: (key: string) => string
+  travelMode: TravelMode
 }) {
   if (!items.length) return null
   const { label, icon: Icon, accent } = cat[typeKey]
@@ -362,7 +365,10 @@ function CategorySection({
           >
             <div className="space-y-3 pb-4">
               {items.map((item, i) => {
-                const isFlightLike = typeKey === "transport" && /авиа|рейс|перелёт|перелет|flight|вылет|прилёт/i.test(item.activityTitle)
+                const isFlightLike =
+                  travelMode === "flight" &&
+                  typeKey === "transport" &&
+                  /авиа|рейс|перелёт|перелет|flight|вылет|прилёт|прилет/i.test(item.activityTitle)
                 if (isFlightLike) {
                   return <FlightCard key={i} item={item} onGoToDay={onGoToDay} t={t} />
                 }
@@ -378,6 +384,85 @@ function CategorySection({
   )
 }
 
+/* ─── Quick external tools (travelMode from /plan) ─── */
+function TripQuickLinks({ route, travelMode }: { route: any; travelMode: TravelMode }) {
+  const t = useTranslations("links")
+  const locale = useLocale()
+  const from = String(route?.departure_city || route?.departureCity || "").trim()
+  const firstAct = route?.itinerary?.[0]?.activities?.find((a: { placeName?: string; title?: string }) => a.placeName || a.title)
+  const to = String(firstAct?.placeName || firstAct?.title || route?.destination || "").trim()
+  const mapsDir =
+    from && to
+      ? `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`
+      : "https://www.google.com/maps"
+
+  const aviasales = locale === "en" ? "https://www.aviasales.com/" : "https://www.aviasales.ru/"
+  const skyscanner = "https://www.skyscanner.com/"
+
+  const pillStyle =
+    "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border"
+  const pillDefault = "border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:border-white/20"
+
+  if (travelMode === "flight") {
+    return (
+      <div className="flex flex-wrap gap-2 pb-4 -mt-1">
+        <span className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">{t("quick.title")}</span>
+        <a href={aviasales} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          <Plane className="w-3.5 h-3.5 text-[#85adff]" />
+          {t("quick.aviasales")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+        <a href={skyscanner} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          {t("quick.skyscanner")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+        <a href={mapsDir} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          <Compass className="w-3.5 h-3.5 text-[#85adff]" />
+          {t("quick.mapsRoute")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+      </div>
+    )
+  }
+  if (travelMode === "train") {
+    return (
+      <div className="flex flex-wrap gap-2 pb-4 -mt-1">
+        <span className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">{t("quick.title")}</span>
+        <a href="https://ticket.rzd.ru/" target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          <Train className="w-3.5 h-3.5 text-[#85adff]" />
+          {t("quick.rzd")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+        <a href="https://travel.yandex.ru/trains/" target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          <Train className="w-3.5 h-3.5 text-[#85adff]" />
+          {t("quick.yandexTrains")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+        <a href={mapsDir} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+          <Compass className="w-3.5 h-3.5 text-[#85adff]" />
+          {t("quick.mapsRoute")}
+          <ExternalLink className="w-3 h-3 opacity-40" />
+        </a>
+      </div>
+    )
+  }
+  return (
+    <div className="flex flex-wrap gap-2 pb-4 -mt-1">
+      <span className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">{t("quick.title")}</span>
+      <a href={mapsDir} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+        <Car className="w-3.5 h-3.5 text-[#85adff]" />
+        {t("quick.mapsRoute")}
+        <ExternalLink className="w-3 h-3 opacity-40" />
+      </a>
+      <a href="https://www.booking.com/cars/index.html" target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+        <Car className="w-3.5 h-3.5 text-[#85adff]" />
+        {t("quick.carRental")}
+        <ExternalLink className="w-3 h-3 opacity-40" />
+      </a>
+    </div>
+  )
+}
+
 /* ─── Main ─── */
 interface Props {
   route: any
@@ -386,9 +471,17 @@ interface Props {
 
 export function TripLinksPanel({ route, onGoToDay }: Props) {
   const t = useTranslations("links")
+  const travelMode = normalizeTravelMode(route?.travelMode ?? route?.travel_mode)
+
+  const TransportIcon = travelMode === "train" ? Train : travelMode === "car" ? Car : Plane
+  const transportSectionLabel = {
+    flight: t("transportByMode.flight"),
+    train: t("transportByMode.train"),
+    car: t("transportByMode.car"),
+  }[travelMode]
 
   const CAT: Record<ActivityType, { label: string; icon: any; accent: string; dim: string }> = {
-    transport: { label: t("transport"), icon: Plane, accent: "#85adff", dim: "rgba(133,173,255,0.12)" },
+    transport: { label: transportSectionLabel, icon: TransportIcon, accent: "#85adff", dim: "rgba(133,173,255,0.12)" },
     hotel:     { label: t("accommodation"), icon: HotelIcon, accent: "#ac89ff", dim: "rgba(172,137,255,0.12)" },
     food:      { label: t("restaurants"), icon: Utensils, accent: "#34d399", dim: "rgba(52,211,153,0.12)" },
     activity:  { label: t("activities"), icon: Ticket, accent: "#fbbf24", dim: "rgba(251,191,36,0.12)" },
@@ -458,6 +551,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
 
   return (
     <div className="space-y-1">
+      <TripQuickLinks route={route} travelMode={travelMode} />
       {TYPE_ORDER.map(key => (
         <CategorySection
           key={key}
@@ -468,6 +562,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           onGoToDay={onGoToDay}
           cat={CAT}
           t={t}
+          travelMode={travelMode}
         />
       ))}
     </div>

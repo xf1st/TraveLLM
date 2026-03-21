@@ -17,7 +17,7 @@ interface MapControlsProps {
 
 export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, onOpenSettings, onOpenBudget }: MapControlsProps) {
   const buttons = [
-    { icon: Bot, label: "AI-гид", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE", hintId: "map-ai-guide", hint: "AI-помощник подскажет по маршруту" },
+    { icon: Bot, label: "AI-ассистент", onClick: onOpenAI, color: "text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]", show: viewState === "ACTIVE", hintId: "map-ai-guide", hint: "AI-помощник подскажет по маршруту" },
     { icon: Wallet, label: "Бюджет", onClick: onOpenBudget, color: "text-emerald-400", show: viewState === "ACTIVE", hintId: "", hint: "" },
     { icon: viewState === "ACTIVE" ? FileText : Navigation, label: viewState === "ACTIVE" ? "Маршрут" : "Открыть маршрут", onClick: onOpenRoute, color: "text-blue-400", show: true, hintId: "map-open-route", hint: "Выберите маршрут для отображения на карте" },
     { icon: Navigation, label: "Рядом", onClick: onOpenNearby, color: "text-amber-400", show: viewState === "ACTIVE", hintId: "map-nearby", hint: "Найти кафе, аптеки и достопримечательности рядом" },
@@ -35,7 +35,7 @@ export function MapControls({ viewState, onOpenAI, onOpenRoute, onOpenNearby, on
                   variant="secondary"
                   size="icon"
                   className={`h-12 w-12 md:h-12 md:w-12 rounded-full backdrop-blur-md border hover:scale-110 transition-all font-bold group shadow-lg ${
-                    btn.label === "AI-гид"
+                    btn.label === "AI-ассистент"
                       ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)] animate-[pulse_3s_ease-in-out_infinite]"
                       : "bg-black/40 border-white/10 hover:bg-white/10"
                   }`}

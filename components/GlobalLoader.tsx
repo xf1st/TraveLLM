@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 export function GlobalLoader() {
+  const t = useTranslations("common")
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Small delay to ensure styles, fonts and animations are ready
     const timer = setTimeout(() => {
       setLoading(false)
     }, 600)
@@ -27,7 +28,7 @@ export function GlobalLoader() {
           <Loader2 className="h-12 w-12 animate-spin text-primary relative z-10" />
         </div>
         <p className="text-sm font-medium text-muted-foreground animate-pulse tracking-wide">
-          Загрузка TraveLLM...
+          {t("loadingApp")}
         </p>
       </div>
     </div>

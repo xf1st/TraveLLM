@@ -4,11 +4,12 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Map, Compass, Plane, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 export type Achievement = {
   id: string
-  title: string
-  description: string
+  titleKey: string
+  descKey: string
   icon: any
   condition: (stats: { countries: number; trips: number; weeks: number }) => boolean
   color: string
@@ -17,40 +18,40 @@ export type Achievement = {
 export const ACHIEVEMENTS: Achievement[] = [
   {
     id: "first_step",
-    title: "Первый шаг",
-    description: "Посетите свою первую страну",
+    titleKey: "firstStep",
+    descKey: "firstStepDesc",
     icon: Compass,
     condition: (stats) => stats.countries >= 1,
     color: "bg-blue-500",
   },
   {
     id: "explorer",
-    title: "Исследователь",
-    description: "Посетите 5 стран",
+    titleKey: "explorer",
+    descKey: "explorerDesc",
     icon: Map,
     condition: (stats) => stats.countries >= 5,
     color: "bg-emerald-500",
   },
   {
     id: "globetrotter",
-    title: "Гражданин мира",
-    description: "Посетите 10 стран",
+    titleKey: "globetrotter",
+    descKey: "globetrotterDesc",
     icon: Plane,
     condition: (stats) => stats.countries >= 10,
     color: "bg-purple-500",
   },
   {
     id: "traveler",
-    title: "Путешественник",
-    description: "Завершите 3 маршрута",
+    titleKey: "traveler",
+    descKey: "travelerDesc",
     icon: Plane,
     condition: (stats) => stats.trips >= 3,
     color: "bg-orange-500",
   },
   {
     id: "expert",
-    title: "Эксперт",
-    description: "Завершите 10 маршрутов",
+    titleKey: "expert",
+    descKey: "expertDesc",
     icon: Star,
     condition: (stats) => stats.trips >= 10,
     color: "bg-yellow-500",
@@ -63,6 +64,7 @@ interface AchievementsProps {
 }
 
 export default function Achievements({ visitedCountries, completedTripsCount }: AchievementsProps) {
+  const t = useTranslations("profile.achievement")
   const stats = {
     countries: visitedCountries.length,
     trips: completedTripsCount,
@@ -88,11 +90,11 @@ export default function Achievements({ visitedCountries, completedTripsCount }: 
                 {isUnlocked ? <Icon className="h-6 w-6 text-white" /> : <Lock className="h-6 w-6 text-zinc-500" />}
               </div>
               <div>
-                <h3 className={cn("font-bold mb-1 transition", isUnlocked ? "text-foreground" : "text-muted-foreground blur-[3px] select-none")}>{achievement.title}</h3>
-                <p className={cn("text-xs text-muted-foreground leading-snug transition", !isUnlocked && "blur-[3px] select-none")}>{achievement.description}</p>
+                <h3 className={cn("font-bold mb-1 transition", isUnlocked ? "text-foreground" : "text-muted-foreground blur-[3px] select-none")}>{t(achievement.titleKey)}</h3>
+                <p className={cn("text-xs text-muted-foreground leading-snug transition", !isUnlocked && "blur-[3px] select-none")}>{t(achievement.descKey)}</p>
                 {isUnlocked && (
                   <Badge variant="secondary" className="mt-2 text-[10px] h-5 bg-primary/10 text-primary border-primary/20">
-                    Получено
+                    {t("unlocked")}
                   </Badge>
                 )}
               </div>

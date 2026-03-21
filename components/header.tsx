@@ -126,7 +126,7 @@ export function Header({ floating = false }: HeaderProps) {
         window.location.href = "/"
       }, 1000)
     } catch (error) {
-      toast.error("Произошла ошибка при выходе")
+      toast.error(t("signOutError"))
       console.error("Logout error:", error)
     }
   }
@@ -146,7 +146,9 @@ export function Header({ floating = false }: HeaderProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <Logo size={28} />
-            <span className="text-sm font-semibold tracking-tight hidden sm:block">TraveLLM</span>
+            <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:block">
+              TraveLLM
+            </span>
           </Link>
 
           {/* Navigation - Desktop */}

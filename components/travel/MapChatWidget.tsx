@@ -161,7 +161,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
     role: m.role as "user" | "assistant",
     content: m.content
   })) : [
-    { role: "assistant", content: "Привет! 👋 Я твой локал-гид. Спрашивай что угодно про место, где мы сейчас, или жми быстрые вопросы внизу!" },
+    { role: "assistant", content: "Привет! 👋 Я твой локальный ассистент. Спрашивай что угодно про место, где мы сейчас, или жми быстрые вопросы внизу!" },
   ]
 
   const [input, setInput] = useState("")
@@ -243,7 +243,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
             <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-20" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-white uppercase opacity-90">Локал Гид</span>
+          <span className="font-bold text-sm tracking-tight text-white uppercase opacity-90">AI Ассистент</span>
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -289,7 +289,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/80 z-50 backdrop-blur-md" />
         <Drawer.Content className="bg-zinc-950/98 border-t border-white/20 flex flex-col rounded-t-[2.5rem] h-[88vh] fixed bottom-0 left-0 right-0 z-50 outline-none pb-[env(safe-area-inset-bottom)]">
-          <Drawer.Title className="sr-only">AI Гид</Drawer.Title>
+          <Drawer.Title className="sr-only">AI Ассистент</Drawer.Title>
           <Drawer.Description className="sr-only">Чат-помощник по маршруту и текущим активностям.</Drawer.Description>
 
           <div className="p-4 flex-1 flex flex-col min-h-0">
@@ -299,7 +299,7 @@ export function MapChatWidget({ onClose, userLocation, currentActivity, currentD
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20">
                   <Sparkles className="h-4 w-4 text-emerald-400" />
                 </div>
-                <span className="text-lg font-bold tracking-tight">AI Локал Гид</span>
+                <span className="text-lg font-bold tracking-tight">AI AI Ассистент</span>
               </div>
               <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 rounded-2xl bg-white/5 text-zinc-400 hover:text-red-400" title="Закрыть">
                 <X className="h-5 w-5" />

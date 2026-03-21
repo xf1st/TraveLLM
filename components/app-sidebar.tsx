@@ -229,7 +229,9 @@ export function AppSidebar() {
                 )}>
                     <Logo size={40} className="shrink-0" />
                     {!isCollapsed && (
-                        <span className="text-xl font-semibold tracking-tight">TraveLLM</span>
+                        <span className="text-xl font-semibold tracking-tight text-foreground">
+                            TraveLLM
+                        </span>
                     )}
                 </Link>
                 {!isCollapsed && (
@@ -466,10 +468,10 @@ export function AppSidebar() {
                                     </Avatar>
                                     {!isCollapsed && (
                                         <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-sm font-medium truncate">
+                                            <p className="text-sm font-medium truncate text-foreground">
                                                 {userData?.full_name || user.user_metadata?.full_name || tCommon("traveler")}
                                             </p>
-                                            <p className="text-xs text-muted-foreground truncate">
+                                            <p className="text-xs truncate text-muted-foreground dark:text-zinc-300">
                                                 {user.email}
                                             </p>
                                         </div>

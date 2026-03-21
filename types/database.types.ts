@@ -203,6 +203,7 @@ export interface Database {
                     tags: string[] | null
                     title: string
                     total_cost: string | null
+                    travel_mode: string | null
                     updated_at: string
                     user_id: string | null
                     visa_advice: Json | null
@@ -228,6 +229,7 @@ export interface Database {
                     tags?: string[] | null
                     title: string
                     total_cost?: string | null
+                    travel_mode?: string | null
                     updated_at?: string
                     user_id?: string | null
                     visa_advice?: Json | null
@@ -253,6 +255,7 @@ export interface Database {
                     tags?: string[] | null
                     title?: string
                     total_cost?: string | null
+                    travel_mode?: string | null
                     updated_at?: string
                     user_id?: string | null
                     visa_advice?: Json | null

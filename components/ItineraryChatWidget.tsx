@@ -1,19 +1,21 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Send, Sparkles, ChevronDown, Plane, Hotel as HotelIcon, ExternalLink } from "lucide-react"
+import { Send, Sparkles, ChevronDown, Plane, Hotel as HotelIcon, ExternalLink, ImagePlus, X } from "lucide-react"
+import { LinkifyMessage } from "@/components/linkify-message"
+import { resizeImageFileToJpeg } from "@/lib/chat-image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useChat } from "@/lib/context/chat-context"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 type Message = {
   role: "user" | "assistant"
   content: string
   isModification?: boolean
+  imageCount?: number
   bookingData?: {
     type: "flight" | "hotel"
     query?: string
@@ -59,7 +61,6 @@ export function ItineraryChatWidget({
   const [isOpen, setIsOpen] = useState(embedded)
 
   const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
-  const router = useRouter()
 
   const tripTitle = tripDetails?.title || itinerary?.title || t("myItinerary")
   const existingSession = sessions.find(s => s.draftTrip?.title === tripTitle || s.title === tripTitle || s.tripId === tripId)
@@ -68,6 +69,7 @@ export function ItineraryChatWidget({
     role: m.role as "user" | "assistant",
     content: m.content,
     isModification: m.metadata?.isModification,
+    imageCount: m.metadata?.imageCount,
     bookingData: m.metadata?.bookingData
   })) : [
     {
@@ -79,8 +81,10 @@ export function ItineraryChatWidget({
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [pendingImages, setPendingImages] = useState<File[]>([])
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const scrollToBottom = () => {
     if (scrollContainerRef.current) {
@@ -112,38 +116,80 @@ export function ItineraryChatWidget({
     return () => window.removeEventListener("trip-ai-prefill", handlePrefill)
   }, [])
 
+  const handlePickImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"))
+    if (files.length === 0) return
+    const max = 3
+    setPendingImages((prev) => {
+      const next = [...prev, ...files].slice(0, max)
+      return next
+    })
+    e.target.value = ""
+  }
+
+  const removePendingImage = (idx: number) => {
+    setPendingImages((prev) => prev.filter((_, i) => i !== idx))
+  }
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+    if ((!input.trim() && pendingImages.length === 0) || isLoading) return
 
     let sessionId = existingSession?.id
     if (!sessionId) {
-        sessionId = createSession(input)
+        sessionId = createSession(input || t("photoMessageFallback"))
         updateSession(sessionId, { title: tripTitle, draftTrip: tripDetails || { itinerary }, tripId })
     }
     
     setActiveSessionId(sessionId)
 
-    const userMessage = input
+    const userMessage = input.trim() || (pendingImages.length ? t("photoMessageFallback") : "")
+    const imagesToSend = [...pendingImages]
     setInput("")
+    setPendingImages([])
     
     if (sessionId) {
-      addMessage(sessionId, { role: "user", content: userMessage })
+      addMessage(sessionId, {
+        role: "user",
+        content: userMessage,
+        ...(imagesToSend.length
+          ? { metadata: { imageCount: imagesToSend.length } }
+          : {}),
+      })
     }
     
     setIsLoading(true)
     onModifying?.(true)
 
     try {
-      const response = await fetch("/api/trip-assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tripData: tripDetails || { itinerary },
-          userMessage,
-          tripId,
-          userLocation,
-        }),
-      })
+      const tripPayload = tripDetails || { itinerary }
+      let response: Response
+
+      if (imagesToSend.length > 0) {
+        const form = new FormData()
+        form.append("tripData", JSON.stringify(tripPayload))
+        form.append("userMessage", userMessage)
+        if (tripId) form.append("tripId", tripId)
+        if (userLocation) form.append("userLocation", JSON.stringify(userLocation))
+        for (let i = 0; i < imagesToSend.length; i++) {
+          const blob = await resizeImageFileToJpeg(imagesToSend[i])
+          form.append("images", blob, `photo-${i}.jpg`)
+        }
+        response = await fetch("/api/trip-assistant", {
+          method: "POST",
+          body: form,
+        })
+      } else {
+        response = await fetch("/api/trip-assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tripData: tripPayload,
+            userMessage,
+            tripId,
+            userLocation,
+          }),
+        })
+      }
 
       if (!response.ok) {
         throw new Error(`${t("serverError")} (${response.status})`)
@@ -300,7 +346,19 @@ export function ItineraryChatWidget({
                     ? "bg-white/[0.06] border border-white/[0.08] text-white/90 rounded-tl-sm"
                     : "bg-slate-100 border border-slate-200/80 text-slate-800 dark:bg-white/[0.05] dark:border-white/[0.07] dark:text-white/90 rounded-tl-sm"
               )}>
-                <div className="whitespace-pre-wrap">{msg.content}</div>
+                {msg.role === "assistant" ? (
+                  <LinkifyMessage
+                    text={msg.content}
+                    linkClassName={embedded ? "text-sky-300" : undefined}
+                  />
+                ) : (
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                )}
+                {msg.role === "user" && (msg.imageCount ?? 0) > 0 && (
+                  <div className="mt-1 text-[10px] opacity-80">
+                    {t("chatPhotosAttached", { count: msg.imageCount! })}
+                  </div>
+                )}
 
                 {msg.isModification && (
                   <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-1.5">
@@ -394,7 +452,55 @@ export function ItineraryChatWidget({
             ? "border-t border-white/[0.07]"
             : "border-t border-slate-200/70 dark:border-white/[0.06] bg-gradient-to-r from-slate-50/90 to-white/60 dark:from-white/[0.02] dark:to-transparent"
         )}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handlePickImages}
+          />
+          {pendingImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2 px-1">
+              {pendingImages.map((file, idx) => (
+                <div
+                  key={`${file.name}-${idx}`}
+                  className={cn(
+                    "relative flex items-center gap-1.5 pl-2 pr-7 py-1 rounded-lg text-[11px] border",
+                    embedded
+                      ? "bg-white/[0.06] border-white/[0.1] text-white/80"
+                      : "bg-slate-50 border-slate-200 text-slate-600 dark:bg-white/[0.04] dark:border-white/[0.08] dark:text-white/70"
+                  )}
+                >
+                  <span className="truncate max-w-[120px]">{file.name}</span>
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-black/10"
+                    onClick={() => removePendingImage(idx)}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <form onSubmit={(e) => { e.preventDefault(); handleSend() }} className="flex gap-2 items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isLoading || pendingImages.length >= 3}
+              className={cn(
+                "h-10 w-10 rounded-full flex-shrink-0 p-0",
+                embedded
+                  ? "text-white/50 hover:text-white hover:bg-white/10"
+                  : "text-slate-500 hover:text-slate-800 dark:text-white/40"
+              )}
+              onClick={() => fileInputRef.current?.click()}
+              title={t("attachPhoto")}
+            >
+              <ImagePlus className="h-5 w-5" />
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -410,7 +516,7 @@ export function ItineraryChatWidget({
             <Button
               id="chat-send-btn"
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || (!input.trim() && pendingImages.length === 0)}
               size="sm"
               className="h-10 w-10 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-lg shadow-sky-600/30 disabled:opacity-30 disabled:shadow-none transition-all flex-shrink-0 p-0"
             >

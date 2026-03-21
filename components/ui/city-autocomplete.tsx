@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 interface CityAutocompleteProps {
     value: string
@@ -85,11 +86,12 @@ function getCuratedMatches(query: string): { label: string; value: string }[] {
 export function CityAutocomplete({
     value,
     onValueChange,
-    placeholder = "Выберите город...",
+    placeholder,
     className,
     disabled,
     multiselect = false
 }: CityAutocompleteProps) {
+    const t = useTranslations("citySearch")
     const [open, setOpen] = React.useState(false)
     const [inputValue, setInputValue] = React.useState("")
     const [apiOptions, setApiOptions] = React.useState<{ label: string; value: string }[]>([])
@@ -186,13 +188,13 @@ export function CityAutocomplete({
                         role="combobox"
                         aria-expanded={open}
                         className={cn(
-                            "w-full justify-between text-left font-normal h-auto min-h-[48px] py-3 text-base border",
+                            "w-full justify-between gap-2 text-left font-normal h-auto min-h-[48px] py-3 text-base border",
                             !value && "text-muted-foreground",
                             className
                         )}
                         disabled={disabled}
                     >
-                        <div className="flex flex-wrap gap-2 items-center">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                             {selectedValues.length > 0 ? (
                                 multiselect ? (
                                     selectedValues.map((val, idx) => (
@@ -223,22 +225,22 @@ export function CityAutocomplete({
                 <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
                     <Command shouldFilter={false}>
                         <CommandInput
-                            placeholder="Поиск... (Ru/En)"
+                            placeholder={t("placeholder")}
                             value={inputValue}
                             onValueChange={setInputValue}
                         />
                         <CommandList>
                             {loading && (
                                 <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" /> Поиск...
+                                    <Loader2 className="h-4 w-4 animate-spin" /> {t("loading")}
                                 </div>
                             )}
                             {!loading && options.length === 0 && inputValue.length > 1 && (
-                                <CommandEmpty>Не найдено. Попробуйте на английском.</CommandEmpty>
+                                <CommandEmpty>{t("notFound")}</CommandEmpty>
                             )}
                             {!loading && inputValue.length < 2 && (
                                 <div className="py-6 text-center text-sm text-muted-foreground">
-                                    Введите название (Ru/En)
+                                    {placeholder ?? t("enterName")}
                                 </div>
                             )}
                             <CommandGroup>

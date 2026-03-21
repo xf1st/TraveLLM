@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/route-pipeline"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { buildEnrichedPrompt } from "@/lib/prompt-builder"
+import { normalizeTravelMode } from "@/lib/travel-mode"
 import { type RouteData } from "@/types/itinerary"
 
 export const maxDuration = 60;
@@ -54,11 +55,14 @@ export async function POST(req: Request) {
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, customDestination,
-            customBudget, travelers, filterByDocuments, tripHighlight, strictDestinations, locale
+            customBudget, travelers, filterByDocuments, tripHighlight, tripVibe, strictDestinations, locale,
+            travelMode: travelModeBody,
         } = body
         const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
+        const travelMode = normalizeTravelMode(travelModeBody)
 
         const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
+        const safeTripVibe = tripVibe ? String(tripVibe).replace(/"/g, "'").slice(0, 2000) : ''
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
         const durationDays = startDate && endDate
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
@@ -107,9 +111,15 @@ export async function POST(req: Request) {
 
         if (destinations.length > 0) {
             try {
-                const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
-                if (flightCheck.hasDirect) dynamicContextStr += `\n🛫 Прямые рейсы доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
-                else dynamicContextStr += `\n🚆 Прямых рейсов нет, используй поезд или пересадку.`
+                if (travelMode === "flight") {
+                    const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
+                    if (flightCheck.hasDirect) dynamicContextStr += `\n🛫 Прямые рейсы доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
+                    else dynamicContextStr += `\n🚆 Прямых рейсов нет, используй поезд или пересадку.`
+                } else if (travelMode === "train") {
+                    dynamicContextStr += `\n🚆 РЕЖИМ МАРШРУТА: пользователь выбрал ж/д как основной транспорт — не навязывай авиа без необходимости.`
+                } else {
+                    dynamicContextStr += `\n🚗 РЕЖИМ МАРШРУТА: пользователь выбрал автопутешествие — планируй переезды на машине; авиа только если дорога нереалистична.`
+                }
                 const searchContext = await collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate)
                 if (searchContext) dynamicContextStr += searchContext
             } catch (e) { console.error("[Pre-Check Error]", e) }
@@ -120,7 +130,8 @@ export async function POST(req: Request) {
             departureCity: effectiveDepartureCity, destinations, startDate, endDate,
             budget: budgetCap, adjustedBudget, budgetDesc, travelStyle: toArray(travelStyle),
             companions, travelers: parseInt(travelers) || 2, preferences, dynamicContextStr,
-            warningsStr, safeHighlight, destinationType, strictDestinations, countryCount, filterByDocuments
+            warningsStr, safeHighlight, tripVibe: safeTripVibe || undefined, destinationType, strictDestinations, countryCount, filterByDocuments,
+            travelMode,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched

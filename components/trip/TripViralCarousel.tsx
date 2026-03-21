@@ -1,8 +1,9 @@
-﻿"use client"
+"use client"
 
 import { useMemo, useState } from "react"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface ViralSpot {
   name: string
@@ -17,6 +18,7 @@ interface TripViralCarouselProps {
 }
 
 export function TripViralCarousel({ spots, destination }: TripViralCarouselProps) {
+  const t = useTranslations("viral")
   const [expanded, setExpanded] = useState(false)
 
   const normalizedSpots = useMemo(
@@ -25,9 +27,9 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
         .filter((spot) => spot?.name)
         .map((spot) => ({
           ...spot,
-          text: spot.description || spot.desc || "Популярная локация из соцсетей",
+          text: spot.description || spot.desc || t("defaultDesc"),
         })),
-    [spots]
+    [spots, t]
   )
 
   if (normalizedSpots.length === 0) return null
@@ -38,14 +40,14 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
     <div className="trip-glass p-6 rounded-[2rem] shadow-lg">
       <div className="flex justify-between items-center mb-4">
         <h4 className="text-xs font-bold text-pink-600 dark:text-pink-300 uppercase tracking-widest opacity-90">
-          TikTok места
+          {t("title")}
         </h4>
         {normalizedSpots.length > 4 ? (
           <button
             onClick={() => setExpanded((v) => !v)}
             className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/60 hover:text-sky-600 dark:hover:text-white transition-colors inline-flex items-center gap-1"
           >
-            {expanded ? "Свернуть" : "Показать все"}
+            {expanded ? t("collapse") : t("seeAll")}
             <span className={cn("material-symbols-outlined text-sm transition-transform", expanded && "rotate-90")}>arrow_forward</span>
           </button>
         ) : (
@@ -78,7 +80,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
                 className="w-full py-2 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/40 dark:border-white/30 text-white text-[10px] font-bold rounded-xl hover:bg-white/30 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
               >
                 <span className="material-symbols-outlined text-xs">map</span>
-                На карте
+                {t("onMap")}
               </button>
             </div>
           </div>

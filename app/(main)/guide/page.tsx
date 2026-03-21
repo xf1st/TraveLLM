@@ -34,7 +34,7 @@ export default function GuidePage() {
     return (
         <Suspense fallback={
             <div className="flex h-screen items-center justify-center bg-background">
-                <PremiumLoader text="Загружаем гид..." />
+                <PremiumLoader text="Загружаем ассистент..." />
             </div>
         }>
             <GuidePageContent />
@@ -407,7 +407,7 @@ function GuidePageContent() {
                                 Ваше умное <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">путешествие</span>
                             </h1>
                             <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-                                Гид, который знает ваш маршрут, подскажет лучшие места и поможет в любой ситуации. Выберите поездку, чтобы начать.
+                                Ассистент, который знает ваш маршрут, подскажет лучшие места и поможет в любой ситуации. Выберите поездку, чтобы начать.
                             </p>
                         </div>
 
@@ -487,7 +487,7 @@ function GuidePageContent() {
                                         <Compass className="w-8 h-8 text-zinc-500" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">У вас пока нет маршрутов</h3>
-                                    <p className="text-zinc-400 mb-8 max-w-md mx-auto">Создайте свой первый идеальный маршрут, и я стану вашим личным гидом!</p>
+                                    <p className="text-zinc-400 mb-8 max-w-md mx-auto">Создайте свой первый идеальный маршрут, и я стану вашим личным ассистентом!</p>
                                     <Button asChild size="lg" className="rounded-full bg-white text-black hover:bg-white/90 font-bold px-8 h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                                         <Link href="/plan"><Sparkles className="w-4 h-4 mr-2 text-purple-500" /> Создать маршрут</Link>
                                     </Button>
@@ -900,7 +900,7 @@ function GuidePageContent() {
                     <MobileDrawer
                         isOpen={activeDrawer === "chat"}
                         onClose={() => setActiveDrawer('none')}
-                        title="AI Гид"
+                        title="AI Ассистент"
                         className="h-[70vh] pb-8"
                     >
                         <GuideChatWidget tripContext={chatContext} />

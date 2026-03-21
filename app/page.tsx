@@ -17,6 +17,7 @@ import { VideoText } from "@/components/ui/video-text"
 import { FloatingIcons } from "@/components/FloatingIcons"
 import { ItineraryPreview } from "@/components/landing/ItineraryPreview"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 // Animated counter
 function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
@@ -45,6 +46,7 @@ const fadeUp = {
 }
 
 export default function LandingPage() {
+  const t = useTranslations("landing")
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
@@ -90,7 +92,7 @@ export default function LandingPage() {
           {/* Eyebrow */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0}>
             <Badge variant="outline" className="mb-8 px-4 py-1.5 rounded-full border-white/20 bg-white/10 text-white text-xs font-semibold tracking-widest uppercase gap-2 backdrop-blur-md shadow-lg shadow-black/20">
-              <Sparkles className="w-3 h-3 text-sky-400" /> AI-планировщик путешествий
+              <Sparkles className="w-3 h-3 text-sky-400" /> {t("hero.badge")}
             </Badge>
           </motion.div>
 
@@ -99,11 +101,11 @@ export default function LandingPage() {
             variants={fadeUp} initial="hidden" animate="show" custom={2}
             className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-white"
           >
-            <span className="drop-shadow-2xl">TraveLLM</span>
+            <span className="drop-shadow-2xl">{t("hero.headline1")}</span>
             <br />
-            Полный маршрут{" "}
+            {t("hero.headline2")}{" "}
             <span className="bg-gradient-to-r from-sky-400 via-blue-400 to-violet-400 bg-clip-text text-transparent drop-shadow-sm">
-              за 60 секунд
+              {t("hero.headline2Accent")}
             </span>
           </motion.h1>
 
@@ -111,27 +113,26 @@ export default function LandingPage() {
             variants={fadeUp} initial="hidden" animate="show" custom={3}
             className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 leading-relaxed drop-shadow-md"
           >
-            Скажите куда хотите — AI сгенерирует маршрут по дням, найдёт рейсы и отели,
-            покажет на карте и ответит на любой вопрос в чате.
+            {t("hero.subtitle")}
           </motion.p>
 
           {/* CTA */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="flex flex-col sm:flex-row gap-3 mb-14">
             <Link href="/plan">
               <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2 text-white">
-                Создать маршрут <ArrowRight className="w-4 h-4" />
+                {t("hero.ctaCreate")} <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             {user ? (
               <Link href="/trips">
                 <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
-                  Мои поездки
+                  {t("hero.ctaTrips")}
                 </Button>
               </Link>
             ) : (
               <Link href="/auth">
                 <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
-                  Войти бесплатно
+                  {t("hero.ctaSignIn")}
                 </Button>
               </Link>
             )}
@@ -143,15 +144,15 @@ export default function LandingPage() {
             className="flex flex-wrap items-center justify-center gap-6 md:gap-10"
           >
             {[
-              { value: 1200, suffix: "+", label: "маршрутов создано" },
-              { value: 50,   suffix: "+", label: "стран в базе" },
-              { value: 20,   suffix: "+", label: "часов экономии" },
+              { value: 1200, suffix: "+", labelKey: "stat1Label" },
+              { value: 50,   suffix: "+", labelKey: "stat2Label" },
+              { value: 20,   suffix: "+", labelKey: "stat3Label" },
             ].map((s) => (
-              <div key={s.label} className="text-center">
+              <div key={s.labelKey} className="text-center">
                 <div className="text-3xl md:text-4xl font-black text-white drop-shadow-md">
                   <Counter to={s.value} suffix={s.suffix} />
                 </div>
-                <div className="text-xs text-white/60 uppercase tracking-widest mt-1 font-bold">{s.label}</div>
+                <div className="text-xs text-white/60 uppercase tracking-widest mt-1 font-bold">{t(`hero.${s.labelKey}`)}</div>
               </div>
             ))}
           </motion.div>
@@ -172,14 +173,14 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <Badge variant="outline" className="mb-4 border-sky-500/40 text-sky-500 bg-sky-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
-              Как это работает
+              {t("howItWorks.badge")}
             </Badge>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              От идеи до поездки —{" "}
-              <span className="text-primary">три шага</span>
+              {t("howItWorks.title")}{" "}
+              <span className="text-primary">{t("howItWorks.titleAccent")}</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Никаких таблиц, форумов и часов поиска. Просто опишите мечту.
+              {t("howItWorks.subtitle")}
             </p>
           </motion.div>
 
@@ -193,24 +194,24 @@ export default function LandingPage() {
                 icon: <MessageSquare className="w-6 h-6" />,
                 color: "from-sky-500/20 to-sky-500/5 border-sky-500/20",
                 iconColor: "text-sky-400",
-                title: "Опишите желание",
-                desc: "Куда летите, на сколько дней, какой бюджет, с кем едете. Можно написать всё свободным текстом — AI поймёт.",
+                titleKey: "step1Title",
+                descKey: "step1Desc",
               },
               {
                 num: "02",
                 icon: <Bot className="w-6 h-6" />,
                 color: "from-primary/20 to-primary/5 border-primary/20",
                 iconColor: "text-primary",
-                title: "AI строит план",
-                desc: "За 30–60 секунд генерируется маршрут по дням с активностями, картой, ценами на билеты и отелями.",
+                titleKey: "step2Title",
+                descKey: "step2Desc",
               },
               {
                 num: "03",
                 icon: <Globe className="w-6 h-6" />,
                 color: "from-violet-500/20 to-violet-500/5 border-violet-500/20",
                 iconColor: "text-violet-400",
-                title: "Живите моментом",
-                desc: "Открывайте маршрут прямо в путешествии. AI-гид рядом, карта работает офлайн, каждый день спланирован.",
+                titleKey: "step3Title",
+                descKey: "step3Desc",
               },
             ].map((step, i) => (
               <motion.div
@@ -225,8 +226,8 @@ export default function LandingPage() {
                 <div className={cn("w-12 h-12 rounded-2xl bg-background/60 backdrop-blur-md border border-white/10 flex items-center justify-center", step.iconColor)}>
                   {step.icon}
                 </div>
-                <h3 className="text-xl font-black">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+                <h3 className="text-xl font-black">{t(`howItWorks.${step.titleKey}`)}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t(`howItWorks.${step.descKey}`)}</p>
               </motion.div>
             ))}
           </div>
@@ -243,15 +244,14 @@ export default function LandingPage() {
             className="text-center mb-12"
           >
             <Badge variant="outline" className="mb-4 border-emerald-500/40 text-emerald-400 bg-emerald-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
-              Реальный результат
+              {t("preview.badge")}
             </Badge>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              Вот что вы получите{" "}
-              <span className="text-emerald-400">через 60 секунд</span>
+              {t("preview.title")}{" "}
+              <span className="text-emerald-400">{t("preview.titleAccent")}</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Это не макет — именно так выглядит ваш маршрут в приложении.
-              Листайте дни и изучайте план.
+              {t("preview.subtitle")}
             </p>
           </motion.div>
 
@@ -277,16 +277,16 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <Badge variant="outline" className="mb-4 border-rose-500/40 text-rose-400 bg-rose-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
-              Почему TraveLLM
+              {t("comparison.badge")}
             </Badge>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              Мы делаем то,{" "}
+              {t("comparison.title")}{" "}
               <span className="bg-gradient-to-r from-rose-400 to-orange-400 bg-clip-text text-transparent">
-                чего нет у других
+                {t("comparison.titleAccent")}
               </span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Обычные сервисы предлагают справочники. Мы строим ваш личный маршрут.
+              {t("comparison.subtitle")}
             </p>
           </motion.div>
 
@@ -296,37 +296,37 @@ export default function LandingPage() {
           >
             {/* Table header */}
             <div className="grid grid-cols-3 border-b border-white/10">
-              <div className="p-5 text-sm font-bold text-muted-foreground">Возможность</div>
+              <div className="p-5 text-sm font-bold text-muted-foreground">{t("comparison.colFeature")}</div>
               <div className="p-5 text-center text-sm font-bold text-muted-foreground border-l border-white/10">
-                Booking / TripAdvisor / Tonkosti
+                {t("comparison.colOthers")}
               </div>
               <div className="p-5 text-center border-l border-white/10 bg-primary/8">
-                <span className="text-sm font-black text-primary">TraveLLM ✦</span>
+                <span className="text-sm font-black text-primary">{t("comparison.colUs")}</span>
               </div>
             </div>
 
             {[
-              { feat: "Полный маршрут по дням за 1 мин", them: false, us: true },
-              { feat: "AI-чат для изменения любого дня", them: false, us: true },
-              { feat: "Интерактивная карта маршрута", them: false, us: true },
-              { feat: "Погода по дням поездки", them: false, us: true },
-              { feat: "Реальные цены на авиабилеты", them: "частично", us: true },
-              { feat: "Трекер бюджета и расходов", them: false, us: true },
-              { feat: "Совместное планирование", them: false, us: true },
-              { feat: "Публичные поездки / вдохновение", them: false, us: true },
-              { feat: "AI-гид прямо на месте", them: false, us: true },
-              { feat: "Полностью на русском языке", them: "частично", us: true },
+              { featKey: "feat1", them: false, us: true },
+              { featKey: "feat2", them: false, us: true },
+              { featKey: "feat3", them: false, us: true },
+              { featKey: "feat4", them: false, us: true },
+              { featKey: "feat5", them: "partly", us: true },
+              { featKey: "feat6", them: false, us: true },
+              { featKey: "feat7", them: false, us: true },
+              { featKey: "feat8", them: false, us: true },
+              { featKey: "feat9", them: false, us: true },
+              { featKey: "feat10", them: "partly", us: true },
             ].map((row, i) => (
               <div
-                key={row.feat}
+                key={row.featKey}
                 className={cn("grid grid-cols-3 border-b border-white/5 last:border-b-0 hover:bg-white/2 transition-colors", i % 2 === 0 ? "" : "bg-white/1")}
               >
-                <div className="p-4 text-sm font-medium">{row.feat}</div>
+                <div className="p-4 text-sm font-medium">{t(`comparison.${row.featKey}`)}</div>
                 <div className="p-4 flex items-center justify-center border-l border-white/10">
                   {row.them === true ? (
                     <Check className="w-4 h-4 text-green-500" />
-                  ) : row.them === "частично" ? (
-                    <span className="text-xs text-muted-foreground font-medium">частично</span>
+                  ) : row.them === "partly" ? (
+                    <span className="text-xs text-muted-foreground font-medium">{t("comparison.partly")}</span>
                   ) : (
                     <X className="w-4 h-4 text-red-400/60" />
                   )}
@@ -350,14 +350,14 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <Badge variant="outline" className="mb-4 border-violet-500/40 text-violet-400 bg-violet-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
-              Возможности
+              {t("features.badge")}
             </Badge>
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              Всё что нужно —{" "}
-              <span className="text-violet-400">в одном месте</span>
+              {t("features.title")}{" "}
+              <span className="text-violet-400">{t("features.titleAccent")}</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              От генерации до возвращения домой — TraveLLM сопровождает вас на каждом шаге
+              {t("features.subtitle")}
             </p>
           </motion.div>
 
@@ -373,10 +373,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-5">
                 <Zap className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-2xl font-black mb-3">AI-генерация за 60 секунд</h3>
+              <h3 className="text-2xl font-black mb-3">{t("features.ai60Title")}</h3>
               <p className="text-muted-foreground leading-relaxed mb-4 max-w-md">
-                Введите направление и даты — получите полный маршрут по дням с описаниями, ценами,
-                временем и адресами. Для маршрутов 7+ дней работает посегментная генерация.
+                {t("features.ai60Desc")}
               </p>
               <div className="flex flex-wrap gap-2">
                 {["DeepSeek", "Gemini 2.5 Flash", "OpenRouter"].map(m => (
@@ -393,9 +392,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mb-4">
                 <Map className="w-6 h-6 text-sky-400" />
               </div>
-              <h3 className="text-lg font-black mb-2">Интерактивная карта</h3>
+              <h3 className="text-lg font-black mb-2">{t("features.mapTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Все точки маршрута наглядно. Места, маршруты, активности по дням.
+                {t("features.mapDesc")}
               </p>
             </motion.div>
 
@@ -406,9 +405,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center mb-4">
                 <CloudSun className="w-6 h-6 text-orange-400" />
               </div>
-              <h3 className="text-lg font-black mb-2">Погода по дням</h3>
+              <h3 className="text-lg font-black mb-2">{t("features.weatherTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Прогноз Open-Meteo для каждого дня маршрута прямо в карточке дня.
+                {t("features.weatherDesc")}
               </p>
             </motion.div>
 
@@ -419,9 +418,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-4">
                 <MessageSquare className="w-6 h-6 text-emerald-400" />
               </div>
-              <h3 className="text-lg font-black mb-2">AI-чат для изменений</h3>
+              <h3 className="text-lg font-black mb-2">{t("features.chatTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                «Замени музей на кафе в день 3» — AI моментально обновит маршрут без перегенерации.
+                {t("features.chatDesc")}
               </p>
             </motion.div>
 
@@ -432,9 +431,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center mb-4">
                 <Wallet className="w-6 h-6 text-rose-400" />
               </div>
-              <h3 className="text-lg font-black mb-2">Бюджет и расходы</h3>
+              <h3 className="text-lg font-black mb-2">{t("features.budgetTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Ведите трекер расходов во время поездки. AI-экономист предупреждает о перерасходе.
+                {t("features.budgetDesc")}
               </p>
             </motion.div>
 
@@ -447,11 +446,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mb-5">
                 <Users className="w-6 h-6 text-indigo-400" />
               </div>
-              <h3 className="text-2xl font-black mb-3">Совместное планирование и шеринг</h3>
+              <h3 className="text-2xl font-black mb-3">{t("features.socialTitle")}</h3>
               <p className="text-muted-foreground leading-relaxed max-w-md">
-                Поделитесь маршрутом с друзьями по ссылке, планируйте вместе.
-                Публичные поездки вдохновляют других путешественников.
-                Скачайте Story-карточку для Instagram и TikTok.
+                {t("features.socialDesc")}
               </p>
             </motion.div>
 
@@ -462,9 +459,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mb-4">
                 <Bot className="w-6 h-6 text-yellow-400" />
               </div>
-              <h3 className="text-lg font-black mb-2">AI-гид в реальном времени</h3>
+              <h3 className="text-lg font-black mb-2">{t("features.guideTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Задайте вопрос про текущее место — гид знает где вы и что рядом.
+                {t("features.guideDesc")}
               </p>
             </motion.div>
 
@@ -629,18 +626,18 @@ export default function LandingPage() {
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
             ))}
-            <span className="text-sm text-muted-foreground ml-2 font-medium">Сотни довольных путешественников</span>
+            <span className="text-sm text-muted-foreground ml-2 font-medium">{t("cta.stars")}</span>
           </div>
 
           <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-6">
-            Ваш следующий маршрут{" "}
+            {t("cta.title")}{" "}
             <br className="hidden md:block" />
             <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
-              уже ждёт вас
+              {t("cta.titleAccent")}
             </span>
           </h2>
           <p className="text-xl text-muted-foreground mb-10 max-w-lg mx-auto">
-            Бесплатно. Без карты. За 60 секунд.
+            {t("cta.subtitle")}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -650,16 +647,16 @@ export default function LandingPage() {
                 className="h-16 px-12 rounded-full text-lg font-black shadow-md md:shadow-2xl shadow-primary/40 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-3"
               >
                 <Route className="w-5 h-5" />
-                Создать маршрут — бесплатно
+                {t("cta.button")}
               </Button>
             </Link>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-muted-foreground">
-            {["Без регистрации карты", "Маршрут за 60 сек", "3 генерации бесплатно"].map(t => (
-              <div key={t} className="flex items-center gap-1.5">
+            {(["check1", "check2", "check3"] as const).map(key => (
+              <div key={key} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-400" />
-                {t}
+                {t(`cta.${key}`)}
               </div>
             ))}
           </div>

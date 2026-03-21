@@ -8,6 +8,7 @@ import { Search, MapPin, User, Heart, Compass, X, Globe } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export function GlobalSearch({
 }) {
   const router = useRouter()
   const { user } = useAuth()
+  const ts = useTranslations("search")
   const [query, setQuery] = useState("")
   const [state, setState] = useState<SearchState>({
     myTrips: [],
@@ -170,7 +172,7 @@ export function GlobalSearch({
           aria-describedby={undefined}
           className="fixed left-1/2 top-[12%] z-[201] w-full max-w-xl -translate-x-1/2 px-4 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
         >
-          <RadixDialog.Title className="sr-only">Поиск</RadixDialog.Title>
+          <RadixDialog.Title className="sr-only">{ts("triggerLabel")}</RadixDialog.Title>
 
           <Command
             shouldFilter={false}
@@ -188,7 +190,7 @@ export function GlobalSearch({
                 autoFocus
                 value={query}
                 onValueChange={setQuery}
-                placeholder="Поиск маршрутов, путешественников..."
+                placeholder={ts("placeholder")}
                 className="flex-1 bg-transparent py-[1.05rem] text-[14.5px] outline-none placeholder:text-muted-foreground/40 text-foreground"
               />
 
@@ -207,7 +209,7 @@ export function GlobalSearch({
               {/* My trips */}
               {state.myTrips.length > 0 && (
                 <Command.Group>
-                  <SectionLabel icon={<Compass className="w-3 h-3" />} label="Мои маршруты" />
+                  <SectionLabel icon={<Compass className="w-3 h-3" />} label={ts("myTrips")} />
                   {state.myTrips.map((trip) => (
                     <TripItem
                       key={trip.id}
@@ -222,7 +224,7 @@ export function GlobalSearch({
               {state.favorites.length > 0 && (
                 <Command.Group>
                   {state.myTrips.length > 0 && <Divider />}
-                  <SectionLabel icon={<Heart className="w-3 h-3" />} label="Избранное" />
+                  <SectionLabel icon={<Heart className="w-3 h-3" />} label={ts("favorites")} />
                   {state.favorites.map((trip) => (
                     <TripItem
                       key={`fav-${trip.id}`}
@@ -238,7 +240,7 @@ export function GlobalSearch({
               {state.people.length > 0 && (
                 <Command.Group>
                   {(state.myTrips.length > 0 || state.favorites.length > 0) && <Divider />}
-                  <SectionLabel icon={<Globe className="w-3 h-3" />} label="Путешественники" />
+                  <SectionLabel icon={<Globe className="w-3 h-3" />} label={ts("travelers")} />
                   {state.people.map((person) => (
                     <PersonItem
                       key={person.id}
@@ -258,9 +260,9 @@ export function GlobalSearch({
                         <Search className="w-5 h-5 text-muted-foreground/40" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground/60">Ничего не найдено</p>
+                        <p className="text-sm font-semibold text-foreground/60">{ts("noResults")}</p>
                         <p className="text-xs text-muted-foreground/50 mt-0.5">
-                          Нет результатов для «{query}»
+                          {ts("noResultsHint", { query })}
                         </p>
                       </div>
                     </>
@@ -270,9 +272,9 @@ export function GlobalSearch({
                         <Compass className="w-5 h-5 text-muted-foreground/40" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground/60">Начните вводить</p>
+                        <p className="text-sm font-semibold text-foreground/60">{ts("startTyping")}</p>
                         <p className="text-xs text-muted-foreground/50 mt-0.5">
-                          Поиск по маршрутам, избранному и путешественникам
+                          {ts("startTypingHint")}
                         </p>
                       </div>
                     </>
@@ -284,12 +286,12 @@ export function GlobalSearch({
             {/* ── Footer ── */}
             <div className="border-t border-black/5 dark:border-white/8 px-4 py-2 flex items-center justify-between bg-muted/20">
               <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
-                <KbdGroup keys={["↑", "↓"]} label="навигация" />
-                <KbdGroup keys={["↵"]} label="открыть" />
-                <KbdGroup keys={["Esc"]} label="закрыть" />
+                <KbdGroup keys={["↑", "↓"]} label={ts("navigate")} />
+                <KbdGroup keys={["↵"]} label={ts("open")} />
+                <KbdGroup keys={["Esc"]} label={ts("close")} />
               </div>
               <span className="text-[10px] text-muted-foreground/30 font-mono tracking-tight">
-                ⌘K — поиск
+                {ts("shortcutSearch")}
               </span>
             </div>
           </Command>
@@ -302,6 +304,7 @@ export function GlobalSearch({
 // ─── Search Trigger Button ─────────────────────────────────────────────────────
 
 export function SearchTriggerDesktop({ onClick }: { onClick: () => void }) {
+  const ts = useTranslations("search")
   return (
     <button
       onClick={onClick}
@@ -309,7 +312,7 @@ export function SearchTriggerDesktop({ onClick }: { onClick: () => void }) {
     >
       <Search className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="text-xs text-muted-foreground/70 group-hover:text-muted-foreground transition-colors hidden lg:block whitespace-nowrap">
-        Поиск...
+        {ts("triggerPlaceholder")}
       </span>
       <div className="hidden lg:flex items-center gap-0.5 ml-1">
         <kbd className="inline-flex items-center rounded border border-border/50 bg-background/60 px-1 py-px font-mono text-[9px] text-muted-foreground/60">
@@ -324,11 +327,12 @@ export function SearchTriggerDesktop({ onClick }: { onClick: () => void }) {
 }
 
 export function SearchTriggerMobile({ onClick }: { onClick: () => void }) {
+  const ts = useTranslations("search")
   return (
     <button
       onClick={onClick}
       className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-      aria-label="Поиск"
+      aria-label={ts("triggerLabel")}
     >
       <Search className="w-4 h-4" />
     </button>

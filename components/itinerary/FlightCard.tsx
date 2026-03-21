@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface FlightTransfer {
     city: string
@@ -60,25 +61,13 @@ interface FlightCardProps {
     className?: string
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
     try {
         const date = new Date(dateStr)
-        return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+        return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "short" })
     } catch {
         return dateStr
     }
-}
-
-function getTransferInfo(transfer: FlightTransfer | string | null | undefined): { isDirect: boolean; label: string; detail?: FlightTransfer } {
-    if (!transfer) return { isDirect: true, label: "Прямой" }
-    if (typeof transfer === "string") {
-        const lower = transfer.toLowerCase()
-        if (lower === "direct" || lower === "прямой" || lower === "без пересадок") {
-            return { isDirect: true, label: "Прямой" }
-        }
-        return { isDirect: false, label: transfer }
-    }
-    return { isDirect: false, label: `Пересадка в ${transfer.city}`, detail: transfer }
 }
 
 export function FlightCard({
@@ -105,6 +94,22 @@ export function FlightCard({
     approximateNote,
     className
 }: FlightCardProps) {
+    const t = useTranslations("flight")
+    const tCurr = useTranslations("currency")
+    const locale = tCurr("code") === "RUB" ? "ru" : "en"
+
+    function getTransferInfo(xfer: FlightTransfer | string | null | undefined): { isDirect: boolean; label: string; detail?: FlightTransfer } {
+        if (!xfer) return { isDirect: true, label: t("direct") }
+        if (typeof xfer === "string") {
+            const lower = xfer.toLowerCase()
+            if (lower === "direct" || lower === "прямой" || lower === "без пересадок") {
+                return { isDirect: true, label: t("direct") }
+            }
+            return { isDirect: false, label: xfer }
+        }
+        return { isDirect: false, label: t("transferAt", { city: xfer.city }), detail: xfer }
+    }
+
     const transferInfo = getTransferInfo(transfer)
 
     // Calculate per-person price if passengers > 1 and no explicit pricePerPerson
@@ -139,7 +144,7 @@ export function FlightCard({
                     <div className="flex items-center gap-1 shrink-0 ml-1">
                         {departureDate && (
                             <span className="text-[9px] text-muted-foreground">
-                                {formatDate(departureDate)}
+                                {formatDate(departureDate, locale)}
                             </span>
                         )}
                         <Badge className={cn(
@@ -148,7 +153,7 @@ export function FlightCard({
                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                 : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         )}>
-                            {transferInfo.isDirect ? "Прямой" : "Пересадка"}
+                            {transferInfo.isDirect ? t("direct") : t("transfer")}
                         </Badge>
                     </div>
                 </div>
@@ -216,23 +221,23 @@ export function FlightCard({
                                     "text-sm font-black leading-none",
                                     isApproximate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
                                 )}>
-                                    <span className="text-[9px] font-bold">{isApproximate ? "~" : "от"} </span>
+                                    <span className="text-[9px] font-bold">{isApproximate ? t("approx") : t("priceFrom")} </span>
                                     {price.toLocaleString("ru-RU")} ₽
                                 </span>
                                 {isApproximate && (
                                     <div className="flex items-center gap-0.5 text-[8px] text-amber-600 dark:text-amber-400">
                                         <AlertTriangle className="w-2 h-2" />
-                                        <span>нет на эту дату</span>
+                                        <span>{t("noFlightsDate")}</span>
                                     </div>
                                 )}
                                 {!isApproximate && perPerson && passengers && passengers > 1 && (
                                     <div className="text-[8px] text-muted-foreground">
-                                        от {perPerson.toLocaleString("ru-RU")} ₽/чел.
+                                        {t("perPerson", { price: perPerson.toLocaleString("ru-RU") })}
                                     </div>
                                 )}
                             </>
                         ) : (
-                            <span className="text-[10px] text-muted-foreground font-medium">Смотреть цены</span>
+                            <span className="text-[10px] text-muted-foreground font-medium">{t("checkPrices")}</span>
                         )}
                     </div>
                     <Button
@@ -240,7 +245,7 @@ export function FlightCard({
                         className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[9px] px-2.5 h-6 shadow-md shadow-blue-500/20 shrink-0"
                         onClick={() => window.open(buyUrl, "_blank")}
                     >
-                        {hasPriceData ? "Купить" : "Найти"}
+                        {hasPriceData ? t("buy") : t("find")}
                         <ExternalLink className="w-2 h-2 ml-0.5" />
                     </Button>
                 </div>
@@ -266,7 +271,7 @@ export function FlightCard({
                         {departureDate && (
                             <Badge variant="outline" className="rounded-lg border-blue-500/20 bg-blue-500/5 text-blue-700 dark:text-blue-300 font-medium text-xs px-2.5">
                                 <Calendar className="w-3 h-3 mr-1" />
-                                {formatDate(departureDate)}
+                                {formatDate(departureDate, locale)}
                             </Badge>
                         )}
                         <Badge className={cn(
@@ -275,7 +280,7 @@ export function FlightCard({
                                 ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                                 : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                         )}>
-                            {transferInfo.isDirect ? "Прямой" : "С пересадкой"}
+                            {transferInfo.isDirect ? t("direct") : t("withTransfer")}
                         </Badge>
                     </div>
                 </div>
@@ -329,7 +334,7 @@ export function FlightCard({
                                 {departureCity && (
                                     <div className="text-xs text-muted-foreground mt-0.5 truncate max-w-[100px]">{departureCity}</div>
                                 )}
-                                {terminal && <div className="text-[10px] text-muted-foreground/60">Терм. {terminal}</div>}
+                                {terminal && <div className="text-[10px] text-muted-foreground/60">{t("terminal", { n: terminal })}</div>}
                             </div>
 
                             {/* Route line */}
@@ -380,7 +385,7 @@ export function FlightCard({
 
                                 {/* Transfer point */}
                                 <div className="text-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 min-w-0 shrink-0 w-16 sm:w-auto">
-                                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Пересадка</div>
+                                    <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">{t("transfer")}</div>
                                     {transferInfo.detail?.city && (
                                         <div className="text-xs font-bold mt-0.5">{transferInfo.detail.city}</div>
                                     )}
@@ -410,7 +415,7 @@ export function FlightCard({
                                 <div className="text-center">
                                     <span className="text-xs text-muted-foreground flex items-center justify-center gap-1">
                                         <Clock className="w-3 h-3" />
-                                        Общее время: {duration}
+                                        {t("totalDuration", { duration })}
                                     </span>
                                 </div>
                             )}
@@ -426,19 +431,19 @@ export function FlightCard({
                             {baggage?.handLuggage && (
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
                                     <Luggage className="w-3.5 h-3.5 text-blue-500/70" />
-                                    <span>Ручная: {baggage.handLuggage}</span>
+                                    <span>{t("handLuggage", { size: baggage.handLuggage })}</span>
                                 </div>
                             )}
                             {baggage?.checked && (
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
                                     <Package className="w-3.5 h-3.5 text-blue-500/70" />
-                                    <span>Багаж: {baggage.checked}</span>
+                                    <span>{t("baggage", { size: baggage.checked })}</span>
                                 </div>
                             )}
                             {!baggage?.handLuggage && !baggage?.checked && (
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 dark:bg-white/5 px-2.5 py-1.5 rounded-lg">
                                     <Luggage className="w-3.5 h-3.5 text-blue-500/70" />
-                                    <span>Багаж: 23 кг</span>
+                                    <span>{t("defaultBaggage")}</span>
                                 </div>
                             )}
                         </div>
@@ -447,7 +452,7 @@ export function FlightCard({
                         {passengers && passengers > 0 && (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Users className="w-3.5 h-3.5 text-blue-500/70" />
-                                <span>{passengers} {passengers === 1 ? "пассажир" : passengers < 5 ? "пассажира" : "пассажиров"}</span>
+                                <span>{t("passengers", { count: passengers })}</span>
                             </div>
                         )}
                     </div>
@@ -460,23 +465,23 @@ export function FlightCard({
                                     "text-2xl font-black tracking-tight",
                                     isApproximate ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
                                 )}>
-                                    <span className="text-base font-bold">{isApproximate ? "~" : "от"} </span>{price.toLocaleString("ru-RU")} ₽
+                                    <span className="text-base font-bold">{isApproximate ? t("approx") : t("priceFrom")} </span>{price.toLocaleString("ru-RU")} ₽
                                 </div>
                                 {isApproximate ? (
                                     <div className="flex items-center justify-end gap-1 text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
                                         <AlertTriangle className="w-3 h-3" />
-                                        <span>Нет рейсов на эту дату</span>
+                                        <span>{t("noFlightsDateFull")}</span>
                                     </div>
                                 ) : perPerson && perPerson > 0 && passengers && passengers > 1 ? (
                                     <div className="text-[10px] text-muted-foreground/70">
-                                        от {perPerson.toLocaleString("ru-RU")} ₽ за чел.
+                                        {t("perPerson", { price: perPerson.toLocaleString("ru-RU") })}
                                     </div>
                                 ) : null}
                             </div>
                         ) : (
                             <div className="text-right">
                                 <div className="text-sm font-medium text-muted-foreground">
-                                    Смотреть цены
+                                    {t("checkPrices")}
                                 </div>
                             </div>
                         )}
@@ -485,7 +490,7 @@ export function FlightCard({
                             className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 h-9 shadow-md shadow-blue-500/20"
                             onClick={() => window.open(buyUrl, "_blank")}
                         >
-                            {hasPriceData ? "Купить" : "Найти билеты"}
+                            {hasPriceData ? t("buy") : t("findTickets")}
                             <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                     </div>

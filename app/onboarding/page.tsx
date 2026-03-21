@@ -20,24 +20,8 @@ const STEP_LABELS = [
   "Опыт и мечты",
   "Стиль",
   "Интересы",
-  "Документы",
+  "Языки",
   "Готово",
-]
-
-const DOC_PASSPORTS = [
-  { value: "ru_passport", label: "Паспорт РФ", icon: "🪪" },
-  { value: "foreign_passport", label: "Загранпаспорт РФ", icon: "📘" },
-]
-
-const DOC_VISAS_TOP = [
-  { value: "schengen", label: "Шенген", icon: "🇪🇺" },
-  { value: "us_visa", label: "США", icon: "🇺🇸" },
-  { value: "uk_visa", label: "Великобритания", icon: "🇬🇧" },
-  { value: "japan_visa", label: "Япония", icon: "🇯🇵" },
-  { value: "china_visa", label: "Китай", icon: "🇨🇳" },
-  { value: "uae_visa", label: "ОАЭ", icon: "🇦🇪" },
-  { value: "india_evisa", label: "Индия", icon: "🇮🇳" },
-  { value: "canada_visa", label: "Канада", icon: "🇨🇦" },
 ]
 
 export default function OnboardingPage() {
@@ -60,7 +44,6 @@ export default function OnboardingPage() {
     interestsDetailed: [] as string[],
     citizenship: "",
     nationality: "",
-    documents: [] as string[],
     languages: [] as string[],
   })
 
@@ -506,12 +489,12 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {/* ─── STEP 5: Документы ─── */}
+              {/* ─── STEP 5: Языки и гражданство ─── */}
               {step === 5 && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-black">Документы и языки</h2>
-                    <p className="text-muted-foreground mt-1.5">AI учтёт, куда вы можете поехать без визы.</p>
+                    <h2 className="text-2xl sm:text-3xl font-black">Языки</h2>
+                    <p className="text-muted-foreground mt-1.5">AI подберёт маршрут с учётом языкового барьера.</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -555,40 +538,6 @@ export default function OnboardingPage() {
                           className={chip(preferences.languages.includes(lang.label))}
                         >
                           {lang.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-2 border-t border-border/40">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Паспорта</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {DOC_PASSPORTS.map((doc) => (
-                        <button
-                          key={doc.value}
-                          type="button"
-                          onClick={() => toggleArray("documents", doc.value)}
-                          className={chip(preferences.documents.includes(doc.value))}
-                        >
-                          {doc.icon} {doc.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Визы <span className="normal-case font-normal text-muted-foreground/60">(если есть)</span>
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {DOC_VISAS_TOP.map((doc) => (
-                        <button
-                          key={doc.value}
-                          type="button"
-                          onClick={() => toggleArray("documents", doc.value)}
-                          className={chip(preferences.documents.includes(doc.value))}
-                        >
-                          {doc.icon} {doc.label}
                         </button>
                       ))}
                     </div>

@@ -10,7 +10,7 @@ import {
   Sparkles, Star, TrendingUp, Quote, Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 
 interface TripStatsPanelProps {
   route: any
@@ -19,6 +19,7 @@ interface TripStatsPanelProps {
 
 export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
   const t = useTranslations("stats")
+  const locale = useLocale()
 
   const ACTIVITY_TYPES: { key: string; label: string; color: string; icon: any }[] = [
     { key: "activity", label: t("activityType"), color: "#60a5fa", icon: Compass },
@@ -94,9 +95,9 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
       icon: Globe,
     },
     {
-      label: "Ср. активностей/день",
+      label: t("avgPerDay"),
       value: days ? (totalActivities / days).toFixed(1) : "—",
-      sub: "отличный темп",
+      sub: t("greatPace"),
       color: "#c084fc",
       icon: TrendingUp,
     },
@@ -254,7 +255,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
               { label: t("accommodation"), value: route.budgetAnalysis.avgAccommodation, sub: t("perNight") },
               { label: t("food"), value: route.budgetAnalysis.avgFood, sub: t("perDay") },
               { label: t("transport"), value: route.budgetAnalysis.avgTransport, sub: t("total") },
-              { label: t("totalBudget"), value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${Math.round(totalCost).toLocaleString("ru")} ₽` : null), sub: t("estimate") },
+              { label: t("totalBudget"), value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${locale === "en" ? "$" : ""}${Math.round(totalCost).toLocaleString(locale === "en" ? "en-US" : "ru-RU")}${locale !== "en" ? " ₽" : ""}` : null), sub: t("estimate") },
             ].map(item => item.value && (
               <div key={item.label} className="rounded-2xl bg-muted/50 border border-border p-4">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>

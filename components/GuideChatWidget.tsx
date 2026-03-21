@@ -37,7 +37,7 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
         {
             id: "initial-welcome",
             role: "assistant" as const,
-            content: `Привет! Я твой ИИ-гид по маршруту "${tripContext.title}". \n\nМы сейчас на ${tripContext.currentDay || 1}-м дне. ${tripContext.currentLocation ? `Вы находитесь в районе: ${tripContext.currentLocation}.` : ""} \n\nСпрашивай что угодно: где поесть, исторические факты или как добраться до следующей точки!`
+            content: `Привет! Я твой ИИ-ассистент по маршруту "${tripContext.title}". \n\nМы сейчас на ${tripContext.currentDay || 1}-м дне. ${tripContext.currentLocation ? `Вы находитесь в районе: ${tripContext.currentLocation}.` : ""} \n\nСпрашивай что угодно: где поесть, исторические факты или как добраться до следующей точки!`
         }
     ]
 
@@ -112,7 +112,7 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
                     <div className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
                         <div>
-                            <h3 className="font-semibold text-sm">Чат с Гидом</h3>
+                            <h3 className="font-semibold text-sm">Чат с Ассистентом</h3>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <MapPin className="h-3 w-3" />
                                 {mode === 'local' ? (tripContext.currentLocation || "В пути") : "Весь маршрут"}

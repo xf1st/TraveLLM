@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
@@ -6,6 +5,7 @@ import { getWeatherForLocation, WeatherData, getWeatherDescription } from "@/lib
 import { getCoordinates } from "@/lib/geocoding"
 import { Cloud, CloudRain, Sun, CloudSnow, Moon, Thermometer } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 
 interface TripWeatherWidgetProps {
   destination: string
@@ -15,6 +15,9 @@ interface TripWeatherWidgetProps {
 }
 
 export function TripWeatherWidget({ destination, startDate, endDate, className }: TripWeatherWidgetProps) {
+  const t = useTranslations("weather")
+  const tCurr = useTranslations("currency")
+  const locale = tCurr("code") === "RUB" ? "ru-RU" : "en-US"
   const [weather, setWeather] = useState<WeatherData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +48,7 @@ export function TripWeatherWidget({ destination, startDate, endDate, className }
         if (!mounted) return
         
         if (!coords) {
-          setError("Координаты не найдены")
+          setError(t("coordsNotFound"))
           return
         }
 
@@ -56,7 +59,7 @@ export function TripWeatherWidget({ destination, startDate, endDate, className }
         setWeather(data)
       } catch (err) {
         console.error(err)
-        if (mounted) setError("Ошибка загрузки погоды")
+        if (mounted) setError(t("loadError"))
       } finally {
         if (mounted) setLoading(false)
       }
@@ -81,13 +84,13 @@ export function TripWeatherWidget({ destination, startDate, endDate, className }
     <div className={cn("trip-glass p-5 rounded-2xl space-y-3", className)}>
         <div className="flex items-center gap-2 mb-2">
             <Cloud className="w-5 h-5 text-sky-500" />
-            <h3 className="font-bold text-lg">Погода в поездке</h3>
+            <h3 className="font-bold text-lg">{t("tripTitle")}</h3>
         </div>
         
         <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-sky-200 dark:scrollbar-thumb-sky-800 scrollbar-track-transparent">
             {weather.map((day) => {
                 const dateObj = new Date(day.date)
-                const dayName = dateObj.toLocaleDateString('ru-RU', { weekday: 'short' })
+                const dayName = dateObj.toLocaleDateString(locale, { weekday: 'short' })
                 const dayNum = dateObj.getDate()
                 
                 let Icon = Sun
