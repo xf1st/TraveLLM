@@ -20,18 +20,29 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        // Security check: only allow specific domains
-        const allowedDomains = [
+        // Security check: exact hostname match only (endsWith is bypassable via evil.images.unsplash.com)
+        const allowedDomains = new Set([
             "images.unsplash.com",
             "images.pexels.com",
             "upload.wikimedia.org",
             "img.freepik.com",
             "pixabay.com",
             "cdn.pixabay.com",
-        ];
+        ]);
 
-        const parsedUrl = new URL(url);
-        if (!allowedDomains.some(domain => parsedUrl.hostname.endsWith(domain))) {
+        let parsedUrl: URL;
+        try {
+            parsedUrl = new URL(url);
+        } catch {
+            return new NextResponse("Invalid URL", { status: 400 });
+        }
+
+        // Only allow https
+        if (parsedUrl.protocol !== "https:") {
+            return new NextResponse("Only HTTPS allowed", { status: 403 });
+        }
+
+        if (!allowedDomains.has(parsedUrl.hostname)) {
             return new NextResponse("Forbidden domain", { status: 403 });
         }
 
@@ -63,7 +74,24 @@ export async function GET(req: NextRequest) {
         }
 
         const contentType = response.headers.get("Content-Type") || "image/jpeg";
+
+        // Reject non-image content types
+        if (!contentType.startsWith("image/")) {
+            return new NextResponse("Not an image", { status: 415 });
+        }
+
+        // Reject oversized images (>10 MB) to prevent memory exhaustion
+        const contentLength = parseInt(response.headers.get("Content-Length") || "0", 10);
+        if (contentLength > 10 * 1024 * 1024) {
+            return new NextResponse("Image too large", { status: 413 });
+        }
+
         const buffer = await response.arrayBuffer();
+
+        // Double-check actual size after download
+        if (buffer.byteLength > 10 * 1024 * 1024) {
+            return new NextResponse("Image too large", { status: 413 });
+        }
 
         return new NextResponse(buffer, {
             headers: {

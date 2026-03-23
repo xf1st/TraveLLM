@@ -140,7 +140,7 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
             </div>
               <div className="flex items-center gap-4">
               {trip.budget && (
-                <span className="text-white font-black text-lg">
+                <span className="whitespace-nowrap text-white font-black text-lg">
                   {typeof trip.budget === "number"
                     ? new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
                     : trip.budget.toString().replace("₽", " ₽")}
@@ -155,7 +155,7 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
           {/* Mobile: budget only */}
           <div className="sm:hidden flex items-center justify-between">
             {trip.budget && (
-              <span className="text-white font-black text-xs">
+              <span className="whitespace-nowrap text-white font-black text-xs">
                 {typeof trip.budget === "number"
                   ? new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { maximumFractionDigits: 0 }).format(trip.budget) + " ₽"
                   : trip.budget.toString().replace("₽", " ₽")}
@@ -242,7 +242,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
               )}
               {/* Бюджет + стрелка */}
               <div className="flex items-center justify-between">
-                {budget && <span className="text-[11px] font-black text-foreground">{budget}</span>}
+                {budget && <span className="whitespace-nowrap text-[11px] font-black text-foreground">{budget}</span>}
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all ml-auto" />
               </div>
             </div>
@@ -260,7 +260,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
           <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent" />
 
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <div className="flex items-center gap-1 bg-emerald-500/90 text-white text-[9px] font-black uppercase px-2 py-1 rounded-full">
+            <div className="flex items-center gap-1 bg-emerald-500/90 text-white text-[9px] font-black uppercase px-2 py-1 rounded-full whitespace-nowrap">
               <Shield className="h-2.5 w-2.5" />{trip.safetyLevel || 10}/10
             </div>
             <button
@@ -275,7 +275,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
             <div className="absolute top-4 left-4 z-10">
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); window.location.href = `/trip/completed?tripId=${trip.id}` }}
-                className="flex items-center gap-1 text-[9px] font-black uppercase bg-blue-500/80 text-white px-2 py-1 rounded-full backdrop-blur-md hover:bg-blue-500 transition-colors"
+                className="flex items-center gap-1 text-[9px] font-black uppercase bg-blue-500/80 text-white px-2 py-1 rounded-full backdrop-blur-md hover:bg-blue-500 transition-colors whitespace-nowrap"
               >
                 <CheckCircle2 className="h-2.5 w-2.5" />{t("completed")}
               </button>
@@ -305,7 +305,7 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-white font-black text-sm">{budget || "—"}</span>
+              <span className="whitespace-nowrap text-white font-black text-sm">{budget || "—"}</span>
               <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all">
                 <ArrowRight className="h-3.5 w-3.5 text-white" />
               </div>

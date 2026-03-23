@@ -8,12 +8,86 @@ import {
     buildSegmentEdgeContext,
     mergeSegmentIntoItinerary,
     validateSegmentDays,
-    normalizeDay,
+    type TripAssistantLocale,
 } from "@/lib/trip-assistant-segment"
+import {
+    captionInstruction,
+    captionSystem,
+    classifierSystem,
+    buildClassifierPrompt,
+    buildAnswerPrompt,
+    segmentSystem,
+    buildSegmentUserPrompt,
+    activitySystem,
+    buildActivityUserPrompt,
+} from "@/lib/trip-assistant-prompts"
+import {
+    parseConversationHistory,
+    formatConversationBlock,
+} from "@/lib/trip-assistant-conversation"
+import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
 
 const MAX_MESSAGE_LEN = 2000
 const MAX_IMAGES = 3
 const MAX_IMAGE_BYTES = 2_000_000
+
+/** Нормализует start/end для rewrite_segment: хвост до конца, «rewriteToEnd», контекстный день. */
+function normalizeRewriteSegmentDays(
+    parsed: any,
+    tripDaysCount: number,
+    contextDay?: number
+): { startDay: number; endDay: number } | null {
+    if (tripDaysCount < 1) return null
+
+    const rawEnd = parsed?.endDay
+    const endStr = typeof rawEnd === "string" ? rawEnd.toLowerCase().trim() : ""
+    const rewriteToEnd =
+        parsed?.rewriteToEnd === true ||
+        endStr === "last" ||
+        endStr === "end"
+
+    let endDay: number
+    if (rewriteToEnd) {
+        endDay = tripDaysCount
+    } else {
+        endDay = Number(rawEnd)
+    }
+
+    let startDay = Number(parsed?.startDay)
+    if (!Number.isFinite(startDay)) {
+        if (
+            contextDay != null &&
+            contextDay >= 1 &&
+            contextDay <= tripDaysCount
+        ) {
+            startDay = contextDay
+        } else {
+            return null
+        }
+    }
+
+    if (!Number.isFinite(endDay) || endDay < 1) {
+        endDay = tripDaysCount
+    }
+
+    if (startDay < 1) startDay = 1
+    if (endDay > tripDaysCount) endDay = tripDaysCount
+    if (endDay < startDay) return null
+
+    return { startDay, endDay }
+}
+
+function parseOptionalContextDay(
+    raw: unknown,
+    tripDaysCount: number
+): number | undefined {
+    if (raw === undefined || raw === null || raw === "") return undefined
+    const n = Number(raw)
+    if (!Number.isFinite(n)) return undefined
+    const d = Math.floor(n)
+    if (d < 1 || d > tripDaysCount) return undefined
+    return d
+}
 
 function extractCity(title: string): string {
     if (!title) return "Unknown"
@@ -59,7 +133,8 @@ function addUsage(
 
 async function captionImages(
     imageDataUrls: string[],
-    inferenceFn: typeof geminiInferenceWithUsage
+    inferenceFn: typeof geminiInferenceWithUsage,
+    locale: TripAssistantLocale
 ): Promise<{ caption: string; usage: TokenUsageAgg }> {
     const acc = emptyUsage()
     if (imageDataUrls.length === 0) return { caption: "", usage: acc }
@@ -67,7 +142,7 @@ async function captionImages(
     const parts: GeminiContentPart[] = [
         {
             type: "text",
-            text: `Опиши кратко (1–3 предложения на русском), что на фото и как это может относиться к планированию поездки (место, еда, достопримечательность, атмосфера). Без JSON, без списков.`,
+            text: captionInstruction(locale),
         },
     ]
     for (const url of imageDataUrls) {
@@ -78,8 +153,7 @@ async function captionImages(
         [
             {
                 role: "system",
-                content:
-                    "Ты помощник для краткого описания изображений для туристического чата. Отвечай только описанием.",
+                content: captionSystem(locale),
             },
             { role: "user", content: parts },
         ],
@@ -101,7 +175,16 @@ export async function POST(req: Request) {
         let userMessage = ""
         let tripId: string | undefined
         let reqUserLocation: { lat: number; lng: number } | undefined
+        let rawContextDay: unknown
+        let rawConversationHistory: unknown
         const imageDataUrls: string[] = []
+        let locale: TripAssistantLocale = "ru"
+
+        // Reject oversized requests before parsing (DoS protection)
+        const contentLength = parseInt(req.headers.get("content-length") || "0", 10)
+        if (contentLength > 10 * 1024 * 1024) {
+            return NextResponse.json({ error: "Payload too large" }, { status: 413 })
+        }
 
         if (contentType.includes("multipart/form-data")) {
             const form = await req.formData()
@@ -111,8 +194,19 @@ export async function POST(req: Request) {
                     ? JSON.parse(rawTrip)
                     : {}
             userMessage = String(form.get("userMessage") ?? "").trim()
+            const locField = form.get("locale")
+            if (locField === "en" || locField === "ru") locale = locField
             const tid = form.get("tripId")
             tripId = tid ? String(tid) : undefined
+            rawContextDay = form.get("contextDay")
+            const histField = form.get("conversationHistory")
+            if (typeof histField === "string" && histField.trim()) {
+                try {
+                    rawConversationHistory = JSON.parse(histField)
+                } catch {
+                    rawConversationHistory = undefined
+                }
+            }
             const loc = form.get("userLocation")
             if (loc && typeof loc === "string") {
                 try {
@@ -144,6 +238,9 @@ export async function POST(req: Request) {
             userMessage = String(body.userMessage ?? "").trim()
             tripId = body.tripId
             reqUserLocation = body.userLocation
+            rawContextDay = body.contextDay
+            rawConversationHistory = body.conversationHistory
+            if (body.locale === "en" || body.locale === "ru") locale = body.locale
         }
 
         if (!tripData || !userMessage) {
@@ -151,6 +248,12 @@ export async function POST(req: Request) {
                 { error: "Missing required fields" },
                 { status: 400 }
             )
+        }
+
+        // Validate tripId format and ownership (used for usage logging — prevent log poisoning)
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        if (tripId && !UUID_RE.test(tripId)) {
+            tripId = undefined
         }
 
         if (userMessage.length > MAX_MESSAGE_LEN) {
@@ -171,58 +274,46 @@ export async function POST(req: Request) {
         const itinerary = Array.isArray(tripData)
             ? tripData
             : tripData.itinerary || []
-        const tripTitle = tripData.title || "Путешествие"
-        const tripBudget = tripData.totalBudget || "Не указан"
-        const destination =
-            tripData.destination || tripData.countries?.[0]?.name || "неизвестно"
         const tripDaysCount = itinerary.length
+        const contextDay = parseOptionalContextDay(rawContextDay, tripDaysCount)
+        const historyMessages = parseConversationHistory(rawConversationHistory)
+        const conversationBlock = formatConversationBlock(locale, historyMessages)
+        const tripTitle =
+            tripData.title || (locale === "en" ? "Trip" : "Путешествие")
+        const tripBudget =
+            tripData.totalBudget ||
+            (locale === "en" ? "Not specified" : "Не указан")
+        const destination =
+            tripData.destination ||
+            tripData.countries?.[0]?.name ||
+            (locale === "en" ? "unknown" : "неизвестно")
 
-        const compactSummary = buildCompactItinerarySummary(itinerary)
+        const compactSummary = buildCompactItinerarySummary(itinerary, locale)
 
         let imageContext = ""
         if (hasImages) {
-            const cap = await captionImages(imageDataUrls, inferenceFn)
+            const cap = await captionImages(imageDataUrls, inferenceFn, locale)
             addUsage(usageTotal, cap.usage)
             imageContext = cap.caption
         }
 
-        const classifyAndParsePrompt = `Проанализируй сообщение пользователя о маршруте путешествия.
-
-ПУТЕШЕСТВИЕ: "${tripTitle}"
-Направление: ${destination}
-Бюджет (справочно): ${tripBudget}
-Дней в маршруте: ${tripDaysCount}
-
-КРАТКИЙ ОБЗОР ДНЕЙ (без полного JSON):
-${compactSummary}
-${imageContext ? `\nКОНТЕКСТ ФОТО (если были вложения): ${imageContext}\n` : ""}
-СООБЩЕНИЕ: "${userMessage}"
-
-Если пользователь хочет ИЗМЕНИТЬ маршрут — верни JSON:
-
-Вариант 1 — редактировать/заменить одну активность:
-{"intent":"MODIFY","action":"edit_activity","dayNumber":N,"timeSlot":"Утро/День/Вечер или null","currentActivity":"текущее название или null","newActivityRequest":"что хочет","explanation":"кратко"}
-
-Вариант 2 — добавить активность в день:
-{"intent":"MODIFY","action":"add_activity","dayNumber":N,"timeSlot":"Вечер","newActivityRequest":"что добавить","explanation":"..."}
-
-Вариант 3 — ПЕРЕПИСАТЬ НЕСКОЛЬКО ДНЕЙ ПОДРЯД (заменить целиком дни startDay..endDay):
-{"intent":"MODIFY","action":"rewrite_segment","startDay":A,"endDay":B,"newSegmentRequest":"что именно переделать в этих днях","explanation":"..."}
-
-Вариант 4 — перераспределить дни по городам:
-{"intent":"MODIFY","action":"redistribute","changes":[{"city":"X","currentDays":N,"newDays":M}],"explanation":"..."}
-
-Если пользователь задаёт ВОПРОС (не хочет менять маршрут):
-{"intent":"QUESTION"}
-
-Верни ТОЛЬКО JSON, без markdown.`
+        const classifyAndParsePrompt = buildClassifierPrompt(locale, {
+            tripTitle,
+            destination,
+            tripBudget,
+            tripDaysCount,
+            compactSummary,
+            imageContext,
+            userMessage,
+            contextDay,
+            conversationBlock,
+        })
 
         const classifyRawResponse = await inferenceFn(
             [
                 {
                     role: "system",
-                    content:
-                        "Анализатор намерений и запросов на изменение маршрутов. Отвечай только JSON.",
+                    content: classifierSystem(locale),
                 },
                 { role: "user", content: classifyAndParsePrompt },
             ],
@@ -258,26 +349,30 @@ ${imageContext ? `\nКОНТЕКСТ ФОТО (если были вложени�
             })
             return NextResponse.json({
                 type: "message",
-                reply: "Не совсем понял, что изменить. Попробуйте:\n• \"Замени музей на кафе в день 2\"\n• \"Добавь вечерний бар в день 3\"\n• \"Перепиши дни 3–5 под семейный формат\"",
+                reply:
+                    locale === "en"
+                        ? "I’m not sure what to change. Try:\n• “Replace the museum with a café on day 2”\n• “Add an evening bar on day 3”\n• “Rewrite days 3–5 for a slower pace”"
+                        : "Не совсем понял, что изменить. Попробуйте:\n• \"Замени музей на кафе в день 2\"\n• \"Добавь вечерний бар в день 3\"\n• \"Перепиши дни 3–5 под семейный формат\"",
             })
         }
 
         if (intent === "MODIFY" && parsedRequest) {
             if (parsedRequest.action === "rewrite_segment") {
-                const startDay = Number(parsedRequest.startDay)
-                const endDay = Number(parsedRequest.endDay)
-                if (
-                    !Number.isFinite(startDay) ||
-                    !Number.isFinite(endDay) ||
-                    startDay < 1 ||
-                    endDay < startDay ||
-                    endDay > tripDaysCount
-                ) {
+                const normalized = normalizeRewriteSegmentDays(
+                    parsedRequest,
+                    tripDaysCount,
+                    contextDay
+                )
+                if (!normalized) {
                     return NextResponse.json({
                         type: "message",
-                        reply: `Некорректный диапазон дней. В маршруте ${tripDaysCount} дн.`,
+                        reply:
+                            locale === "en"
+                                ? `Invalid day range. This itinerary has ${tripDaysCount} day(s). Say which days to rewrite (e.g. days 3–5 or “rest of trip”).`
+                                : `Некорректный диапазон дней. В маршруте ${tripDaysCount} дн. Укажите дни (например 3–5 или «остаток с текущего дня»).`,
                     })
                 }
+                const { startDay, endDay } = normalized
 
                 const segmentSlice = itinerary.filter(
                     (d: any) =>
@@ -288,51 +383,40 @@ ${imageContext ? `\nКОНТЕКСТ ФОТО (если были вложени�
                 if (segmentSlice.length !== endDay - startDay + 1) {
                     return NextResponse.json({
                         type: "message",
-                        reply: "Не удалось сопоставить дни маршрута. Обновите страницу и попробуйте снова.",
+                        reply:
+                            locale === "en"
+                                ? "Could not match itinerary days. Refresh the page and try again."
+                                : "Не удалось сопоставить дни маршрута. Обновите страницу и попробуйте снова.",
                     })
                 }
 
                 const edges = buildSegmentEdgeContext(
                     itinerary,
                     startDay,
-                    endDay
+                    endDay,
+                    locale
                 )
                 const segmentJson = JSON.stringify(segmentSlice, null, 0)
 
-                const segmentPrompt = `Ты переписываешь ФРАГМЕНТ маршрута путешествия (несколько дней подряд). Сохраняй реалистичную логистику и согласованность с соседними днями.
-
-ПУТЕШЕСТВИЕ: ${tripTitle}
-Направление: ${destination}
-Бюджет: ${tripBudget}
-
-СОСЕДИ (не переписывай их целиком — только учитывай для стыковки):
-${edges.before}
-${edges.after}
-
-ЗАПРОС ПОЛЬЗОВАТЕЛЯ: ${parsedRequest.newSegmentRequest || userMessage}
-${imageContext ? `\nФОТО/КОНТЕКСТ: ${imageContext}\n` : ""}
-
-ТЕКУЩИЙ СЕГМЕНТ (дни ${startDay}–${endDay}) — JSON:
-${segmentJson}
-
-Верни ТОЛЬКО JSON вида:
-{ "days": [ /* массив дней; каждый день: day, title, tips (опционально), activities: [{ time, type, title, placeName, desc, cost, mapLink, link?, bookingUrl?, ticketUrl? }] */ ] }
-
-Правила:
-- Ровно ${endDay - startDay + 1} дней. Поля day должны идти подряд от ${startDay} до ${endDay}.
-- type активности: transport | hotel | food | activity | free
-- mapLink: Google Maps поиск места (https://www.google.com/maps/search/?api=1&query=...)
-- Короткие описания, конкретные названия мест.
-- Согласуй переезды/отели с соседями, если запрос это подразумевает.
-
-JSON:`
+                const segmentPrompt = buildSegmentUserPrompt(locale, {
+                    tripTitle,
+                    destination,
+                    tripBudget,
+                    edgesBefore: edges.before,
+                    edgesAfter: edges.after,
+                    userRequest: parsedRequest.newSegmentRequest || userMessage,
+                    imageContext,
+                    segmentJson,
+                    startDay,
+                    endDay,
+                    priorChatSummary: conversationBlock || undefined,
+                })
 
                 const segmentRawResponse = await inferenceFn(
                     [
                         {
                             role: "system",
-                            content:
-                                "Генератор фрагментов туристического маршрута. Отвечай только JSON.",
+                            content: segmentSystem(locale),
                         },
                         { role: "user", content: segmentPrompt },
                     ],
@@ -353,7 +437,10 @@ JSON:`
                 } catch {
                     return NextResponse.json({
                         type: "message",
-                        reply: "Не удалось разобрать ответ для сегмента маршрута. Сформулируйте запрос короче и попробуйте снова.",
+                        reply:
+                            locale === "en"
+                                ? "Could not parse the segment response. Try a shorter request."
+                                : "Не удалось разобрать ответ для сегмента маршрута. Сформулируйте запрос короче и попробуйте снова.",
                     })
                 }
 
@@ -361,30 +448,39 @@ JSON:`
                 const vErr = validateSegmentDays(
                     Array.isArray(segmentDays) ? segmentDays : [],
                     startDay,
-                    endDay
+                    endDay,
+                    locale
                 )
                 if (vErr) {
                     return NextResponse.json({
                         type: "message",
-                        reply: `Не прошла проверка маршрута: ${vErr}. Уточните запрос (город, даты, стиль дня).`,
+                        reply:
+                            locale === "en"
+                                ? `Validation failed: ${vErr}. Add more detail (city, dates, pace).`
+                                : `Не прошла проверка маршрута: ${vErr}. Уточните запрос (город, даты, стиль дня).`,
                     })
                 }
 
                 let newItinerary: any[]
                 try {
-                    const normalizedSeg = (
-                        segmentDays as any[]
-                    ).map((d) => normalizeDay(d))
                     newItinerary = mergeSegmentIntoItinerary(
                         itinerary,
-                        normalizedSeg,
+                        Array.isArray(segmentDays) ? segmentDays : [],
                         startDay,
-                        endDay
+                        endDay,
+                        locale
                     )
+                    const mergedRoute = { ...tripData, itinerary: newItinerary }
+                    sanitizeMislabeledForeignCosts(mergedRoute)
+                    newItinerary = mergedRoute.itinerary
                 } catch (e: any) {
                     return NextResponse.json({
                         type: "message",
-                        reply: e?.message || "Не удалось объединить сегмент с маршрутом.",
+                        reply:
+                            e?.message ||
+                            (locale === "en"
+                                ? "Could not merge the segment into the itinerary."
+                                : "Не удалось объединить сегмент с маршрутом."),
                     })
                 }
 
@@ -398,7 +494,12 @@ JSON:`
 
                 return NextResponse.json({
                     type: "modification",
-                    reply: `✅ ${parsedRequest.explanation || `Обновлены дни ${startDay}–${endDay}`}`,
+                    reply: `✅ ${
+                        parsedRequest.explanation ||
+                        (locale === "en"
+                            ? `Updated days ${startDay}–${endDay}`
+                            : `Обновлены дни ${startDay}–${endDay}`)
+                    }`,
                     modifications: [{ type: "replace_all_days", newItinerary }],
                 })
             }
@@ -416,35 +517,27 @@ JSON:`
                 if (!targetDay) {
                     return NextResponse.json({
                         type: "message",
-                        reply: `День ${dayNumber} не найден в маршруте. У вас ${itinerary.length} дней.`,
+                        reply:
+                            locale === "en"
+                                ? `Day ${dayNumber} not found. This itinerary has ${itinerary.length} day(s).`
+                                : `День ${dayNumber} не найден в маршруте. У вас ${itinerary.length} дней.`,
                     })
                 }
 
                 const city = extractCity(targetDay.title)
 
-                const activityPrompt = `Сгенерируй активность для путешествия.
-Город: ${city}
-Запрос: "${newActivityRequest}"
-Время: ${timeSlot || "День"}
-
-Поля type: activity | food | hotel | transport | free
-Верни JSON:
-{
-  "time": "${timeSlot || "День"}",
-  "type": "activity",
-  "title": "краткий заголовок",
-  "placeName": "КОНКРЕТНОЕ название",
-  "desc": "2-3 предложения",
-  "cost": "цена ₽",
-  "mapLink": "https://www.google.com/maps/search/?api=1&query=...",
-  "link": ""
-}`
+                const activityPrompt = buildActivityUserPrompt(locale, {
+                    city,
+                    newActivityRequest: String(newActivityRequest ?? ""),
+                    timeSlot: String(timeSlot ?? ""),
+                    priorChatSummary: conversationBlock || undefined,
+                })
 
                 const activityRawResponse = await inferenceFn(
                     [
                         {
                             role: "system",
-                            content: "Генератор туристических активностей.",
+                            content: activitySystem(locale),
                         },
                         { role: "user", content: activityPrompt },
                     ],
@@ -462,10 +555,14 @@ JSON:`
                 } catch {
                     return NextResponse.json({
                         type: "message",
-                        reply: "Не удалось сгенерировать активность. Попробуйте еще раз.",
+                        reply:
+                            locale === "en"
+                                ? "Could not generate the activity. Please try again."
+                                : "Не удалось сгенерировать активность. Попробуйте еще раз.",
                     })
                 }
 
+                const locTag = locale === "en" ? "en-US" : "ru-RU"
                 const newItinerary = itinerary.map((day: any) => {
                     if (day.day !== dayNumber) return day
 
@@ -521,9 +618,13 @@ JSON:`
                     return {
                         ...day,
                         activities: updatedActivities,
-                        dayTotal: `${dayTotal.toLocaleString("ru-RU")} ₽`,
+                        dayTotal: `${dayTotal.toLocaleString(locTag)} ₽`,
                     }
                 })
+
+                const mergedActRoute = { ...tripData, itinerary: newItinerary }
+                sanitizeMislabeledForeignCosts(mergedActRoute)
+                const finalItinerary = mergedActRoute.itinerary
 
                 await recordAiUsageEvent({
                     userId,
@@ -534,78 +635,87 @@ JSON:`
                 })
                 return NextResponse.json({
                     type: "modification",
-                    reply: `✅ ${parsedRequest.explanation || `Обновил день ${dayNumber}`}`,
-                    modifications: [{ type: "replace_all_days", newItinerary }],
+                    reply: `✅ ${
+                        parsedRequest.explanation ||
+                        (locale === "en"
+                            ? `Updated day ${dayNumber}`
+                            : `Обновил день ${dayNumber}`)
+                    }`,
+                    modifications: [{ type: "replace_all_days", newItinerary: finalItinerary }],
                 })
             }
 
             if (parsedRequest.action === "redistribute") {
                 return NextResponse.json({
                     type: "message",
-                    reply: "Для изменения количества дней используйте конкретные примеры:\n• \"Сократи Сочи до 3 дней\"\n• \"Добавь 2 дня в Токио\"\n\nИли измените отдельные активности / попросите переписать диапазон дней (например дни 3–5).",
+                    reply:
+                        locale === "en"
+                            ? "To change how many days you spend in each place, use concrete examples:\n• “Shorten Sochi to 3 days”\n• “Add 2 days in Tokyo”\n\nOr edit single activities / ask to rewrite a range of days (e.g. days 3–5)."
+                            : "Для изменения количества дней используйте конкретные примеры:\n• \"Сократи Сочи до 3 дней\"\n• \"Добавь 2 дня в Токио\"\n\nИли измените отдельные активности / попросите переписать диапазон дней (например дни 3–5).",
                 })
             }
 
             return NextResponse.json({
                 type: "message",
-                reply: "Не совсем понял, что изменить. Попробуйте:\n• \"Замени музей на кафе в день 2\"\n• \"Добавь вечерний бар в день 3\"\n• \"Перепиши дни 4–6 под более спокойный темп\"",
+                reply:
+                    locale === "en"
+                        ? "I’m not sure what to change. Try:\n• “Replace the museum with a café on day 2”\n• “Add an evening bar on day 3”\n• “Rewrite days 4–6 for a calmer pace”"
+                        : "Не совсем понял, что изменить. Попробуйте:\n• \"Замени музей на кафе в день 2\"\n• \"Добавь вечерний бар в день 3\"\n• \"Перепиши дни 4–6 под более спокойный темп\"",
             })
         }
 
+        const dayWord = locale === "en" ? "Day" : "День"
+        const actWord = locale === "en" ? "Activities" : "Активности"
+        const noneAct = locale === "en" ? "none" : "нет"
         const itineraryContext = itinerary
             .map(
                 (day: any) =>
-                    `День ${day.day}: ${day.title}\n  Активности: ${day.activities?.map((a: any) => `${a.time}: ${a.placeName}`).join(", ") || "нет"}`
+                    `${dayWord} ${day.day}: ${day.title}\n  ${actWord}: ${day.activities?.map((a: any) => `${a.time}: ${a.placeName}`).join(", ") || noneAct}`
             )
             .join("\n")
 
-        const currentDate = new Date().toLocaleDateString("ru-RU", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-        })
+        const currentDate = new Date().toLocaleDateString(
+            locale === "en" ? "en-US" : "ru-RU",
+            {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            }
+        )
         const locationStr = reqUserLocation
             ? `${reqUserLocation.lat.toFixed(4)}, ${reqUserLocation.lng.toFixed(4)}`
-            : "Неизвестно"
+            : locale === "en"
+              ? "Unknown"
+              : "Неизвестно"
 
-        const answerPrompt = `Ты — умный ИИ-помощник по путешествиям. Пользователь просматривает маршрут.
-
-СЕГОДНЯ: ${currentDate}
-ТЕКУЩАЯ ГЕОЛОКАЦИЯ ПОЛЬЗОВАТЕЛЯ: ${locationStr}
-${imageContext ? `КОНТЕКСТ ВЛОЖЕННЫХ ФОТО: ${imageContext}\n` : ""}
-КОНТЕКСТ ПУТЕШЕСТВИЯ:
-- Название: ${tripTitle}
-- Направление: ${destination}
-- Бюджет: ${tripBudget}
-- Дней: ${itinerary.length}
-
-МАРШРУТ:
-${itineraryContext}
-
-РЕАЛЬНОСТЬ (2026):
-${GROUNDING_DATA_2026.globalRestrictions.join(" ")}
-
-ВОПРОС ПОЛЬЗОВАТЕЛЯ: "${userMessage}"
-
-ПРАВИЛА:
-1. Если пользователь спрашивает "где я?" или "что рядом?", используй его геолокацию.
-2. Отвечай кратко и по делу (2-5 предложений). Давай полезные ссылки только если уверен (официальные сайты, карты).
-3. Практичные советы.
-4. Если вопрос про редактирование — напомни, что можно попросить "Замени X на Y в день N" или "Перепиши дни A–B под ...".
-5. Будь дружелюбным.
-
-Ответ:`
+        const { system: answerSystem, user: answerUser } = buildAnswerPrompt(
+            locale,
+            {
+                currentDate,
+                locationStr,
+                imageContext,
+                tripTitle,
+                destination,
+                tripBudget,
+                dayCount: itinerary.length,
+                itineraryContext,
+                grounding: GROUNDING_DATA_2026.globalRestrictions.join(" "),
+                userMessage,
+                contextDay,
+                conversationBlock,
+            }
+        )
 
         const replyResponse = await inferenceFn(
             [
                 {
                     role: "system",
-                    content: "Ты полезный ассистент по путешествиям.",
+                    content: answerSystem,
                 },
-                { role: "user", content: answerPrompt },
+                { role: "user", content: answerUser },
             ],
-            { maxTokens: 500, temperature: 0.7 }
+            { maxTokens: 600, temperature: 0.7 }
         )
         addUsage(usageTotal, replyResponse.usage)
 
@@ -626,7 +736,7 @@ ${GROUNDING_DATA_2026.globalRestrictions.join(" ")}
         console.error("Trip Assistant Error:", error)
         return NextResponse.json(
             {
-                error: error.message || "Unknown error",
+                error: "Internal server error",
             },
             { status: 500 }
         )

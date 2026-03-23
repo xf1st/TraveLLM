@@ -29,25 +29,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid tripId" }, { status: 400 })
     }
 
-    // 1. Fetch trip details and expenses
-    const [tripResult, expensesResult] = await Promise.all([
-      client
-        .from("trips")
-        .select("destination, start_date, end_date, total_cost, budget_range")
-        .eq("id", tripId)
-        .eq("user_id", userId)
-        .single(),
-      client
-        .from("budget_expenses")
-        .select("*")
-        .eq("trip_id", tripId)
-        .order("created_at", { ascending: true })
-    ])
+    // 1. Verify trip ownership first, then fetch expenses
+    const tripResult = await client
+      .from("trips")
+      .select("destination, start_date, end_date, total_cost, budget_range")
+      .eq("id", tripId)
+      .eq("user_id", userId)
+      .single()
 
     if (tripResult.error) throw tripResult.error
     if (!tripResult.data) return NextResponse.json({ error: "Trip not found" }, { status: 404 })
-    
+
     const trip = tripResult.data
+
+    const expensesResult = await client
+      .from("budget_expenses")
+      .select("*")
+      .eq("trip_id", tripId)
+      .order("created_at", { ascending: true })
+
     const expenses = expensesResult.data || []
 
     // 2. Prepare context for AI

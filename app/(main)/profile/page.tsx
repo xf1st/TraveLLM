@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, Suspense } from "react"
+import { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { AppLayout } from "@/components/app-layout"
@@ -12,7 +12,7 @@ import {
   Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet,
   Medal, Hotel as HotelIcon, Star, Calendar,
   LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
-  Bell, Bookmark, Wand2, Plane, Banknote, Ruler, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
+  Bell, Bookmark, Plane, Banknote, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
   Loader2,
 } from "lucide-react"
 import {
@@ -34,6 +34,23 @@ import { motion, AnimatePresence } from "framer-motion"
 import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
 import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { cn } from "@/lib/utils"
+import {
+  PROFILE_NAME_MAX,
+  PROFILE_USERNAME_MAX,
+  PROFILE_TEXT_MAX,
+  PROFILE_LANGUAGE_IDS,
+  PROFILE_INTEREST_IDS,
+  sanitizeDisplayName,
+  sanitizeUsernameInput,
+  normalizeUsername,
+  sanitizeLongText,
+  sanitizeCitizenshipNationality,
+  validateDisplayName,
+  validateUsername,
+  migrateLanguageList,
+  filterInterestList,
+  parseProfileAge,
+} from "@/lib/profile-validation"
 
 // Interest categories — colors only (labels come from i18n)
 const INTEREST_CONFIG: Record<string, { color: string; bg: string }> = {
@@ -237,24 +254,22 @@ function ProfileContent() {
     gender: "",
     age: "",
     pace: "moderate",
-    religion: "none",
     languages: [] as string[],
-    visitedCountries: [] as string[],
-    dietaryRestrictions: [] as string[],
-    dietaryCustom: "",
     interests: [] as string[],
-    interestsCustom: "",
     notifications_enabled: true,
     accommodation: "hotel",
     profileBackground: "ocean",
-    departureCity: "",
-    aiCreativity: "balanced",
     autoFavorites: false,
     publicProfile: false,
     username: "",
     bio: "",
     defaultTripDuration: "7",
   })
+
+  const [siteOrigin, setSiteOrigin] = useState("")
+  useEffect(() => {
+    setSiteOrigin(typeof window !== "undefined" ? window.location.origin : "")
+  }, [])
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -271,9 +286,11 @@ function ProfileContent() {
 
   const saveNameInline = async () => {
     if (!user) return
-    const val = nameTemp.trim()
-    if (!val) {
-      toast.error(tp("toast.nameEmpty"))
+    const val = sanitizeDisplayName(nameTemp)
+    const check = validateDisplayName(val)
+    if (!check.ok) {
+      if (check.error === "empty") toast.error(tp("toast.nameEmpty"))
+      else toast.error(tp("toast.nameInvalid"))
       return
     }
     setSavingName(true)
@@ -335,9 +352,6 @@ function ProfileContent() {
       }
     })
 
-    const fromProfile = Array.isArray(profile?.preferences?.visitedCountries) ? profile.preferences.visitedCountries : []
-    fromProfile.forEach((item: any) => addLocation(item))
-
     const countriesList = Array.from(countries).sort((a, b) => a.localeCompare(b, "ru"))
     const citiesList = Array.from(citiesByCountry.entries())
       .map(([country, cities]) => ({
@@ -373,13 +387,8 @@ function ProfileContent() {
             gender: prefs.gender || "",
             age: prefs.age ? String(prefs.age) : "",
             pace: prefs.pace || "moderate",
-            religion: prefs.religion || "none",
-            languages: data.languages || [],
-            visitedCountries: prefs.visitedCountries || [],
-            dietaryRestrictions: prefs.dietaryRestrictions || [],
-            dietaryCustom: prefs.dietaryCustom || "",
-            interests: prefs.interestsDetailed || [],
-            interestsCustom: prefs.interestsCustom || "",
+            languages: migrateLanguageList(data.languages),
+            interests: filterInterestList(prefs.interestsDetailed),
             notifications_enabled: data.notifications_enabled ?? true,
             accommodation: (() => {
               const val = (prefs.accommodation || "").toLowerCase();
@@ -389,8 +398,6 @@ function ProfileContent() {
               return "hotel";
             })(),
             profileBackground: prefs.profileBackground || "ocean",
-            departureCity: prefs.departureCity || "",
-            aiCreativity: prefs.aiCreativity || "balanced",
             autoFavorites: prefs.autoFavorites || false,
             publicProfile: data.public_profile || false,
             username: data.username || "",
@@ -491,82 +498,151 @@ function ProfileContent() {
     loadProfile()
   }, [])
 
-  // Achievements Logic
+  const achievementNotifiedRef = useRef(false)
+
   useEffect(() => {
-    if (!profile) return
+    // Wait until profile and data are fully loaded
+    if (!profile || !user) return
+    // Run only once per mount after data is ready
+    if (achievementNotifiedRef.current) return
+    achievementNotifiedRef.current = true
+
+    const STORAGE_KEY = `travellm_seen_achievements_${user.id}`
+    const seen: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
+
     const stats = {
-      countries: editForm.visitedCountries.length,
+      countries: visitedSummary.countries.length,
       trips: userRoutes.length,
-      weeks: 0
+      weeks: 0,
     }
-  }, [editForm.visitedCountries, userRoutes])
 
-  const checkAchievements = (newVisitedCountries: string[]) => {
-    const prevStats = { countries: profile?.preferences?.visitedCountries?.length || 0, trips: userRoutes.length, weeks: 0 }
-    const newStats = { countries: newVisitedCountries.length, trips: userRoutes.length, weeks: 0 }
-
-    ACHIEVEMENTS.forEach(ach => {
-      const wasUnlocked = ach.condition(prevStats)
-      const isUnlocked = ach.condition(newStats)
-
-      if (!wasUnlocked && isUnlocked) {
-        toast.custom((t) => (
-          <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-md md:shadow-2xl flex items-center gap-4 border border-white/20">
-            <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-              <Medal className="w-8 h-8 animate-bounce" />
+    const newlyUnlocked: string[] = []
+    ACHIEVEMENTS.forEach((ach) => {
+      if (ach.condition(stats) && !seen.includes(ach.id)) {
+        newlyUnlocked.push(ach.id)
+        toast.custom(
+          () => (
+            <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-md md:shadow-2xl flex items-center gap-4 border border-white/20">
+              <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                <Medal className="w-8 h-8 animate-bounce" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg">{tp("achievement.newAchievement")}!</h4>
+                <p className="text-sm opacity-90">{tp(`achievement.${ach.titleKey}`)}</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-lg">{tp("achievement.newAchievement")}!</h4>
-              <p className="text-sm opacity-90">{tp(`achievement.${ach.titleKey}`)}</p>
-            </div>
-          </div>
-        ), { duration: 5000 })
+          ),
+          { duration: 5000 },
+        )
       }
     })
-  }
+
+    if (newlyUnlocked.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...seen, ...newlyUnlocked]))
+    }
+  }, [visitedSummary.countries.length, userRoutes.length, profile, user])
 
   const handleUpdateProfile = async () => {
     if (!user) return
+
+    const nameVal = sanitizeDisplayName(editForm.full_name)
+    const nameCheck = validateDisplayName(nameVal)
+    if (!nameCheck.ok) {
+      if (nameCheck.error === "empty") toast.error(tp("toast.nameEmpty"))
+      else toast.error(tp("toast.nameInvalid"))
+      return
+    }
+
+    const uNorm = normalizeUsername(editForm.username)
+    const usernameCheck = validateUsername(uNorm)
+    if (!usernameCheck.ok && usernameCheck.error !== undefined) {
+      const err = usernameCheck.error
+      if (err === "short" || err === "long") toast.error(tp("toast.usernameLength"))
+      else toast.error(tp("toast.usernameInvalid"))
+      return
+    }
+
+    const bioSan = sanitizeLongText(editForm.bio || "", PROFILE_TEXT_MAX)
+    const cit = sanitizeCitizenshipNationality(editForm.citizenship)
+    const nat = sanitizeCitizenshipNationality(editForm.nationality)
+    const ageNum = editForm.age.trim() ? parseProfileAge(editForm.age) : null
+    if (editForm.age.trim() && ageNum === null) {
+      toast.error(tp("toast.ageInvalid"))
+      return
+    }
+
+    const langs = migrateLanguageList(editForm.languages)
+    const interests = filterInterestList(editForm.interests)
+
     setLoading(true)
 
-    checkAchievements(editForm.visitedCountries)
-
+    const prevPrefs = profile.preferences || {}
     const updatedPreferences = {
-      ...(profile.preferences || {}),
+      ...prevPrefs,
       gender: editForm.gender,
-      age: editForm.age ? Number(editForm.age) : null,
+      age: ageNum,
       pace: editForm.pace,
-      religion: editForm.religion,
-      visitedCountries: editForm.visitedCountries,
-      dietaryRestrictions: editForm.dietaryRestrictions,
-      dietaryCustom: editForm.dietaryCustom,
-      interestsDetailed: editForm.interests,
-      interestsCustom: editForm.interestsCustom,
+      interestsDetailed: interests,
       accommodation: editForm.accommodation,
       profileBackground: editForm.profileBackground,
-      departureCity: editForm.departureCity,
-      aiCreativity: editForm.aiCreativity,
       autoFavorites: editForm.autoFavorites,
     }
 
-    const { error } = await supabase.from('profiles').update({
-      full_name: editForm.full_name,
-      citizenship: editForm.citizenship,
-      nationality: editForm.nationality,
-      languages: editForm.languages,
-      preferences: updatedPreferences,
-      notifications_enabled: editForm.notifications_enabled,
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id)
+    delete (updatedPreferences as Record<string, unknown>).religion
+    delete (updatedPreferences as Record<string, unknown>).visitedCountries
+    delete (updatedPreferences as Record<string, unknown>).dietaryRestrictions
+    delete (updatedPreferences as Record<string, unknown>).dietaryCustom
+    delete (updatedPreferences as Record<string, unknown>).departureCity
+    delete (updatedPreferences as Record<string, unknown>).aiCreativity
+    delete (updatedPreferences as Record<string, unknown>).units
+    delete (updatedPreferences as Record<string, unknown>).interestsCustom
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: nameVal,
+        citizenship: cit || null,
+        nationality: nat || null,
+        languages: langs,
+        username: uNorm || null,
+        bio: bioSan || null,
+        preferences: updatedPreferences,
+        notifications_enabled: editForm.notifications_enabled,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", user.id)
 
     if (error) {
       console.error("Error updating profile:", error)
-      toast.error(tp("toast.profileSaveError", { message: error.message }))
+      if (error.code === "23505") {
+        toast.error(tp("toast.usernameTaken"))
+      } else {
+        toast.error(tp("toast.profileSaveError", { message: error.message }))
+      }
     } else {
-      setProfile({ ...profile, full_name: editForm.full_name, citizenship: editForm.citizenship, nationality: editForm.nationality, languages: editForm.languages, preferences: updatedPreferences })
+      setProfile({
+        ...profile,
+        full_name: nameVal,
+        citizenship: cit || null,
+        nationality: nat || null,
+        languages: langs,
+        username: uNorm || null,
+        bio: bioSan || null,
+        preferences: updatedPreferences,
+      })
+      setEditForm((prev) => ({
+        ...prev,
+        full_name: nameVal,
+        citizenship: cit,
+        nationality: nat,
+        username: uNorm,
+        bio: bioSan,
+        languages: langs,
+        interests,
+      }))
       setIsEditing(false)
       toast.success(tp("toast.profileUpdated"))
-      window.dispatchEvent(new Event('profile_updated'))
+      window.dispatchEvent(new Event("profile_updated"))
     }
     setLoading(false)
   }
@@ -576,7 +652,8 @@ function ProfileContent() {
 
   const handleShareProfile = async () => {
     if (!profile?.username || !profile?.public_profile) return
-    const url = `${typeof window !== "undefined" ? window.location.origin : "https://travellm.ru"}/profile/${profile.username}`
+    const origin = typeof window !== "undefined" ? window.location.origin : ""
+    const url = `${origin}/profile/${profile.username}`
     if (navigator.share) {
       try { await navigator.share({ title: `${tp("title")} — TraveLLM`, url }) } catch {}
     } else {
@@ -588,16 +665,20 @@ function ProfileContent() {
 
   const handleSavePublicProfile = async () => {
     if (!user) return
-    const usernameValue = editForm.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "")
-    if (usernameValue && (usernameValue.length < 3 || usernameValue.length > 20)) {
-      toast.error(tp("toast.usernameLength"))
+    const usernameValue = normalizeUsername(editForm.username)
+    const usernameCheck = validateUsername(usernameValue)
+    if (!usernameCheck.ok) {
+      const err = usernameCheck.error
+      if (err === "short" || err === "long") toast.error(tp("toast.usernameLength"))
+      else toast.error(tp("toast.usernameInvalid"))
       return
     }
+    const bioSan = sanitizeLongText(editForm.bio || "", PROFILE_TEXT_MAX)
     setSavingPublicProfile(true)
     const { error } = await supabase.from("profiles").update({
       username: usernameValue || null,
       public_profile: editForm.publicProfile,
-      bio: editForm.bio || null,
+      bio: bioSan || null,
     }).eq("id", user.id)
     setSavingPublicProfile(false)
     if (error) {
@@ -607,16 +688,25 @@ function ProfileContent() {
         toast.error(tp("toast.saveError", { message: error.message }))
       }
     } else {
-      setProfile((p: any) => ({ ...p, username: usernameValue || null, public_profile: editForm.publicProfile, bio: editForm.bio || null }))
+      setProfile((p: any) => ({
+        ...p,
+        username: usernameValue || null,
+        public_profile: editForm.publicProfile,
+        bio: bioSan || null,
+      }))
+      setEditForm((prev) => ({ ...prev, username: usernameValue, bio: bioSan }))
       toast.success(tp("toast.publicProfileSaved"))
     }
   }
 
   const saveUsernameInline = async () => {
     if (!user) return
-    const val = usernameTemp.trim().toLowerCase().replace(/[^a-z0-9_]/g, "")
-    if (val && (val.length < 3 || val.length > 20)) {
-      toast.error("Username: от 3 до 20 символов (a–z, 0–9, _)")
+    const val = normalizeUsername(usernameTemp)
+    const usernameCheck = validateUsername(val)
+    if (!usernameCheck.ok) {
+      const err = usernameCheck.error
+      if (err === "short" || err === "long") toast.error(tp("toast.usernameLength"))
+      else toast.error(tp("toast.usernameInvalid"))
       return
     }
     setSavingUsername(true)
@@ -789,7 +879,8 @@ function ProfileContent() {
                       <input
                         autoFocus
                         value={nameTemp}
-                        onChange={(e) => setNameTemp(e.target.value)}
+                        onChange={(e) => setNameTemp(sanitizeDisplayName(e.target.value))}
+                        maxLength={PROFILE_NAME_MAX}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveNameInline()
                           if (e.key === "Escape") setNameEditing(false)
@@ -971,7 +1062,14 @@ function ProfileContent() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("fullNameLabel")}</label>
-                        <Input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} className="bg-background/50" />
+                        <Input
+                          value={editForm.full_name}
+                          onChange={(e) =>
+                            setEditForm({ ...editForm, full_name: sanitizeDisplayName(e.target.value) })
+                          }
+                          maxLength={PROFILE_NAME_MAX}
+                          className="bg-background/50"
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">Username</label>
@@ -979,9 +1077,14 @@ function ProfileContent() {
                           <span className="px-3 py-2 text-sm bg-muted/50 border border-input border-r-0 rounded-l-md text-muted-foreground">@</span>
                           <Input
                             value={editForm.username}
-                            onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                username: sanitizeUsernameInput(e.target.value).toLowerCase(),
+                              })
+                            }
                             placeholder="username"
-                            maxLength={20}
+                            maxLength={PROFILE_USERNAME_MAX}
                             className="bg-background/50 font-mono rounded-l-none"
                           />
                         </div>
@@ -990,13 +1093,18 @@ function ProfileContent() {
                         <label className="text-xs font-medium text-muted-foreground">{tp("aboutMeLabel")}</label>
                         <textarea
                           value={editForm.bio}
-                          onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              bio: sanitizeLongText(e.target.value, PROFILE_TEXT_MAX),
+                            })
+                          }
                           placeholder={tp("aboutMePlaceholder")}
-                          maxLength={200}
+                          maxLength={PROFILE_TEXT_MAX}
                           rows={2}
                           className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                         />
-                        <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/200</p>
+                        <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("uploadAvatar")}</label>
@@ -1008,11 +1116,31 @@ function ProfileContent() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("citizenshipLabel")}</label>
-                        <Input value={editForm.citizenship} onChange={(e) => setEditForm({ ...editForm, citizenship: e.target.value })} className="bg-background/50" />
+                        <Input
+                          value={editForm.citizenship}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              citizenship: sanitizeCitizenshipNationality(e.target.value),
+                            })
+                          }
+                          maxLength={PROFILE_TEXT_MAX}
+                          className="bg-background/50"
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("nationalityLabel")}</label>
-                        <Input value={editForm.nationality} onChange={(e) => setEditForm({ ...editForm, nationality: e.target.value })} className="bg-background/50" />
+                        <Input
+                          value={editForm.nationality}
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              nationality: sanitizeCitizenshipNationality(e.target.value),
+                            })
+                          }
+                          maxLength={PROFILE_TEXT_MAX}
+                          className="bg-background/50"
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("genderLabel")}</label>
@@ -1097,145 +1225,85 @@ function ProfileContent() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("religionLabel")}</label>
-                        <Select value={editForm.religion} onValueChange={(v) => setEditForm({ ...editForm, religion: v })}>
-                          <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">{tp("religion.none")}</SelectItem>
-                            <SelectItem value="islam">{tp("religion.islam")}</SelectItem>
-                            <SelectItem value="judaism">{tp("religion.judaism")}</SelectItem>
-                            <SelectItem value="hinduism">{tp("religion.hinduism")}</SelectItem>
-                            <SelectItem value="buddhism">{tp("religion.buddhism")}</SelectItem>
-                            <SelectItem value="christianity">{tp("religion.christianity")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("departureCityLabel")}</label>
-                        <Input placeholder={tp("departureCityPlaceholder")} value={editForm.departureCity} onChange={(e) => setEditForm({ ...editForm, departureCity: e.target.value })} className="bg-background/50" />
-                      </div>
-                    </div>
-                    {/* Visited Countries tags */}
-                    <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">{tp("visitedCountriesLabel")}</label>
-                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
-                        {editForm.visitedCountries.map((tag, i) => (
-                          <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
-                            const newSw = [...editForm.visitedCountries]
-                            newSw.splice(i, 1)
-                            setEditForm({ ...editForm, visitedCountries: newSw })
-                          }}>
-                            {tag} ×
-                          </Badge>
-                        ))}
-                        <input
-                          className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.visitedCountries.length === 0 ? tp("visitedCountriesPlaceholder") : ""}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const val = e.currentTarget.value.trim()
-                              if (val && !editForm.visitedCountries.includes(val)) {
-                                setEditForm({ ...editForm, visitedCountries: [...editForm.visitedCountries, val] })
-                                e.currentTarget.value = ''
-                              }
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {/* Dietary */}
-                    <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">{tp("dietaryLabel")}</label>
-                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
-                        {editForm.dietaryRestrictions.map((tag, i) => (
-                          <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
-                            const newSw = [...editForm.dietaryRestrictions]
-                            newSw.splice(i, 1)
-                            setEditForm({ ...editForm, dietaryRestrictions: newSw })
-                          }}>
-                            {tag} ×
-                          </Badge>
-                        ))}
-                        <input
-                          className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.dietaryRestrictions.length === 0 ? tp("dietaryPlaceholder") : ""}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const val = e.currentTarget.value.trim()
-                              if (val && !editForm.dietaryRestrictions.includes(val)) {
-                                setEditForm({ ...editForm, dietaryRestrictions: [...editForm.dietaryRestrictions, val] })
-                                e.currentTarget.value = ''
-                              }
-                            }
-                          }}
-                        />
-                      </div>
                     </div>
                   </EditSection>
 
                   {/* Section 5: Languages & interests */}
                   <EditSection title={tp("languagesSection")} icon={<Heart className="h-4 w-4" />} defaultOpen={false}>
-                    {/* Languages */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground">{tp("languagesLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.languages.map((lang, i) => (
-                          <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
-                            const newSw = [...editForm.languages]
-                            newSw.splice(i, 1)
-                            setEditForm({ ...editForm, languages: newSw })
-                          }}>
-                            {lang} ×
+                          <Badge
+                            key={lang}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => {
+                              const newSw = [...editForm.languages]
+                              newSw.splice(i, 1)
+                              setEditForm({ ...editForm, languages: newSw })
+                            }}
+                          >
+                            {tp(`languageOptions.${lang}` as any)} ×
                           </Badge>
                         ))}
-                        <input
-                          className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.languages.length === 0 ? tp("languagesPlaceholder") : ""}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const val = e.currentTarget.value.trim()
-                              if (val && !editForm.languages.includes(val)) {
-                                setEditForm({ ...editForm, languages: [...editForm.languages, val] })
-                                e.currentTarget.value = ''
-                              }
-                            }
-                          }}
-                        />
                       </div>
+                      <select
+                        className="w-full h-9 rounded-md border border-input bg-background/50 px-3 text-sm"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const v = e.target.value
+                          e.target.value = ""
+                          if (v && !editForm.languages.includes(v)) {
+                            setEditForm({ ...editForm, languages: [...editForm.languages, v] })
+                          }
+                        }}
+                      >
+                        <option value="">{tp("selectFromList")}</option>
+                        {PROFILE_LANGUAGE_IDS.filter((id) => !editForm.languages.includes(id)).map((id) => (
+                          <option key={id} value={id}>
+                            {tp(`languageOptions.${id}` as any)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Interests */}
                     <div className="space-y-1.5 mt-2">
                       <label className="text-xs font-medium text-muted-foreground">{tp("interestsLabel")}</label>
                       <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
                         {editForm.interests.map((tag, i) => (
-                          <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground" onClick={() => {
-                            const newSw = [...editForm.interests]
-                            newSw.splice(i, 1)
-                            setEditForm({ ...editForm, interests: newSw })
-                          }}>
-                            {tag} ×
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => {
+                              const newSw = [...editForm.interests]
+                              newSw.splice(i, 1)
+                              setEditForm({ ...editForm, interests: newSw })
+                            }}
+                          >
+                            {tp(`interests.${tag}` as any)} ×
                           </Badge>
                         ))}
-                        <input
-                          className="bg-transparent outline-none flex-1 min-w-[100px] text-sm"
-                          placeholder={editForm.interests.length === 0 ? tp("interestsPlaceholder") : ""}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault()
-                              const val = e.currentTarget.value.trim()
-                              if (val && !editForm.interests.includes(val)) {
-                                setEditForm({ ...editForm, interests: [...editForm.interests, val] })
-                                e.currentTarget.value = ''
-                              }
-                            }
-                          }}
-                        />
                       </div>
+                      <select
+                        className="w-full h-9 rounded-md border border-input bg-background/50 px-3 text-sm"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const v = e.target.value
+                          e.target.value = ""
+                          if (v && !editForm.interests.includes(v)) {
+                            setEditForm({ ...editForm, interests: [...editForm.interests, v] })
+                          }
+                        }}
+                      >
+                        <option value="">{tp("selectFromList")}</option>
+                        {PROFILE_INTEREST_IDS.filter((id) => !editForm.interests.includes(id)).map((id) => (
+                          <option key={id} value={id}>
+                            {tp(`interests.${id}` as any)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </EditSection>
 
@@ -1358,22 +1426,6 @@ function ProfileContent() {
                                   profile?.preferences?.accommodation === 'resort' ? tp("accom.resort") : tp("accom.hotel")}
                               </Badge>
                             </div>
-                            {profile?.preferences?.religion && profile.preferences.religion !== 'none' && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">{tp("religionSection")}</span>
-                                <Badge variant="outline" className="border-emerald-500/20 text-emerald-400">
-                                  {tp(`religion.${profile.preferences.religion}` as any)}
-                                </Badge>
-                              </div>
-                            )}
-                            {profile?.preferences?.dietaryRestrictions?.length > 0 && (
-                              <div className="flex items-center justify-between">
-                                <span className="text-muted-foreground">{tp("foodSection")}</span>
-                                <Badge variant="outline" className="border-orange-500/20 text-orange-400">
-                                  {tp("hasRestrictions")}
-                                </Badge>
-                              </div>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -1657,14 +1709,16 @@ function ProfileContent() {
                                 <input
                                   autoFocus
                                   value={usernameTemp}
-                                  onChange={(e) => setUsernameTemp(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                                  onChange={(e) =>
+                                    setUsernameTemp(sanitizeUsernameInput(e.target.value).toLowerCase())
+                                  }
                                   onKeyDown={(e) => {
                                     if (e.key === "Enter") saveUsernameInline()
                                     if (e.key === "Escape") setUsernameEditing(false)
                                   }}
                                   className="text-xs bg-transparent border-b border-primary outline-none w-28 font-mono text-foreground py-0.5"
                                   placeholder="username"
-                                  maxLength={20}
+                                  maxLength={PROFILE_USERNAME_MAX}
                                 />
                                 <button onClick={saveUsernameInline} disabled={savingUsername} className="h-5 w-5 rounded flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 transition-colors">
                                   <Check className="h-3 w-3" />
@@ -1726,47 +1780,6 @@ function ProfileContent() {
                           }
                         />
                         <SettingsRow
-                          icon={<Wand2 className="h-4 w-4" />}
-                          label={tp("aiCreativityLabel")}
-                          description={tp("aiCreativityDesc")}
-                          control={
-                            <Select
-                              value={profile?.preferences?.aiCreativity ?? "balanced"}
-                              onValueChange={async (val) => {
-                                const newPrefs = { ...profile.preferences, aiCreativity: val }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                setEditForm((prev: any) => ({ ...prev, aiCreativity: val }))
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
-                              }}
-                            >
-                              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="conservative">{tp("creativity.conservative")}</SelectItem>
-                                <SelectItem value="balanced">{tp("creativity.balanced")}</SelectItem>
-                                <SelectItem value="creative">{tp("creativity.creative")}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          }
-                        />
-                        <SettingsRow
-                          icon={<Plane className="h-4 w-4" />}
-                          label={tp("departureCityLabel")}
-                          description={tp("departureCityDesc")}
-                          control={
-                            <Input
-                              placeholder={tp("departureCityPlaceholder")}
-                              value={editForm.departureCity}
-                              onChange={(e) => setEditForm({ ...editForm, departureCity: e.target.value })}
-                              onBlur={async () => {
-                                const newPrefs = { ...profile.preferences, departureCity: editForm.departureCity }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
-                              }}
-                              className="w-[140px] bg-background/50 h-8 text-sm"
-                            />
-                          }
-                        />
-                        <SettingsRow
                           icon={<Banknote className="h-4 w-4" />}
                           label={tp("currencyLabel")}
                           description={tp("currencyDesc")}
@@ -1784,27 +1797,6 @@ function ProfileContent() {
                                 <SelectItem value="rub">₽ RUB</SelectItem>
                                 <SelectItem value="usd">$ USD</SelectItem>
                                 <SelectItem value="eur">€ EUR</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          }
-                        />
-                        <SettingsRow
-                          icon={<Ruler className="h-4 w-4" />}
-                          label={tp("unitsLabel")}
-                          description={tp("unitsDesc")}
-                          control={
-                            <Select
-                              value={profile?.preferences?.units ?? "metric"}
-                              onValueChange={async (val) => {
-                                const newPrefs = { ...profile.preferences, units: val }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
-                              }}
-                            >
-                              <SelectTrigger className="w-[110px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="metric">{tp("units.metric")}</SelectItem>
-                                <SelectItem value="imperial">{tp("units.imperial")}</SelectItem>
                               </SelectContent>
                             </Select>
                           }
@@ -1847,15 +1839,22 @@ function ProfileContent() {
                               <span className="text-muted-foreground font-mono text-sm">@</span>
                               <Input
                                 value={editForm.username}
-                                onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    username: sanitizeUsernameInput(e.target.value).toLowerCase(),
+                                  })
+                                }
                                 placeholder="username"
-                                maxLength={20}
+                                maxLength={PROFILE_USERNAME_MAX}
                                 className="bg-background/50 font-mono"
                               />
                             </div>
                             <p className="text-xs text-muted-foreground">{tp("usernameHint")}</p>
-                            {editForm.username && (
-                              <p className="text-xs text-sky-500">travellm.ru/profile/{editForm.username}</p>
+                            {editForm.username && siteOrigin && (
+                              <p className="text-xs text-sky-500 break-all">
+                                {siteOrigin}/profile/{editForm.username}
+                              </p>
                             )}
                           </div>
 
@@ -1863,13 +1862,18 @@ function ProfileContent() {
                             <label className="text-xs font-medium text-muted-foreground">{tp("aboutLabel")}</label>
                             <textarea
                               value={editForm.bio}
-                              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                              onChange={(e) =>
+                                setEditForm({
+                                  ...editForm,
+                                  bio: sanitizeLongText(e.target.value, PROFILE_TEXT_MAX),
+                                })
+                              }
                               placeholder={tp("bioPlaceholder")}
-                              maxLength={200}
+                              maxLength={PROFILE_TEXT_MAX}
                               rows={3}
                               className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                             />
-                            <p className="text-xs text-muted-foreground">{editForm.bio.length}/200</p>
+                            <p className="text-xs text-muted-foreground">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
                           </div>
 
                           <div className="flex items-center justify-between py-2 border-t border-border/30">

@@ -249,6 +249,9 @@
     "defaultDestination": "Trip",
     "generationError": "Generation error",
     "generationErrorMessage": "An error occurred while creating the itinerary",
+    "monthlyLimitTitle": "Monthly generation limit",
+    "monthlyLimitBody": "You've used all {limit} itinerary generations for this month. The limit resets around {date}.",
+    "rateLimitGeneration": "Too many requests in a short time. Please wait about {seconds} s and try again.",
     "sections": {
       "routeHub": "Route Hub",
       "inspiration": "Inspiration",
@@ -744,7 +747,7 @@
     "uploading": "Uploading...",
     "selectPhoto": "Select photo",
     "tripPace": "Trip pace",
-    "visitedCountries": "Visited countries (press Enter to add)",
+    "visitedCountries": "Visited countries",
     "shareHint": "Others will be able to visit your page",
     "statsTrips": "trips",
     "statsCountries": "countries",
@@ -770,7 +773,10 @@
       "nameEmpty": "Name cannot be empty",
       "usernameTaken": "This username is already taken",
       "publicProfileSaved": "Public profile saved",
-      "usernameLength": "Username must be 3–20 characters"
+      "usernameLength": "Username: 3–30 characters",
+      "nameInvalid": "Invalid name",
+      "usernameInvalid": "Invalid username (RU/EN letters, digits, _, -)",
+      "ageInvalid": "Age must be between 10 and 120"
     },
     "interests": {
       "nature": "Nature",
@@ -828,8 +834,9 @@
     "departureCityLabel": "Departure city",
     "visitedCountriesLabel": "Visited countries (press Enter to add)",
     "dietaryLabel": "Dietary restrictions",
-    "languagesLabel": "Languages (press Enter to add)",
-    "interestsLabel": "Interests (press Enter to add)",
+    "languagesLabel": "Languages",
+    "interestsLabel": "Interests",
+    "selectFromList": "Choose from the list",
     "visitedCountriesPlaceholder": "Italy, Japan...",
     "dietaryPlaceholder": "Vegan, Gluten-free...",
     "languagesPlaceholder": "Russian, English...",
@@ -837,7 +844,7 @@
     "departureCityPlaceholder": "New York",
     "aboutLabel": "About",
     "bioPlaceholder": "Tell us about yourself...",
-    "usernameHint": "3–20 characters: a–z, 0–9, _",
+    "usernameHint": "3–30 characters: letters (RU/EN), digits, _, -",
     "publicProfile": "Public profile",
     "notificationsLabel": "Notifications",
     "notificationsDesc": "Notify when itinerary is ready",
@@ -895,6 +902,12 @@
       "expertDesc": "Complete 10 itineraries",
       "unlocked": "Unlocked",
       "newAchievement": "New achievement"
+    },
+    "languageOptions": {
+      "ru": "Russian",
+      "en": "English",
+      "learning_local": "Learning local",
+      "other": "Other"
     },
     "accom": {
       "hotel": "Hotel",
@@ -1068,7 +1081,7 @@
     "aiAssistant": "AI Assistant",
     "questionsAndChanges": "Questions & changes",
     "myItinerary": "My itinerary (planning)",
-    "welcomeMessage": "Hi! I'm your AI trip assistant (Gemini).\n\nAsk a question, attach a photo, or request a change:\n• \"What's the weather like?\"\n• \"Replace the museum with a café on day 2\"\n• \"Rewrite days 3–5 for a slower pace\"\n• \"Do I need a visa?\"",
+    "welcomeMessage": "Hi! I'm your AI trip assistant (Gemini).\n\nAsk a question, attach a photo, or request a change:\n• \"What's the weather like?\"\n• \"Replace the museum with a café on day 2\"\n• \"Rewrite days 3–5 for a slower pace\"\n• \"Rewrite the rest of the trip from the day I'm viewing\"\n• \"Do I need a visa?\"",
     "itineraryUpdated": "Itinerary updated",
     "flights": "Flights",
     "hotels": "Hotels",
@@ -1086,10 +1099,19 @@
     "promptWeather": "What weather is expected on these dates?",
     "promptVisa": "Do I need a visa for this trip?",
     "promptAddDay": "Add one more interesting day to the end of the itinerary",
+    "rewriteTail": "Rest of trip",
+    "promptRewriteTail": "Rewrite the rest of the itinerary from day {day} through the last day — keep the same cities but slow the pace and add one relaxed evening per day",
     "providerModel": "Gemini",
     "attachPhoto": "Attach photo",
     "photoMessageFallback": "(photo)",
-    "chatPhotosAttached": "{count} photo(s) attached"
+    "chatPhotosAttached": "{count} photo(s) attached",
+    "errorPrefix": "Error",
+    "couldNotProcess": "Could not process the request.",
+    "rateLimit": "You're sending messages too quickly. Please wait about {seconds} s and try again.",
+    "guideChatError": "Something went wrong. Please try again in a moment.",
+    "genericError": "Something went wrong: {message}. Try again later.",
+    "closeChat": "Close assistant",
+    "openChat": "Open AI assistant"
   },
   "links": {
     "quick": {

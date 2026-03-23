@@ -509,6 +509,7 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
 - itinerary: [{ day, title, dayTotal, tips, activities: [...] }] — day "tips": practical notes follow TRAVELER TIPS POLICY when mentioning documents, money, safety, language on the ground
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Link fields: mapLink (place map), link (booking/site), bookingUrl (hotel/food only), ticketUrl (paid activities only)
+  activity "cost": realistic USD for the destination — do NOT paste large local-currency integers (e.g. IDR/VND) as if they were dollars.
 `.trim() : `
 ФОРМАТ ОТВЕТА:
 Верни строго JSON объект со следующими полями:
@@ -522,6 +523,7 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
 - itinerary: [{ day, title, dayTotal, tips, activities: [...] }] — поле tips у дня: практические советы по ПОЛИТИКЕ СОВЕТОВ, если речь о документах, деньгах, безопасности, языке на месте
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Поля ссылок: mapLink (карта места), link (бронирование/сайт), bookingUrl (только hotel/food), ticketUrl (только платные activities)
+  ЦЕНЫ cost: только реалистичные суммы в ₽; для зарубежных направлений пересчитай с местной валюты — не подставляй крупные числа IDR/VND как «рубли».
 `.trim())
 
     const userPrompt = userParts.join("\n\n")

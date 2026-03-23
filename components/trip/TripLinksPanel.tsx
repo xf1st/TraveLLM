@@ -337,7 +337,7 @@ function CategorySection({
           {label}
         </span>
         <span
-          className="text-[10px] font-black px-2 py-0.5 rounded-full"
+          className="whitespace-nowrap text-[10px] font-black px-2 py-0.5 rounded-full"
           style={{ background: `${accent}20`, color: accent }}
         >
           {items.length}

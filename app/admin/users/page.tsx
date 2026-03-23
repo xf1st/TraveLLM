@@ -28,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail, CreditCard, ChevronDown, ChevronUp, TrendingUp, Plane } from "lucide-react"
+import { Users, Search, MoreVertical, Shield, Ban, UserCheck, Mail, CreditCard, ChevronDown, ChevronUp, TrendingUp, Plane, UserMinus, Pencil, Trash2, KeyRound } from "lucide-react"
 import { appToast as toast } from "@/components/ui/sonner"
 
 interface User {
@@ -107,11 +107,41 @@ export default function AdminUsersPage() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>("created_at")
   const [sortDir, setSortDir] = useState<SortDir>("desc")
+  const [actorRole, setActorRole] = useState<string | null>(null)
+
+  // Edit user dialog (super_admin only)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editFullName, setEditFullName] = useState("")
+  const [editUsername, setEditUsername] = useState("")
+  const [editBio, setEditBio] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+  const [editRole, setEditRole] = useState("")
+  const [editGenLimit, setEditGenLimit] = useState("")
+  const [editChatLimit, setEditChatLimit] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
 
   useEffect(() => {
     fetchUsers()
     fetchProviders()
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+      setActorRole(data?.role ?? "user")
+    })()
   }, [])
+
+  const canModerateTarget = (target: User) => {
+    if (target.role === "super_admin") return false
+    if (target.role === "admin" && actorRole !== "super_admin") return false
+    return actorRole === "admin" || actorRole === "super_admin"
+  }
+
+  const canDemoteAdmin = (target: User) =>
+    actorRole === "super_admin" && target.role === "admin"
 
   const fetchProviders = async () => {
     try {
@@ -258,24 +288,23 @@ export default function AdminUsersPage() {
 
   const handleBlockUser = async () => {
     if (!selectedUser) return
+    if (!canModerateTarget(selectedUser)) {
+      toast.error("Недостаточно прав для этого пользователя")
+      return
+    }
     try {
-      const updateData: any = {
-        access_mode: blockMode,
-        block_reason: blockReason || null,
-        blocked_until: blockUntil ? new Date(blockUntil).toISOString() : null,
-      }
-      const { error } = await supabase.from("profiles").update(updateData).eq("id", selectedUser.id)
-      if (error) throw error
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from("admin_audit_log").insert({
-          admin_user_id: user.id,
-          action: `user.${blockMode}`,
-          target_user_id: selectedUser.id,
-          payload: { reason: blockReason, until: blockUntil || null },
-        })
-      }
+      const res = await fetch("/api/admin/moderate-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: selectedUser.id,
+          access_mode: blockMode,
+          block_reason: blockReason || null,
+          blocked_until: blockUntil ? new Date(blockUntil).toISOString() : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка запроса")
 
       toast.success(
         blockMode === "active"
@@ -295,6 +324,10 @@ export default function AdminUsersPage() {
   }
 
   const handleInviteAdmin = async () => {
+    if (actorRole !== "super_admin") {
+      toast.error("Только супер-администратор может назначать админов")
+      return
+    }
     if (!inviteEmail.trim()) {
       toast.error("Введите email")
       return
@@ -310,8 +343,13 @@ export default function AdminUsersPage() {
         .single()
 
       if (existing) {
-        const { error } = await supabase.from("profiles").update({ role: "admin" }).eq("id", existing.id)
-        if (error) throw error
+        const res = await fetch("/api/admin/user-role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetUserId: existing.id, action: "promote_admin" }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Ошибка")
         toast.success("Пользователь назначен администратором")
       } else {
         const { error } = await supabase.from("admin_invites").insert({
@@ -335,7 +373,28 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleDemoteAdmin = async (target: User) => {
+    if (!canDemoteAdmin(target)) return
+    try {
+      const res = await fetch("/api/admin/user-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: target.id, action: "demote_admin" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка")
+      toast.success("Права администратора сняты")
+      fetchUsers()
+    } catch (error: any) {
+      toast.error(`Ошибка: ${error.message}`)
+    }
+  }
+
   const openBlockDialog = (user: User, mode: "ai_blocked" | "full_blocked" | "active") => {
+    if (!canModerateTarget(user)) {
+      toast.error("Недостаточно прав для этого пользователя")
+      return
+    }
     setSelectedUser(user)
     setBlockMode(mode)
     setBlockReason(user.block_reason || "")
@@ -344,6 +403,10 @@ export default function AdminUsersPage() {
   }
 
   const openSubscriptionDialog = (user: User) => {
+    if (!canModerateTarget(user)) {
+      toast.error("Недостаточно прав для этого пользователя")
+      return
+    }
     setSubscriptionUser(user)
     setSubGenOverride(user.gen_limit_override != null ? String(user.gen_limit_override) : "")
     setSubChatOverride(user.chat_limit_override != null ? String(user.chat_limit_override) : "")
@@ -352,23 +415,40 @@ export default function AdminUsersPage() {
 
   const handleUpdateSubscription = async () => {
     if (!subscriptionUser) return
+    if (!canModerateTarget(subscriptionUser)) {
+      toast.error("Недостаточно прав для этого пользователя")
+      return
+    }
     try {
-      const updateData: any = {
-        gen_limit_override: subGenOverride ? parseInt(subGenOverride) : null,
-        chat_limit_override: subChatOverride ? parseInt(subChatOverride) : null,
+      let gen: number | null = null
+      let chat: number | null = null
+      if (subGenOverride.trim() !== "") {
+        const n = Number.parseInt(subGenOverride, 10)
+        if (Number.isNaN(n) || n < 0) {
+          toast.error("Некорректный лимит генераций")
+          return
+        }
+        gen = n
       }
-      const { error } = await supabase.from("profiles").update(updateData).eq("id", subscriptionUser.id)
-      if (error) throw error
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase.from("admin_audit_log").insert({
-          admin_user_id: user.id,
-          action: "user.limits_update",
-          target_user_id: subscriptionUser.id,
-          payload: updateData,
-        })
+      if (subChatOverride.trim() !== "") {
+        const n = Number.parseInt(subChatOverride, 10)
+        if (Number.isNaN(n) || n < 0) {
+          toast.error("Некорректный лимит чата")
+          return
+        }
+        chat = n
       }
+      const res = await fetch("/api/admin/moderate-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetUserId: subscriptionUser.id,
+          gen_limit_override: gen,
+          chat_limit_override: chat,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка запроса")
 
       toast.success("Лимиты обновлены")
       setSubscriptionDialogOpen(false)
@@ -376,6 +456,105 @@ export default function AdminUsersPage() {
       fetchUsers()
     } catch (error: any) {
       toast.error(`Ошибка: ${error.message}`)
+    }
+  }
+
+  const openEditDialog = (user: User) => {
+    setEditUser(user)
+    setEditFullName(user.full_name || "")
+    setEditUsername((user as any).username || "")
+    setEditBio((user as any).bio || "")
+    setEditEmail(user.email || "")
+    setEditRole(user.role)
+    setEditGenLimit(user.gen_limit_override != null ? String(user.gen_limit_override) : "")
+    setEditChatLimit(user.chat_limit_override != null ? String(user.chat_limit_override) : "")
+    setEditDialogOpen(true)
+  }
+
+  const callEditUser = async (action: string, extra?: Record<string, unknown>) => {
+    if (!editUser) return
+    const res = await fetch("/api/admin/edit-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUserId: editUser.id, action, ...extra }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || "Ошибка запроса")
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editUser) return
+    setEditSaving(true)
+    try {
+      // Profile fields
+      await callEditUser("update_profile", {
+        full_name: editFullName.trim(),
+        username: editUsername.trim() || null,
+        bio: editBio.trim() || null,
+      })
+
+      // Email (if changed)
+      if (editEmail.trim() && editEmail.trim() !== editUser.email) {
+        await callEditUser("update_email", { email: editEmail.trim() })
+      }
+
+      // Role (if changed)
+      if (editRole && editRole !== editUser.role && editRole !== "super_admin") {
+        await callEditUser("update_role", { role: editRole })
+      }
+
+      // Limits
+      const gen = editGenLimit.trim() !== "" ? parseInt(editGenLimit, 10) : null
+      const chat = editChatLimit.trim() !== "" ? parseInt(editChatLimit, 10) : null
+      await callEditUser("update_limits", {
+        gen_limit_override: gen,
+        chat_limit_override: chat,
+      })
+
+      toast.success("Профиль обновлён")
+      setEditDialogOpen(false)
+      setEditUser(null)
+      fetchUsers()
+    } catch (err: any) {
+      toast.error(`Ошибка: ${err.message}`)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  const handleResetPassword = async (user: User) => {
+    try {
+      const res = await fetch("/api/admin/edit-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: user.id, action: "reset_password" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка")
+      toast.success("Письмо для сброса пароля отправлено")
+    } catch (err: any) {
+      toast.error(`Ошибка: ${err.message}`)
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return
+    try {
+      const res = await fetch("/api/admin/edit-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: deleteTarget.id, action: "delete_user" }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Ошибка")
+      toast.success("Пользователь удалён")
+      setDeleteConfirmOpen(false)
+      setDeleteTarget(null)
+      setEditDialogOpen(false)
+      setEditUser(null)
+      fetchUsers()
+    } catch (err: any) {
+      toast.error(`Ошибка: ${err.message}`)
     }
   }
 
@@ -400,10 +579,12 @@ export default function AdminUsersPage() {
             Управление аккаунтами и подписками
           </p>
         </div>
-        <Button onClick={() => setInviteDialogOpen(true)} size="sm">
-          <Mail className="mr-2 h-4 w-4" />
-          Пригласить админа
-        </Button>
+        {actorRole === "super_admin" && (
+          <Button onClick={() => setInviteDialogOpen(true)} size="sm">
+            <Mail className="mr-2 h-4 w-4" />
+            Пригласить админа
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -574,22 +755,43 @@ export default function AdminUsersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openSubscriptionDialog(user)}>
-                              <CreditCard className="mr-2 h-4 w-4" />
-                              Лимиты пользователя
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openBlockDialog(user, "active")}>
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Восстановить доступ
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openBlockDialog(user, "ai_blocked")}>
-                              <Ban className="mr-2 h-4 w-4" />
-                              Заблокировать AI
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openBlockDialog(user, "full_blocked")}>
-                              <Shield className="mr-2 h-4 w-4" />
-                              Полная блокировка
-                            </DropdownMenuItem>
+                            {actorRole === "super_admin" && user.role !== "super_admin" && (
+                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Редактировать профиль
+                              </DropdownMenuItem>
+                            )}
+                            {canDemoteAdmin(user) && (
+                              <DropdownMenuItem onClick={() => handleDemoteAdmin(user)}>
+                                <UserMinus className="mr-2 h-4 w-4" />
+                                Снять права админа
+                              </DropdownMenuItem>
+                            )}
+                            {canModerateTarget(user) && (
+                              <>
+                                <DropdownMenuItem onClick={() => openSubscriptionDialog(user)}>
+                                  <CreditCard className="mr-2 h-4 w-4" />
+                                  Лимиты пользователя
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openBlockDialog(user, "active")}>
+                                  <UserCheck className="mr-2 h-4 w-4" />
+                                  Восстановить доступ
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openBlockDialog(user, "ai_blocked")}>
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Заблокировать AI
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openBlockDialog(user, "full_blocked")}>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Полная блокировка
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {!canModerateTarget(user) && !canDemoteAdmin(user) && (
+                              <DropdownMenuItem disabled className="text-muted-foreground">
+                                Нет доступных действий
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -705,6 +907,106 @@ export default function AdminUsersPage() {
               Отмена
             </Button>
             <Button onClick={handleUpdateSubscription}>Сохранить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog (super_admin only) */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Редактировать пользователя</DialogTitle>
+            <DialogDescription>{editUser?.email}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Имя</label>
+                <Input value={editFullName} onChange={e => setEditFullName(e.target.value)} placeholder="Полное имя" className="mt-1" maxLength={100} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Юзернейм</label>
+                <Input value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="username" className="mt-1" maxLength={30} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">О себе</label>
+              <textarea
+                value={editBio}
+                onChange={e => setEditBio(e.target.value)}
+                placeholder="Биография..."
+                maxLength={500}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none min-h-[80px]"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <Input value={editEmail} onChange={e => setEditEmail(e.target.value)} type="email" placeholder="email@example.com" className="mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">Изменение email обновит аккаунт через Supabase Auth.</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Роль</label>
+              <select
+                value={editRole}
+                onChange={e => setEditRole(e.target.value)}
+                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="user">Пользователь</option>
+                <option value="admin">Администратор</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Лимит генераций</label>
+                <Input type="number" value={editGenLimit} onChange={e => setEditGenLimit(e.target.value)} placeholder="По умолчанию (10)" className="mt-1" min={0} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Лимит чата</label>
+                <Input type="number" value={editChatLimit} onChange={e => setEditChatLimit(e.target.value)} placeholder="По умолчанию" className="mt-1" min={0} />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => editUser && handleResetPassword(editUser)}
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Сбросить пароль
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5 ml-auto"
+                onClick={() => { setDeleteTarget(editUser); setDeleteConfirmOpen(true) }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Удалить аккаунт
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Отмена</Button>
+            <Button onClick={handleSaveEdit} disabled={editSaving}>
+              {editSaving ? "Сохранение..." : "Сохранить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удалить пользователя?</DialogTitle>
+            <DialogDescription>
+              Это действие необратимо. Аккаунт {deleteTarget?.email} будет удалён навсегда вместе со всеми данными.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Отмена</Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>Удалить навсегда</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 type NearbyTheme = "food" | "culture" | "nature" | "fun" | "shopping"
 
@@ -192,6 +193,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Rate limit: 20 req/min per user — each call hits Overpass API
+    const rl = checkRateLimit(userId, "nearby-poi", 20)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const body = (await req.json()) as NearbyPoiRequest
     const lat = Number(body?.lat)
     const lng = Number(body?.lng)
@@ -201,7 +206,8 @@ export async function POST(req: Request) {
     const radiusMeters = Math.round(radiusKm * 1000)
     const activeDay = Number(body?.activeDay || 1)
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+        lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 })
     }
 
@@ -265,6 +271,6 @@ export async function POST(req: Request) {
     )
   } catch (error: any) {
     console.error("Nearby POI API error:", error)
-    return NextResponse.json({ error: error?.message || "Failed to fetch nearby POI", places: [] }, { status: 500 })
+    return NextResponse.json({ error: "Failed to fetch nearby POI", places: [] }, { status: 500 })
   }
 }

@@ -71,9 +71,13 @@ export function checkIpRateLimit(
 
 /** Convenience: returns a 429 JSON response if rate limited */
 export function rateLimitResponse(result: RateLimitResult) {
-  const retryAfterSec = Math.ceil((result.resetAt - Date.now()) / 1000)
+  const retryAfterSec = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000))
   return new Response(
-    JSON.stringify({ error: "Слишком много запросов. Подождите минуту.", code: "RATE_LIMIT" }),
+    JSON.stringify({
+      error: "Слишком много запросов. Подождите немного и попробуйте снова.",
+      code: "RATE_LIMIT",
+      retryAfterSec,
+    }),
     {
       status: 429,
       headers: {

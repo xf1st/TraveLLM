@@ -123,9 +123,13 @@ export async function POST(req: Request) {
     let chatId = 0;
     try {
         const expectedSecret = process.env.TELEGRAM_BOT_SECRET
+        if (!expectedSecret) {
+            console.error('[Telegram] TELEGRAM_BOT_SECRET is not set — webhook is disabled')
+            return NextResponse.json({ ok: false, error: 'Webhook not configured' }, { status: 503 })
+        }
         const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token')
-        if (!expectedSecret || receivedSecret !== expectedSecret) {
-            return NextResponse.json({ ok: true })
+        if (receivedSecret !== expectedSecret) {
+            return NextResponse.json({ ok: false }, { status: 401 })
         }
 
         const update = await req.json()
@@ -140,10 +144,13 @@ export async function POST(req: Request) {
         console.log(`[Telegram] Msg from ${chatId}: ${text}`)
 
         // 1. Check for Token (Deep Link OR Raw Message)
+        // Token is a fixed-length UUID-like string; cap at 128 chars to prevent abuse
+        const MAX_TOKEN_LENGTH = 128
         let potentialToken: string | null = null
         if (text.startsWith('/start ') && text.split(' ').length > 1) {
-            potentialToken = text.split(' ')[1]
-        } else if (!text.startsWith('/') && text.length > 20) {
+            const candidate = text.split(' ')[1]
+            if (candidate.length <= MAX_TOKEN_LENGTH) potentialToken = candidate
+        } else if (!text.startsWith('/') && text.length > 20 && text.length <= MAX_TOKEN_LENGTH) {
             // Assume raw token
             potentialToken = text
         }
@@ -231,8 +238,8 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error('Webhook Error:', error)
         if (chatId) {
-            await sendTelegramMessage(chatId, `❌ Произошла ошибка: ${error.message || 'Unknown error'}`)
+            await sendTelegramMessage(chatId, '❌ Произошла внутренняя ошибка. Подробности — в логах сервера.')
         }
-        return NextResponse.json({ ok: true }) 
+        return NextResponse.json({ ok: true })
     }
 }

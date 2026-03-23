@@ -1,5 +1,6 @@
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
 import { getRequestUserId } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
@@ -153,13 +154,23 @@ export async function POST(req: Request) {
     const rl = checkRateLimit(userId, "modify-itinerary", 5)
     if (!rl.allowed) return rateLimitResponse(rl)
 
-    const body = await req.json()
-    const { currentItinerary, userMessage } = body
+    const rawBody = await req.json()
 
-    if (!currentItinerary || !userMessage) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    const BodySchema = z.object({
+      userMessage: z.string().min(1).max(2000),
+      currentItinerary: z.object({
+        itinerary: z.array(z.any()).max(60),
+      }),
+    })
+    const parsed = BodySchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      )
     }
 
+    const { currentItinerary, userMessage } = parsed.data
     const itinerary = currentItinerary.itinerary || []
     const totalDays = itinerary.length
 
@@ -206,6 +217,7 @@ export async function POST(req: Request) {
     
     return NextResponse.json({ explanation: "Route modified.", modifications: [] })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("Modify itinerary error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -5,6 +5,7 @@
  * Recommended by Audit March 2025.
  */
 
+import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
 import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
@@ -267,7 +268,7 @@ export function normalizeActivityTypes(routeData: any) {
     day.activities = newActivities
   }
 
-  return routeData
+  return sanitizeMislabeledForeignCosts(routeData)
 }
 
 /**

@@ -1,15 +1,28 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { timingSafeEqual } from 'crypto'
 import { sendTelegramMessage } from '@/lib/telegram'
 import { getStatsForPeriod } from '@/lib/admin-stats'
 
-export async function GET(req: Request) {
-    // 1. Verify Secret
-    const { searchParams } = new URL(req.url)
-    const secret = req.headers.get('Authorization')?.split(' ')[1] || searchParams.get('secret')
+function verifySecret(a: string, b: string): boolean {
+    if (!a || !b || a.length < 8) return false
+    try {
+        const ba = Buffer.from(a)
+        const bb = Buffer.from(b)
+        if (ba.length !== bb.length) return false
+        return timingSafeEqual(ba, bb)
+    } catch {
+        return false
+    }
+}
 
-    if (secret !== process.env.CRON_SECRET) {
+export async function GET(req: Request) {
+    // 1. Verify Secret — header only, never query params (query params appear in logs)
+    const bearer = req.headers.get('Authorization')?.split(' ')[1] ?? ''
+    const cronSecret = process.env.CRON_SECRET ?? ''
+
+    if (!verifySecret(bearer, cronSecret)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -76,6 +89,6 @@ export async function GET(req: Request) {
         return NextResponse.json({ success: true, sent_to: sentCount })
     } catch (error: any) {
         console.error('Cron Error:', error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }

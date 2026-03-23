@@ -259,7 +259,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
             ].map(item => item.value && (
               <div key={item.label} className="rounded-2xl bg-muted/50 border border-border p-4">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>
-                <div className="text-lg font-black text-foreground break-words">{item.value}</div>
+                <div className="text-lg font-black text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{item.value}</div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">{item.sub}</div>
               </div>
             ))}

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const code = searchParams.get("code");
   const siteUrl = reqUrl.origin;
 
-  if (!code) {
+  if (!code || code.length > 512 || !/^[\w\-./]+$/.test(code)) {
     return NextResponse.redirect(`${siteUrl}/auth?error=NoCode`);
   }
 
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (verifyError) {
       console.error("Verify OTP failed:", verifyError);
-      return NextResponse.redirect(`${siteUrl}/auth?error=LoginFailed_${encodeURIComponent(verifyError.message)}`);
+      return NextResponse.redirect(`${siteUrl}/auth?error=LoginFailed`);
     }
 
     // Update app_metadata to track provider (optional but good for admin panel)

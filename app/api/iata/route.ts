@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const searchCityLocales = async (term: string) => {
   try {
@@ -14,12 +15,20 @@ const searchCityLocales = async (term: string) => {
   }
 };
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  // IP rate limit: 30 req/min — each request can fan out to 7 TravelPayouts calls
+  const rl = checkIpRateLimit(request, "iata", 30)
+  if (!rl.allowed) return rateLimitResponse(rl)
+
   const { searchParams } = new URL(request.url);
   const city = searchParams.get("city")?.trim();
 
   if (!city) {
     return NextResponse.json({ error: "City parameter is required" }, { status: 400 });
+  }
+
+  if (city.length > 150) {
+    return NextResponse.json({ error: "City name too long" }, { status: 400 });
   }
 
   try {

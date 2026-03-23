@@ -232,7 +232,7 @@ CRITICAL RULES:
     } catch (error: any) {
         console.error("Travel Search API Error:", error)
         return NextResponse.json(
-            { error: error.message || "Search failed", success: false },
+            { error: "Search failed", success: false },
             { status: 500 }
         )
     }

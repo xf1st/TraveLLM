@@ -71,7 +71,7 @@ export function MobileBottomNav() {
               </div>
               
               <span className={cn(
-                "text-[10px] font-bold uppercase tracking-widest transition-all",
+                "text-[9px] sm:text-[10px] font-bold uppercase tracking-tight transition-all",
                 isActive ? "opacity-100 translate-y-0" : "opacity-60 translate-y-0.5"
               )}>
                 {item.label}

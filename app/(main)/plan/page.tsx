@@ -472,7 +472,7 @@ export default function PlanPage() {
 
       {/* Route Builder Modal */}
       <Dialog open={showRouteModal} onOpenChange={setShowRouteModal}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden" style={{ background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden modal-dark text-white">
           <DialogTitle className="sr-only">{t('routeBuilder.title')}</DialogTitle>
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center gap-3 mb-1">
@@ -593,7 +593,7 @@ export default function PlanPage() {
                         border: days === "auto" ? "1px solid rgba(99,102,241,0.3)" : isAtMax ? "1px solid rgba(248,113,113,0.4)" : "1px solid rgba(255,255,255,0.1)",
                       }}
                     >
-                      <span className="text-xs font-bold" style={{ color: days === "auto" ? "#a5b4fc" : isAtMax ? "#f87171" : "#fff" }}>
+                      <span className="whitespace-nowrap text-xs font-bold" style={{ color: days === "auto" ? "#a5b4fc" : isAtMax ? "#f87171" : "#fff" }}>
                         {days === "auto" ? "AI" : `${days}${t('routeBuilder.d')}`}
                       </span>
                     </button>

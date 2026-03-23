@@ -29,14 +29,22 @@ export async function GET(req: NextRequest) {
 
     const searchParams = req.nextUrl.searchParams;
     const rawQuery = searchParams.get("query");
-    const count = parseInt(searchParams.get("count") || "4");
-    // Comma-separated list of already-used image URLs to exclude (trip-wide dedup)
-    const excludeParam = searchParams.get("exclude") || ""
-    const excludeUrls = excludeParam ? excludeParam.split(",").filter(Boolean) : []
 
-    if (!rawQuery) {
+    if (!rawQuery || rawQuery.trim().length === 0) {
         return NextResponse.json({ images: [] }, { status: 400 });
     }
+
+    // Limit query length
+    if (rawQuery.length > 300) {
+        return NextResponse.json({ images: [] }, { status: 400 });
+    }
+
+    // Cap count to prevent abusive bulk image fetches
+    const count = Math.min(Math.max(1, parseInt(searchParams.get("count") || "4")), 12);
+
+    // Limit exclude list size
+    const excludeParam = (searchParams.get("exclude") || "").slice(0, 4000)
+    const excludeUrls = excludeParam ? excludeParam.split(",").filter(Boolean).slice(0, 50) : []
 
     const query = sanitizeQuery(rawQuery)
 

@@ -161,13 +161,39 @@ export default function PlanVibePage() {
         router,
       })
     } catch (error: unknown) {
-      const err = error as { name?: string; message?: string; stack?: string }
+      const err = error as {
+        name?: string
+        message?: string
+        stack?: string
+        limitExceeded?: boolean
+        code?: string
+        limit?: number
+        resetAt?: string
+        retryAfterSec?: number
+      }
       if (err.name === "AbortError") return
       console.error("Generation error:", error)
+      let title = t("generationError")
+      let message = err.message || t("generationErrorMessage")
+      if (err.limitExceeded && err.resetAt) {
+        title = t("monthlyLimitTitle")
+        message = t("monthlyLimitBody", {
+          limit: err.limit ?? 10,
+          date: new Date(err.resetAt).toLocaleDateString(undefined, {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }),
+        })
+      } else if (err.code === "RATE_LIMIT") {
+        message = t("rateLimitGeneration", {
+          seconds: err.retryAfterSec ?? 60,
+        })
+      }
       setErrorModal({
         open: true,
-        title: t("generationError"),
-        message: err.message || t("generationErrorMessage"),
+        title,
+        message,
         details: err.stack,
       })
     } finally {

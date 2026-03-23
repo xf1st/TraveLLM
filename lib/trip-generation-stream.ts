@@ -12,8 +12,29 @@ export async function streamGeminiTripGeneration(
     body: JSON.stringify(requestPayload),
   })
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error((err as { error?: string }).error || `API Error: ${response.status}`)
+    const err = (await response.json().catch(() => ({}))) as {
+      error?: string
+      message?: string
+      code?: string
+      limitExceeded?: boolean
+      limit?: number
+      resetAt?: string
+      retryAfterSec?: number
+    }
+    const msg = err.message || err.error || `API Error: ${response.status}`
+    const e = new Error(msg) as Error & {
+      code?: string
+      limitExceeded?: boolean
+      limit?: number
+      resetAt?: string
+      retryAfterSec?: number
+    }
+    e.code = err.code
+    e.limitExceeded = err.limitExceeded
+    e.limit = err.limit
+    e.resetAt = err.resetAt
+    e.retryAfterSec = err.retryAfterSec
+    throw e
   }
   let routeData: unknown = null
   const reader = response.body!.getReader()

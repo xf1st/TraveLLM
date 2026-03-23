@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProxyAgent } from "undici";
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // Create a singleton dispatcher for the proxy
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
 const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
+    // IP rate limit: 30 req/min — open-meteo is free but has fair-use limits
+    const rl = checkIpRateLimit(req, "weather", 30)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const searchParams = req.nextUrl.searchParams;
-    const lat = parseFloat(searchParams.get("lat") || "0");
-    const lon = parseFloat(searchParams.get("lon") || "0");
+    const lat = parseFloat(searchParams.get("lat") || "");
+    const lon = parseFloat(searchParams.get("lon") || "");
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
 
-    if (!lat || !lon || !startParam || !endParam) {
+    if (isNaN(lat) || isNaN(lon) || !startParam || !endParam) {
         return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    }
+
+    // Validate coordinate bounds
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
     }
 
     try {

@@ -19,8 +19,6 @@ import {
   Car,
   Train,
   Zap,
-  MessageCircle,
-  X,
   Heart,
   Umbrella,
   ShoppingBag,
@@ -170,11 +168,10 @@ export default function TripDetailPage() {
   const [isModifying, setIsModifying] = useState(false)
   const prevIsModifying = useRef(false)
 
-  // Auto-scroll to chat after AI finishes modifying itinerary
+  // After AI finishes modifying itinerary, ensure chat FAB is visible (optional scroll to bottom of page)
   useEffect(() => {
     if (prevIsModifying.current && !isModifying) {
-      const el = document.getElementById("ai-chat-section")
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
+      window.dispatchEvent(new CustomEvent("trip-ai-open"))
     }
     prevIsModifying.current = isModifying
   }, [isModifying])
@@ -184,8 +181,6 @@ export default function TripDetailPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
 
-  const [isMobileAIChatOpen, setIsMobileAIChatOpen] = useState(false)
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [activeView, setActiveView] = useState<"itinerary" | "stats">("itinerary")
@@ -767,12 +762,7 @@ export default function TripDetailPage() {
           detail: { text: t('aiAddActivity', { day: dayNumber }) },
         })
       )
-      // On mobile open the AI chat sheet, on desktop open sidebar chat
-      if (window.innerWidth < 1024) {
-        setIsMobileAIChatOpen(true)
-      } else {
-        setIsAIChatOpen(true)
-      }
+      window.dispatchEvent(new CustomEvent("trip-ai-open"))
       toast.info(t('toast.generatingAI'))
     } finally {
       setIsGeneratingExtra(false)
@@ -788,6 +778,7 @@ export default function TripDetailPage() {
           tripData: route,
           userMessage: prompt,
           tripId: params.id,
+          locale: locale === "en" ? "en" : "ru",
         }),
       })
 
@@ -818,8 +809,8 @@ export default function TripDetailPage() {
       }
     } catch (error: any) {
       console.error("Inline generation error:", error)
-      toast.error(t('toast.aiError', { message: error.message || '' }))
-      return { reply: t('errorGeneral', { message: error.message }), success: false }
+      toast.error(t('toast.aiError', { message: '' }))
+      return { reply: t('errorGeneral', { message: '' }), success: false }
     }
   }
 
@@ -829,11 +820,7 @@ export default function TripDetailPage() {
         detail: { text: t('aiModifyActivity', { title: activity.title || activity.placeName || activity.desc?.slice(0, 30) || '', day: dayNumber }) },
       })
     )
-    if (window.innerWidth < 1024) {
-      setIsMobileAIChatOpen(true)
-    } else {
-      setIsAIChatOpen(true)
-    }
+    window.dispatchEvent(new CustomEvent("trip-ai-open"))
   }
 
   // ============== RENDER ==============
@@ -955,12 +942,12 @@ export default function TripDetailPage() {
           </div>
 
           {/* ===== Bottom Overlay (title + description) ===== */}
-          <div className="absolute bottom-8 sm:bottom-12 left-4 sm:left-8 right-4 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-6 z-30">
+          <div className="absolute bottom-6 sm:bottom-12 left-3 sm:left-8 right-3 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-2 sm:gap-4 md:gap-6 z-30">
             <div className="max-w-3xl">
               {/* Star Rating & Completed Status */}
               <div className="flex items-center gap-2 mb-4">
                 {route.safetyInfo?.rating && (
-                  <span className="px-3 py-1.5 bg-emerald-500/20 text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
+                  <span className="whitespace-nowrap px-3 py-1.5 bg-emerald-500/20 text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                     <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
                     {route.safetyInfo.rating}/10
                   </span>
@@ -995,8 +982,8 @@ export default function TripDetailPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 bg-white/10 hover:bg-white/20 transition-colors text-white text-xs font-bold shadow-sm"
                   >
                     <span>{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
-                    <span>{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
-                    <span className="opacity-60 text-[10px]">· {t('weatherTrip')}</span>
+                    <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
+                    <span className="opacity-60 text-[10px] whitespace-nowrap">· {t('weatherTrip')}</span>
                   </button>
                 )}
                 <button
@@ -1021,7 +1008,7 @@ export default function TripDetailPage() {
             {/* Links button — bottom-right of hero */}
             <button
               onClick={() => setShowLinksModal(true)}
-              className="flex-shrink-0 group relative flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-200 hover:scale-105 overflow-hidden"
+              className="flex-shrink-0 group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-200 hover:scale-105 overflow-hidden"
               style={{
                 background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.28) 100%)",
                 border: "1px solid rgba(255,255,255,0.18)",
@@ -1061,7 +1048,9 @@ export default function TripDetailPage() {
                 <span className="material-symbols-outlined text-lg">chevron_left</span>
               </button>
             )}
-            <div className="flex space-x-1 overflow-x-auto no-scrollbar flex-1 px-1">
+            <div className="relative flex-1 overflow-hidden">
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/20 dark:from-black/20 to-transparent pointer-events-none z-10 rounded-r-full" />
+            <div className="flex space-x-1 overflow-x-auto no-scrollbar px-1">
               {route.itinerary?.map((day: any) => {
                 const isActive = activeDay === day.day
                 const hasFlight =
@@ -1098,14 +1087,14 @@ export default function TripDetailPage() {
                       </span>
                     )}
                     <span className={cn(
-                      "font-bold uppercase tracking-widest",
+                      "whitespace-nowrap font-bold uppercase tracking-widest",
                       isCompact ? "text-[9px]" : "text-[10px]",
                       isActive ? "opacity-90" : "opacity-70 group-hover:opacity-100"
                     )}>
                       {formatDayDate(tripStartDate, day.day - 1, locale) ? t('dayLabel', { day: day.day }) : ""}
                     </span>
                     <span className={cn(
-                      "font-bold",
+                      "whitespace-nowrap font-bold",
                       isCompact ? "text-xs" : "text-base sm:text-lg",
                       isActive ? "font-extrabold" : "group-hover:text-sky-800 dark:group-hover:text-white"
                     )}>
@@ -1113,7 +1102,7 @@ export default function TripDetailPage() {
                     </span>
                     {tripWeather[day.day - 1] && (
                       <span className={cn(
-                        "text-[9px] font-medium leading-none mt-0.5",
+                        "whitespace-nowrap text-[9px] font-medium leading-none mt-0.5",
                         isActive ? "text-white/80" : "text-sky-600/80 dark:text-sky-300/80"
                       )}>
                         {getWeatherEmoji(tripWeather[day.day - 1].weatherCode)} {Math.round(tripWeather[day.day - 1].maxTemp)}°
@@ -1122,6 +1111,7 @@ export default function TripDetailPage() {
                   </button>
                 )
               })}
+            </div>
             </div>
             {/* Right arrow */}
             {tripDurationDays > 1 && (
@@ -1238,52 +1228,6 @@ export default function TripDetailPage() {
 
               {/* Weather Widget - REMOVED (Moved to grid below) */}
 
-              {/* AI Assistant Button — owner only */}
-              {isOwner && <div className="hidden lg:block trip-glass rounded-[2rem] shadow-md md:shadow-2xl relative group border-white/60 dark:border-white/10 transition-transform hover:scale-[1.02] p-4">
-                <button
-                  onClick={() => setIsAIChatOpen(!isAIChatOpen)}
-                  className="w-full bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-md md:backdrop-blur-xl px-5 py-4 rounded-3xl shadow-md md:shadow-xl border border-white/50 dark:border-white/10 flex items-center justify-between group/btn hover:bg-white dark:hover:bg-[#0B1121]/90 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-500 dark:from-blue-600 dark:to-blue-600 flex items-center justify-center text-white border border-white/40 dark:border-white/20 shadow-md dark:shadow-[0_0_15px_rgba(37,99,235,0.5)]">
-                      <span className="material-symbols-outlined text-lg">smart_toy</span>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-slate-800 dark:text-white group-hover/btn:text-sky-600 dark:group-hover/btn:text-blue-300 transition-colors">{t('aiAssistant')}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-gray-400 uppercase tracking-wide">{t('aiAssistantSub')}</p>
-                    </div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center group-hover/btn:bg-sky-500 dark:group-hover/btn:bg-blue-600 group-hover/btn:text-white transition-all text-slate-400 dark:text-white/70">
-                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                  </div>
-                </button>
-              </div>}
-
-              {/* AI Chat Widget (toggleable on desktop) — owner only */}
-              {isOwner && <AnimatePresence>
-                {isAIChatOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                    id="ai-chat-section"
-                    className="overflow-hidden hidden lg:block"
-                  >
-                    <ItineraryChatWidget
-                      itinerary={route}
-                      tripDetails={route}
-                      onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
-                      onModifying={setIsModifying}
-                      tripId={params.id as string}
-                      embedded
-                      className="trip-glass rounded-[2rem] min-h-[500px]"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>}
-
-
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
                 <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-md md:shadow-xl transition-colors">
@@ -1306,7 +1250,7 @@ export default function TripDetailPage() {
                         {t('checkInTime', { time: sidebarHotel.checkIn || "14:00" })}
                       </p>
                       {sidebarHotel.cost && (
-                        <p className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-0.5 sm:mt-1">{sidebarHotel.cost}</p>
+                        <p className="whitespace-nowrap text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-300 mt-0.5 sm:mt-1">{sidebarHotel.cost}</p>
                       )}
                     </div>
                   </div>
@@ -1348,7 +1292,7 @@ export default function TripDetailPage() {
 
         {/* ===== Budget Analysis Modal ===== */}
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
-          <DialogContent className="max-w-md rounded-3xl p-8">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-3xl p-5 sm:p-7">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                 <PieChart className="h-6 w-6 text-primary" />
@@ -1358,37 +1302,37 @@ export default function TripDetailPage() {
                 {t('budget_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.accommodation')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.accommodationPer')}</div>
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.food')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgFood || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.foodPer')}</div>
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.transport')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgTransport || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.transportPer')}</div>
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between">
+                <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.activities')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgActivities || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.activitiesPer')}</div>
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-muted/50 border border-border col-span-2 flex flex-col justify-between">
+                <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border col-span-2 flex flex-col justify-between">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.misc')}</div>
                   <div>
                     <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgMisc || "—"}</div>
@@ -1406,7 +1350,7 @@ export default function TripDetailPage() {
                   {t('budget_modal.disclaimer', { style: route.budget_range || t('budgetStyleDefault') })}
                 </p>
               </div>
-              <Button className="w-full rounded-2xl py-6 text-lg font-bold shadow-md md:shadow-xl shadow-primary/20" onClick={() => setShowBudgetModal(false)}>
+              <Button className="w-full rounded-xl py-2.5 font-semibold text-sm" onClick={() => setShowBudgetModal(false)}>
                 {t('budget_modal.ok')}
               </Button>
             </div>
@@ -1415,8 +1359,8 @@ export default function TripDetailPage() {
 
         {/* ===== Links Modal ===== */}
         <Dialog open={showLinksModal} onOpenChange={setShowLinksModal}>
-          <DialogContent className="max-w-4xl w-full rounded-3xl p-0 overflow-hidden" style={{ background: "#0b0e14", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <DialogContent className="max-w-4xl w-full rounded-3xl p-0 overflow-hidden modal-dark text-white">
+            <DialogHeader className="px-6 pt-6 pb-4 border-b border-white/[0.07]">
               <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
                 <ExternalLink className="w-5 h-5 text-sky-400" />
                 {t('links_modal.title')}
@@ -1433,7 +1377,7 @@ export default function TripDetailPage() {
 
         {/* ===== Weather Modal ===== */}
         <Dialog open={showWeatherModal} onOpenChange={setShowWeatherModal}>
-          <DialogContent className="max-w-lg rounded-3xl p-6 sm:p-8">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl rounded-3xl p-5 sm:p-7">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <span className="text-2xl">{currentDayWeather ? getWeatherEmoji(currentDayWeather.weatherCode) : "🌤"}</span>
@@ -1443,12 +1387,14 @@ export default function TripDetailPage() {
                 {t('weather_modal.subtitle')}
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-2">
+            <div>
               {route.start_date && route.end_date ? (
                 <TripWeatherWidget
                   destination={destinationName}
                   startDate={route.start_date}
                   endDate={route.end_date}
+                  showTitle={false}
+                  bare
                 />
               ) : (
                 <CurrentWeatherWidget
@@ -1462,7 +1408,7 @@ export default function TripDetailPage() {
 
         {/* ===== Tips Modal ===== */}
         <Dialog open={showTipsModal} onOpenChange={setShowTipsModal}>
-          <DialogContent className="max-w-2xl rounded-3xl p-6 sm:p-8">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-xl rounded-3xl p-5 sm:p-7">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold flex items-center gap-3">
                 <Compass className="h-6 w-6 text-amber-500" />
@@ -1473,7 +1419,7 @@ export default function TripDetailPage() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 mt-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
               <div className="space-y-3">
                 <h4 className="text-sm font-black uppercase tracking-widest text-amber-600 dark:text-amber-300">
                   {t('tips_modal.dayTips')}
@@ -1503,7 +1449,9 @@ export default function TripDetailPage() {
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.visa')}</h4>
-                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.visaAdvice || t('visaDefault')}</p>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">
+                      {(typeof route.visaAdvice === "string" ? route.visaAdvice : route.visaAdvice?.summary || route.visaAdvice?.text || null) || t('visaDefault')}
+                    </p>
                   </div>
                   <div>
                     <h4 className="text-xs font-black uppercase text-slate-500 dark:text-blue-200/70 tracking-widest mb-2">{t('tips_modal.payment')}</h4>
@@ -1529,7 +1477,12 @@ export default function TripDetailPage() {
                         </div>
                         <span className="text-sm font-bold text-slate-800 dark:text-white">{route.safetyInfo?.rating}/10</span>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.safetyInfo?.tips}</p>
+                      {Array.isArray(route.safetyInfo?.tips)
+                        ? <div className="space-y-1">{route.safetyInfo.tips.map((tip: string, i: number) => (
+                            <p key={i} className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">• {tip}</p>
+                          ))}</div>
+                        : <p className="text-sm text-slate-600 dark:text-blue-100/80 leading-relaxed">{route.safetyInfo?.tips}</p>
+                      }
                     </div>
                   )}
                 </div>
@@ -1549,60 +1502,20 @@ export default function TripDetailPage() {
           currentUser={user}
         />
 
-        {/* ===== MOBILE FAB BUTTON (chat only) ===== */}
-        <div className="lg:hidden fixed bottom-6 right-4 z-50">
-          <button
-            onClick={() => { setIsMobileAIChatOpen(true) }}
-            className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-md md:shadow-xl shadow-blue-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform border-2 border-white/20"
-          >
-            <MessageCircle className="w-6 h-6" />
-          </button>
-        </div>
-
-
-        {/* ===== MOBILE AI CHAT BOTTOM SHEET — owner only ===== */}
-        {isOwner && <AnimatePresence>
-          {isMobileAIChatOpen && (
-            <motion.div
-              className="lg:hidden fixed inset-0 z-[60]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileAIChatOpen(false)} />
-              <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-card rounded-t-3xl shadow-md md:shadow-2xl overflow-hidden"
-                style={{ maxHeight: "85vh" }}
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              >
-                <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <MessageCircle className="h-5 w-5 text-blue-500" />
-                    {t('aiAssistant')}
-                  </h3>
-                  <button onClick={() => setIsMobileAIChatOpen(false)} className="p-2 rounded-full hover:bg-muted transition-colors">
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="h-[75vh] overflow-y-auto">
-                  <ItineraryChatWidget
-                    itinerary={route}
-                    tripDetails={route}
-                    onItineraryUpdate={(newItinerary) => setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))}
-                    onModifying={setIsModifying}
-                    tripId={params.id as string}
-                    embedded
-                    className="h-full"
-                  />
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>}
+        {/* ===== AI trip assistant (FAB, owner only) ===== */}
+        {isOwner && route && (
+          <ItineraryChatWidget
+            layout="fab"
+            itinerary={route}
+            tripDetails={route}
+            activeDay={activeDay}
+            onItineraryUpdate={(newItinerary) =>
+              setRoute((prev: any) => ({ ...prev, itinerary: newItinerary }))
+            }
+            onModifying={setIsModifying}
+            tripId={params.id as string}
+          />
+        )}
 
 
         {showScrollTop && (

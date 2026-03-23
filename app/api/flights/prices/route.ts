@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import {
   getCheapestTickets,
   getPriceCalendar,
@@ -10,6 +11,7 @@ import {
   formatPrice,
   findMinPrice
 } from "@/lib/travelpayouts"
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 /**
  * API для получения цен на авиабилеты через Travelpayouts
@@ -20,15 +22,31 @@ import {
  * GET /api/flights/prices?action=popular&origin=MOW
  */
 
+const FlightsQuerySchema = z.object({
+  action: z.enum(["cheap", "calendar", "matrix", "special", "popular"]).default("cheap"),
+  origin: z.string().max(100).default(""),
+  destination: z.string().max(100).default(""),
+  date: z.string().max(20).default(""),
+  return: z.string().max(20).default(""),
+  currency: z.enum(["rub", "usd", "eur"]).default("rub"),
+})
+
 export async function GET(request: Request) {
+  // Rate limit: 30 req/min per IP (prevents TravelPayouts quota abuse)
+  const rl = checkIpRateLimit(request, "flights-prices", 30)
+  if (!rl.allowed) return rateLimitResponse(rl)
+
   const { searchParams } = new URL(request.url)
 
-  const action = searchParams.get("action") || "cheap"
-  const originParam = searchParams.get("origin") || ""
-  const destinationParam = searchParams.get("destination") || ""
-  const date = searchParams.get("date") || ""
-  const returnDate = searchParams.get("return") || ""
-  const currency = searchParams.get("currency") || "rub"
+  const parsed = FlightsQuerySchema.safeParse(Object.fromEntries(searchParams))
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid query parameters", details: parsed.error.flatten() },
+      { status: 400 }
+    )
+  }
+
+  const { action, origin: originParam, destination: destinationParam, date, return: returnDate, currency } = parsed.data
 
   // Конвертируем названия городов в IATA если нужно
   const origin = originParam.length === 3

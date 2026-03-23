@@ -908,6 +908,31 @@ function GuidePageContent() {
 
                 </div>
             </main>
+
+            {tripData?.itinerary?.length > 0 && (
+                <ItineraryChatWidget
+                    layout="fab"
+                    mode="guide"
+                    itinerary={tripData}
+                    tripDetails={{
+                        ...tripData,
+                        title: tripData.title || trip?.title || chatContext.title,
+                    }}
+                    tripId={
+                        tripId &&
+                        tripId !== "ai-last" &&
+                        !tripId.startsWith("local-")
+                            ? tripId
+                            : undefined
+                    }
+                    activeDay={activePlace?.day ?? 1}
+                    onItineraryUpdate={(newItinerary) => {
+                        setTripData((prev: any) =>
+                            prev ? { ...prev, itinerary: newItinerary } : prev
+                        )
+                    }}
+                />
+            )}
         </div>
     )
 }

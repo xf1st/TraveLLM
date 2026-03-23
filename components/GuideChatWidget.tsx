@@ -9,6 +9,7 @@ import { Send, Bot, User, MapPin, Sparkles, ExternalLink } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { useChat } from "@/lib/context/chat-context"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 
 interface Message {
     id?: string
@@ -29,6 +30,7 @@ interface GuideChatWidgetProps {
 export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
     const { sessions, createSession, updateSession, addMessage, setActiveSessionId } = useChat()
     const router = useRouter()
+    const tChat = useTranslations("chat")
     
     // Find a session matching this trip
     const existingSession = sessions.find(s => s.draftTrip?.title === tripContext.title || s.title === tripContext.title)
@@ -86,6 +88,21 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
                 })
             })
 
+            if (response.status === 429) {
+                const errorData = await response.json().catch(() => ({} as { retryAfterSec?: number }))
+                const sec =
+                    typeof errorData.retryAfterSec === "number"
+                        ? errorData.retryAfterSec
+                        : Math.ceil(Number(response.headers.get("Retry-After")) || 60)
+                if (sessionId) {
+                    addMessage(sessionId, {
+                        role: "assistant",
+                        content: tChat("rateLimit", { seconds: sec }),
+                    })
+                }
+                return
+            }
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
                 throw new Error(errorData.error || "Failed to get response")
@@ -98,7 +115,7 @@ export function GuideChatWidget({ tripContext }: GuideChatWidgetProps) {
         } catch (error) {
             console.error(error)
             if (sessionId) {
-                addMessage(sessionId, { role: "assistant", content: "Прости, я немного потерялся. Спроси еще раз, пожалуйста!" })
+                addMessage(sessionId, { role: "assistant", content: tChat("guideChatError") })
             }
         } finally {
             setIsLoading(false)

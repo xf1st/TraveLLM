@@ -539,10 +539,10 @@ export function ActivityTimelineCard({
 
   return (
     <>
-      <div className="relative pl-10 sm:pl-14 group/card">
+      <div className="relative pl-12 sm:pl-16 group/card">
         <div
           className={cn(
-            "absolute left-0 top-1 w-10 h-10 sm:w-12 sm:h-12 rounded-full backdrop-blur-md flex items-center justify-center z-10 border",
+            "absolute left-1 sm:left-2 top-1 w-10 h-10 sm:w-12 sm:h-12 rounded-full backdrop-blur-md flex items-center justify-center z-10 border",
             config.iconClass
           )}
         >
@@ -589,7 +589,7 @@ export function ActivityTimelineCard({
 
             <div className="flex items-center gap-1 sm:gap-2">
               {activity.cost && (
-                <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
+                <span className="whitespace-nowrap text-[10px] sm:text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
                   {activity.cost}
                 </span>
               )}
@@ -877,13 +877,13 @@ export function ActivityTimelineCard({
       </div>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-lg rounded-3xl p-6 sm:p-8">
+        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{displayTitle}</DialogTitle>
             <DialogDescription>{t('details.dayLabel', { day: dayNumber })}</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-4 max-h-[65vh] overflow-y-auto pr-1">
             {activity.time && (
               <div>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">{t('details.time')}</p>

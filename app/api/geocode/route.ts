@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProxyAgent } from "undici";
+import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // Create a singleton dispatcher for the proxy
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
 const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
+    // IP rate limit: 20 req/min — Nominatim policy: 1 req/s per IP; we proxy so limit ourselves
+    const rl = checkIpRateLimit(req, "geocode", 20)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const searchParams = req.nextUrl.searchParams;
     const query = searchParams.get("query");
 
-    if (!query) {
+    if (!query || query.trim().length === 0) {
         return NextResponse.json({ error: "Missing query parameter" }, { status: 400 });
+    }
+
+    // Limit query length to prevent abuse
+    if (query.length > 200) {
+        return NextResponse.json({ error: "Query too long" }, { status: 400 });
     }
 
     try {

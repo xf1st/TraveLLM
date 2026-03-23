@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
         // Check maintenance mode & block status
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
         if (!supabaseUrl || !supabaseKey) {
             return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
         }
@@ -324,7 +324,7 @@ export async function POST(req: Request) {
                     sendEvent({ type: 'result', data: routeData })
                 } catch (e: any) {
                     console.error("Generation failed:", e)
-                    sendEvent({ type: 'error', message: e.message })
+                    sendEvent({ type: 'error', message: 'Generation failed' })
                 } finally {
                     clearInterval(keepalive);
                     controller.close();
@@ -334,6 +334,7 @@ export async function POST(req: Request) {
 
         return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error("Gemini route error:", error)
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 })
     }
 }

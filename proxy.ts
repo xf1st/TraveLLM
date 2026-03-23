@@ -30,10 +30,12 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || ''
   const isAdminSubdomain = host.startsWith('admin.')
 
-  // ─── DEV MODE: skip all Supabase auth checks ──────────────────────────────
+  // ─── DEV MODE: skip Supabase auth checks for regular routes only ──────────
   // In development, every getUser() + profile select = ~9-18s through proxy.
   // Auth is enforced client-side by Supabase React hooks anyway.
-  if (process.env.NODE_ENV === 'development' && !isAdminSubdomain) {
+  // Exception: /api/admin/* routes always check auth (they handle their own checks).
+  const isAdminApiRoute = pathname.startsWith('/api/admin')
+  if (process.env.NODE_ENV === 'development' && !isAdminSubdomain && !isAdminApiRoute) {
     return NextResponse.next()
   }
   // ──────────────────────────────────────────────────────────────────────────
@@ -46,6 +48,7 @@ export async function proxy(request: NextRequest) {
       pathname.startsWith('/auth') ||
       pathname.startsWith('/waitlist') ||
       pathname.startsWith('/blocked') ||
+      pathname.startsWith('/maintenance') ||
       pathname.startsWith('/terms') ||
       pathname.startsWith('/privacy') ||
       pathname.startsWith('/support')
@@ -107,6 +110,41 @@ export async function proxy(request: NextRequest) {
 
     return response
   }
+
+  // ─── Maintenance mode ─────────────────────────────────────────────────────
+  // Only check on non-API, non-maintenance routes to avoid overhead
+  const isMaintPath = pathname === '/maintenance'
+  const isApiRoute = pathname.startsWith('/api/')
+  if (!isMaintPath && !isApiRoute) {
+    const { data: appSettings } = await supabase
+      .from('app_settings')
+      .select('maintenance_mode, maintenance_allow_admin_bypass')
+      .single()
+
+    if (appSettings?.maintenance_mode) {
+      let bypassAllowed = false
+
+      if (appSettings.maintenance_allow_admin_bypass) {
+        // Need verified user — check role
+        const { data: { user: maintUser } } = await supabase.auth.getUser()
+        if (maintUser) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', maintUser.id)
+            .single()
+          bypassAllowed = prof?.role === 'admin' || prof?.role === 'super_admin'
+        }
+      }
+
+      if (!bypassAllowed) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/maintenance'
+        return NextResponse.redirect(url)
+      }
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   // ─── Regular routes ───────────────────────────────────────────────────────
   // Use getSession() — reads from cookie, no network round-trip (~0ms).

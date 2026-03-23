@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { deepseekInference } from "@/lib/deepseek"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 /**
  * API для получения отзывов о местах
@@ -233,8 +234,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Rate limit: 10 req/min — Google Places costs $20/1000 requests
+    const rl = checkRateLimit(userId, "reviews", 10)
+    if (!rl.allowed) return rateLimitResponse(rl)
+
     const body = await request.json()
-    const { placeName, city } = body
+    const placeName = String(body?.placeName || "").trim().slice(0, 200)
+    const city = String(body?.city || "").trim().slice(0, 100)
 
     if (!placeName) {
       return NextResponse.json(

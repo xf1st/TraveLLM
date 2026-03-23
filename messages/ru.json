@@ -249,6 +249,9 @@
     "defaultDestination": "Путешествие",
     "generationError": "Ошибка генерации",
     "generationErrorMessage": "Произошла ошибка при создании маршрута",
+    "monthlyLimitTitle": "Лимит генераций на месяц",
+    "monthlyLimitBody": "Использованы все {limit} генераций маршрута за этот месяц. Обновление лимита ориентировочно: {date}.",
+    "rateLimitGeneration": "Слишком много запросов подряд. Подождите около {seconds} с и попробуйте снова.",
     "sections": {
       "routeHub": "Хаб маршрута",
       "inspiration": "Вдохновение",
@@ -744,7 +747,7 @@
     "uploading": "Загружается...",
     "selectPhoto": "Выбрать фото",
     "tripPace": "Темп поездок",
-    "visitedCountries": "Посещённые страны (Enter чтобы добавить)",
+    "visitedCountries": "Посещённые страны",
     "shareHint": "Другие смогут посетить вашу страницу",
     "statsTrips": "поездок",
     "statsCountries": "стран",
@@ -770,7 +773,10 @@
       "nameEmpty": "Имя не может быть пустым",
       "usernameTaken": "Этот username уже занят",
       "publicProfileSaved": "Публичный профиль сохранён",
-      "usernameLength": "Username должен быть от 3 до 20 символов"
+      "usernameLength": "Username: 3–30 символов",
+      "nameInvalid": "Некорректное имя",
+      "usernameInvalid": "Некорректный username (буквы RU/EN, цифры, _, -)",
+      "ageInvalid": "Возраст: от 10 до 120 лет"
     },
     "interests": {
       "nature": "Природа",
@@ -828,8 +834,9 @@
     "departureCityLabel": "Город вылета",
     "visitedCountriesLabel": "Посещённые страны (Enter чтобы добавить)",
     "dietaryLabel": "Диетические ограничения",
-    "languagesLabel": "Языки (Enter чтобы добавить)",
-    "interestsLabel": "Интересы (Enter чтобы добавить)",
+    "languagesLabel": "Языки",
+    "interestsLabel": "Интересы",
+    "selectFromList": "Выберите из списка",
     "visitedCountriesPlaceholder": "Италия, Япония...",
     "dietaryPlaceholder": "Веган, Без глютена...",
     "languagesPlaceholder": "Русский, English...",
@@ -837,7 +844,7 @@
     "departureCityPlaceholder": "Москва",
     "aboutLabel": "О себе",
     "bioPlaceholder": "Расскажите о себе...",
-    "usernameHint": "От 3 до 20 символов: a–z, 0–9, _",
+    "usernameHint": "3–30 символов: буквы (RU/EN), цифры, _, -",
     "publicProfile": "Публичный профиль",
     "notificationsLabel": "Уведомления",
     "notificationsDesc": "Уведомлять когда маршрут готов",
@@ -901,6 +908,12 @@
       "hostel": "Хостел",
       "airbnb": "Апартаменты/Airbnb",
       "resort": "Курорт"
+    },
+    "languageOptions": {
+      "ru": "Русский",
+      "en": "English",
+      "learning_local": "Учу местный",
+      "other": "Другие"
     },
     "religion": {
       "none": "Не важно",
@@ -1068,7 +1081,7 @@
     "aiAssistant": "AI-помощник",
     "questionsAndChanges": "Вопросы и изменения",
     "myItinerary": "Мой маршрут (планирование)",
-    "welcomeMessage": "Привет! Я ваш AI-помощник по маршруту (Gemini).\n\nЗадайте вопрос, прикрепите фото или попросите изменить маршрут:\n• \"Какая погода будет?\"\n• \"Замени музей на кафе в день 2\"\n• \"Перепиши дни 3–5 в более спокойном темпе\"\n• \"Нужна ли виза?\"",
+    "welcomeMessage": "Привет! Я ваш AI-помощник по маршруту (Gemini).\n\nЗадайте вопрос, прикрепите фото или попросите изменить маршрут:\n• \"Какая погода будет?\"\n• \"Замени музей на кафе в день 2\"\n• \"Перепиши дни 3–5 в более спокойном темпе\"\n• \"Перепиши остаток маршрута с того дня, который я смотрю\"\n• \"Нужна ли виза?\"",
     "itineraryUpdated": "Маршрут обновлён",
     "flights": "Авиабилеты",
     "hotels": "Отели",
@@ -1086,10 +1099,19 @@
     "promptWeather": "Какая погода ожидается в эти даты?",
     "promptVisa": "Нужна ли виза для этой поездки?",
     "promptAddDay": "Добавь еще один интересный день в конец маршрута",
+    "rewriteTail": "Остаток маршрута",
+    "promptRewriteTail": "Перепиши остаток маршрута с дня {day} до последнего дня — те же города, но спокойнее: один вечер без планов на каждый день",
     "providerModel": "Gemini",
     "attachPhoto": "Прикрепить фото",
     "photoMessageFallback": "(фото)",
-    "chatPhotosAttached": "Вложения: {count} фото"
+    "chatPhotosAttached": "Вложения: {count} фото",
+    "errorPrefix": "Ошибка",
+    "couldNotProcess": "Не удалось обработать запрос.",
+    "rateLimit": "Слишком частые сообщения. Подождите около {seconds} с и попробуйте снова.",
+    "guideChatError": "Что-то пошло не так. Попробуйте ещё раз через минуту.",
+    "genericError": "Произошла ошибка: {message}. Попробуйте позже.",
+    "closeChat": "Закрыть ассистента",
+    "openChat": "Открыть AI-ассистента"
   },
   "links": {
     "quick": {

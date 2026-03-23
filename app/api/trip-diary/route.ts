@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { z } from "zod"
 import { getRequestUserId } from "@/lib/ai-usage-events"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const DiaryPostSchema = z.object({
+  tripId: z.string().regex(UUID_REGEX, "Invalid tripId"),
+  dayIndex: z.number().int().min(0).max(365),
+  activityIndex: z.number().int().min(0).max(99),
+  content: z.string().max(10000).default(""),
+})
 
 const createServiceClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -50,16 +58,38 @@ export async function POST(req: NextRequest) {
     if (!client) return NextResponse.json({ error: "Server is not configured" }, { status: 500 })
 
     const body = await req.json()
-    const tripId = String(body?.tripId || "").trim()
-    const dayIndex = Number(body?.dayIndex)
-    const activityIndex = Number(body?.activityIndex)
-    const content = String(body?.content || "").trim()
-
-    if (!UUID_REGEX.test(tripId)) {
-      return NextResponse.json({ error: "Invalid tripId" }, { status: 400 })
+    const parsed = DiaryPostSchema.safeParse({
+      tripId: body?.tripId,
+      dayIndex: Number(body?.dayIndex),
+      activityIndex: Number(body?.activityIndex),
+      content: body?.content,
+    })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 }
+      )
     }
-    if (isNaN(dayIndex) || isNaN(activityIndex)) {
-      return NextResponse.json({ error: "Invalid day or activity index" }, { status: 400 })
+
+    const { tripId, dayIndex, activityIndex, content } = parsed.data
+
+    // Verify user owns or is member of the trip before writing
+    const { data: trip } = await client
+      .from("trips")
+      .select("id, user_id")
+      .eq("id", tripId)
+      .maybeSingle()
+
+    if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 })
+
+    if (trip.user_id !== userId) {
+      const { data: member } = await client
+        .from("trip_members")
+        .select("id")
+        .eq("trip_id", tripId)
+        .eq("user_id", userId)
+        .maybeSingle()
+      if (!member) return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
     const payload = {

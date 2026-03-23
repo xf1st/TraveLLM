@@ -1,12 +1,20 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import { deepseekInference } from "@/lib/deepseek"
 import { openrouterInference } from "@/lib/openrouter"
 import { getRequestUserId } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const maxDuration = 60 // Allow longer timeout for enrichment
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+const EnrichBodySchema = z.object({
+    tripId: z.string().regex(UUID_REGEX, "Invalid tripId").optional(),
+    itinerary: z.array(z.any()).min(1).max(60),
+})
 
 export async function POST(req: Request) {
     try {
@@ -18,21 +26,35 @@ export async function POST(req: Request) {
         const rl = checkRateLimit(userId, "enrich-trip", 3)
         if (!rl.allowed) return rateLimitResponse(rl)
 
-        const { tripId, itinerary } = await req.json()
-
-        if (!itinerary || !Array.isArray(itinerary)) {
-            return NextResponse.json({ error: "Itinerary is required" }, { status: 400 })
+        const rawBody = await req.json()
+        const parsed = EnrichBodySchema.safeParse(rawBody)
+        if (!parsed.success) {
+            return NextResponse.json(
+                { error: "Invalid request", details: parsed.error.flatten() },
+                { status: 400 }
+            )
         }
 
-        if (itinerary.length > 60) {
-            return NextResponse.json({ error: "Itinerary too large" }, { status: 400 })
-        }
+        const { tripId, itinerary } = parsed.data
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
         if (!supabaseUrl || !supabaseKey) {
             return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
+        }
+
+        // Verify trip ownership before allowing any mutation
+        if (tripId) {
+            const supabase = createClient(supabaseUrl, supabaseKey)
+            const { data: trip } = await supabase
+                .from('trips')
+                .select('id')
+                .eq('id', tripId)
+                .eq('user_id', userId)
+                .maybeSingle()
+            if (!trip) {
+                return NextResponse.json({ error: "Trip not found or access denied" }, { status: 403 })
+            }
         }
 
         const supabase = createClient(supabaseUrl, supabaseKey)
@@ -134,13 +156,14 @@ Return valid JSON matching this schema exactly:
             }
         })
 
-        // Update in Supabase if tripId provided
+        // Update in Supabase if tripId provided (ownership already verified above)
         if (tripId) {
             const { error: updateError } = await supabase
                 .from('trips')
                 .update({ itinerary: finalItinerary })
                 .eq('id', tripId)
-            
+                .eq('user_id', userId)
+
             if (updateError) {
                 console.error("Failed to update trip:", updateError)
             }
@@ -150,6 +173,6 @@ Return valid JSON matching this schema exactly:
 
     } catch (error: any) {
         console.error("Enrichment API error:", error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        return NextResponse.json({ error: "Enrichment failed" }, { status: 500 })
     }
 }
