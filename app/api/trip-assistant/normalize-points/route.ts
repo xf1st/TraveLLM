@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import { deepseekInferenceWithUsage } from "@/lib/deepseek"
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 
 type ActivityInput = {
   title?: string
@@ -17,6 +23,12 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
+    const chatLimit = await checkMonthlyChatAiLimit(userId)
+    if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
     if (!Array.isArray(activities) || activities.length === 0) {
       return NextResponse.json({ error: "Invalid activities" }, { status: 400 })

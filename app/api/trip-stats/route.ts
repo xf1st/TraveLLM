@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { deepseekInferenceWithUsage } from "@/lib/deepseek"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -16,6 +22,12 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await getRequestUserId()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
+    const chatLimit = await checkMonthlyChatAiLimit(userId)
+    if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
     const client = createServiceClient()
     if (!client) return NextResponse.json({ error: "Server is not configured" }, { status: 500 })

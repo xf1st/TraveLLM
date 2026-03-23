@@ -30,12 +30,14 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || ''
   const isAdminSubdomain = host.startsWith('admin.')
 
-  // ─── DEV MODE: skip Supabase auth checks for regular routes only ──────────
-  // In development, every getUser() + profile select = ~9-18s through proxy.
-  // Auth is enforced client-side by Supabase React hooks anyway.
-  // Exception: /api/admin/* routes always check auth (they handle their own checks).
+  // ─── DEV MODE (opt-in): skip Supabase auth in proxy for faster local dev ───
+  // By default development uses the same proxy checks as production.
+  // Set TRAVELLM_DEV_SKIP_PROXY_AUTH=1 in .env.local to restore the old fast path.
   const isAdminApiRoute = pathname.startsWith('/api/admin')
-  if (process.env.NODE_ENV === 'development' && !isAdminSubdomain && !isAdminApiRoute) {
+  const skipDevProxyAuth =
+    process.env.NODE_ENV === 'development' &&
+    process.env.TRAVELLM_DEV_SKIP_PROXY_AUTH === '1'
+  if (skipDevProxyAuth && !isAdminSubdomain && !isAdminApiRoute) {
     return NextResponse.next()
   }
   // ──────────────────────────────────────────────────────────────────────────

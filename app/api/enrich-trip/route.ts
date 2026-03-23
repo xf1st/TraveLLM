@@ -4,7 +4,14 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { deepseekInference } from "@/lib/deepseek"
 import { openrouterInference } from "@/lib/openrouter"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import {
+    getRequestUserId,
+    recordAiUsageEvent,
+    checkMonthlyChatAiLimit,
+    monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
+import { fetchTripOwnedByUser } from "@/lib/server/trip-for-ai"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export const maxDuration = 60 // Allow longer timeout for enrichment
@@ -12,8 +19,8 @@ export const maxDuration = 60 // Allow longer timeout for enrichment
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const EnrichBodySchema = z.object({
-    tripId: z.string().regex(UUID_REGEX, "Invalid tripId").optional(),
-    itinerary: z.array(z.any()).min(1).max(60),
+    /** Обязателен: обогащение только для сохранённой поездки владельца (маршрут из БД). */
+    tripId: z.string().regex(UUID_REGEX, "Invalid tripId"),
 })
 
 export async function POST(req: Request) {
@@ -22,6 +29,12 @@ export async function POST(req: Request) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
+
+        const accessErr = await enforceAiAccess(userId)
+        if (accessErr) return accessErr
+
+        const chatLimit = await checkMonthlyChatAiLimit(userId)
+        if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
         const rl = checkRateLimit(userId, "enrich-trip", 3)
         if (!rl.allowed) return rateLimitResponse(rl)
@@ -35,7 +48,7 @@ export async function POST(req: Request) {
             )
         }
 
-        const { tripId, itinerary } = parsed.data
+        const { tripId } = parsed.data
 
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -43,21 +56,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Server misconfigured" }, { status: 500 })
         }
 
-        // Verify trip ownership before allowing any mutation
-        if (tripId) {
-            const supabase = createClient(supabaseUrl, supabaseKey)
-            const { data: trip } = await supabase
-                .from('trips')
-                .select('id')
-                .eq('id', tripId)
-                .eq('user_id', userId)
-                .maybeSingle()
-            if (!trip) {
-                return NextResponse.json({ error: "Trip not found or access denied" }, { status: 403 })
-            }
+        const supabase = createClient(supabaseUrl, supabaseKey)
+        const owned = await fetchTripOwnedByUser(supabase, tripId, userId)
+        if (!owned.ok) {
+            return NextResponse.json({ error: "Trip not found or access denied" }, { status: 403 })
         }
 
-        const supabase = createClient(supabaseUrl, supabaseKey)
+        const itinerary = Array.isArray(owned.trip.itinerary) ? owned.trip.itinerary : []
+        if (itinerary.length === 0) {
+            return NextResponse.json({ error: "Trip has no itinerary to enrich" }, { status: 400 })
+        }
+        if (itinerary.length > 60) {
+            return NextResponse.json({ error: "Itinerary too large" }, { status: 400 })
+        }
 
         // System Prompt for Enrichment
         const systemPrompt = `
@@ -156,18 +167,22 @@ Return valid JSON matching this schema exactly:
             }
         })
 
-        // Update in Supabase if tripId provided (ownership already verified above)
-        if (tripId) {
-            const { error: updateError } = await supabase
-                .from('trips')
-                .update({ itinerary: finalItinerary })
-                .eq('id', tripId)
-                .eq('user_id', userId)
+        const { error: updateError } = await supabase
+            .from("trips")
+            .update({ itinerary: finalItinerary })
+            .eq("id", tripId)
+            .eq("user_id", userId)
 
-            if (updateError) {
-                console.error("Failed to update trip:", updateError)
-            }
+        if (updateError) {
+            console.error("Failed to update trip:", updateError)
         }
+
+        await recordAiUsageEvent({
+            userId,
+            tripId,
+            source: "enrich-trip",
+            provider: "deepseek-or-openrouter",
+        })
 
         return NextResponse.json({ itinerary: finalItinerary })
 

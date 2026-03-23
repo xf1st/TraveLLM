@@ -10,7 +10,14 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import {
+    getRequestUserId,
+    recordAiUsageEvent,
+    checkMonthlyChatAiLimit,
+    monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
+import { enforceAiAccess } from "@/lib/server/user-access"
 
 interface SearchRequest {
     departureCity: string
@@ -45,6 +52,15 @@ export async function POST(req: Request) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
+
+        const accessErr = await enforceAiAccess(userId)
+        if (accessErr) return accessErr
+
+        const chatLimit = await checkMonthlyChatAiLimit(userId)
+        if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
+
+        const rl = checkRateLimit(userId, "travel-search", 5)
+        if (!rl.allowed) return rateLimitResponse(rl)
 
         const body: SearchRequest = await req.json()
         const {
@@ -196,6 +212,13 @@ CRITICAL RULES:
         )
 
         const parsed = parseJsonResponse(raw)
+
+        await recordAiUsageEvent({
+            userId,
+            source: "travel.search",
+            provider: "openrouter",
+            model: "perplexity/sonar",
+        })
 
         // Ensure booking URLs are populated
         if (parsed.flights) {

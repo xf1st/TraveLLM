@@ -37,6 +37,7 @@ npm run lint     # ESLint
 ```
 app/                    # Next.js App Router pages
   api/
+    user/profile/       # PATCH: безопасное обновление своего profiles (сессия + allowlist полей)
     gemini/             # Основной API генерации (Gemini primary → DeepSeek fallback)
     deepseek/           # Резервный API генерации (DeepSeek primary → Gemini fallback)
     trip-assistant/     # AI чат на `/trip/[id]` — Gemini: классификатор намерений, правка одной активности, rewrite_segment (диапазон дней), вопросы; multipart + vision (фото); `lib/trip-assistant-segment.ts` — merge/валидация сегмента
@@ -51,9 +52,9 @@ app/                    # Next.js App Router pages
     dashboard/          # Редиректит на /trips
     guide/              # AI assistant chat страница
     plan/               # Trip creation form (хаб: travelMode flight|train|car); после → `/plan/vibe`, затем генерация
-    profile/            # User profile (inline editing, язык, history)
+    profile/            # User profile (inline editing через PATCH /api/user/profile, не PostgREST)
     trips/              # My trips listing
-    trip/[id]/          # Trip detail page
+    trip/[id]/          # Trip detail page; автосохранение itinerary (debounce) для владельца UUID-поездки
   auth/                 # Auth page (login/signup)
   cookies/              # Политика cookies
   privacy/              # Политика конфиденциальности
@@ -80,6 +81,7 @@ components/             # React components
   Aurora.tsx            # Background shader effects
   PlaceGallery.tsx      # Location image gallery
 lib/                    # Core logic
+  hooks/useDebouncedTripItinerarySave.ts # автосохранение `trips.itinerary` после правок (чат/inline), ~1.8s debounce; только UUID + владелец + `route.id` === URL
   gemini.ts             # Gemini API client (через OpenRouter); текст + multimodal (parts: text + image_url)
   trip-assistant-segment.ts # merge сегмента дней в itinerary, валидация, dayTotal
   chat-image.ts         # клиент: resize JPEG вложений для чата
@@ -92,6 +94,8 @@ lib/                    # Core logic
   supabase.ts           # Auth & DB helpers
   strict-rules.ts       # JSON generation constraints (AI link rules)
   grounding.ts          # Ground truth 2026 (закрытые аэропорты, визы)
+  server/user-access.ts # Сервер: profiles.access_mode / blocked_until → enforceAiAccess, enforceFullSiteAccess
+  server/trip-for-ai.ts # Загрузка поездки по tripId с проверкой user_id (trip-assistant, enrich, modify-itinerary)
 i18n/
   request.ts            # Locale detection: cookie → domain → Accept-Language
 messages/
@@ -101,6 +105,8 @@ types/
   database.types.ts     # Supabase generated types
 proxy.ts                # Next.js 16 middleware (вместо middleware.ts):
                         #   auth guard, admin subdomain, locale cookie
+                        #   в dev по умолчанию те же проверки, что в prod;
+                        #   TRAVELLM_DEV_SKIP_PROXY_AUTH=1 — старый «быстрый» dev
 supabase/
   migrations/           # SQL migrations
 ```
@@ -162,9 +168,16 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 - `lib/ai-usage-events.ts` → `checkMonthlyGenerationLimit(userId)` считает `ai_usage_events` с `source = "route-generation"` за текущий месяц
 - При превышении → HTTP 429
 - `profiles.gen_limit_override` — персональный override (null = стандартные 10)
-- `profiles.chat_limit_override` — лимит сообщений чата
 - Сайдбар показывает прогресс-бар использования в дропдауне профиля
 - Админ-панель: колонка "Ген./мес." + просмотр/изменение лимитов в диалоге
+
+### Месячный лимит чата и вспомогательного AI
+
+Отдельно от генерации маршрута: **`MONTHLY_CHAT_AI_LIMIT` = 400** (дефолт) суммарных событий в `ai_usage_events` за календарный месяц по источникам из `MONTHLY_CHAT_AI_SOURCES` (trip-assistant, activity-chat, map.normalize-points, guide-chat, main-chat, modify-itinerary, enrich-trip, budget.economist, memory-board.stats, reviews.ai, travel.search).
+
+- `checkMonthlyChatAiLimit(userId)` + при превышении **429** с `code: "CHAT_MONTHLY_LIMIT"`
+- `profiles.chat_limit_override` — персональный потолок (null = дефолт 400; **0** = отключить AI-чат/вспомогательные вызовы)
+- Минутные лимиты (`lib/rate-limit.ts`) остаются; при нескольких инстансах in-memory счётчики не склеиваются
 
 ## Onboarding & UX
 
@@ -177,8 +190,12 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 - **Supabase**: PostgreSQL с RLS
 - **JSONB**: `itinerary`, `preferences`, `safety_info`, `visa_advice`
-- **Tables**: `trips` (в т.ч. `travel_mode`: flight|train|car с формы `/plan`), `trip_members`, `messages`, `achievements`, `viral_spots`, `profiles`, `ai_usage_events`
-- `profiles` содержит: `role`, `access_mode`, `gen_limit_override`, `chat_limit_override`, `block_reason`, `blocked_until`
+- **Tables**: `trips` (в т.ч. `travel_mode`: flight|train|car с формы `/plan`), `messages`, `achievements`, `viral_spots`, `profiles`, `ai_usage_events` (таблица `trip_members` в БД может остаться для старых данных, в UI не используется)
+- `profiles` содержит: `role`, `access_mode` (`active` | `full_blocked` | `ai_blocked`), `gen_limit_override`, `chat_limit_override`, `block_reason`, `blocked_until`
+- **Серверный контроль доступа**: после `getRequestUserId()` AI-роуты вызывают `enforceAiAccess(userId)` (`lib/server/user-access.ts`, service role) — учитываются полный бан, временный `blocked_until`, `ai_blocked`. Соц./данные без LLM: `enforceFullSiteAccess` (diary, feedback, social-layer, nearby-poi).
+- **Маршрут в AI только из БД при `tripId`**: `/api/trip-assistant` при валидном `tripId` подставляет данные поездки с сервера (`fetchTripOwnedByUser`); несохранённые правки в UI в чат не попадут — сохраните поездку перед чатом. Без `tripId` — доверие клиенту, максимум **60** дней в `itinerary`.
+- **`/api/enrich-trip`**: только **`tripId`** (UUID) в теле; маршрут и обновление — из БД владельца.
+- **`/api/modify-itinerary`**: обязательны **`tripId`** + `userMessage`; маршрут из БД.
 
 ## Environment Variables
 
@@ -191,13 +208,18 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 ### Optional / Feature-Specific
 
+- `TRAVELLM_DEV_SKIP_PROXY_AUTH=1` — только локально: ослабить `proxy.ts` (как раньше в dev); без этого в development те же редиректы/админ-гейт, что в production
+- `TRAVELLM_LIMIT_FAIL_OPEN=1` — только локально: если нет `SUPABASE_SERVICE_ROLE_KEY` или сбой запроса лимитов, не блокировать генерации/чат (в **проде не включать**). Без флага — **fail-closed** и **503** `LIMITS_UNAVAILABLE` на `/api/gemini`, `/api/deepseek` и чат-роутах при ошибке бэкенда лимитов.
 - `TRAVELPAYOUTS_TOKEN` (Flights)
 - `GOOGLE_PLACES_API_KEY` (Reviews/Photos)
 - `OPENWEATHER_API_KEY`
+- Beta feedback (`app/actions/beta-feedback.ts`): запись только с `SUPABASE_SERVICE_ROLE_KEY` (anon не используется)
 
 ## Notes
 
 - **Middleware**: Next.js 16 использует `proxy.ts` (не `middleware.ts`) — оба файла одновременно не могут существовать.
+- **Telegram webhooks** (`/api/telegram/webhook`, `webhook-pr`): секреты сравниваются через `timingSafeEqual` (длина буферов выравнивается).
+- **`/api/image`**: лимит по IP (`checkIpRateLimit`, ключ `api-destination-image`, 60/окно — как у proxy-image) против злоупотреблений.
 - **Deployment**: `output: 'standalone'` в `next.config.mjs` для Docker/Coolify (Timeweb Cloud).
 - **TypeScript errors**: `ignoreBuildErrors: true` в `next.config.mjs` — ошибки TS не блокируют билд.
 - **Admin**: Защита через subdomain `admin.*` в `proxy.ts` + проверка роли `admin`/`super_admin` в Supabase.

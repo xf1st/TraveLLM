@@ -28,15 +28,10 @@ export function TripChat({ tripId, isOpen, onClose, currentUser }: TripChatProps
 
         // Initial fetch
         const fetchMessages = async () => {
-            const { data, error } = await supabase
+            // RLS: нельзя читать чужие profiles с клиента — не джойним auth.users (небезопасно/часто запрещено).
+            const { data } = await supabase
                 .from('trip_chat')
-                .select(`
-          *,
-          user:user_id (
-            email,
-            user_metadata
-          )
-        `)
+                .select('*')
                 .eq('trip_id', tripId)
                 .order('created_at', { ascending: true })
 
@@ -53,18 +48,9 @@ export function TripChat({ tripId, isOpen, onClose, currentUser }: TripChatProps
             .on('postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'trip_chat', filter: `trip_id=eq.${tripId}` },
                 async (payload) => {
-                    // Fetch user details for the new message
-                    const { data: userData } = await supabase.from('auth.users').select('email, raw_user_meta_data').eq('id', payload.new.user_id).single()
-                    // Note: direct access to auth.users might be restricted. 
-                    // Better to rely on a public profile table or trigger, but for now let's try a simpler approach 
-                    // or just show "User" if we can't get metadata immediately.
-                    // Actually, we can just fetch the profile if we have a profiles table, OR just use the hook.
-                    // Let's stick to the simplest valid approach: optimistic update or re-fetch.
-
-                    // Re-fetching is safer for consistent data
                     const { data: newMsg } = await supabase
                         .from('trip_chat')
-                        .select(`*, user:user_id(email, user_metadata)`)
+                        .select('*')
                         .eq('id', payload.new.id)
                         .single()
 
@@ -140,13 +126,22 @@ export function TripChat({ tripId, isOpen, onClose, currentUser }: TripChatProps
                     ) : (
                         messages.map((msg) => {
                             const isMe = msg.user_id === currentUser?.id
-                            // Fallback for user name
-                            const userName = msg.user?.user_metadata?.full_name || msg.user?.email?.split('@')[0] || "Гость"
+                            const userName = isMe
+                                ? (currentUser?.user_metadata?.full_name as string | undefined)?.trim() ||
+                                  (typeof currentUser?.email === 'string' ? currentUser.email.split('@')[0] : null) ||
+                                  'Вы'
+                                : 'Пользователь'
 
                             return (
                                 <div key={msg.id} className={cn("flex gap-3 max-w-[85%]", isMe ? "ml-auto flex-row-reverse" : "")}>
                                     <Avatar className="h-8 w-8 border border-white/10">
-                                        <AvatarImage src={msg.user?.user_metadata?.avatar_url} />
+                                        <AvatarImage
+                                            src={
+                                                isMe
+                                                    ? (currentUser?.user_metadata?.avatar_url as string | undefined) || undefined
+                                                    : undefined
+                                            }
+                                        />
                                         <AvatarFallback className="bg-zinc-800 text-xs">{userName[0]?.toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>

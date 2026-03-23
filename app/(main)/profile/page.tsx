@@ -28,6 +28,7 @@ import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
+import { patchMyProfile, ProfilePatchError } from "@/lib/user-profile-client"
 import { appToast as toast } from "@/components/ui/sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
@@ -294,16 +295,18 @@ function ProfileContent() {
       return
     }
     setSavingName(true)
-    const { error } = await supabase.from("profiles").update({ full_name: val }).eq("id", user.id)
-    setSavingName(false)
-    if (error) {
-      toast.error(tp("toast.nameSaveError", { message: error.message }))
-    } else {
-      setProfile((p: any) => ({ ...p, full_name: val }))
-      setEditForm(prev => ({ ...prev, full_name: val }))
+    try {
+      const { profile: p } = await patchMyProfile({ full_name: val })
+      setProfile((prev: any) => ({ ...prev, ...p }))
+      setEditForm((prev) => ({ ...prev, full_name: (p.full_name as string) || val }))
       setNameEditing(false)
       toast.success(tp("toast.nameUpdated"))
-      window.dispatchEvent(new Event('profile_updated'))
+      window.dispatchEvent(new Event("profile_updated"))
+    } catch (e: unknown) {
+      const msg = e instanceof ProfilePatchError ? e.message : (e as Error)?.message || "Error"
+      toast.error(tp("toast.nameSaveError", { message: msg }))
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -597,9 +600,8 @@ function ProfileContent() {
     delete (updatedPreferences as Record<string, unknown>).units
     delete (updatedPreferences as Record<string, unknown>).interestsCustom
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+    try {
+      const { profile: p } = await patchMyProfile({
         full_name: nameVal,
         citizenship: cit || null,
         nationality: nat || null,
@@ -608,28 +610,8 @@ function ProfileContent() {
         bio: bioSan || null,
         preferences: updatedPreferences,
         notifications_enabled: editForm.notifications_enabled,
-        updated_at: new Date().toISOString(),
       })
-      .eq("id", user.id)
-
-    if (error) {
-      console.error("Error updating profile:", error)
-      if (error.code === "23505") {
-        toast.error(tp("toast.usernameTaken"))
-      } else {
-        toast.error(tp("toast.profileSaveError", { message: error.message }))
-      }
-    } else {
-      setProfile({
-        ...profile,
-        full_name: nameVal,
-        citizenship: cit || null,
-        nationality: nat || null,
-        languages: langs,
-        username: uNorm || null,
-        bio: bioSan || null,
-        preferences: updatedPreferences,
-      })
+      setProfile((prev: any) => ({ ...prev, ...p }))
       setEditForm((prev) => ({
         ...prev,
         full_name: nameVal,
@@ -643,6 +625,14 @@ function ProfileContent() {
       setIsEditing(false)
       toast.success(tp("toast.profileUpdated"))
       window.dispatchEvent(new Event("profile_updated"))
+    } catch (e: unknown) {
+      console.error("Error updating profile:", e)
+      if (e instanceof ProfilePatchError && (e.code === "username_taken" || e.status === 409)) {
+        toast.error(tp("toast.usernameTaken"))
+      } else {
+        const msg = e instanceof ProfilePatchError ? e.message : (e as Error)?.message || "Error"
+        toast.error(tp("toast.profileSaveError", { message: msg }))
+      }
     }
     setLoading(false)
   }
@@ -675,27 +665,24 @@ function ProfileContent() {
     }
     const bioSan = sanitizeLongText(editForm.bio || "", PROFILE_TEXT_MAX)
     setSavingPublicProfile(true)
-    const { error } = await supabase.from("profiles").update({
-      username: usernameValue || null,
-      public_profile: editForm.publicProfile,
-      bio: bioSan || null,
-    }).eq("id", user.id)
-    setSavingPublicProfile(false)
-    if (error) {
-      if (error.code === "23505") {
-        toast.error(tp("toast.usernameTaken"))
-      } else {
-        toast.error(tp("toast.saveError", { message: error.message }))
-      }
-    } else {
-      setProfile((p: any) => ({
-        ...p,
+    try {
+      const { profile: p } = await patchMyProfile({
         username: usernameValue || null,
         public_profile: editForm.publicProfile,
         bio: bioSan || null,
-      }))
+      })
+      setProfile((prev: any) => ({ ...prev, ...p }))
       setEditForm((prev) => ({ ...prev, username: usernameValue, bio: bioSan }))
       toast.success(tp("toast.publicProfileSaved"))
+    } catch (e: unknown) {
+      if (e instanceof ProfilePatchError && (e.code === "username_taken" || e.status === 409)) {
+        toast.error(tp("toast.usernameTaken"))
+      } else {
+        const msg = e instanceof ProfilePatchError ? e.message : (e as Error)?.message || "Error"
+        toast.error(tp("toast.saveError", { message: msg }))
+      }
+    } finally {
+      setSavingPublicProfile(false)
     }
   }
 
@@ -710,16 +697,21 @@ function ProfileContent() {
       return
     }
     setSavingUsername(true)
-    const { error } = await supabase.from("profiles").update({ username: val || null }).eq("id", user.id)
-    setSavingUsername(false)
-    if (error) {
-      if (error.code === "23505") toast.error(tp("toast.usernameTaken"))
-      else toast.error(tp("toast.error", { message: error.message }))
-    } else {
-      setProfile((p: any) => ({ ...p, username: val || null }))
-      setEditForm(prev => ({ ...prev, username: val }))
+    try {
+      const { profile: p } = await patchMyProfile({ username: val || null })
+      setProfile((prev: any) => ({ ...prev, ...p }))
+      setEditForm((prev) => ({ ...prev, username: val }))
       setUsernameEditing(false)
       toast.success("Username обновлён")
+    } catch (e: unknown) {
+      if (e instanceof ProfilePatchError && (e.code === "username_taken" || e.status === 409)) {
+        toast.error(tp("toast.usernameTaken"))
+      } else {
+        const msg = e instanceof ProfilePatchError ? e.message : (e as Error)?.message || "Error"
+        toast.error(tp("toast.error", { message: msg }))
+      }
+    } finally {
+      setSavingUsername(false)
     }
   }
 
@@ -771,14 +763,7 @@ function ProfileContent() {
         .from('avatars')
         .getPublicUrl(filePath)
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
-        .eq('id', user.id)
-
-      if (updateError) {
-        throw updateError
-      }
+      await patchMyProfile({ avatar_url: publicUrl })
 
       setAvatarUrl(publicUrl)
       toast.success(tp("toast.avatarUpdated"))
@@ -1756,8 +1741,15 @@ function ProfileContent() {
                             <Checkbox
                               checked={editForm.notifications_enabled}
                               onCheckedChange={async (checked) => {
-                                setEditForm({ ...editForm, notifications_enabled: !!checked })
-                                await supabase.from('profiles').update({ notifications_enabled: !!checked }).eq('id', user.id)
+                                const v = !!checked
+                                setEditForm({ ...editForm, notifications_enabled: v })
+                                try {
+                                  const { profile: p } = await patchMyProfile({ notifications_enabled: v })
+                                  setProfile((prev: any) => ({ ...prev, ...p }))
+                                } catch (err: unknown) {
+                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
+                                  toast.error(msg)
+                                }
                               }}
                             />
                           }
@@ -1774,7 +1766,13 @@ function ProfileContent() {
                                 setEditForm({ ...editForm, autoFavorites: newVal })
                                 const newPrefs = { ...profile.preferences, autoFavorites: newVal }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
+                                try {
+                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
+                                  setProfile((prev: any) => ({ ...prev, ...p }))
+                                } catch (err: unknown) {
+                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
+                                  toast.error(msg)
+                                }
                               }}
                             />
                           }
@@ -1789,7 +1787,13 @@ function ProfileContent() {
                               onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, currency: val }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
+                                try {
+                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
+                                  setProfile((prev: any) => ({ ...prev, ...p }))
+                                } catch (err: unknown) {
+                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
+                                  toast.error(msg)
+                                }
                               }}
                             >
                               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
@@ -1812,7 +1816,14 @@ function ProfileContent() {
                               onValueChange={async (val) => {
                                 const newPrefs = { ...profile.preferences, language: val }
                                 setProfile({ ...profile, preferences: newPrefs })
-                                await supabase.from('profiles').update({ preferences: newPrefs }).eq('id', user.id)
+                                try {
+                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
+                                  setProfile((prev: any) => ({ ...prev, ...p }))
+                                } catch (err: unknown) {
+                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
+                                  toast.error(msg)
+                                  return
+                                }
                                 const expires = new Date()
                                 expires.setFullYear(expires.getFullYear() + 1)
                                 document.cookie = `NEXT_LOCALE=${val};path=/;expires=${expires.toUTCString()};SameSite=Lax`

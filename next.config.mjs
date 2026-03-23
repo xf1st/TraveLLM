@@ -15,6 +15,10 @@ const nextConfig = {
   // Required in Next.js 16 where Turbopack is the default.
   turbopack: {},
 
+  async redirects() {
+    return [{ source: '/trip/join/:path*', destination: '/trips', permanent: false }];
+  },
+
   async headers() {
     return [
       {

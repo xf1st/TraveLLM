@@ -12,9 +12,16 @@ export async function GET(req: Request) {
     try {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey
+        const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (!serviceRole) {
+            return NextResponse.json(
+                { error: "Server misconfigured: SUPABASE_SERVICE_ROLE_KEY required for admin stats" },
+                { status: 503 }
+            )
+        }
+        const supabaseKey = serviceRole
 
-        if (!supabaseUrl || !supabaseKey || !supabaseAnonKey) {
+        if (!supabaseUrl || !supabaseAnonKey) {
             return NextResponse.json({ error: "Supabase not configured" }, { status: 503 })
         }
 
@@ -38,10 +45,6 @@ export async function GET(req: Request) {
             .single()
         if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-        }
-
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.warn("[AI Stats] WARNING: SUPABASE_SERVICE_ROLE_KEY is not set. Using ANON key. RLS policies may block access to trip data.")
         }
 
         const supabase = createClient(supabaseUrl, supabaseKey)

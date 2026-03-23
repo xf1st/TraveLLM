@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useTranslations, useLocale } from "next-intl"
 import Link from "next/link"
@@ -77,7 +77,7 @@ import { getCoordinates } from "@/lib/geocoding"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
 
-
+import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
 
 import { ReelsView } from "@/components/travel/ReelsView"
 
@@ -181,7 +181,6 @@ export default function TripDetailPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
 
-  const [isMember, setIsMember] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [activeView, setActiveView] = useState<"itinerary" | "stats">("itinerary")
   const [isFavorite, setIsFavorite] = useState(false)
@@ -376,7 +375,6 @@ export default function TripDetailPage() {
             tags: data.tags,
             coverImage: data.cover_image || data.coverImage,
             budget_range: data.budget_range,
-            invite_code: data.invite_code,
             flights: data.flights || [],
             hotels: data.hotels || [],
             viralSpots: data.viralSpots || data.viral_spots || [],
@@ -390,14 +388,6 @@ export default function TripDetailPage() {
           if (currentUser && data.id) {
             const tripOwner = data.user_id === currentUser.id
             setIsOwner(tripOwner)
-
-            const { data: memberData } = await supabase
-              .from("trip_members")
-              .select("id")
-              .eq("trip_id", data.id)
-              .eq("user_id", currentUser.id)
-              .maybeSingle()
-            setIsMember(!!memberData)
 
             const { data: favData } = await supabase
               .from("favorites")
@@ -416,6 +406,25 @@ export default function TripDetailPage() {
     }
     fetchTrip()
   }, [params.id, router])
+
+  const tripIdParam = String(params.id ?? "")
+
+  const onItinerarySaveError = useCallback(
+    (message: string) => {
+      toast.error(t("toast.itinerarySaveError", { message }))
+    },
+    [t]
+  )
+
+  useDebouncedTripItinerarySave({
+    tripId: tripIdParam || undefined,
+    loadedTripId: route?.id,
+    itinerary: route?.itinerary,
+    isOwner,
+    userId: user?.id,
+    loading,
+    onSaveError: onItinerarySaveError,
+  })
 
   // ============== Loading State ==============
   if (loading) {

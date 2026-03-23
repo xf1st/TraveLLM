@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import {
+    getRequestUserId,
+    recordAiUsageEvent,
+    checkMonthlyChatAiLimit,
+    monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
@@ -10,6 +16,9 @@ export async function POST(req: Request) {
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
+
+        const accessErr = await enforceAiAccess(userId)
+        if (accessErr) return accessErr
 
         const rl = checkRateLimit(userId, "main-chat", 30)
         if (!rl.allowed) return rateLimitResponse(rl)
@@ -67,6 +76,12 @@ ${itineraryPreview ? `- Первые дни: ${itineraryPreview}` : ""}
         ]
 
         const reply = await openrouterInference(openRouterMessages, { temperature: 0.7, maxTokens: 1000 })
+
+        await recordAiUsageEvent({
+            userId,
+            source: "main-chat",
+            provider: "openrouter",
+        })
 
         return NextResponse.json({ reply })
     } catch (error: any) {

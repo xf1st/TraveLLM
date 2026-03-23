@@ -5,7 +5,13 @@ import { geminiInference } from "@/lib/gemini"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { createClient } from '@supabase/supabase-js'
-import { getRequestUserId, recordAiUsageEvent, checkMonthlyGenerationLimit } from "@/lib/ai-usage-events"
+import {
+    getRequestUserId,
+    recordAiUsageEvent,
+    checkMonthlyGenerationLimit,
+    monthlyGenerationBackendUnavailableResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { validateRouteRequest } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
@@ -29,6 +35,9 @@ export async function POST(req: Request) {
         const userId = await getRequestUserId()
         if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+        const accessErr = await enforceAiAccess(userId)
+        if (accessErr) return accessErr
+
         // Rate limit: max 5 generation requests per minute per user
         const rl = checkRateLimit(userId, "deepseek-generation", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
@@ -36,6 +45,9 @@ export async function POST(req: Request) {
         // Monthly generation limit: 10 per user
         const genLimit = await checkMonthlyGenerationLimit(userId)
         if (!genLimit.allowed) {
+            if (genLimit.backendUnavailable) {
+                return monthlyGenerationBackendUnavailableResponse()
+            }
             return NextResponse.json({
                 error: "Лимит исчерпан",
                 message: `Вы использовали все ${genLimit.limit} генераций в этом месяце. Лимит обновится ${new Date(genLimit.resetAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long" })}.`,

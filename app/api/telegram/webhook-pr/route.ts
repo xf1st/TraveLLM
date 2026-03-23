@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_PR!
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY!
@@ -228,8 +229,10 @@ async function handleUpdate(update: any) {
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-telegram-bot-api-secret-token')
-  if (secret !== WEBHOOK_SECRET) {
+  const received = req.headers.get('x-telegram-bot-api-secret-token') ?? ''
+  const a = Buffer.from(received, 'utf8')
+  const b = Buffer.from(WEBHOOK_SECRET, 'utf8')
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ ok: false }, { status: 401 })
   }
 

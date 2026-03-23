@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { z } from "zod"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { enforceFullSiteAccess } from "@/lib/server/user-access"
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
     const userId = await getRequestUserId()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+    const accessErr = await enforceFullSiteAccess(userId)
+    if (accessErr) return accessErr
+
     const client = createServiceClient()
     if (!client) return NextResponse.json({ error: "Server is not configured" }, { status: 500 })
 
@@ -83,13 +87,7 @@ export async function POST(req: NextRequest) {
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 })
 
     if (trip.user_id !== userId) {
-      const { data: member } = await client
-        .from("trip_members")
-        .select("id")
-        .eq("trip_id", tripId)
-        .eq("user_id", userId)
-        .maybeSingle()
-      if (!member) return NextResponse.json({ error: "Access denied" }, { status: 403 })
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
     const payload = {

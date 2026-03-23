@@ -2,15 +2,16 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { z } from "zod"
 
-type ModerationBody = {
-  targetUserId?: string
-  access_mode?: "active" | "ai_blocked" | "full_blocked"
-  block_reason?: string | null
-  blocked_until?: string | null
-  gen_limit_override?: number | null
-  chat_limit_override?: number | null
-}
+const ModerationBodySchema = z.object({
+  targetUserId: z.string().uuid(),
+  access_mode: z.enum(["active", "ai_blocked", "full_blocked"]).optional(),
+  block_reason: z.string().max(2000).nullable().optional(),
+  blocked_until: z.string().nullable().optional(),
+  gen_limit_override: z.number().int().min(0).max(999999999).nullable().optional(),
+  chat_limit_override: z.number().int().min(0).max(999999999).nullable().optional(),
+})
 
 /**
  * Block / limits updates with service role.
@@ -19,12 +20,16 @@ type ModerationBody = {
  */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ModerationBody
-    const { targetUserId, access_mode, block_reason, blocked_until, gen_limit_override, chat_limit_override } = body
-
-    if (!targetUserId) {
-      return NextResponse.json({ error: "Missing targetUserId" }, { status: 400 })
+    const raw = await request.json()
+    const parsedBody = ModerationBodySchema.safeParse(raw)
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsedBody.error.flatten() },
+        { status: 400 },
+      )
     }
+    const { targetUserId, access_mode, block_reason, blocked_until, gen_limit_override, chat_limit_override } =
+      parsedBody.data
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

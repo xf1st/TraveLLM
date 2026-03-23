@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { deepseekInferenceWithUsage } from "@/lib/deepseek"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
@@ -17,6 +23,12 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await getRequestUserId()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
+    const chatLimit = await checkMonthlyChatAiLimit(userId)
+    if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
     const rl = checkRateLimit(userId, "budget-ai", 10)
     if (!rl.allowed) return rateLimitResponse(rl)

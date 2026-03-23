@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { createClient } from '@supabase/supabase-js'
 import { verifyConnectToken, sendTelegramMessage } from '@/lib/telegram'
 import { getStatsForPeriod, getTopSpenders } from '@/lib/admin-stats'
@@ -127,8 +128,10 @@ export async function POST(req: Request) {
             console.error('[Telegram] TELEGRAM_BOT_SECRET is not set — webhook is disabled')
             return NextResponse.json({ ok: false, error: 'Webhook not configured' }, { status: 503 })
         }
-        const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token')
-        if (receivedSecret !== expectedSecret) {
+        const receivedSecret = req.headers.get('x-telegram-bot-api-secret-token') ?? ''
+        const a = Buffer.from(receivedSecret, 'utf8')
+        const b = Buffer.from(expectedSecret, 'utf8')
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
             return NextResponse.json({ ok: false }, { status: 401 })
         }
 

@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 import { geminiInferenceWithUsage, type GeminiContentPart } from "@/lib/gemini"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import {
+    getRequestUserId,
+    recordAiUsageEvent,
+    checkMonthlyChatAiLimit,
+    monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
+import { fetchTripOwnedByUser, tripRowToAssistantPayload } from "@/lib/server/trip-for-ai"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import {
     buildCompactItinerarySummary,
@@ -170,6 +178,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
+        const accessErr = await enforceAiAccess(userId)
+        if (accessErr) return accessErr
+
         const contentType = req.headers.get("content-type") || ""
         let tripData: any
         let userMessage = ""
@@ -250,10 +261,44 @@ export async function POST(req: Request) {
             )
         }
 
-        // Validate tripId format and ownership (used for usage logging — prevent log poisoning)
         const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (tripId && !UUID_RE.test(tripId)) {
-            tripId = undefined
+        let normalizedTripId: string | undefined
+        if (tripId != null && String(tripId).trim() !== "") {
+            const tid = String(tripId).trim()
+            if (!UUID_RE.test(tid)) {
+                return NextResponse.json({ error: "Invalid tripId" }, { status: 400 })
+            }
+            normalizedTripId = tid
+        }
+
+        if (normalizedTripId) {
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+            if (!supabaseUrl || !supabaseKey) {
+                return NextResponse.json({ error: "Server misconfigured" }, { status: 503 })
+            }
+            const admin = createClient(supabaseUrl, supabaseKey, {
+                auth: { autoRefreshToken: false, persistSession: false },
+            })
+            const owned = await fetchTripOwnedByUser(admin, normalizedTripId, userId)
+            if (!owned.ok) {
+                return NextResponse.json(
+                    { error: "Trip not found or access denied" },
+                    { status: 403 },
+                )
+            }
+            tripData = tripRowToAssistantPayload(owned.trip)
+            tripId = normalizedTripId
+        } else {
+            const rawIt = Array.isArray(tripData) ? tripData : tripData?.itinerary
+            if (Array.isArray(rawIt) && rawIt.length > 60) {
+                return NextResponse.json(
+                    {
+                        error: "Itinerary too large without tripId. Open a saved trip or shorten the plan.",
+                    },
+                    { status: 400 },
+                )
+            }
         }
 
         if (userMessage.length > MAX_MESSAGE_LEN) {
@@ -262,6 +307,9 @@ export async function POST(req: Request) {
                 { status: 400 }
             )
         }
+
+        const chatLimit = await checkMonthlyChatAiLimit(userId)
+        if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
         const hasImages = imageDataUrls.length > 0
         const maxPerMinute = hasImages ? 8 : 15

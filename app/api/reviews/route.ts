@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import { deepseekInference } from "@/lib/deepseek"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 /**
@@ -41,8 +47,11 @@ interface PlaceReviews {
   source: "google" | "ai"
 }
 
-// Генерация AI-отзывов через DeepSeek
-async function generateAIReviews(placeName: string, city: string): Promise<PlaceReviews> {
+// Генерация AI-отзывов через DeepSeek (fallback без LLM → consumedAi: false)
+async function generateAIReviews(
+  placeName: string,
+  city: string
+): Promise<{ data: PlaceReviews; consumedAi: boolean }> {
   const prompt = `Ты эксперт по путешествиям. Создай реалистичную сводку отзывов для места "${placeName}" в городе ${city}.
 
 ВАЖНО: Основывайся на своих знаниях о реальных отзывах и характеристиках этого места. Если не знаешь конкретное место - создай правдоподобную оценку на основе типа заведения.
@@ -97,39 +106,45 @@ async function generateAIReviews(placeName: string, city: string): Promise<Place
     const data = JSON.parse(jsonMatch[0])
 
     return {
-      placeName,
-      overallRating: data.overallRating || 4.0,
-      totalReviews: data.totalReviews || 100,
-      reviews: (data.reviews || []).map((r: any) => ({
-        author: r.author || "Гость",
-        rating: r.rating || 4,
-        text: r.text || "",
-        date: r.date || "2024",
-        source: "ai" as const
-      })),
-      pros: data.pros || [],
-      cons: data.cons || [],
-      source: "ai"
+      data: {
+        placeName,
+        overallRating: data.overallRating || 4.0,
+        totalReviews: data.totalReviews || 100,
+        reviews: (data.reviews || []).map((r: any) => ({
+          author: r.author || "Гость",
+          rating: r.rating || 4,
+          text: r.text || "",
+          date: r.date || "2024",
+          source: "ai" as const
+        })),
+        pros: data.pros || [],
+        cons: data.cons || [],
+        source: "ai"
+      },
+      consumedAi: true,
     }
   } catch (e) {
     console.error("Failed to parse AI reviews:", e)
     // Fallback на минимальные данные
     return {
-      placeName,
-      overallRating: 4.2,
-      totalReviews: 150,
-      reviews: [
-        {
-          author: "Путешественник",
-          rating: 4,
-          text: "Хорошее место для посещения",
-          date: "2024",
-          source: "ai"
-        }
-      ],
-      pros: ["Интересное место"],
-      cons: [],
-      source: "ai"
+      data: {
+        placeName,
+        overallRating: 4.2,
+        totalReviews: 150,
+        reviews: [
+          {
+            author: "Путешественник",
+            rating: 4,
+            text: "Хорошее место для посещения",
+            date: "2024",
+            source: "ai"
+          }
+        ],
+        pros: ["Интересное место"],
+        cons: [],
+        source: "ai"
+      },
+      consumedAi: false,
     }
   }
 }
@@ -234,6 +249,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
     // Rate limit: 10 req/min — Google Places costs $20/1000 requests
     const rl = checkRateLimit(userId, "reviews", 10)
     if (!rl.allowed) return rateLimitResponse(rl)
@@ -249,8 +267,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const reviews = await getReviewsData(placeName, city || "")
-    return NextResponse.json(reviews)
+    const result = await getReviewsData(placeName, city || "", userId)
+    if (!result.ok) return result.response
+    return NextResponse.json(result.data)
   } catch (error) {
     console.error("Reviews API error:", error)
     return NextResponse.json(
@@ -267,6 +286,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const accessErr = await enforceAiAccess(userId)
+  if (accessErr) return accessErr
+
+  const rl = checkRateLimit(userId, "reviews-get", 10)
+  if (!rl.allowed) return rateLimitResponse(rl)
+
   const { searchParams } = new URL(request.url)
   const placeName = searchParams.get("place")
   const city = searchParams.get("city")
@@ -279,8 +304,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const reviews = await getReviewsData(placeName, city || "")
-    return NextResponse.json(reviews)
+    const result = await getReviewsData(placeName, city || "", userId)
+    if (!result.ok) return result.response
+    return NextResponse.json(result.data)
   } catch (error) {
     console.error("Reviews API error:", error)
     return NextResponse.json(
@@ -290,10 +316,18 @@ export async function GET(request: Request) {
   }
 }
 
+type GetReviewsResult =
+  | { ok: true; data: PlaceReviews }
+  | { ok: false; response: ReturnType<typeof monthlyChatAiLimitResponse> }
+
 /**
  * Shared logic to get reviews
  */
-async function getReviewsData(placeName: string, city: string): Promise<PlaceReviews> {
+async function getReviewsData(
+  placeName: string,
+  city: string,
+  userId: string
+): Promise<GetReviewsResult> {
   // Стратегия: сначала Google, потом AI
   let reviews: PlaceReviews | null = null
 
@@ -304,8 +338,20 @@ async function getReviewsData(placeName: string, city: string): Promise<PlaceRev
 
   // Fallback на AI
   if (!reviews) {
-    reviews = await generateAIReviews(placeName, city)
+    const chatLimit = await checkMonthlyChatAiLimit(userId)
+    if (!chatLimit.allowed) {
+      return { ok: false, response: monthlyChatAiLimitResponse(chatLimit) }
+    }
+    const ai = await generateAIReviews(placeName, city)
+    reviews = ai.data
+    if (ai.consumedAi) {
+      await recordAiUsageEvent({
+        userId,
+        source: "reviews.ai",
+        provider: "deepseek",
+      })
+    }
   }
 
-  return reviews
+  return { ok: true, data: reviews }
 }

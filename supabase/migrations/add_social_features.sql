@@ -35,9 +35,10 @@ USING (
 );
 
 -- Every user can add themselves if they have the invite code (logic handled in app but protected here)
+-- Superseded: add_trip_collaboration_security.sql drops this policy; join only via join_trip_by_invite().
 CREATE POLICY "Users can join trips via link" 
 ON public.trip_members FOR INSERT 
-WITH CHECK (true); -- Verification happens via invite_code check in the function/middleware
+WITH CHECK (true); -- was insecure; removed by later migration
 
 -- 5. Update Policies for trips table
 -- Allow members to view/edit trips

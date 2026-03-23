@@ -11,6 +11,7 @@ import { Logo } from "@/components/logo"
 import { ArrowRight, ArrowLeft, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
+import { patchMyProfile } from "@/lib/user-profile-client"
 import { cn } from "@/lib/utils"
 import { CityAutocomplete } from "@/components/ui/city-autocomplete"
 import { motion, AnimatePresence } from "framer-motion"
@@ -53,21 +54,23 @@ export default function OnboardingPage() {
     localStorage.setItem("userPreferences", JSON.stringify(prefs))
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from("profiles").upsert({
-        id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name,
-        citizenship: prefs.citizenship,
-        nationality: prefs.nationality,
-        languages: prefs.languages,
-        preferences: {
-          ...prefs,
-          visitedCountries: prefs.visitedCountries
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0),
-        },
-      })
+      try {
+        await patchMyProfile({
+          full_name: (user.user_metadata?.full_name as string | undefined) || undefined,
+          citizenship: prefs.citizenship || null,
+          nationality: prefs.nationality || null,
+          languages: prefs.languages,
+          preferences: {
+            ...prefs,
+            visitedCountries: prefs.visitedCountries
+              .split(",")
+              .map((s) => s.trim())
+              .filter((s) => s.length > 0),
+          },
+        })
+      } catch (e) {
+        console.error("[onboarding] profile patch failed", e)
+      }
     }
     router.push("/plan")
   }

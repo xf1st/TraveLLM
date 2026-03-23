@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server"
 import { deepseekInferenceWithUsage } from "@/lib/deepseek"
-import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 type ChatMessage = {
@@ -14,6 +20,12 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
+    const chatLimit = await checkMonthlyChatAiLimit(userId)
+    if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
     const rl = checkRateLimit(userId, "activity-chat", 20)
     if (!rl.allowed) return rateLimitResponse(rl)
@@ -59,14 +71,12 @@ export async function POST(req: Request) {
 
     const reply = replyResponse.content
 
-    if (replyResponse.usage) {
-      await recordAiUsageEvent({
-        userId,
-        source: "activity-chat",
-        provider: "deepseek",
-        usage: replyResponse.usage
-      })
-    }
+    await recordAiUsageEvent({
+      userId,
+      source: "activity-chat",
+      provider: "deepseek",
+      usage: replyResponse.usage,
+    })
 
     return NextResponse.json({ reply: reply.trim() })
   } catch (error: any) {

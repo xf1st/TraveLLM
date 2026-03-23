@@ -1,8 +1,16 @@
+import { createClient } from "@supabase/supabase-js"
 import { deepseekInference } from "@/lib/deepseek"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { GROUNDING_DATA_2026 } from "@/lib/grounding"
-import { getRequestUserId } from "@/lib/ai-usage-events"
+import {
+  getRequestUserId,
+  recordAiUsageEvent,
+  checkMonthlyChatAiLimit,
+  monthlyChatAiLimitResponse,
+} from "@/lib/ai-usage-events"
+import { enforceAiAccess } from "@/lib/server/user-access"
+import { fetchTripOwnedByUser } from "@/lib/server/trip-for-ai"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 // Extract city from day title (e.g., "Токио: Сибуя" -> "Токио")
@@ -151,16 +159,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const accessErr = await enforceAiAccess(userId)
+    if (accessErr) return accessErr
+
     const rl = checkRateLimit(userId, "modify-itinerary", 5)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const rawBody = await req.json()
 
     const BodySchema = z.object({
+      tripId: z.string().uuid(),
       userMessage: z.string().min(1).max(2000),
-      currentItinerary: z.object({
-        itinerary: z.array(z.any()).max(60),
-      }),
+      /** Игнорируется: маршрут берётся из БД по tripId (владелец). */
+      currentItinerary: z
+        .object({
+          itinerary: z.array(z.any()).max(60),
+        })
+        .optional(),
     })
     const parsed = BodySchema.safeParse(rawBody)
     if (!parsed.success) {
@@ -170,8 +185,26 @@ export async function POST(req: Request) {
       )
     }
 
-    const { currentItinerary, userMessage } = parsed.data
-    const itinerary = currentItinerary.itinerary || []
+    const { tripId, userMessage } = parsed.data
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 503 })
+    }
+    const admin = createClient(supabaseUrl, supabaseKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const owned = await fetchTripOwnedByUser(admin, tripId, userId)
+    if (!owned.ok) {
+      return NextResponse.json({ error: "Trip not found or access denied" }, { status: 403 })
+    }
+
+    const itinerary = Array.isArray(owned.trip.itinerary) ? owned.trip.itinerary : []
+    const currentItinerary = {
+      itinerary,
+      totalBudget: owned.trip.total_cost ?? undefined,
+    }
     const totalDays = itinerary.length
 
     console.log("Modify: Analyzing city groups...")
@@ -195,6 +228,7 @@ export async function POST(req: Request) {
       const clean = parseRaw.match(/\{[\s\S]*\}/)?.[0] || parseRaw
       parsedRequest = JSON.parse(clean)
     } catch {
+      await recordAiUsageEvent({ userId, source: "modify-itinerary", provider: "deepseek" })
       return NextResponse.json({ explanation: "Не удалось понять запрос.", modifications: [] })
     }
 
@@ -215,6 +249,7 @@ export async function POST(req: Request) {
     // I'll stop here and just provide the summary of fixes because rewriting the whole modify-itinerary is complex.
     // Wait, the user wants me to fix grounding data and sanitizer.
     
+    await recordAiUsageEvent({ userId, source: "modify-itinerary", provider: "deepseek" })
     return NextResponse.json({ explanation: "Route modified.", modifications: [] })
   } catch (error: any) {
     console.error("Modify itinerary error:", error)

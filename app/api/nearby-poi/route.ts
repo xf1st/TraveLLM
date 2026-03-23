@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { enforceFullSiteAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 type NearbyTheme = "food" | "culture" | "nature" | "fun" | "shopping"
@@ -192,6 +193,9 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const accessErr = await enforceFullSiteAccess(userId)
+    if (accessErr) return accessErr
 
     // Rate limit: 20 req/min per user — each call hits Overpass API
     const rl = checkRateLimit(userId, "nearby-poi", 20)

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server"
+import { ProxyAgent } from "undici"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { enforceFullSiteAccess } from "@/lib/server/user-access"
 
 // Proxy configuration
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
-let proxyDispatcher: any = undefined;
+const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || ""
+let proxyDispatcher: ProxyAgent | undefined
 if (typeof window === "undefined" && PROXY_URL) {
-    try {
-        const undici = eval('require("undici")');
-        proxyDispatcher = new undici.ProxyAgent(PROXY_URL);
-    } catch(e) {}
+  try {
+    proxyDispatcher = new ProxyAgent(PROXY_URL)
+  } catch {
+    /* ignore */
+  }
 }
 
 type Bbox = {
@@ -246,6 +249,9 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized", features: [] }, { status: 401 })
     }
+
+    const accessErr = await enforceFullSiteAccess(userId)
+    if (accessErr) return accessErr
 
     const body = (await req.json()) as SocialLayerRequest
     const zoom = Number(body?.zoom)

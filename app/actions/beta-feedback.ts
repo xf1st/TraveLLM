@@ -2,24 +2,31 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { getRequestUserId } from "@/lib/ai-usage-events"
+import { checkRateLimit } from "@/lib/rate-limit"
 
 export async function submitBetaFeedback(formData: FormData) {
   try {
     const userId = await getRequestUserId()
-    
-    // В идеале использовать Supabase Service Role Key для записи без RLS,
-    // либо сделать таблицу beta_feedback доступной для insert
+    if (!userId) {
+      return { success: false, message: "Войдите в аккаунт, чтобы отправить отзыв." }
+    }
+
+    const rl = checkRateLimit(userId, "beta-feedback", 5)
+    if (!rl.allowed) {
+      return { success: false, message: "Слишком много отправок. Подождите минуту и попробуйте снова." }
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase credentials not found")
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY is required for beta feedback (no anon fallback)")
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     const feedbackData = {
-      user_id: userId || null,
+      user_id: userId,
       rating_overall: parseInt(formData.get("rating_overall") as string) || null,
       rating_places: formData.get("rating_places"),
       budget_accuracy: formData.get("budget_accuracy"),

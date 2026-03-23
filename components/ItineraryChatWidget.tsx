@@ -258,6 +258,10 @@ export function ItineraryChatWidget({
 
       if (response.status === 429) {
         const errBody = await response.json().catch(() => ({} as Record<string, unknown>))
+        if (errBody.code === "CHAT_MONTHLY_LIMIT" && typeof errBody.error === "string" && sessionId) {
+          addMessage(sessionId, { role: "assistant", content: errBody.error })
+          return
+        }
         const sec =
           typeof errBody.retryAfterSec === "number"
             ? errBody.retryAfterSec
@@ -267,6 +271,16 @@ export function ItineraryChatWidget({
             role: "assistant",
             content: t("rateLimit", { seconds: sec }),
           })
+        }
+        return
+      }
+
+      if (response.status === 503) {
+        const errBody = await response.json().catch(() => ({} as Record<string, unknown>))
+        const msg =
+          typeof errBody.error === "string" ? errBody.error : `${t("serverError")} (503)`
+        if (sessionId) {
+          addMessage(sessionId, { role: "assistant", content: msg })
         }
         return
       }

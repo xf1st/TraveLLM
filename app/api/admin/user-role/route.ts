@@ -2,18 +2,27 @@ import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { z } from "zod"
+
+const UserRoleBodySchema = z.object({
+  targetUserId: z.string().uuid(),
+  action: z.enum(["demote_admin", "promote_admin"]),
+})
 
 /**
  * Role changes: only super_admin. Cannot modify another super_admin.
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { targetUserId, action } = body as { targetUserId?: string; action?: "demote_admin" | "promote_admin" }
-
-    if (!targetUserId || !action) {
-      return NextResponse.json({ error: "Missing parameters" }, { status: 400 })
+    const raw = await request.json()
+    const parsed = UserRoleBodySchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten() },
+        { status: 400 },
+      )
     }
+    const { targetUserId, action } = parsed.data
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
