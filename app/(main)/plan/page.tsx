@@ -680,7 +680,8 @@ export default function PlanPage() {
       </Dialog>
 
       {/* ── Page ─────────────────────────────────────────────────────────── */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-24 pb-16">
+      {/* Horizontal padding from AppLayout only — aligns with /trips; extra bottom for mobile bottom nav */}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-0 pt-20 pb-28 sm:pt-24 md:pb-16">
 
         {/* Header */}
         <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">

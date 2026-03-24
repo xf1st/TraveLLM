@@ -287,6 +287,65 @@ export interface Database {
                     trip_id?: string
                 }
             }
+            discovery_reels: {
+                Row: {
+                    id: string
+                    title: string
+                    country: string
+                    city: string | null
+                    price_amount: number | null
+                    price_currency: string
+                    price_label: string | null
+                    suggested_start_date: string | null
+                    suggested_end_date: string | null
+                    anchor_day: number
+                    images: Json
+                    activity_anchor: Json
+                    music_url: string | null
+                    locale: string
+                    published: boolean
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    title: string
+                    country: string
+                    city?: string | null
+                    price_amount?: number | null
+                    price_currency?: string
+                    price_label?: string | null
+                    suggested_start_date?: string | null
+                    suggested_end_date?: string | null
+                    anchor_day?: number
+                    images?: Json
+                    activity_anchor?: Json
+                    music_url?: string | null
+                    locale?: string
+                    published?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    title?: string
+                    country?: string
+                    city?: string | null
+                    price_amount?: number | null
+                    price_currency?: string
+                    price_label?: string | null
+                    suggested_start_date?: string | null
+                    suggested_end_date?: string | null
+                    anchor_day?: number
+                    images?: Json
+                    activity_anchor?: Json
+                    music_url?: string | null
+                    locale?: string
+                    published?: boolean
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
         }
     }
 }

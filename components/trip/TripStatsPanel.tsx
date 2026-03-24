@@ -104,7 +104,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
   ]
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-24 pt-4 space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 px-3 pb-28 pt-4 sm:px-4 sm:pb-24 lg:px-8">
 
       {/* ── Stat cards row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

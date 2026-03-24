@@ -28,6 +28,12 @@ import { validateAirports } from "@/lib/api/airport-validator"
 import { buildEnrichedPrompt, buildMetadataPrompt, buildDayChunkPrompt } from "@/lib/prompt-builder"
 import { normalizeTravelMode } from "@/lib/travel-mode"
 import { type RouteData, type ItineraryDay } from "@/types/itinerary"
+import {
+    type DiscoveryReelRecord,
+    itineraryContainsAnchor,
+    injectAnchorIntoItinerary,
+} from "@/lib/reel-anchor"
+import { buildReelMandatoryPromptBlock } from "@/lib/reel-prompt"
 
 export const maxDuration = 60; // Allow long-running generations
 
@@ -79,18 +85,63 @@ export async function POST(req: Request) {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, requireRussianGuide,
             customDestination, customBudget, travelers, filterByDocuments, tripHighlight, tripVibe,
-            strictDestinations, locale, travelMode: travelModeBody,
+            strictDestinations, locale, travelMode: travelModeBody, reelId: reelIdRaw,
         } = body
         const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
         const travelMode = normalizeTravelMode(travelModeBody)
 
-        const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
-        const safeTripVibe = tripVibe ? String(tripVibe).replace(/"/g, "'").slice(0, 2000) : ''
+        let reelRecord: DiscoveryReelRecord | null = null
+        let reelAnchorPrompt: string | undefined
+        const reelId = typeof reelIdRaw === "string" ? reelIdRaw.trim() : ""
+        if (reelId) {
+            const uuidOk = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reelId)
+            if (!uuidOk) {
+                return NextResponse.json({ error: "invalid_reel" }, { status: 400 })
+            }
+            const { data: reelRow, error: reelErr } = await supabase
+                .from("discovery_reels")
+                .select("*")
+                .eq("id", reelId)
+                .eq("published", true)
+                .maybeSingle()
+            if (reelErr || !reelRow) {
+                return NextResponse.json({
+                    error: "reel_not_found",
+                    message: userLocale === "en"
+                        ? "This reel was not found or is not published."
+                        : "Рилс не найден или не опубликован.",
+                }, { status: 400 })
+            }
+            reelRecord = reelRow as DiscoveryReelRecord
+            reelAnchorPrompt = buildReelMandatoryPromptBlock(reelRecord, userLocale)
+        }
+
+        // Strip control characters and prompt-injection vectors server-side
+        const sanitizeUserText = (s: string, max: number) =>
+            s.replace(/[<>{}[\]\\]/g, "").replace(/(\r\n|\n|\r)/gm, " ").replace(/"/g, "'").trim().slice(0, max)
+
+        let safeHighlight = tripHighlight ? sanitizeUserText(String(tripHighlight), 300) : ""
+        if (reelRecord) {
+            const prefix = userLocale === "en"
+                ? `[Inspired by reel: ${reelRecord.title}] `
+                : `[Из рилса: ${reelRecord.title}] `
+            safeHighlight = (prefix + safeHighlight).trim().slice(0, 500)
+        }
+        const safeTripVibe = tripVibe ? sanitizeUserText(String(tripVibe), 2000) : ''
         const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
         const travelersCount = parseInt(travelers) || 2
         const durationDays = startDate && endDate
             ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
             : 7
+
+        if (reelRecord && durationDays < reelRecord.anchor_day) {
+            return NextResponse.json({
+                error: "anchor_day_too_late",
+                message: userLocale === "en"
+                    ? `Trip must be at least ${reelRecord.anchor_day} days to include the reel activity.`
+                    : `Поездка должна быть не короче ${reelRecord.anchor_day} дней, чтобы включить активность из рилса.`,
+            }, { status: 400 })
+        }
 
         // Helper to safely convert value to array
         const toArray = (val: any): string[] => {
@@ -115,6 +166,27 @@ export async function POST(req: Request) {
             : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`
 
         const destinations = strictDestinations === false ? [] : (customDestination ? customDestination.split(';').map((s: string) => s.trim()).filter(Boolean) : [])
+
+        if (reelRecord) {
+            if (destinations.length === 0) {
+                return NextResponse.json({
+                    error: "destination_required",
+                    message: userLocale === "en"
+                        ? "Destination is required when building a trip from a reel."
+                        : "Укажите направление для маршрута из рилса.",
+                }, { status: 400 })
+            }
+            const destBlob = destinations.join(" ").toLowerCase()
+            const c = reelRecord.country.toLowerCase().trim()
+            if (c && !destBlob.includes(c)) {
+                return NextResponse.json({
+                    error: "destination_mismatch",
+                    message: userLocale === "en"
+                        ? `Destination must include the reel country: ${reelRecord.country}.`
+                        : `Направление должно включать страну рилса: ${reelRecord.country}.`,
+                }, { status: 400 })
+            }
+        }
 
         // =====================================
         // REAL-TIME VALIDATION & CONTEXT
@@ -215,6 +287,7 @@ export async function POST(req: Request) {
             filterByDocuments,
             airportValidationContext,
             travelMode,
+            reelAnchorPrompt,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
@@ -247,6 +320,7 @@ export async function POST(req: Request) {
                 tripVibe: safeTripVibe || undefined,
                 travelMode,
                 strictDestinations,
+                reelAnchorPrompt,
             })
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: metaPrompt }]
             const raw = await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature });
@@ -254,6 +328,10 @@ export async function POST(req: Request) {
         }
 
         async function generateDayChunk(startDay: number, endDay: number, destination: string, previousContext: any, tripPlan: any): Promise<ItineraryDay[]> {
+            const chunkReelPrompt =
+                reelRecord && startDay <= reelRecord.anchor_day && endDay >= reelRecord.anchor_day
+                    ? reelAnchorPrompt
+                    : undefined
             const chunkPrompt = buildDayChunkPrompt({
                 startDay, endDay, durationDays, departureCity: effectiveDepartureCity,
                 destination, budgetDesc, travelStyle: travelStyles, preferences,
@@ -261,6 +339,7 @@ export async function POST(req: Request) {
                 tripVibe: safeTripVibe || undefined,
                 locale: userLocale,
                 travelMode,
+                reelAnchorPrompt: chunkReelPrompt,
                 planForChunk: (tripPlan || []).filter((s: any) => s.startDay <= endDay && s.endDay >= startDay)
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })
@@ -329,6 +408,15 @@ export async function POST(req: Request) {
                     routeData = normalizeActivityTypes(routeData);
                     routeData = removeSameCityFlights(routeData);
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
+
+                    if (reelRecord && Array.isArray(routeData.itinerary)) {
+                        if (!itineraryContainsAnchor(routeData.itinerary, reelRecord)) {
+                            injectAnchorIntoItinerary(
+                                routeData.itinerary as unknown as Parameters<typeof injectAnchorIntoItinerary>[0],
+                                reelRecord
+                            )
+                        }
+                    }
                     
                     routeData.tokenUsage = getGeminiSessionUsage();
                     await recordAiUsageEvent({ userId, source: "route-generation", provider: "gemini", usage: routeData.tokenUsage });

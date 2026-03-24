@@ -35,6 +35,8 @@ import { TripImage } from "@/components/TripImage";
 import { FadeIn } from "@/components/FadeIn";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AppEmptyState } from "@/components/ui/empty-state";
 
 // ─── Tag config (same as /trips) ───────────────────────────────────────────
 const tagColors: Record<string, string> = {
@@ -322,34 +324,35 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
 function EmptyState({ view }: { view: "my" | "favorites" }) {
   const t = useTranslations("trips");
   return (
-    <div className="col-span-full flex flex-col items-center justify-center py-24 text-center">
-      <div className="relative mb-6">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center mx-auto">
-          {view === "favorites" ? (
-            <Heart className="h-10 w-10 text-primary/60" />
-          ) : (
-            <Globe className="h-10 w-10 text-primary/60" />
-          )}
-        </div>
-        <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
-          <Sparkles className="h-4 w-4 text-amber-400" />
-        </div>
-      </div>
+    <div className="col-span-full">
+      <AppEmptyState
+        icon={view === "favorites" ? Heart : Globe}
+        title={view === "favorites" ? t("noFavorites") : t("empty")}
+        description={view === "my" ? t("emptySubtitle") : t("noFavoritesHint")}
+        badge={<Sparkles className="h-4 w-4 text-amber-400" aria-hidden />}
+      >
+        {view === "my" && (
+          <Button asChild className="rounded-full px-8 py-5 text-base font-bold shadow-lg hover:scale-105 transition-transform">
+            <Link href="/plan">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("createFirst")}
+            </Link>
+          </Button>
+        )}
+      </AppEmptyState>
+    </div>
+  );
+}
 
-      <h3 className="text-2xl font-black text-foreground mb-2">
-        {view === "favorites" ? t("noFavorites") : t("empty")}
-      </h3>
-      <p className="text-muted-foreground max-w-xs mb-8">
-        {view === "my" ? t("emptySubtitle") : t("noFavoritesHint")}
-      </p>
-      {view === "my" && (
-        <Button asChild className="rounded-full px-8 py-5 text-base font-bold shadow-lg hover:scale-105 transition-transform">
-          <Link href="/plan">
-            <Plus className="h-4 w-4 mr-2" />
-            {t("createFirst")}
-          </Link>
-        </Button>
-      )}
+function TripsLoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <Skeleton className="h-[200px] w-full rounded-2xl sm:h-[320px] sm:rounded-[2.5rem]" />
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-[140px] w-full rounded-2xl sm:h-[260px]" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -604,12 +607,7 @@ function TripsContent() {
 
         {/* ─── Content ─── */}
         {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground font-medium">{t("loading")}</p>
-            </div>
-          </div>
+          <TripsLoadingSkeleton />
         ) : filteredRoutes.length === 0 ? (
           <div className="grid">
             <EmptyState view={view} />
@@ -667,11 +665,19 @@ function TripsContent() {
 
 export default function TripsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <AppLayout title="" description="" className="trip-bg">
+          <div className="relative z-10 mx-auto max-w-7xl space-y-8">
+            <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
+              <Skeleton className="h-10 w-48 rounded-lg" />
+              <Skeleton className="h-12 w-full rounded-2xl sm:w-64" />
+            </div>
+            <TripsLoadingSkeleton />
+          </div>
+        </AppLayout>
+      }
+    >
       <TripsContent />
     </Suspense>
   );

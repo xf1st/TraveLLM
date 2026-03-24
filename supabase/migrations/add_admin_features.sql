@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
   ai_provider_deepseek_enabled BOOLEAN NOT NULL DEFAULT true,
   ai_provider_openrouter_enabled BOOLEAN NOT NULL DEFAULT true,
   generation_rate_limit_per_day INTEGER DEFAULT 10,
+  proxy_disabled BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

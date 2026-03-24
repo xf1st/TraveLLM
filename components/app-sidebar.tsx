@@ -19,6 +19,7 @@ import {
     ChevronDown,
     MapPin,
     Map,
+    Clapperboard,
     Sparkles,
     Users,
     Shield,
@@ -65,6 +66,7 @@ export function AppSidebar() {
 
     const navItems = [
         { title: t("plan"), href: "/plan", icon: Compass },
+        { title: t("reels"), href: "/reels", icon: Clapperboard },
         { title: t("routes"), href: "/trips", icon: Map },
     ]
 

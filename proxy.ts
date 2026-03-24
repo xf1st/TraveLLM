@@ -156,7 +156,16 @@ export async function proxy(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user ?? null
 
-  const protectedPaths = ['/dashboard', '/plan', '/trips', '/trip', '/results', '/onboarding', '/guide']
+  const protectedPaths = [
+    '/dashboard',
+    '/plan',
+    '/trips',
+    '/trip',
+    '/results',
+    '/onboarding',
+    '/guide',
+    '/reels',
+  ]
   const isOwnProfile = pathname === '/profile' || pathname.startsWith('/profile?') || pathname.startsWith('/profile/')
   const isPublicProfilePath = /^\/profile\/[^/]+$/.test(pathname)
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path)) || (isOwnProfile && !isPublicProfilePath)

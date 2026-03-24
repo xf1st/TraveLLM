@@ -832,6 +832,8 @@ export default function TripDetailPage() {
     window.dispatchEvent(new CustomEvent("trip-ai-open"))
   }
 
+  const showReadOnlyBanner = !isOwner && !loading && !!route?.id
+
   // ============== RENDER ==============
   return (
     <div className="min-h-screen trip-bg relative">
@@ -839,7 +841,7 @@ export default function TripDetailPage() {
       <TripTooltips userId={user?.id} />
 
       {/* Read-only banner for non-owners viewing someone else's public trip */}
-      {!isOwner && !loading && route?.id && (
+      {showReadOnlyBanner && (
         <div className="fixed top-0 left-0 right-0 z-[100] bg-sky-600/95 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
           <Eye className="w-4 h-4 flex-shrink-0" />
           <span>{t('readOnlyBanner')}</span>
@@ -851,7 +853,7 @@ export default function TripDetailPage() {
 
       <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}
-        <div className="relative w-full min-h-[480px] sm:min-h-[600px] shrink-0 overflow-hidden">
+        <div className="relative w-full min-h-[400px] sm:min-h-[480px] md:min-h-[600px] shrink-0 overflow-hidden">
           <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
             <TripImage
               src={heroImage}
@@ -868,7 +870,7 @@ export default function TripDetailPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent h-1/2" />
 
           {/* ===== Floating Header Bar (all screens) ===== */}
-          <div className="absolute top-6 sm:top-8 left-3 sm:left-8 right-3 sm:right-8 z-50">
+          <div className="absolute top-4 left-2 right-2 z-50 sm:top-8 sm:left-8 sm:right-8">
             <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl bg-black/20 border-white/10 border">
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 <button
@@ -1046,7 +1048,12 @@ export default function TripDetailPage() {
         </div>
 
         {/* ===== STICKY DAY TABS ===== */}
-        <div className="sticky top-0 z-40 px-2 sm:px-4 lg:px-8 py-3">
+        <div
+          className={cn(
+            "sticky z-40 px-2 py-3 sm:px-4 lg:px-8",
+            showReadOnlyBanner ? "top-10" : "top-0"
+          )}
+        >
           <div className="trip-glass rounded-full p-1.5 sm:p-2 shadow-md md:shadow-2xl max-w-7xl mx-auto flex items-center gap-1">
             {/* Left arrow */}
             {tripDurationDays > 1 && (
@@ -1184,7 +1191,12 @@ export default function TripDetailPage() {
         )}
 
         {/* ===== MAIN CONTENT GRID ===== */}
-        <div className={cn("max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pb-20 relative z-30", activeView === "stats" && "hidden")}>
+        <div
+          className={cn(
+            "relative z-30 mx-auto max-w-7xl px-3 pb-28 sm:px-4 sm:pb-20 lg:px-8",
+            activeView === "stats" && "hidden"
+          )}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start mt-3 sm:mt-4">
 
             {/* ===== LEFT COLUMN: Timeline ===== */}

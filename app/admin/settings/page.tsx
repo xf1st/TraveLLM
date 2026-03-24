@@ -24,6 +24,7 @@ export default function AdminSettingsPage() {
     ai_provider_openrouter_enabled: true,
     generation_rate_limit_per_day: 10,
     proxy_disabled: false,
+    reels_generation_enabled: false,
   })
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function AdminSettingsPage() {
           ai_provider_openrouter_enabled: data.ai_provider_openrouter_enabled ?? true,
           generation_rate_limit_per_day: data.generation_rate_limit_per_day || 10,
           proxy_disabled: data.proxy_disabled ?? false,
+          reels_generation_enabled: (data as { reels_generation_enabled?: boolean }).reels_generation_enabled ?? false,
         })
       }
     } catch (error: any) {
@@ -66,7 +68,7 @@ export default function AdminSettingsPage() {
       if (!user) throw new Error("Не авторизован")
       if (!settingsId) throw new Error("Настройки не загружены")
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         maintenance_mode: settings.maintenance_mode,
         maintenance_message: settings.maintenance_message || null,
         maintenance_allow_admin_bypass: settings.maintenance_allow_admin_bypass,
@@ -74,6 +76,7 @@ export default function AdminSettingsPage() {
         ai_provider_openrouter_enabled: settings.ai_provider_openrouter_enabled,
         generation_rate_limit_per_day: settings.generation_rate_limit_per_day,
         proxy_disabled: settings.proxy_disabled,
+        reels_generation_enabled: settings.reels_generation_enabled,
       }
 
       if (settings.maintenance_eta) {
@@ -194,6 +197,30 @@ export default function AdminSettingsPage() {
                   </div>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Trip Reels batch flag */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Trip Reels</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="reels_gen">Разрешить батч-наполнение рилсов</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Когда включено — внешние скрипты/API могут добавлять карточки; после модерации выключите.
+                  </p>
+                </div>
+                <Switch
+                  id="reels_gen"
+                  checked={settings.reels_generation_enabled}
+                  onCheckedChange={(checked) =>
+                    setSettings({ ...settings, reels_generation_enabled: checked })
+                  }
+                />
+              </div>
             </CardContent>
           </Card>
 

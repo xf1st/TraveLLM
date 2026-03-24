@@ -2,33 +2,41 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Compass, Map, User, Sparkles } from "lucide-react"
+import { useTranslations } from "next-intl"
+import { Compass, Map, User, Sparkles, Clapperboard } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 
-const navItems = [
-  {
-    label: "Планировать",
-    href: "/plan",
-    icon: Compass,
-    color: "text-indigo-500",
-  },
-  {
-    label: "Маршруты",
-    href: "/trips",
-    icon: Map,
-    color: "text-emerald-500",
-  },
-  {
-    label: "Профиль",
-    href: "/profile",
-    icon: User,
-    color: "text-sky-500",
-  },
-]
-
 export function MobileBottomNav() {
   const pathname = usePathname()
+  const t = useTranslations("nav")
+
+  const navItems = [
+    {
+      label: t("plan"),
+      href: "/plan",
+      icon: Compass,
+      color: "text-indigo-500",
+    },
+    {
+      label: t("reels"),
+      href: "/reels",
+      icon: Clapperboard,
+      color: "text-fuchsia-500",
+    },
+    {
+      label: t("routes"),
+      href: "/trips",
+      icon: Map,
+      color: "text-emerald-500",
+    },
+    {
+      label: t("myProfile"),
+      href: "/profile",
+      icon: User,
+      color: "text-sky-500",
+    },
+  ]
 
   // Hide on auth/landing pages
   if (pathname === "/auth" || pathname === "/landing" || pathname === "/") return null

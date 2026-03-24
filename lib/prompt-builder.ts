@@ -70,6 +70,8 @@ export interface PromptBuilderParams {
     airportValidationContext?: string
     /** Основной тип передвижения между хабами (форма /plan) */
     travelMode?: TravelMode
+    /** Обязательная активность из discovery reel (локализованный блок текста) */
+    reelAnchorPrompt?: string
 }
 
 export interface EnrichedPrompt {
@@ -242,6 +244,7 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
         filterByDocuments,
         airportValidationContext,
         travelMode: travelModeRaw,
+        reelAnchorPrompt,
     } = params
 
     const travelMode = normalizeTravelMode(travelModeRaw)
@@ -268,11 +271,17 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
     const systemPromptBase = isEn
         ? `You are a TraveLLM expert travel planner. Respond with ONLY valid JSON. Be specific and detailed.\n\n${ITINERARY_STRUCTURE}`
         : `Ты — эксперт-планировщик путешествий TraveLLM для русских туристов. Отвечаешь ТОЛЬКО JSON. Будь конкретен.\n\n${ITINERARY_STRUCTURE}`
-    const systemPrompt = tripVibe?.trim()
+    let systemPrompt = tripVibe?.trim()
         ? `${systemPromptBase}\n\n${isEn
             ? "When the user message includes TRIP MOOD & ATMOSPHERE (HIGHEST PRIORITY), it overrides generic \"must-see\" landmark habits and template day patterns — especially if they conflict (e.g. nightlife vs temple circuits)."
             : "Если в запросе есть блок «ВАЙБ И АТМОСФЕРА (ВЫСШИЙ ПРИОРИТЕТ)» — следуй ему сильнее, чем шаблонным примерам и привычке набивать день храмами/музеями, если это противоречит описанному настроению."}`
         : systemPromptBase
+
+    if (reelAnchorPrompt?.trim()) {
+        systemPrompt += isEn
+            ? "\n\nCRITICAL: A MANDATORY REEL ANCHOR appears in the user message. You MUST include that exact experience on the specified day — do not replace with a \"similar\" activity."
+            : "\n\nКРИТИЧНО: В пользовательском сообщении — ОБЯЗАТЕЛЬНАЯ активность из рилса. Включи её в указанный день; не подменяй «похожим» вариантом."
+    }
 
     // ========================
     // ПОЛЬЗОВАТЕЛЬСКИЙ ПРОМПТ
@@ -423,6 +432,10 @@ MANDATORY RULES:
 `.trim())
     }
 
+    if (reelAnchorPrompt?.trim()) {
+        userParts.push(reelAnchorPrompt.trim())
+    }
+
     // 5. РЕАЛЬНОСТЬ 2026
     userParts.push(`
 РЕАЛЬНОСТЬ ЯНВАРЯ 2026 (КРИТИЧНО):
@@ -560,6 +573,7 @@ export function buildMetadataPrompt(params: PromptBuilderParams): string {
         locale = 'ru',
         travelMode: travelModeRaw,
         strictDestinations,
+        reelAnchorPrompt,
     } = params
 
     const travelMode = normalizeTravelMode(travelModeRaw)
@@ -611,6 +625,7 @@ PACE: ${preferences?.pace || 'moderate'}
 VISITED: ${preferences?.visitedCountries?.join(', ') || 'None'}
 ${safeHighlight ? `SPECIAL USER WISH: "${safeHighlight}"` : ''}
 ${vibeMeta ? `\n${vibeMeta}` : ''}
+${reelAnchorPrompt?.trim() ? `\n${reelAnchorPrompt.trim()}\n` : ""}
 
 ${formatTravelerTipsPolicy(isEn, preferences)}
 ${isEn ? "(visaAdvice / paymentAdvice / safetyInfo in this JSON must follow the policy above.)" : "(поля visaAdvice / paymentAdvice / safetyInfo в этом JSON — по политике выше.)"}
@@ -667,6 +682,7 @@ export function buildDayChunkPrompt(params: {
     previousContext?: any;
     isCountryChange?: boolean;
     travelMode?: TravelMode;
+    reelAnchorPrompt?: string;
 }): string {
     const {
         startDay,
@@ -685,6 +701,7 @@ export function buildDayChunkPrompt(params: {
         previousContext,
         isCountryChange,
         travelMode: travelModeRaw,
+        reelAnchorPrompt,
     } = params
 
     const travelMode = normalizeTravelMode(travelModeRaw)
@@ -731,6 +748,7 @@ ${roadTripChunkHint ? `- ${roadTripChunkHint}\n` : ""}
 ${warningsStr ? `⚠️ АКТУАЛЬНЫЕ ПРЕДУПРЕЖДЕНИЯ: ${warningsStr}` : ''}
 ${safeHighlight ? `- ОСОБОЕ ПОЖЕЛАНИЕ: "${safeHighlight}"` : ''}
 ${vibeChunk ? `\n${vibeChunk}\n` : ''}
+${reelAnchorPrompt?.trim() ? `\n${reelAnchorPrompt.trim()}\n` : ""}
 
 ${planForChunk ? `⚠️ ПЛАН (СЛЕДУЙ ЕМУ): ${planForChunk}` : ""}
 

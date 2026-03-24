@@ -119,7 +119,10 @@ export async function POST(request: Request) {
         .from("profiles")
         .update(updateData)
         .eq("id", targetUserId)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] update_profile error:", error)
+        return NextResponse.json({ error: "Database error" }, { status: 500 })
+      }
     }
 
     else if (action === "update_email") {
@@ -140,7 +143,10 @@ export async function POST(request: Request) {
       const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
         email: body.email,
       })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] update_email error:", error)
+        return NextResponse.json({ error: "Failed to update email" }, { status: 500 })
+      }
 
       // Also sync profiles table
       await adminClient
@@ -157,7 +163,10 @@ export async function POST(request: Request) {
         .from("profiles")
         .update({ role: body.role })
         .eq("id", targetUserId)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] update_role error:", error)
+        return NextResponse.json({ error: "Database error" }, { status: 500 })
+      }
     }
 
     else if (action === "update_limits") {
@@ -171,7 +180,10 @@ export async function POST(request: Request) {
         .from("profiles")
         .update(updateData)
         .eq("id", targetUserId)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] update_limits error:", error)
+        return NextResponse.json({ error: "Database error" }, { status: 500 })
+      }
     }
 
     else if (action === "reset_password") {
@@ -179,26 +191,42 @@ export async function POST(request: Request) {
         type: "recovery",
         email: target.email as string,
       })
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] reset_password error:", error)
+        return NextResponse.json({ error: "Failed to generate reset link" }, { status: 500 })
+      }
     }
 
     else if (action === "delete_user") {
-      // Delete from auth (cascades to profiles via FK or we do it manually)
+      // Write audit BEFORE delete (FK will become NULL after deletion)
+      const { targetUserId: _tid, ...auditPayload } = body
+      await adminClient.from("admin_audit_log").insert({
+        admin_user_id: user.id,
+        action: "user.delete_user",
+        target_user_id: targetUserId,
+        payload: { ...auditPayload, _deleted_email: target.email ?? null },
+      }).then(() => {}, (err) => console.error("[audit] failed to write delete_user log:", err))
+
       const { error } = await adminClient.auth.admin.deleteUser(targetUserId)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (error) {
+        console.error("[admin-edit-user] deleteUser error:", error)
+        return NextResponse.json({ error: "Failed to delete user" }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true })
     }
 
-    // Audit log
+    // Audit log (body уже содержит action — не дублируем ключ в payload)
+    const { targetUserId: _tid, ...auditPayload } = body
     await adminClient.from("admin_audit_log").insert({
       admin_user_id: user.id,
       action: `user.${action}`,
       target_user_id: targetUserId,
-      payload: { action, ...body },
-    }).then(() => {}, () => {}) // non-blocking, ignore errors
+      payload: auditPayload,
+    }).then(() => {}, (err) => console.error("[audit] failed to write log:", err))
 
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Server error"
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error("[admin-edit-user] unhandled error:", error)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

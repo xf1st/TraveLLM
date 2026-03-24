@@ -33,12 +33,20 @@ export async function requireAdmin(): Promise<NextResponse | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, access_mode, blocked_until")
     .eq("id", user.id)
     .single()
 
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  if (profile.access_mode === "full_blocked") {
+    return NextResponse.json({ error: "Account suspended" }, { status: 403 })
+  }
+
+  if (profile.blocked_until && new Date(profile.blocked_until) > new Date()) {
+    return NextResponse.json({ error: "Account temporarily suspended" }, { status: 403 })
   }
 
   return null // OK

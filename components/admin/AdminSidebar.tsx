@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Map, Settings, Activity, ArrowLeft, Image, MessageSquare } from 'lucide-react'
+import { Home, Users, Map, Settings, Activity, ArrowLeft, Image, MessageSquare, Clapperboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: Home },
     { href: '/admin/users', label: 'Пользователи', icon: Users },
+    { href: '/admin/reels', label: 'Trip Reels', icon: Clapperboard },
     { href: '/admin/trips', label: 'Маршруты', icon: Map },
     { href: '/admin/feedback', label: 'Отзывы (Бета)', icon: MessageSquare },
     { href: '/admin/settings', label: 'Настройки', icon: Settings },

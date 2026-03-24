@@ -34,15 +34,16 @@ const GeneratingModal = dynamic(
 const MOODBOARD_IMG =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCvw0vQMzDfDDt8t4bxngK0Hw_nJ26IwdB_VVHla-UPBRkR90Bsk-hrVl35-g9I6nzRwA2iiJC5Li3piUtcTTZAMP8C5FbG-0nv6WLdjlOa9YoP72S3ccEIWgnFTwHjmIYU_AzqKtSf3dMPgPVZUzZvH6TQfRUNqy34aXpioVVbZWFf5AGsVW2JF3kvlMtfv3U8t4SGBlXY-p8VfbczblAIGG7KCQuQQxthIh9MFO1VyK7FKq0meEcar5DpEy-ZmaLKio2MGHGMWhbg"
 
+/** Epilogue в next/font — только latin/latin-ext; кириллица уйдёт в системный fallback из стека. */
 const fontHeadline = Epilogue({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext"],
   weight: ["700", "800", "900"],
   style: ["normal", "italic"],
   display: "swap",
 })
 
 const fontBody = Plus_Jakarta_Sans({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "cyrillic-ext"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
 })

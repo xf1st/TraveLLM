@@ -33,7 +33,8 @@ export interface RateLimitResult {
 export function checkRateLimit(
   userId: string,
   endpoint: string,
-  maxPerMinute: number
+  maxRequests: number,
+  windowMs: number = WINDOW_MS
 ): RateLimitResult {
   const key = `${userId}:${endpoint}`
   const now = Date.now()
@@ -42,17 +43,17 @@ export function checkRateLimit(
 
   if (!entry || now > entry.resetAt) {
     // New window
-    const resetAt = now + WINDOW_MS
+    const resetAt = now + windowMs
     store.set(key, { count: 1, resetAt })
-    return { allowed: true, remaining: maxPerMinute - 1, resetAt }
+    return { allowed: true, remaining: maxRequests - 1, resetAt }
   }
 
-  if (entry.count >= maxPerMinute) {
+  if (entry.count >= maxRequests) {
     return { allowed: false, remaining: 0, resetAt: entry.resetAt }
   }
 
   entry.count++
-  return { allowed: true, remaining: maxPerMinute - entry.count, resetAt: entry.resetAt }
+  return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt }
 }
 
 /**

@@ -12,12 +12,16 @@ interface AppLayoutProps {
     description?: string
     /** Custom class for the root element */
     className?: string
+    /**
+     * Full-bleed immersive shell: no mobile header, no page padding, no footer (e.g. Trip Reels).
+     */
+    variant?: "default" | "immersive"
 }
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 
-export function AppLayout({ children, title, description, className }: AppLayoutProps) {
+export function AppLayout({ children, title, description, className, variant = "default" }: AppLayoutProps) {
     const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [showScrollTop, setShowScrollTop] = useState(false)
 
@@ -38,20 +42,36 @@ export function AppLayout({ children, title, description, className }: AppLayout
         return () => window.removeEventListener('scroll', onScroll)
     }, [])
 
+    const immersive = variant === "immersive"
+
     return (
-        <div className={cn("min-h-screen", className?.includes("trip-bg") ? "" : "bg-background", className)}>
-            {/* Mobile Header - visible on small screens */}
-            <div className="lg:hidden">
-                <Header />
-            </div>
+        <div
+            className={cn(
+                "min-h-screen",
+                immersive && "flex flex-col",
+                className?.includes("trip-bg") ? "" : !immersive && "bg-background",
+                className,
+            )}
+        >
+            {/* Mobile Header - hidden in immersive (TikTok-style reels) */}
+            {!immersive && (
+                <div className="lg:hidden">
+                    <Header />
+                </div>
+            )}
 
             {/* Desktop Sidebar - hidden on mobile, fixed position */}
             <AppSidebar />
 
             {/* Main Content - offset for fixed sidebar on desktop */}
             <main
-                className={`min-h-screen transition-[margin] duration-300 ${isSidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64'
-                    }`}
+                className={cn(
+                    "transition-[margin] duration-300",
+                    isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64",
+                    immersive
+                        ? "flex flex-col min-h-0 h-[calc(100dvh-5rem)] lg:h-[calc(100dvh)] bg-black"
+                        : "min-h-screen",
+                )}
             >
                 {/* Page Header - optional title area */}
                 {(title || description) && (
@@ -72,14 +92,18 @@ export function AppLayout({ children, title, description, className }: AppLayout
                 )}
 
                 {/* Page Content */}
-                <div className="p-4 lg:p-8">
+                <div
+                    className={cn(
+                        immersive ? "flex flex-1 flex-col min-h-0 overflow-hidden p-0" : "p-4 lg:p-8",
+                    )}
+                >
                     {children}
                 </div>
-                <Footer />
+                {!immersive && <Footer />}
             </main>
 
             {/* Scroll to top button */}
-            {showScrollTop && (
+            {!immersive && showScrollTop && (
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                     className="fixed bottom-6 right-6 z-50 h-10 w-10 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg backdrop-blur-sm flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-md md:shadow-xl"

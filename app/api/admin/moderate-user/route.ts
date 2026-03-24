@@ -8,7 +8,7 @@ const ModerationBodySchema = z.object({
   targetUserId: z.string().uuid(),
   access_mode: z.enum(["active", "ai_blocked", "full_blocked"]).optional(),
   block_reason: z.string().max(2000).nullable().optional(),
-  blocked_until: z.string().nullable().optional(),
+  blocked_until: z.string().datetime({ offset: true }).nullable().optional(),
   gen_limit_override: z.number().int().min(0).max(999999999).nullable().optional(),
   chat_limit_override: z.number().int().min(0).max(999999999).nullable().optional(),
 })
@@ -101,7 +101,8 @@ export async function POST(request: Request) {
 
     const { error: upErr } = await adminClient.from("profiles").update(updateData).eq("id", targetUserId)
     if (upErr) {
-      return NextResponse.json({ error: upErr.message }, { status: 500 })
+      console.error("[admin-moderate-user] update error:", upErr)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
     }
 
     const actionTag =
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Server error"
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error("[admin-moderate-user] unhandled error:", error)
+    return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }
