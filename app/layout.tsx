@@ -8,6 +8,8 @@ import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { GuardsWrapper } from "@/components/admin/guards-wrapper"
 import { ClientModals } from "@/components/client-modals"
+import { PwaRegister } from "@/components/pwa-register"
+import { PwaInstallBanner } from "@/components/pwa-install-banner"
 import { AuthProvider } from "@/components/auth-provider"
 import { ChatProvider } from "@/lib/context/chat-context"
 import { GlobalLoader } from "@/components/GlobalLoader"
@@ -76,10 +78,22 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: getOgLocale(locale),
       type: "website",
     },
+    applicationName: "TraveLLM",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "black-translucent",
+      title: "TraveLLM",
+    },
+    formatDetection: {
+      telephone: false,
+    },
     icons: {
-      icon: "/favicon.ico",
+      icon: [
+        { url: "/api/pwa/icon/192", sizes: "192x192", type: "image/png" },
+        { url: "/api/pwa/icon/512", sizes: "512x512", type: "image/png" },
+      ],
       shortcut: "/favicon.ico",
-      apple: "/apple-icon.png",
+      apple: [{ url: "/api/pwa/icon/180", sizes: "180x180", type: "image/png" }],
     },
   }
 }
@@ -119,6 +133,8 @@ export default async function RootLayout({
                     {children}
                   </ErrorBoundary>
                 </GuardsWrapper>
+                <PwaRegister />
+                <PwaInstallBanner />
                 {/* Non-critical overlays — lazy loaded to keep framer-motion out of critical path */}
                 <ClientModals />
               </ChatProvider>

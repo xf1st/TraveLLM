@@ -179,6 +179,16 @@
     "generationsMonth": "Generations this month",
     "reels": "Reels"
   },
+  "pwaBanner": {
+    "title": "Install TraveLLM",
+    "iosBody": "1. Tap the Share button at the bottom of Safari.\n2. Scroll and choose “Add to Home Screen”.\n3. Confirm — the icon will appear on your home screen.",
+    "installBody": "Add the app to your home screen for quick access and a fullscreen experience without the browser bar.",
+    "installCta": "Install",
+    "androidManualBody": "Open Chrome’s menu (⋮) and tap “Install app” or “Add to Home screen”. If you don’t see it, use the site a little longer — Chrome may offer install after engagement.",
+    "dismissAria": "Dismiss",
+    "toastInstalled": "App installed",
+    "toastFailed": "Install was cancelled or failed"
+  },
   "reels": {
     "title": "Inspiration",
     "subtitle": "Trip ideas — build an itinerary around a featured activity",
