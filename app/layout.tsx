@@ -1,7 +1,7 @@
 import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Rubik, JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
@@ -30,6 +30,12 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   display: "swap",
 })
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = (await getLocale()) as AppLocale
@@ -86,7 +92,10 @@ export default async function RootLayout({
       <head>
         {/* material-symbols loaded locally via npm */}
       </head>
-      <body className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body
+        className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-dvh bg-background overflow-x-hidden`}
+        suppressHydrationWarning
+      >
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider
             attribute="class"

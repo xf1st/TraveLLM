@@ -29,7 +29,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
           ...spot,
           text: spot.description || spot.desc || t("defaultDesc"),
         })),
-    [spots, t]
+    [spots, t],
   )
 
   if (normalizedSpots.length === 0) return null
@@ -37,49 +37,57 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
   const visibleSpots = expanded ? normalizedSpots : normalizedSpots.slice(0, 4)
 
   return (
-    <div className="trip-glass p-6 rounded-[2rem] shadow-lg">
-      <div className="flex justify-between items-center mb-4">
-        <h4 className="text-xs font-bold text-pink-600 dark:text-pink-300 uppercase tracking-widest opacity-90">
+    <div className="trip-glass p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-lg">
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <h4 className="text-[10px] sm:text-xs font-bold text-pink-600 dark:text-pink-300 uppercase tracking-widest opacity-90">
           {t("title")}
         </h4>
         {normalizedSpots.length > 4 ? (
           <button
+            type="button"
             onClick={() => setExpanded((v) => !v)}
             className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/60 hover:text-sky-600 dark:hover:text-white transition-colors inline-flex items-center gap-1"
           >
             {expanded ? t("collapse") : t("seeAll")}
-            <span className={cn("material-symbols-outlined text-sm transition-transform", expanded && "rotate-90")}>arrow_forward</span>
+            <span className={cn("material-symbols-outlined text-sm transition-transform", expanded && "rotate-90")}>
+              arrow_forward
+            </span>
           </button>
         ) : (
           <span className="material-symbols-outlined text-slate-400 dark:text-white/40 text-sm">arrow_forward</span>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Mobile: horizontal strip of compact cards */}
+      <div className="flex md:grid md:grid-cols-2 gap-3 overflow-x-auto pb-1 -mx-0.5 px-0.5 md:mx-0 md:px-0 md:overflow-visible no-scrollbar snap-x snap-mandatory">
         {visibleSpots.map((spot, idx) => (
           <div
             key={`${spot.name}-${idx}`}
-            className="rounded-3xl overflow-hidden relative group aspect-[4/5] shadow-md md:shadow-xl border border-white/40 dark:border-white/10"
+            className={cn(
+              "rounded-2xl overflow-hidden relative group shadow-md border border-white/40 dark:border-white/10",
+              "snap-start shrink-0 w-[min(78vw,240px)] md:w-auto md:shrink md:snap-none",
+              "aspect-[16/10] md:aspect-[4/5]",
+            )}
           >
             <TripImage
               query={destination ? `${spot.name} ${destination}` : spot.name}
               alt={spot.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 md:group-hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 dark:from-black/90 via-black/10 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3 space-y-2">
-              <h5 className="text-white font-bold text-sm drop-shadow-md line-clamp-2">{spot.name}</h5>
-              <p className="text-[11px] text-white/85 line-clamp-2 leading-relaxed">{spot.text}</p>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 dark:from-black/90 via-black/15 to-transparent" />
+            <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3 space-y-1 sm:space-y-2">
+              <h5 className="text-white font-bold text-xs sm:text-sm drop-shadow-md line-clamp-2 leading-tight">{spot.name}</h5>
+              <p className="text-[9px] sm:text-[11px] text-white/85 line-clamp-2 leading-relaxed">{spot.text}</p>
               <button
+                type="button"
                 onClick={() => {
                   const url =
-                    spot.mapLink ||
-                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.name)}`
+                    spot.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.name)}`
                   window.open(url, "_blank")
                 }}
-                className="w-full py-2 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/40 dark:border-white/30 text-white text-[10px] font-bold rounded-xl hover:bg-white/30 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                className="w-full py-1.5 sm:py-2 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/40 dark:border-white/30 text-white text-[9px] sm:text-[10px] font-bold rounded-lg sm:rounded-xl hover:bg-white/30 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-1"
               >
-                <span className="material-symbols-outlined text-xs">map</span>
+                <span className="material-symbols-outlined text-[10px] sm:text-xs">map</span>
                 {t("onMap")}
               </button>
             </div>

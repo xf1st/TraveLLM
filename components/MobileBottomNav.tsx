@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Compass, Map, User, Sparkles, Clapperboard } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
 
 export function MobileBottomNav() {
   const pathname = usePathname()
@@ -42,8 +41,11 @@ export function MobileBottomNav() {
   if (pathname === "/auth" || pathname === "/landing" || pathname === "/") return null
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-6 pt-2 pointer-events-none">
-      <nav className="pointer-events-auto mx-auto max-w-md h-16 flex items-center justify-around px-2 rounded-2xl trip-glass border border-white/10 shadow-2xl overflow-hidden">
+    <div
+      className="lg:hidden fixed inset-x-0 bottom-0 z-50 flex justify-center pt-2 pointer-events-none"
+      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
+    >
+      <nav className="pointer-events-auto h-14 w-[min(100%,28rem)] shrink-0 mx-3 flex items-center justify-around rounded-2xl trip-glass border border-white/10 shadow-2xl overflow-hidden px-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
           const Icon = item.icon
@@ -53,19 +55,17 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors duration-300",
+                "relative flex flex-col items-center justify-center flex-1 min-w-0 h-full gap-0.5 transition-colors duration-300",
                 isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
               {isActive && (
-                <motion.div
-                  layoutId="bottom-nav-active"
-                  className="absolute inset-x-2 inset-y-1 bg-white/5 dark:bg-white/10 rounded-xl -z-10"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                <div
+                  className="absolute inset-x-1 inset-y-1 bg-white/5 dark:bg-white/10 rounded-xl -z-10"
+                  aria-hidden
                 />
               )}
-              
+
               <div className="relative">
                 <Icon 
                   className={cn(

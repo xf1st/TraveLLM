@@ -32,6 +32,7 @@ import {
   CheckCircle2,
   BarChart2,
   ExternalLink,
+  Menu,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 const MeshGradient = dynamic(
@@ -57,7 +58,7 @@ import {
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Footer } from "@/components/footer"
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { TripChat } from "@/components/TripChat"
 import { getPopularRoute } from "@/lib/popular-routes"
@@ -78,8 +79,6 @@ import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } f
 import { addDays } from "date-fns"
 
 import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
-
-import { ReelsView } from "@/components/travel/ReelsView"
 
 // ===== Constants =====
 
@@ -165,6 +164,7 @@ export default function TripDetailPage() {
   const [showTipsModal, setShowTipsModal] = useState(false)
   const [showWeatherModal, setShowWeatherModal] = useState(false)
   const [showLinksModal, setShowLinksModal] = useState(false)
+  const [tripInfoMenuOpen, setTripInfoMenuOpen] = useState(false)
   const [isModifying, setIsModifying] = useState(false)
   const prevIsModifying = useRef(false)
 
@@ -188,8 +188,6 @@ export default function TripDetailPage() {
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
   const [tripWeather, setTripWeather] = useState<WeatherData[]>([])
-  const [isReelsOpen, setIsReelsOpen] = useState(false)
-  const [reelsStartIndex, setReelsStartIndex] = useState(0)
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
 
   const allActivities = useMemo(() => {
@@ -853,7 +851,7 @@ export default function TripDetailPage() {
 
       <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}
-        <div className="relative w-full min-h-[400px] sm:min-h-[480px] md:min-h-[600px] shrink-0 overflow-hidden">
+        <div className="relative w-full min-h-[min(68dvh,520px)] sm:min-h-[500px] md:min-h-[600px] shrink-0 overflow-hidden">
           <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
             <TripImage
               src={heroImage}
@@ -869,38 +867,69 @@ export default function TripDetailPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent h-1/2" />
 
-          {/* ===== Floating Header Bar (all screens) ===== */}
-          <div className="absolute top-4 left-2 right-2 z-50 sm:top-8 sm:left-8 sm:right-8">
-            <div className="trip-glass-header rounded-full px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-between shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl bg-black/20 border-white/10 border">
-              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          {/* ===== Floating Header Bar ===== */}
+          <div
+            className="absolute z-50 left-2 right-2 sm:left-8 sm:right-8"
+            style={{ top: "max(0.75rem, env(safe-area-inset-top, 0px))" }}
+          >
+            <div className="trip-glass-header rounded-2xl md:rounded-full px-2.5 sm:px-6 py-2 sm:py-4 flex items-center justify-between gap-2 shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl bg-black/20 border-white/10 border">
+              {/* Mobile: back + menu + actions */}
+              <div className="flex md:hidden items-center gap-1.5 shrink-0">
                 <button
+                  type="button"
                   onClick={() => router.back()}
-                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
+                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
                 >
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                 </button>
-                <div className="min-w-0 flex flex-col justify-center">
-                  <h1 className="text-sm sm:text-lg lg:text-xl font-black text-white tracking-tight truncate drop-shadow-md pr-2 uppercase italic">{route.title}</h1>
-                  
-                  {/* Tags and Metadata Row in Header */}
-                  <div className="flex items-center gap-3 sm:gap-4 mt-1.5 overflow-hidden">
-                    <div className="flex items-center text-[10px] sm:text-xs text-white/80 gap-3 font-bold shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTripInfoMenuOpen(true)}
+                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white/25 dark:bg-white/10 hover:bg-white/40 dark:hover:bg-white/20 transition-colors text-slate-800 dark:text-white border border-white/40 dark:border-white/15 backdrop-blur-md"
+                  aria-label={t("tripAboutMenuAria")}
+                >
+                  <Menu className="h-5 w-5" strokeWidth={2.25} />
+                </button>
+              </div>
+
+              {/* Desktop: title + meta */}
+              <div className="hidden md:flex items-center gap-4 min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
+                >
+                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                </button>
+                <div className="min-w-0 flex flex-col justify-center flex-1">
+                  <h1 className="text-lg lg:text-xl font-black text-white tracking-tight line-clamp-2 drop-shadow-md pr-2 uppercase italic leading-tight">
+                    {route.title}
+                  </h1>
+                  <div className="flex items-center gap-3 lg:gap-4 mt-1.5 overflow-hidden flex-wrap">
+                    <div className="flex items-center text-xs text-white/80 gap-3 font-bold shrink-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">calendar_month</span>
-                        {formatDateRange(tripStartDate, tripEndDate, locale) || t('noDates', { days: tripDurationDays })}
+                        <span className="material-symbols-outlined text-sm opacity-70">calendar_month</span>
+                        {formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[12px] sm:text-sm opacity-70">person</span>
-                        {route.travelers || 2}
+                        <span className="material-symbols-outlined text-sm opacity-70">person</span>
+                        {t("travelersMeta", { count: route.travelers || 2 })}
                       </span>
                     </div>
-                    
-                    <div className="flex items-center gap-1.5 overflow-hidden">
-                      <div className="w-px h-3 bg-white/20 mx-1" />
+                    <div className="flex items-center gap-1.5 overflow-hidden flex-wrap">
+                      <div className="w-px h-3 bg-white/20 mx-1 hidden sm:block" />
                       {route.tags?.slice(0, 3).map((tag: string, idx: number) => {
                         const cfg = getTagConfig(tag)
                         return (
-                          <span key={idx} className={cn("px-2.5 py-1 rounded-lg border text-[10px] sm:text-[11px] font-black uppercase tracking-tight whitespace-nowrap shadow-lg backdrop-blur-md", cfg.color.replace('bg-sky-100/80', 'bg-sky-500/20').replace('text-sky-700', 'text-sky-200'))}>
+                          <span
+                            key={idx}
+                            className={cn(
+                              "px-2.5 py-1 rounded-lg border text-[11px] font-black uppercase tracking-tight whitespace-nowrap shadow-lg backdrop-blur-md",
+                              cfg.color
+                                .replace("bg-sky-100/80", "bg-sky-500/20")
+                                .replace("text-sky-700", "text-sky-200"),
+                            )}
+                          >
                             {tag.replace("#", "")}
                           </span>
                         )
@@ -909,54 +938,85 @@ export default function TripDetailPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-                <button onClick={() => setShowBudgetModal(true)} className="text-right group cursor-pointer mr-1 sm:mr-0 flex flex-col items-end">
-                  <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">{t('totalBudgetLabel')}</p>
-                  <p className="text-sm sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors bg-white/10 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-lg sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/20 sm:border-none">{displayBudget}</p>
+
+              <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 md:gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowBudgetModal(true)}
+                  className="text-right group cursor-pointer flex flex-col items-end"
+                >
+                  <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">
+                    {t("totalBudgetLabel")}
+                  </p>
+                  <p className="text-xs sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors bg-white/10 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-lg sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/20 sm:border-none whitespace-nowrap">
+                    {displayBudget}
+                  </p>
                 </button>
                 <div className="hidden sm:block h-8 sm:h-10 w-px bg-white/20" />
-                <div className="flex items-center gap-1.5 sm:gap-3">
+                <div className="flex items-center gap-1 sm:gap-3">
                   {isOwner && (
                     <button
+                      type="button"
                       onClick={handleTogglePublic}
-                      title={route.is_public ? t('publicTitle') : t('privateTitle')}
+                      title={route.is_public ? t("publicTitle") : t("privateTitle")}
                       className={cn(
                         "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all backdrop-blur-md",
                         route.is_public
                           ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200 hover:bg-emerald-500/30"
-                          : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20"
+                          : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20",
                       )}
                     >
-                      {route.is_public
-                        ? <><Globe className="w-3.5 h-3.5" /> {t('publicTrip')}</>
-                        : <><Lock className="w-3.5 h-3.5" /> {t('privateTrip')}</>
-                      }
+                      {route.is_public ? (
+                        <>
+                          <Globe className="w-3.5 h-3.5" /> {t("publicTrip")}
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5" /> {t("privateTrip")}
+                        </>
+                      )}
                     </button>
                   )}
                   <button
+                    type="button"
                     onClick={handleShare}
                     className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
                   >
                     <span className="material-symbols-outlined text-lg sm:text-xl">share</span>
                   </button>
                   <button
+                    type="button"
                     onClick={handleToggleFavorite}
                     disabled={favoriteLoading}
                     className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
                   >
-                    <Heart className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300", isFavorite ? "fill-rose-500 text-rose-500" : "")} />
+                    <Heart
+                      className={cn(
+                        "h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300",
+                        isFavorite ? "fill-rose-500 text-rose-500" : "",
+                      )}
+                    />
                   </button>
-
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ===== Bottom Overlay (title + description) ===== */}
-          <div className="absolute bottom-6 sm:bottom-12 left-3 sm:left-8 right-3 sm:right-8 flex flex-col md:flex-row justify-between items-end gap-2 sm:gap-4 md:gap-6 z-30">
-            <div className="max-w-3xl">
+          {/* ===== Bottom Overlay (title + description) =====
+              Mobile: clamp top so text never sits under the floating header (safe area + bar + gap). */}
+          <div
+            className={cn(
+              "absolute z-30 left-3 right-3 sm:left-8 sm:right-8 flex gap-2 sm:gap-4 md:gap-6",
+              /* Mobile: start below floating header so title isn’t clipped; scroll if needed */
+              "flex-col max-md:top-0 max-md:justify-start max-md:items-stretch",
+              "max-md:pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+5.75rem))] max-md:overflow-y-auto max-md:overscroll-contain max-md:[scrollbar-width:thin]",
+              "md:flex-row md:justify-between md:items-end",
+              "bottom-6 sm:bottom-12 max-md:pb-3",
+            )}
+          >
+            <div className="max-w-3xl w-full min-w-0">
               {/* Star Rating & Completed Status */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3 md:mb-4">
                 {route.safetyInfo?.rating && (
                   <span className="whitespace-nowrap px-3 py-1.5 bg-emerald-500/20 text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
                     <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
@@ -973,53 +1033,88 @@ export default function TripDetailPage() {
                 )}
               </div>
 
-              {/* Big Title */}
-              <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 tracking-tight leading-tight">
+              <div className="flex md:hidden flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/90 mb-2">
+                <span className="flex items-center gap-1 min-w-0">
+                  <span className="material-symbols-outlined text-[14px] opacity-80 shrink-0">calendar_month</span>
+                  <span className="truncate">
+                    {formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}
+                  </span>
+                </span>
+                <span className="flex items-center gap-1 shrink-0">
+                  <span className="material-symbols-outlined text-[14px] opacity-80">person</span>
+                  {t("travelersMeta", { count: route.travelers || 2 })}
+                </span>
+              </div>
+
+              {/* Big Title — full lines on mobile when overlay scrolls; no top clipping */}
+              <h2 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-2 sm:mb-3 tracking-tight leading-[1.2] sm:leading-tight">
                 {route.title}
               </h2>
 
               {/* Description — subtle */}
               {route.description && (
-                <p className="text-white/70 max-w-2xl text-sm sm:text-base font-medium leading-relaxed line-clamp-2">
+                <p className="text-white/70 max-w-2xl text-xs sm:text-base font-medium leading-relaxed line-clamp-3 sm:line-clamp-2">
                   {route.description}
                 </p>
               )}
 
-              {/* Hero action pills: weather + tips */}
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
-                {currentDayWeather && (
-                  <button
-                    onClick={() => setShowWeatherModal(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-white/20 bg-white/10 hover:bg-white/20 transition-colors text-white text-xs font-bold shadow-sm"
-                  >
-                    <span>{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
-                    <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
-                    <span className="opacity-60 text-[10px] whitespace-nowrap">· {t('weatherTrip')}</span>
-                  </button>
-                )}
+              {/* Hero actions: mobile = «Цены» сверху на всю ширину, снизу погода + советы; md+ = пиллы + отдельная CTA */}
+              <div className="mt-2 sm:mt-3 flex w-full flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2">
                 <button
-                  onClick={() => setShowTipsModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-amber-400/30 bg-amber-500/15 hover:bg-amber-500/25 transition-colors text-amber-200 text-xs font-bold shadow-sm"
+                  type="button"
+                  onClick={() => setShowLinksModal(true)}
+                  className="group relative flex min-h-11 w-full shrink-0 flex-row items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 px-3 py-2.5 shadow-md transition-transform hover:scale-[1.01] md:hidden"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(56,189,248,0.28) 0%, rgba(99,102,241,0.32) 100%)",
+                    backdropFilter: "blur(16px)",
+                    boxShadow: "0 6px 24px rgba(56,189,248,0.18), inset 0 1px 0 rgba(255,255,255,0.12)",
+                  }}
                 >
-                  <span className="material-symbols-outlined text-sm">lightbulb</span>
-                  {t('routeTips')}
-                </button>
-                {allActivities.length > 0 && (
-                  <button
-                    onClick={() => { setReelsStartIndex(0); setIsReelsOpen(true) }}
-                    className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border border-indigo-400/30 bg-indigo-500/20 hover:bg-indigo-500/30 transition-colors text-indigo-200 text-xs font-bold shadow-sm"
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                    style={{ background: "rgba(56,189,248,0.22)", border: "1px solid rgba(56,189,248,0.35)" }}
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {t('watchReels')}
+                    <ExternalLink className="text-sky-200" style={{ width: 16, height: 16 }} />
+                  </div>
+                  <div className="flex min-w-0 flex-col items-start text-left">
+                    <span className="text-[11px] font-black uppercase leading-tight tracking-wide text-white">
+                      {t("checkPrices")}
+                    </span>
+                    <span className="text-[10px] font-medium leading-tight text-white/60">{t("ticketsHotelsMap")}</span>
+                  </div>
+                </button>
+
+                <div className="flex w-full flex-row flex-wrap gap-2 max-md:[&>button]:min-w-0 max-md:[&>button]:w-[calc(50%-0.25rem)] max-md:[&>button:only-child]:w-full md:flex md:flex-row md:flex-wrap md:gap-2 md:[&>button]:w-auto">
+                  {currentDayWeather && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWeatherModal(true)}
+                      className="flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 py-2.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                    >
+                      <span className="shrink-0">{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
+                      <span className="min-w-0 text-center leading-tight">
+                        <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
+                        <span className="hidden sm:inline whitespace-nowrap text-[10px] opacity-60"> · {t("weatherTrip")}</span>
+                      </span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowTipsModal(true)}
+                    className="flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/15 px-2 py-2.5 text-[10px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                  >
+                    <span className="material-symbols-outlined shrink-0 text-sm">lightbulb</span>
+                    <span className="text-center leading-tight">{t("routeTips")}</span>
                   </button>
-                )}
+                </div>
               </div>
             </div>
 
-            {/* Links button — bottom-right of hero */}
+            {/* Links button — desktop / lg only (на мобилке кнопка внутри колонки выше) */}
             <button
+              type="button"
               onClick={() => setShowLinksModal(true)}
-              className="flex-shrink-0 group relative flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-200 hover:scale-105 overflow-hidden"
+              className="group relative hidden shrink-0 items-center gap-2 overflow-hidden rounded-2xl px-5 py-3 transition-all duration-200 hover:scale-105 md:flex sm:gap-3"
               style={{
                 background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.28) 100%)",
                 border: "1px solid rgba(255,255,255,0.18)",
@@ -1027,20 +1122,21 @@ export default function TripDetailPage() {
                 boxShadow: "0 8px 32px rgba(56,189,248,0.20), inset 0 1px 0 rgba(255,255,255,0.15)",
               }}
             >
-              {/* glow spot */}
-              <div className="absolute -top-4 -right-6 w-20 h-20 rounded-full opacity-50 pointer-events-none"
-                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.5) 0%, transparent 70%)" }} />
               <div
-                className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                className="pointer-events-none absolute -top-4 -right-6 h-20 w-20 rounded-full opacity-50"
+                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.5) 0%, transparent 70%)" }}
+              />
+              <div
+                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10"
                 style={{ background: "rgba(56,189,248,0.20)", border: "1px solid rgba(56,189,248,0.35)" }}
               >
                 <ExternalLink className="text-sky-300" style={{ width: 18, height: 18 }} />
               </div>
-              <div className="flex flex-col items-start">
-                <span className="text-[11px] font-black text-white/90 leading-tight tracking-wider uppercase whitespace-nowrap">
-                  {t('checkPrices')}
+              <div className="relative flex flex-col items-start">
+                <span className="text-[11px] font-black uppercase leading-tight tracking-wider text-white/90">
+                  {t("checkPrices")}
                 </span>
-                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">{t('ticketsHotelsMap')}</span>
+                <span className="text-[9px] font-medium text-white/50">{t("ticketsHotelsMap")}</span>
               </div>
             </button>
 
@@ -1205,8 +1301,8 @@ export default function TripDetailPage() {
                 <>
                   {/* Day title bar */}
                   <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-lg">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm truncate">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm line-clamp-2 sm:line-clamp-2 md:truncate break-words">
                         {t('dayTitle', { day: currentDay.day, title: currentDay.title || t('dayDefaultTitle') })}
                       </h3>
                       {currentDayWeather && (
@@ -1310,6 +1406,73 @@ export default function TripDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ===== Mobile: trip details (burger) ===== */}
+        <Dialog open={tripInfoMenuOpen} onOpenChange={setTripInfoMenuOpen}>
+          <DialogContent className="z-[10050] w-[calc(100vw-1.25rem)] max-w-md max-h-[min(88dvh,100svh)] overflow-y-auto rounded-2xl gap-3">
+            <DialogHeader>
+              <DialogTitle className="text-left text-lg pr-8">{t("tripAboutTitle")}</DialogTitle>
+            </DialogHeader>
+            <p className="text-base font-semibold text-foreground leading-snug -mt-1">{route.title}</p>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <span className="material-symbols-outlined text-lg shrink-0">calendar_month</span>
+                <span>{formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}</span>
+              </div>
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <span className="material-symbols-outlined text-lg shrink-0">person</span>
+                <span>{t("travelersMeta", { count: route.travelers || 2 })}</span>
+              </div>
+              {route.tags && route.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {route.tags.map((tag: string, idx: number) => {
+                    const cfg = getTagConfig(tag)
+                    return (
+                      <span
+                        key={idx}
+                        className={cn(
+                          "px-2 py-0.5 rounded-md border text-[10px] font-bold uppercase",
+                          cfg.color,
+                        )}
+                      >
+                        {tag.replace("#", "")}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleTogglePublic()
+                    setTripInfoMenuOpen(false)
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all",
+                    route.is_public
+                      ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-700 dark:text-emerald-200"
+                      : "bg-muted/50 border-border text-foreground",
+                  )}
+                >
+                  {route.is_public ? <Globe className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                  {route.is_public ? t("publicTrip") : t("privateTrip")}
+                </button>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full rounded-xl"
+                onClick={() => {
+                  setTripInfoMenuOpen(false)
+                  setShowBudgetModal(true)
+                }}
+              >
+                {t("totalBudgetLabel")}: {displayBudget}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* ===== Budget Analysis Modal ===== */}
         <Dialog open={showBudgetModal} onOpenChange={setShowBudgetModal}>
@@ -1551,15 +1714,6 @@ export default function TripDetailPage() {
           </button>
         )}
 
-        <AnimatePresence>
-          {isReelsOpen && (
-            <ReelsView
-              activities={allActivities}
-              initialIndex={reelsStartIndex}
-              onClose={() => setIsReelsOpen(false)}
-            />
-          )}
-        </AnimatePresence>
       </div>
     </div>
   )

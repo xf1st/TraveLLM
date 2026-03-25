@@ -54,7 +54,11 @@
       "Bash(del:*)",
       "Bash(npm run:*)",
       "Bash(npx:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Skill(gsd:fast)",
+      "mcp__claude_ai_Figma__get_metadata",
+      "mcp__claude_ai_Figma__use_figma",
+      "mcp__claude_ai_Figma__get_screenshot"
     ]
   }
 }
