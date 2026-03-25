@@ -35,6 +35,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  /* Safari: tone outside web content / overscroll closer to app bg (less harsh black band) */
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8f5f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0e14" },
+  ],
 }
 
 export async function generateMetadata(): Promise<Metadata> {

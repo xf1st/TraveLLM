@@ -486,6 +486,30 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
+  /*
+   * Mobile bottom dock: full-bleed frosted glass through safe-area (iOS Safari).
+   * Solid bg-background alone reads as a flat band; Safari needs -webkit-backdrop-filter + compositing layer.
+   */
+  .mobile-bottom-nav-dock {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    background: rgba(255, 255, 255, 0.38);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 -8px 32px rgba(31, 38, 135, 0.06);
+  }
+
+  .dark .mobile-bottom-nav-dock {
+    background: rgba(34, 38, 47, 0.55);
+    -webkit-backdrop-filter: blur(32px) saturate(165%);
+    backdrop-filter: blur(32px) saturate(165%);
+    border-top: 1px solid rgba(133, 173, 255, 0.18);
+    box-shadow:
+      0 -12px 40px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
   /* Trip glass - hover variant */
   .trip-glass-hover:hover {
     background: rgba(255, 255, 255, 0.6);

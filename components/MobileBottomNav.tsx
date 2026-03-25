@@ -42,12 +42,11 @@ export function MobileBottomNav() {
 
   return (
     <div
-      className="lg:hidden fixed inset-x-0 bottom-0 z-50 flex flex-col items-center border-t border-border/40 bg-background pt-2"
+      className="mobile-bottom-nav-dock lg:hidden fixed inset-x-0 bottom-0 z-50 flex flex-col items-center pt-2"
       style={{
         paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
       }}
     >
-      {/* Solid bar fills safe-area so nothing shows through under the pill (iOS home indicator) */}
       <nav className="h-14 w-[min(100%,28rem)] shrink-0 mx-3 mb-0 flex items-center justify-around rounded-2xl trip-glass border border-white/10 shadow-2xl overflow-hidden px-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
