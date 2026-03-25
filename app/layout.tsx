@@ -88,7 +88,11 @@ export default async function RootLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={getHtmlLang(locale)} suppressHydrationWarning>
+    <html
+      lang={getHtmlLang(locale)}
+      className="bg-background"
+      suppressHydrationWarning
+    >
       <head>
         {/* material-symbols loaded locally via npm */}
       </head>
