@@ -287,7 +287,7 @@ export function PoiDrawer({ isOpen, onClose, poi, onBuildRoute, onFlyTo }: PoiDr
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 24, stiffness: 220 }}
-            className="fixed right-0 top-0 bottom-0 w-[min(94vw,430px)] bg-black/90 backdrop-blur-md md:backdrop-blur-2xl border-l border-white/10 z-50 shadow-md md:shadow-2xl flex flex-col pt-6"
+            className="fixed right-0 top-0 bottom-0 w-[min(94vw,430px)] bg-black/90 backdrop-blur-md md:backdrop-blur-2xl border-l border-white/10 z-50 shadow-md md:shadow-2xl flex flex-col pt-[calc(1.5rem+env(safe-area-inset-top,0px))]"
           >
             <div className="flex items-center justify-between mb-5 px-5">
               <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 to-emerald-400">POI Детали</h2>

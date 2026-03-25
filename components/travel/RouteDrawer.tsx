@@ -65,7 +65,7 @@ export function RouteDrawer({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 bottom-0 w-[min(94vw,620px)] bg-zinc-950/95 backdrop-blur-md md:backdrop-blur-3xl border-r border-white/10 z-50 shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col pt-6"
+            className="fixed left-0 top-0 bottom-0 w-[min(94vw,620px)] bg-zinc-950/95 backdrop-blur-md md:backdrop-blur-3xl border-r border-white/10 z-50 shadow-[20px_0_50px_rgba(0,0,0,0.5)] flex flex-col pt-[calc(1.5rem+env(safe-area-inset-top,0px))]"
           >
             <div className="flex items-center justify-between mb-6 px-6">
               <div className="flex flex-col">

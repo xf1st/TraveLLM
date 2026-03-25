@@ -103,11 +103,11 @@ export function ViralSpotCard({ name, desc, description, mapLink }: ViralSpotCar
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md md:backdrop-blur-2xl flex items-center justify-center p-4"
+                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md md:backdrop-blur-2xl flex items-center justify-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
                             onClick={() => setIsPreviewOpen(false)}
                         >
                             <button
-                                className="absolute top-6 right-6 text-white hover:bg-white/10 rounded-full p-2 z-50"
+                                className="absolute top-[calc(1.5rem+env(safe-area-inset-top,0px))] right-6 text-white hover:bg-white/10 rounded-full p-2 z-50"
                                 onClick={() => setIsPreviewOpen(false)}
                             >
                                 <X className="h-6 w-6" />

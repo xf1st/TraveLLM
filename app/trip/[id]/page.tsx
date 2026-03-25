@@ -840,7 +840,7 @@ export default function TripDetailPage() {
 
       {/* Read-only banner for non-owners viewing someone else's public trip */}
       {showReadOnlyBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-sky-600/95 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-sky-600/95 backdrop-blur-sm text-white text-sm px-4 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] flex items-center justify-center gap-2 shadow-lg">
           <Eye className="w-4 h-4 flex-shrink-0" />
           <span>{t('readOnlyBanner')}</span>
           {!user && (
@@ -870,7 +870,7 @@ export default function TripDetailPage() {
           {/* ===== Floating Header Bar ===== */}
           <div
             className="absolute z-50 left-2 right-2 sm:left-8 sm:right-8"
-            style={{ top: "max(0.75rem, env(safe-area-inset-top, 0px))" }}
+            style={{ top: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
           >
             <div className="trip-glass-header rounded-2xl md:rounded-full px-2.5 sm:px-6 py-2 sm:py-4 flex items-center justify-between gap-2 shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl bg-black/20 border-white/10 border">
               {/* Mobile: back + menu + actions */}
@@ -1009,7 +1009,7 @@ export default function TripDetailPage() {
               "absolute z-30 left-3 right-3 sm:left-8 sm:right-8 flex gap-2 sm:gap-4 md:gap-6",
               /* Mobile: start below floating header so title isn’t clipped; scroll if needed */
               "flex-col max-md:top-0 max-md:justify-start max-md:items-stretch",
-              "max-md:pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+5.75rem))] max-md:overflow-y-auto max-md:overscroll-contain max-md:[scrollbar-width:thin]",
+              "max-md:pt-[calc(env(safe-area-inset-top,0px)+6.5rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:[scrollbar-width:thin]",
               "md:flex-row md:justify-between md:items-end",
               "bottom-6 sm:bottom-12 max-md:pb-3",
             )}

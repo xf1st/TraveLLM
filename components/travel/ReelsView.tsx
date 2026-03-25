@@ -40,7 +40,7 @@ export function ReelsView({ activities, onClose, initialIndex = 0 }: ReelsViewPr
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col md:hidden">
       {/* Header overlay */}
-      <div className="absolute top-0 inset-x-0 z-20 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full" onClick={onClose}>
           <ChevronDown className="h-6 w-6 rotate-90" />
         </Button>

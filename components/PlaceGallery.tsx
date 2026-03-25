@@ -193,13 +193,13 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md md:backdrop-blur-2xl flex items-center justify-center p-4"
+                            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md md:backdrop-blur-2xl flex items-center justify-center p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
                             onClick={() => setIsPreviewOpen(false)}
                         >
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-6 right-6 text-white hover:bg-white/10 rounded-full z-50"
+                                className="absolute top-[calc(1.5rem+env(safe-area-inset-top,0px))] right-6 text-white hover:bg-white/10 rounded-full z-50"
                                 onClick={() => setIsPreviewOpen(false)}
                             >
                                 <X className="h-6 w-6" />
@@ -219,7 +219,7 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
                                     onError={handleImgError}
                                 />
 
-                                <div className="absolute top-0 inset-x-0 p-8 flex items-center justify-between pointer-events-none">
+                                <div className="absolute top-0 inset-x-0 px-8 pb-8 pt-[calc(2rem+env(safe-area-inset-top,0px))] flex items-center justify-between pointer-events-none">
                                     <div className="pointer-events-auto">
                                         <h3 className="text-2xl font-black text-white drop-shadow-lg tracking-tighter uppercase">{displayTitle || "Галерея места"}</h3>
                                         <span className="text-white/60 text-sm font-bold uppercase tracking-widest mt-1 block">Фото {activeIndex + 1} / {images.length}</span>

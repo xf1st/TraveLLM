@@ -360,7 +360,7 @@ export function DiscoveryReelsFeed({ className }: DiscoveryReelsFeedProps) {
   return (
     <div className={cn("relative flex flex-1 flex-col min-h-0 h-full bg-black", className)}>
       {/* Top overlay — не ломает вертикальный скролл */}
-      <div className="pointer-events-none absolute top-0 inset-x-0 z-30 flex flex-col items-center pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <div className="pointer-events-none absolute top-0 inset-x-0 z-30 flex flex-col items-center pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
         <div className="pointer-events-auto flex w-full max-w-2xl items-center justify-between px-4">
           <div className="flex items-center gap-2 rounded-full bg-black/45 backdrop-blur-xl border border-white/10 px-3 py-1.5">
             <Clapperboard className="h-5 w-5 text-sky-400" />
