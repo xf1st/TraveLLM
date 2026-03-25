@@ -472,16 +472,23 @@ export default function PlanPage() {
 
       {/* Route Builder Modal */}
       <Dialog open={showRouteModal} onOpenChange={setShowRouteModal}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden modal-dark text-white">
+        <DialogContent
+          className={cn(
+            "flex max-h-[min(100dvh,100svh)] flex-col gap-0 p-0 overflow-hidden modal-dark text-white",
+            "w-[calc(100vw-1rem)] max-w-2xl sm:w-full",
+            "max-sm:!inset-x-0 max-sm:!left-0 max-sm:!right-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:border-0",
+            "sm:max-h-[90vh]",
+          )}
+        >
           <DialogTitle className="sr-only">{t('routeBuilder.title')}</DialogTitle>
-          <div className="p-6 border-b border-white/10">
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "rgba(16,185,129,0.15)" }}>
+          <div className="shrink-0 border-b border-white/10 px-4 pb-4 pt-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:p-6 sm:pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.15)" }}>
                 <Route className="h-5 w-5 text-emerald-400" />
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">{t('routeBuilder.title')}</h2>
-                <p className="text-xs text-white/40">{t('routeBuilder.subtitle')}</p>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-white sm:text-lg leading-tight">{t('routeBuilder.title')}</h2>
+                <p className="text-[11px] sm:text-xs text-white/50 mt-0.5">{t('routeBuilder.subtitle')}</p>
               </div>
             </div>
           </div>
@@ -492,10 +499,10 @@ export default function PlanPage() {
             const overflow = totalAssigned > totalTripDays
             const pct = Math.min(100, (totalAssigned / totalTripDays) * 100)
             return (
-              <div className="px-6 pb-3">
-                <div className="flex items-center justify-between text-[10px] mb-1.5">
-                  <span className="text-white/40">{t('routeBuilder.distributed')}</span>
-                  <span className={overflow ? "text-red-400 font-bold" : "text-white/50"}>
+              <div className="shrink-0 px-4 pb-3 sm:px-6">
+                <div className="flex items-center justify-between gap-2 text-[10px] mb-1.5">
+                  <span className="text-white/45 shrink-0">{t('routeBuilder.distributed')}</span>
+                  <span className={cn("text-right leading-tight", overflow ? "text-red-400 font-bold" : "text-white/55")}>
                     {totalAssigned} / {totalTripDays} {t('routeBuilder.d')}
                     {overflow && ` · ${t('routeBuilder.overflowBy')} ${totalAssigned - totalTripDays}${t('routeBuilder.d')}`}
                     {!overflow && totalAssigned < totalTripDays && ` · ${totalTripDays - totalAssigned}${t('routeBuilder.d')} ${t('routeBuilder.aiAssigned')}`}
@@ -509,7 +516,7 @@ export default function PlanPage() {
             )
           })()}
 
-          <div className="px-6 pb-3 space-y-2 max-h-[48vh] overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 pb-3 sm:px-6 [scrollbar-width:thin]">
             {destinations.length === 0 ? (
               <div className="text-center py-10 text-white/30 text-sm">{t('routeBuilder.empty')}</div>
             ) : destinations.map((city, idx) => {
@@ -536,29 +543,46 @@ export default function PlanPage() {
                     setDragIdx(null); setDragOverIdx(null)
                   }}
                   onDragEnd={() => { setDragIdx(null); setDragOverIdx(null) }}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl transition-all cursor-grab active:cursor-grabbing select-none"
+                  className="flex flex-col gap-2.5 rounded-2xl p-3 transition-all cursor-grab active:cursor-grabbing select-none sm:flex-row sm:items-center sm:gap-3 sm:p-3.5"
                   style={{
                     background: isDragOver ? "rgba(16,185,129,0.12)" : isDragging ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.05)",
                     border: isDragOver ? "1px solid rgba(16,185,129,0.4)" : isDragging ? "1px dashed rgba(255,255,255,0.2)" : "1px solid rgba(255,255,255,0.08)",
                     opacity: isDragging ? 0.5 : 1,
                   }}
                 >
-                  <GripVertical className="h-4 w-4 text-white/20 shrink-0" />
+                  <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center">
+                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-white/30 sm:mt-0" />
 
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.2)" }}>
-                    {idx + 1}
+                    <div
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+                      style={{ background: "rgba(16,185,129,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.2)" }}
+                    >
+                      {idx + 1}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-snug text-white sm:truncate">{city}</p>
+                      <p
+                        className="mt-0.5 text-[11px] leading-snug sm:text-[10px]"
+                        style={{ color: getCityCoords(city) ? "rgba(255,255,255,0.5)" : "rgba(251,191,36,0.85)" }}
+                      >
+                        {getCityCoords(city) ? t('routeBuilder.maxDaysHint', { max: maxDays }) : t('routeBuilder.unknownCoords')}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCity(idx)}
+                      className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg text-white/35 transition-all hover:bg-red-500/15 hover:text-red-400 sm:ml-0 sm:hidden"
+                      aria-label="Remove"
+                    >
+                      ✕
+                    </button>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{city}</p>
-                    <p className="text-[10px]" style={{ color: getCityCoords(city) ? "rgba(255,255,255,0.25)" : "rgba(251,191,36,0.6)" }}>
-                      {getCityCoords(city) ? t('routeBuilder.maxDaysHint', { max: maxDays }) : t('routeBuilder.unknownCoords')}
-                    </p>
-                  </div>
-
+                  <div className="flex flex-wrap items-center justify-between gap-2 pl-0 sm:contents sm:pl-0">
                   {/* Days control */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1">
                     {/* Minus */}
                     <button
                       type="button"
@@ -613,67 +637,76 @@ export default function PlanPage() {
                   </div>
 
                   {/* Up/Down reorder */}
-                  <div className="flex flex-col gap-0.5 shrink-0">
+                  <div className="flex shrink-0 flex-col gap-0.5">
                     <button type="button" onClick={() => idx > 0 && handleMoveCity(idx, idx - 1)}
-                      className="w-6 h-5 rounded flex items-center justify-center text-white/25 hover:text-white/70 hover:bg-white/10 transition-all disabled:opacity-20"
-                      disabled={idx === 0}><ChevronUp className="h-3 w-3" /></button>
+                      className="flex h-8 w-9 items-center justify-center rounded-lg text-white/40 transition-all hover:bg-white/10 hover:text-white/80 disabled:opacity-25 sm:h-5 sm:w-6"
+                      disabled={idx === 0}><ChevronUp className="h-4 w-4 sm:h-3 sm:w-3" /></button>
                     <button type="button" onClick={() => idx < destinations.length - 1 && handleMoveCity(idx, idx + 1)}
-                      className="w-6 h-5 rounded flex items-center justify-center text-white/25 hover:text-white/70 hover:bg-white/10 transition-all disabled:opacity-20"
-                      disabled={idx === destinations.length - 1}><ChevronDown className="h-3 w-3" /></button>
+                      className="flex h-8 w-9 items-center justify-center rounded-lg text-white/40 transition-all hover:bg-white/10 hover:text-white/80 disabled:opacity-25 sm:h-5 sm:w-6"
+                      disabled={idx === destinations.length - 1}><ChevronDown className="h-4 w-4 sm:h-3 sm:w-3" /></button>
                   </div>
 
-                  <button type="button" onClick={() => handleRemoveCity(idx)}
-                    className="w-6 h-6 rounded-lg flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all text-xs font-bold shrink-0">✕</button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveCity(idx)}
+                    className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white/35 transition-all hover:bg-red-500/15 hover:text-red-400 sm:flex"
+                  >
+                    ✕
+                  </button>
+                  </div>
                 </div>
               )
             })}
           </div>
 
           {/* Algorithm info */}
-          <div className="px-6 pb-2">
+          <div className="shrink-0 px-4 pb-2 sm:px-6">
             <details className="group">
-              <summary className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/50 cursor-pointer transition-colors list-none select-none">
+              <summary className="flex cursor-pointer list-none select-none items-center gap-1.5 text-[11px] text-white/45 transition-colors hover:text-white/70 sm:text-[10px]">
                 <Navigation className="h-3 w-3 shrink-0" />
                 {t('routeBuilder.howWorks')}
                 <ChevronDown className="h-3 w-3 ml-auto group-open:rotate-180 transition-transform" />
               </summary>
-              <p className="mt-2 text-[10px] leading-relaxed text-white/35 pl-4 border-l border-white/10">
+              <p className="mt-2 border-l border-white/10 pl-4 text-[11px] leading-relaxed text-white/50 sm:text-[10px] sm:text-white/40">
                 {t('routeBuilder.explanation')}
               </p>
             </details>
           </div>
 
-          {/* Footer */}
-          <div className="p-5 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleOptimize}
-                disabled={!departureCity.trim() || destinations.length <= 1}
-                className="flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.25)", color: "#34d399" }}
-              >
-                <Zap className="h-4 w-4" />
-                {t('routeBuilder.optimize')}
-              </button>
-              {!departureCity.trim() && <span className="text-[10px] text-white/30">{t('routeBuilder.enterDeparture')}</span>}
-            </div>
-            <div className="flex items-center gap-2">
-                  {totalTripDays && (
-                  <span className="text-xs text-white/40 flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    {totalTripDays} {t('routeBuilder.d')} · {destinations.length}
-                  </span>
-              )}
+          {/* Footer — mobile: primary action first; pl clears common bottom-left chat widgets */}
+          <div className="flex shrink-0 flex-col gap-3 border-t border-white/10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 max-sm:pl-14 sm:flex-row sm:items-center sm:justify-between sm:p-5 sm:pb-5 sm:pl-5">
+            <div className="order-1 flex w-full flex-col gap-2 sm:order-2 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-2">
               <button
                 type="button"
                 onClick={() => setShowRouteModal(false)}
                 disabled={!!totalTripDays && destinations.reduce((s, c) => { const d = getCityDays(c); return d !== "auto" ? s + d : s }, 0) > totalTripDays}
-                className="px-5 h-10 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-11 w-full rounded-xl text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto sm:px-6"
                 style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)" }}
               >
                 {t('routeBuilder.apply')}
               </button>
+              {totalTripDays ? (
+                <span className="flex items-center justify-center gap-1 text-center text-[11px] text-white/55 sm:justify-start sm:text-xs sm:text-white/45">
+                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                  {totalTripDays} {t('routeBuilder.d')} · {destinations.length}
+                </span>
+              ) : null}
+            </div>
+            <div className="order-2 flex min-w-0 flex-col gap-2 sm:order-1 sm:flex-row sm:items-center sm:gap-3">
+              <button
+                type="button"
+                onClick={handleOptimize}
+                disabled={!departureCity.trim() || destinations.length <= 1}
+                className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/25 px-4 text-sm font-bold text-emerald-50 transition-all hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
+              >
+                <Zap className="h-4 w-4 shrink-0 text-emerald-200" />
+                {t('routeBuilder.optimize')}
+              </button>
+              {!departureCity.trim() ? (
+                <span className="text-center text-[11px] leading-snug text-white/50 sm:text-left sm:text-[10px] sm:text-white/40">
+                  {t('routeBuilder.enterDeparture')}
+                </span>
+              ) : null}
             </div>
           </div>
         </DialogContent>
