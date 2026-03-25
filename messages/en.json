@@ -688,6 +688,23 @@
       "restrictions": "Restrictions",
       "safety": "Safety"
     },
+    "memory": {
+      "cta": "Trip memory card",
+      "title": "Your trip card",
+      "subtitle": "A collage from your route plus stats — save as PNG or share.",
+      "fallbackTitle": "My trip",
+      "loading": "Finding photos for your route…",
+      "download": "Download PNG",
+      "share": "Share",
+      "addPhotos": "Your photos (up to 2)",
+      "exportError": "Could not save the image",
+      "shareText": "My TraveLLM itinerary",
+      "shareFallback": "PNG downloaded — this browser has no native Share for files.",
+      "days": "{count} days",
+      "activities": "{count} stops",
+      "countries": "{count} countries",
+      "madeWith": "Made with"
+    },
     "toast": {
       "visibilityError": "Failed to update trip visibility",
       "published": "Trip published — accessible via link",

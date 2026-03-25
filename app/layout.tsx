@@ -133,6 +133,15 @@ export default async function RootLayout({
             />
           </div>
         </noscript>
+
+        {/* Travelpayouts Drive: URL из сниппета (script.src), без WP-атрибутов */}
+        {process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL ? (
+          <Script id="travelpayouts-drive-loader" strategy="afterInteractive">
+            {`(function(){var s=document.createElement("script");s.async=1;s.src=${JSON.stringify(
+              process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL
+            )};document.head.appendChild(s);})();`}
+          </Script>
+        ) : null}
       </body>
     </html>
   )

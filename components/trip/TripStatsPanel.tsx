@@ -1,13 +1,14 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
+import { TripMemoryCardDialog } from "@/components/trip/TripMemoryCardDialog"
 import { motion } from "framer-motion"
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer,
 } from "recharts"
 import {
   Calendar, MapPin, Globe, Utensils, Compass, Plane, Hotel,
-  Sparkles, Star, TrendingUp, Quote, Loader2,
+  Sparkles, Star, TrendingUp, Quote, Loader2, ImageIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslations, useLocale } from "next-intl"
@@ -30,6 +31,8 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
 
   const [aiStats, setAiStats] = useState<any>(null)
   const [aiLoading, setAiLoading] = useState(true)
+  const [memoryOpen, setMemoryOpen] = useState(false)
+  const tTrip = useTranslations("trip")
 
   useEffect(() => {
     if (!tripId) return
@@ -133,6 +136,26 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           )
         })}
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="flex justify-center"
+      >
+        <button
+          type="button"
+          onClick={() => setMemoryOpen(true)}
+          className={cn(
+            "group flex w-full max-w-md items-center justify-center gap-2 rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-600/90 via-fuchsia-600/85 to-sky-600/90 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-110 sm:w-auto"
+          )}
+        >
+          <ImageIcon className="h-4 w-4 opacity-90" />
+          {tTrip("memory.cta")}
+        </button>
+      </motion.div>
+
+      <TripMemoryCardDialog open={memoryOpen} onOpenChange={setMemoryOpen} route={route} />
 
       {/* ── Main 2-col grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
