@@ -13,7 +13,7 @@ import {
   Medal, Hotel as HotelIcon, Star, Calendar,
   LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
   Bell, Bookmark, Plane, Banknote, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
-  Loader2,
+  Loader2, Gift,
 } from "lucide-react"
 import {
   Dialog,
@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
 import { patchMyProfile, ProfilePatchError } from "@/lib/user-profile-client"
+import { buildAuthSignupReferralUrl } from "@/lib/referral-client"
 import { appToast as toast } from "@/components/ui/sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
@@ -1905,6 +1906,48 @@ function ProfileContent() {
                           >
                             {savingPublicProfile ? tp("saving") : tp("saveChanges")}
                           </Button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
+                        <SettingsSectionHeader icon={<Gift className="h-3.5 w-3.5" />} title={tp("sectionReferral")} />
+                        <div className="px-5 py-4 space-y-3">
+                          <p className="text-sm text-muted-foreground leading-relaxed">{tp("referralDesc")}</p>
+                          {profile?.referred_by && (
+                            <p className="text-xs text-sky-600/90 dark:text-sky-400/90">{tp("referralJoinedViaFriend")}</p>
+                          )}
+                          {profile?.referral_code && siteOrigin ? (
+                            <>
+                              <div className="space-y-1">
+                                <div className="text-xs font-medium text-muted-foreground">{tp("referralYourCode")}</div>
+                                <div className="font-mono text-sm font-semibold tracking-wide">{profile.referral_code}</div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <div className="text-xs font-medium text-muted-foreground">{tp("referralInviteLink")}</div>
+                                <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-2 text-xs break-all font-mono text-muted-foreground">
+                                  {buildAuthSignupReferralUrl(siteOrigin, profile.referral_code)}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full sm:w-auto"
+                                  onClick={async () => {
+                                    const url = buildAuthSignupReferralUrl(siteOrigin, profile.referral_code!)
+                                    try {
+                                      await navigator.clipboard.writeText(url)
+                                      toast.success(tp("referralCopied"))
+                                    } catch {
+                                      toast.error(tp("referralCopyFailed"))
+                                    }
+                                  }}
+                                >
+                                  <Share2 className="h-3.5 w-3.5 mr-2" />
+                                  {tp("referralCopyLink")}
+                                </Button>
+                              </div>
+                            </>
+                          ) : null}
                         </div>
                       </div>
 

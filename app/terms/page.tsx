@@ -120,7 +120,7 @@ export default async function TermsPage() {
             </p>
           </section>
 
-          <section>
+          <section id="affiliate">
             <h2 className="text-lg font-bold text-foreground mb-3">
               {isEn ? "4. Affiliate Programs & Affiliate Links" : "4. Партнёрские программы и аффилиатные ссылки"}
             </h2>

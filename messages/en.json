@@ -256,6 +256,10 @@
     "forTravelers": "for travelers",
     "affiliate": "Affiliate links"
   },
+  "partners": {
+    "disclosure": "Links to external booking services may be affiliate links: we may earn a commission at no extra cost to you.",
+    "termsLink": "Details in terms"
+  },
   "auth": {
     "signIn": "Sign In",
     "signUp": "Sign Up",
@@ -275,6 +279,9 @@
     "continueJourney": "Continue your journey where you left off",
     "createAndPlan": "Create an account and plan your first trip",
     "yourName": "Your name",
+    "promoCodeLabel": "Partner promo code",
+    "promoCodePlaceholder": "e.g. SUMMER2025",
+    "promoCodeHint": "If you have a partner link or code, enter it here or use a URL with ?promo=… We store it once for partner attribution.",
     "agreeWith": "By continuing, you agree to our",
     "terms": "terms of use",
     "logout": {
@@ -901,6 +908,14 @@
     "sectionProfile": "Profile",
     "sectionApp": "Application",
     "sectionPublicProfile": "Public profile",
+    "sectionReferral": "Invite a friend",
+    "referralDesc": "Share the link below. When your friend signs up through it, you get +5 extra route generations per month (added to your monthly limit).",
+    "referralYourCode": "Your code",
+    "referralInviteLink": "Signup link",
+    "referralCopyLink": "Copy link",
+    "referralCopied": "Link copied",
+    "referralCopyFailed": "Could not copy",
+    "referralJoinedViaFriend": "You signed up with a friend's invite.",
     "sectionManagement": "Management",
     "sectionAccount": "Account",
     "travelSection": "Travel",

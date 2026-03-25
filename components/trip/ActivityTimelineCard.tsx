@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { appToast as toast } from "@/components/ui/sonner"
+import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
 
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 
@@ -947,6 +948,13 @@ export function ActivityTimelineCard({
                 </button>
               )}
             </div>
+
+            {(descLinks.length > 0 ||
+              !!(activity.link && String(activity.link).startsWith("http")) ||
+              !!(activity.bookingUrl && String(activity.bookingUrl).startsWith("http")) ||
+              !!(activity.ticketUrl && String(activity.ticketUrl).startsWith("http"))) && (
+              <AffiliateNotice className="mt-4 pt-3 border-t border-border/60 text-muted-foreground [&_a]:text-sky-600 dark:[&_a]:text-sky-400" />
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslations, useLocale } from "next-intl"
 import { normalizeTravelMode, type TravelMode } from "@/lib/travel-mode"
+import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
 
 type ActivityType = "transport" | "food" | "hotel" | "activity"
 
@@ -542,10 +543,11 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
 
   const hasAny = TYPE_ORDER.some(key => grouped[key].length > 0)
   if (!hasAny) return (
-    <div className="text-center py-16">
+    <div className="text-center py-16 px-2">
       <Link2 className="w-8 h-8 mx-auto mb-3" style={{ color: "rgba(255,255,255,0.15)" }} />
       <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.35)" }}>{t("noLinks")}</p>
       <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>{t("noLinksHint")}</p>
+      <AffiliateNotice className="mt-6 max-w-sm mx-auto text-white/40 [&_a]:text-sky-300/90" />
     </div>
   )
 
@@ -565,6 +567,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           travelMode={travelMode}
         />
       ))}
+      <AffiliateNotice className="mt-4 pt-3 border-t border-white/10 text-white/45 [&_a]:text-sky-300/95" />
     </div>
   )
 }

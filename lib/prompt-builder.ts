@@ -118,6 +118,49 @@ function formatPlanInterestTags(ids: string[], isEn: boolean): string {
     return ids.map((id) => map[id] || id).join(isEn ? " · " : " · ")
 }
 
+/**
+ * Домены из программ Travelpayouts (Drive подменяет ссылки на сайте).
+ * Aviasales + Booking — базовые, не убираем; остальное — по смыслу активности.
+ */
+function buildTravelpayoutsPartnerLinksBlock(isEn: boolean): string {
+    if (isEn) {
+        return `
+6. TRAVELPAYOUTS PARTNER DOMAINS (real https:// on these hosts where relevant; site rewrites via Drive; NEVER invent path slugs — use official search or section home + query):
+- KEEP UNCHANGED: flight legs → Aviasales in \`link\` (same /search/{ORG}{DDMM}{DEST}1 pattern). Prefer https://www.aviasales.com/ for international EN trips; https://www.aviasales.ru/ when the trip is Russia-focused.
+- KEEP UNCHANGED: hotels → Booking.com in \`bookingUrl\`; Ostrovok.ru as extra option for Russia trips.
+- Airport / city transfers: https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Car rental (when the plan includes hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Museums, attractions, timed entry: https://www.tiqets.com/, https://www.klook.com/ (search)
+- Self-guided audio tours: https://wegotrip.com/
+- Yacht / charter (only if the activity is sailing or yacht hire): https://searadar.com/
+- Luggage storage: https://www.radicalstorage.com/ (early arrival, late checkout, between hotels)
+- Travel eSIM — at most 1–2 mentions per whole trip (prep / day tips): https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
+- Travel insurance (international): https://ekta.io/ in visa block or tips where appropriate
+- Flight disruption claims: https://compensair.com/, https://www.airhelp.com/ in tips if relevant
+- VPN: https://nordvpn.com/ only in safety tips when justified (risky public Wi‑Fi, censorship)
+- Shows / sports / events: https://www.ticketnetwork.com/
+- Activities: keep GetYourGuide / Klook / Viator search URLs from §5; prefer Klook + Tiqets for Asia–Pacific, GYG + Viator for Europe/Americas when unsure.
+`.trim()
+    }
+    return `
+6. ПАРТНЁРЫ Travelpayouts (реальные https:// на этих доменах по смыслу; на сайте Drive монетизирует переходы; НЕ выдумывай slug — только официальный поиск или главная раздела + query):
+- БЕЗ ИЗМЕНЕНИЙ: перелёты → в \`link\` только Aviasales: https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 (как в п.5).
+- БЕЗ ИЗМЕНЕНИЙ: отели → \`bookingUrl\` на Booking.com; при необходимости запасной Ostrovok.ru.
+- Трансфер аэропорт ↔ город: https://kiwitaxi.ru/ или https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Аренда авто (если в маршруте аренда, не режим «своя машина»): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Музеи, достопримечательности, билеты: https://www.tiqets.com/, https://www.klook.com/ru/ (поиск)
+- Аудиогиды: https://wegotrip.com/
+- Яхты / чартер: https://searadar.com/ только если активность про аренду яхты.
+- Камера хранения: https://www.radicalstorage.com/ при ранний заезд, поздний выезд, переезд между отелями.
+- eSIM — не чаще 1–2 раз на всю поездку (подготовка / tips дня): https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
+- Страховка (зарубеж): https://ekta.io/ в visa или советах, где уместно.
+- Компенсация за сбой рейса: https://compensair.com/, https://www.airhelp.com/ в tips при релевантности.
+- VPN: https://nordvpn.com/ только в safety-tips при обосновании.
+- Шоу / спорт / ивенты: https://www.ticketnetwork.com/
+- Активности: наряду с GetYourGuide/Klook/Viator из п.5 усиль Klook и Tiqets там, где логичнее по региону.
+`.trim()
+}
+
 function formatTravelModeBlock(mode: TravelMode, isEn: boolean): string {
     if (mode === "flight") {
         return isEn
@@ -507,6 +550,8 @@ ${carLinkNote ? `${carLinkNote}\n` : ""}2. ФОРМАТ ТРАНСПОРТА: В
      (Москва/СПб, теплоход): "https://rechnoyflot.ru/"
      Правило: ВСЕГДА выбирай ту платформу, где реально можно забронировать данную активность в данном городе.
 `.trim())
+
+    userParts.push(buildTravelpayoutsPartnerLinksBlock(isEn))
 
     // 8. ФОРМАТ ОТВЕТА
     userParts.push(isEn ? `

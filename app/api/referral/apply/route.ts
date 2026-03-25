@@ -4,15 +4,14 @@ import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { normalizePartnerPromo } from "@/lib/partner-promo-client"
-import { UserProfilePatchSchema, applyUserProfilePatch } from "@/lib/server/user-profile-patch"
 
 export const runtime = "nodejs"
 
-/**
- * Self-service profile updates (name, username, prefs, avatar URL, etc.).
- * Uses the user session + service role with a strict field allowlist — do not PATCH profiles from the browser.
- */
-export async function PATCH(request: Request) {
+const CODE_RE = /^[A-Za-z0-9]{4,32}$/
+
+type RpcResult = { ok?: boolean; error?: string; new_limit?: number }
+
+export async function POST(request: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -41,26 +40,29 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const rl = checkRateLimit(user.id, "user-profile-patch", 40)
+    const rl = checkRateLimit(user.id, "referral-apply", 20, 60 * 60 * 1000)
     if (!rl.allowed) return rateLimitResponse(rl)
 
-    let json: unknown
+    let body: unknown
     try {
-      json = await request.json()
+      body = await request.json()
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
 
-    const parsed = UserProfilePatchSchema.safeParse(json)
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 })
+    const codeRaw =
+      typeof body === "object" && body !== null && "code" in body && typeof (body as { code: unknown }).code === "string"
+        ? (body as { code: string }).code
+        : ""
+    const code = codeRaw.trim()
+    if (!CODE_RE.test(code)) {
+      return NextResponse.json({ error: "invalid_code" }, { status: 400 })
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Onboarding / edge cases: row may not exist yet (no upsert from client).
     const { data: rowExists } = await admin.from("profiles").select("id").eq("id", user.id).maybeSingle()
     if (!rowExists) {
       const meta = user.user_metadata as Record<string, unknown> | undefined
@@ -74,19 +76,38 @@ export async function PATCH(request: Request) {
         ...(partnerPromo ? { partner_promo_code: partnerPromo } : {}),
       })
       if (insErr && insErr.code !== "23505") {
-        console.error("[user/profile] insert profile", insErr)
+        console.error("[referral/apply] insert profile", insErr)
         return NextResponse.json({ error: "Could not create profile" }, { status: 500 })
       }
     }
 
-    const result = await applyUserProfilePatch(admin, user.id, parsed.data)
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error, code: result.code }, { status: result.status })
+    const { data: rpcData, error: rpcErr } = await authClient.rpc("apply_my_referral", {
+      p_code: code,
+    })
+
+    if (rpcErr) {
+      console.error("[referral/apply] rpc", rpcErr)
+      return NextResponse.json({ error: "rpc_failed" }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, profile: result.row })
+    const r = rpcData as RpcResult | null
+    if (!r || r.ok !== true) {
+      const err = typeof r?.error === "string" ? r.error : "unknown"
+      const status: Record<string, number> = {
+        unauthorized: 401,
+        invalid_code: 400,
+        no_profile: 404,
+        already_referred: 409,
+        already_rewarded: 409,
+        code_not_found: 404,
+        self: 400,
+      }
+      return NextResponse.json({ error: err }, { status: status[err] ?? 400 })
+    }
+
+    return NextResponse.json({ ok: true, newLimit: r.new_limit })
   } catch (e: unknown) {
-    console.error("[user/profile PATCH]", e)
+    console.error("[referral/apply]", e)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@
 import { ExternalLink, MapPin, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
 
 function safeUrl(raw: unknown): string | null {
   if (typeof raw !== "string" || raw.length < 8) return null
@@ -121,6 +122,10 @@ export function ReelAnchorPreviewCard({
           </a>
         </Button>
       ) : null}
+
+      {(bookUrl || infoLinks.length > 0) && (
+        <AffiliateNotice className="mt-3 text-white/40 [&_a]:text-sky-400/95" />
+      )}
 
       <p className="text-[11px] text-white/35 mt-4 leading-snug">{hint}</p>
     </div>

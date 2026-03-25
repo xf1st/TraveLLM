@@ -27,6 +27,9 @@ export interface Database {
                     gen_reset_at: string | null
                     gen_limit_override: number | null
                     chat_limit_override: number | null
+                    referral_code: string | null
+                    referred_by: string | null
+                    partner_promo_code: string | null
                     username: string | null
                     public_profile: boolean
                     bio: string | null
@@ -51,6 +54,9 @@ export interface Database {
                     gen_reset_at?: string | null
                     gen_limit_override?: number | null
                     chat_limit_override?: number | null
+                    referral_code?: string | null
+                    referred_by?: string | null
+                    partner_promo_code?: string | null
                     username?: string | null
                     public_profile?: boolean
                     bio?: string | null
@@ -75,12 +81,38 @@ export interface Database {
                     gen_reset_at?: string | null
                     gen_limit_override?: number | null
                     chat_limit_override?: number | null
+                    referral_code?: string | null
+                    referred_by?: string | null
+                    partner_promo_code?: string | null
                     username?: string | null
                     public_profile?: boolean
                     bio?: string | null
                     preferences?: Json | null
                     created_at?: string
                     updated_at?: string | null
+                }
+            }
+            referral_rewards: {
+                Row: {
+                    id: string
+                    referee_id: string
+                    referrer_id: string
+                    bonus_generations: number
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    referee_id: string
+                    referrer_id: string
+                    bonus_generations?: number
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    referee_id?: string
+                    referrer_id?: string
+                    bonus_generations?: number
+                    created_at?: string
                 }
             }
             budget_expenses: {
@@ -345,6 +377,12 @@ export interface Database {
                     created_at?: string
                     updated_at?: string
                 }
+            }
+        }
+        Functions: {
+            apply_my_referral: {
+                Args: { p_code: string }
+                Returns: Json
             }
         }
     }

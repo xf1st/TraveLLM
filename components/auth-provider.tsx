@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { applyPendingReferral, captureReferralFromSearch } from "@/lib/referral-client"
+import { applyPendingPartnerPromo, capturePartnerPromoFromSearch } from "@/lib/partner-promo-client"
 import type { Session, User } from "@supabase/supabase-js"
 
 interface AuthContextType {
@@ -59,6 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         refreshSession()
     }, [pathname, refreshSession])
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        captureReferralFromSearch(window.location.search)
+        capturePartnerPromoFromSearch(window.location.search)
+    }, [pathname])
+
+    useEffect(() => {
+        if (!user || isLoading) return
+        void Promise.all([applyPendingPartnerPromo(), applyPendingReferral()])
+    }, [user?.id, isLoading])
 
     // Listen for auth state changes (login, logout, token refresh)
     useEffect(() => {

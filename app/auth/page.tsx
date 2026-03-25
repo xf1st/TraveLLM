@@ -9,11 +9,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ModeToggle } from "@/components/mode-toggle"
-import { ArrowRight, Loader2, Mail, Lock, User } from "lucide-react"
+import { ArrowRight, Loader2, Mail, Lock, User, Tag } from "lucide-react"
 import { supabase, signInWithGoogle } from "@/lib/supabase"
 import { appToast as toast } from "@/components/ui/sonner"
 import { motion } from "framer-motion"
 import { useTranslations } from "next-intl"
+import { captureReferralFromSearch } from "@/lib/referral-client"
+import {
+  capturePartnerPromoFromSearch,
+  getPendingPartnerPromo,
+  normalizePartnerPromo,
+  persistPartnerPromoForSignup,
+} from "@/lib/partner-promo-client"
 
 
 function AuthContent() {
@@ -24,6 +31,7 @@ function AuthContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
+  const [partnerPromo, setPartnerPromo] = useState("")
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login")
 
   const isAdminSubdomain = typeof window !== "undefined" && window.location.host.startsWith("admin.")
@@ -34,6 +42,14 @@ function AuthContent() {
       if (session?.user) router.push(defaultRedirect)
     })
   }, [router, defaultRedirect])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    captureReferralFromSearch(window.location.search)
+    capturePartnerPromoFromSearch(window.location.search)
+    const pending = getPendingPartnerPromo()
+    if (pending) setPartnerPromo((prev) => (prev.trim() === "" ? pending : prev))
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,7 +73,15 @@ function AuthContent() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+    persistPartnerPromoForSignup(partnerPromo)
+    const promoNorm = normalizePartnerPromo(partnerPromo)
+    const signUpData: { full_name: string; partner_promo_code?: string } = { full_name: name }
+    if (promoNorm) signUpData.partner_promo_code = promoNorm
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: signUpData },
+    })
     if (error) {
       toast.error(error.message)
     } else {
@@ -75,6 +99,7 @@ function AuthContent() {
   }
 
   const handleGoogleLogin = async () => {
+    if (activeTab === "signup") persistPartnerPromoForSignup(partnerPromo)
     const { error } = await signInWithGoogle()
     if (error) toast.error(error.message)
   }
@@ -412,6 +437,25 @@ function AuthContent() {
                         </p>
                       </div>
                     )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="signup-promo" className="text-sm font-medium text-white/80 lg:text-foreground">
+                      {t("promoCodeLabel")}
+                    </Label>
+                    <div className="relative">
+                      <Tag className="absolute left-3.5 top-3 h-4 w-4 text-white/50 lg:text-muted-foreground pointer-events-none" />
+                      <Input
+                        id="signup-promo"
+                        placeholder={t("promoCodePlaceholder")}
+                        value={partnerPromo}
+                        onChange={(e) => setPartnerPromo(e.target.value)}
+                        autoComplete="off"
+                        className="pl-10 h-11 rounded-xl
+                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <p className="text-[11px] leading-snug text-white/45 lg:text-muted-foreground">{t("promoCodeHint")}</p>
                   </div>
                   <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("signUp")} <ArrowRight className="ml-2 h-4 w-4" /></>}
