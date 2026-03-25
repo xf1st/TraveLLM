@@ -141,7 +141,7 @@ export function Header({ floating = false }: HeaderProps) {
 
   if (floating) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-50 p-4 md:p-6 pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:px-6 md:pb-6 md:pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
         <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-md md:backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-md md:shadow-2xl">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
@@ -261,7 +261,7 @@ export function Header({ floating = false }: HeaderProps) {
   // Ensure hydration match for main menu (prevents ID mismatches on SSR)
   if (!isMounted) {
     return (
-      <div className="sticky top-0 z-50 w-full p-3 md:p-4 opacity-0">
+      <div className="sticky top-0 z-50 w-full opacity-0 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 md:pt-[calc(1rem+env(safe-area-inset-top,0px))]">
         <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 border border-border/50 shadow-md md:shadow-2xl">
           {/* Skeleton or empty header to prefer layout shift over hydration error */}
         </header>
@@ -272,12 +272,12 @@ export function Header({ floating = false }: HeaderProps) {
   return (
     <div className={cn(
       "z-50 w-full transition-all duration-500",
-      // Mobile: always sticky with padding, no scroll magic
-      "sticky top-0 p-2",
-      // md+: keep original scroll-aware behaviour
+      "sticky top-0 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]",
       pathname === "/"
-        ? (isScrolled ? "md:fixed md:top-0 md:p-3 lg:p-4" : "md:absolute md:top-0 md:p-6 lg:p-8")
-        : "md:sticky md:top-0 md:p-3 lg:p-4"
+        ? isScrolled
+          ? "md:fixed md:top-0 md:px-3 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-4 lg:pb-4 lg:pt-[calc(1rem+env(safe-area-inset-top,0px))]"
+          : "md:absolute md:top-0 md:px-6 md:pb-6 md:pt-[calc(1.5rem+env(safe-area-inset-top,0px))] lg:px-8 lg:pb-8 lg:pt-[calc(2rem+env(safe-area-inset-top,0px))]"
+        : "md:sticky md:top-0 md:px-3 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-4 lg:pb-4 lg:pt-[calc(1rem+env(safe-area-inset-top,0px))]"
     )}>
       <header className={cn(
         "mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl transition-all duration-500",

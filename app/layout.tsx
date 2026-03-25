@@ -88,12 +88,9 @@ export async function generateMetadata(): Promise<Metadata> {
       telephone: false,
     },
     icons: {
-      icon: [
-        { url: "/api/pwa/icon/192", sizes: "192x192", type: "image/png" },
-        { url: "/api/pwa/icon/512", sizes: "512x512", type: "image/png" },
-      ],
+      icon: "/favicon.ico",
       shortcut: "/favicon.ico",
-      apple: [{ url: "/api/pwa/icon/180", sizes: "180x180", type: "image/png" }],
+      apple: "/apple-icon.png",
     },
   }
 }
