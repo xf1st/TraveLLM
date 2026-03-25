@@ -270,7 +270,9 @@ function ProfileContent() {
 
   const [siteOrigin, setSiteOrigin] = useState("")
   useEffect(() => {
-    setSiteOrigin(typeof window !== "undefined" ? window.location.origin : "")
+    if (typeof window === "undefined") return
+    const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
+    setSiteOrigin(fromEnv && fromEnv.length > 0 ? fromEnv : window.location.origin)
   }, [])
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -379,8 +381,24 @@ function ProfileContent() {
       setDebugInfo((prev: any) => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
 
       if (authUser) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', authUser.id).single()
+        const { data: row } = await supabase.from('profiles').select('*').eq('id', authUser.id).single()
+        let data = row
         if (data) {
+          const rc = data.referral_code != null ? String(data.referral_code).trim() : ""
+          if (rc.length < 4) {
+            try {
+              const res = await fetch("/api/user/ensure-referral-code", {
+                method: "POST",
+                credentials: "same-origin",
+              })
+              const j = (await res.json().catch(() => ({}))) as { referral_code?: string }
+              if (res.ok && typeof j.referral_code === "string" && j.referral_code.trim().length >= 4) {
+                data = { ...data, referral_code: j.referral_code.trim().toUpperCase() }
+              }
+            } catch {
+              /* keep row as loaded */
+            }
+          }
           setProfile(data)
           setAvatarUrl(data.avatar_url)
           const prefs = data.preferences || {}
@@ -1359,6 +1377,52 @@ function ProfileContent() {
                         ))}
                       </div>
 
+                      {/* Приглашение друга — на обзоре, без входа в «Настроить» */}
+                      {profile?.referral_code && siteOrigin ? (
+                        <div className="trip-glass border border-violet-400/25 rounded-2xl p-5 space-y-3">
+                          <h3 className="text-sm font-bold flex items-center gap-2">
+                            <Gift className="h-4 w-4 text-violet-400" />
+                            {tp("sectionReferral")}
+                          </h3>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{tp("referralDesc")}</p>
+                          {profile?.referred_by && (
+                            <p className="text-xs text-sky-600/90 dark:text-sky-400/90">{tp("referralJoinedViaFriend")}</p>
+                          )}
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">{tp("referralYourCode")}</div>
+                            <div className="font-mono text-sm font-semibold tracking-wide">{profile.referral_code}</div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <div className="text-xs font-medium text-muted-foreground">{tp("referralInviteLink")}</div>
+                            <div className="rounded-lg border border-white/15 bg-background/30 px-3 py-2 text-xs break-all font-mono text-muted-foreground">
+                              {buildAuthSignupReferralUrl(siteOrigin, profile.referral_code)}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto"
+                              onClick={async () => {
+                                const url = buildAuthSignupReferralUrl(siteOrigin, profile.referral_code!)
+                                try {
+                                  await navigator.clipboard.writeText(url)
+                                  toast.success(tp("referralCopied"))
+                                } catch {
+                                  toast.error(tp("referralCopyFailed"))
+                                }
+                              }}
+                            >
+                              <Share2 className="h-3.5 w-3.5 mr-2" />
+                              {tp("referralCopyLink")}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : profile && siteOrigin ? (
+                        <div className="trip-glass border border-amber-500/25 rounded-2xl p-4">
+                          <p className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">{tp("referralUnavailable")}</p>
+                        </div>
+                      ) : null}
+
                       {/* Interests card */}
                       <div className="trip-glass border border-white/20 rounded-2xl p-5">
                         <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
@@ -1947,7 +2011,9 @@ function ProfileContent() {
                                 </Button>
                               </div>
                             </>
-                          ) : null}
+                          ) : (
+                            <p className="text-xs text-muted-foreground leading-relaxed">{tp("referralUnavailable")}</p>
+                          )}
                         </div>
                       </div>
 

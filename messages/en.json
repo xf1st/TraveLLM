@@ -919,6 +919,7 @@
     "referralCopied": "Link copied",
     "referralCopyFailed": "Could not copy",
     "referralJoinedViaFriend": "You signed up with a friend's invite.",
+    "referralUnavailable": "Your invite code could not be created. Apply the referral migration on Supabase (20250325130000_referral_program.sql), then refresh this page.",
     "sectionManagement": "Management",
     "sectionAccount": "Account",
     "travelSection": "Travel",

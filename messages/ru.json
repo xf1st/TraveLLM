@@ -919,6 +919,7 @@
     "referralCopied": "Ссылка скопирована",
     "referralCopyFailed": "Не удалось скопировать",
     "referralJoinedViaFriend": "Вы зарегистрировались по приглашению друга.",
+    "referralUnavailable": "Код приглашения не создался. В Supabase должна быть применена миграция реферальной программы (файл 20250325130000_referral_program.sql). После применения обновите страницу.",
     "sectionManagement": "Управление",
     "sectionAccount": "Аккаунт",
     "travelSection": "Путешествия",
