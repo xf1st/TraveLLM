@@ -39,13 +39,14 @@ import { cn } from "@/lib/utils"
 import {
   PROFILE_NAME_MAX,
   PROFILE_USERNAME_MAX,
-  PROFILE_TEXT_MAX,
+  PROFILE_BIO_MAX,
+  PROFILE_LOCALE_LINE_MAX,
   PROFILE_LANGUAGE_IDS,
   PROFILE_INTEREST_IDS,
   sanitizeDisplayName,
   sanitizeUsernameInput,
   normalizeUsername,
-  sanitizeLongText,
+  sanitizeBioText,
   sanitizeCitizenshipNationality,
   validateDisplayName,
   validateUsername,
@@ -584,7 +585,7 @@ function ProfileContent() {
       return
     }
 
-    const bioSan = sanitizeLongText(editForm.bio || "", PROFILE_TEXT_MAX)
+    const bioSan = sanitizeBioText(editForm.bio || "", PROFILE_BIO_MAX)
     const cit = sanitizeCitizenshipNationality(editForm.citizenship)
     const nat = sanitizeCitizenshipNationality(editForm.nationality)
     const ageNum = editForm.age.trim() ? parseProfileAge(editForm.age) : null
@@ -682,7 +683,7 @@ function ProfileContent() {
       else toast.error(tp("toast.usernameInvalid"))
       return
     }
-    const bioSan = sanitizeLongText(editForm.bio || "", PROFILE_TEXT_MAX)
+    const bioSan = sanitizeBioText(editForm.bio || "", PROFILE_BIO_MAX)
     setSavingPublicProfile(true)
     try {
       const { profile: p } = await patchMyProfile({
@@ -1109,15 +1110,15 @@ function ProfileContent() {
                           onChange={(e) =>
                             setEditForm({
                               ...editForm,
-                              bio: sanitizeLongText(e.target.value, PROFILE_TEXT_MAX),
+                              bio: sanitizeBioText(e.target.value, PROFILE_BIO_MAX),
                             })
                           }
                           placeholder={tp("aboutMePlaceholder")}
-                          maxLength={PROFILE_TEXT_MAX}
+                          maxLength={2000}
                           rows={2}
                           className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                         />
-                        <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
+                        <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/{PROFILE_BIO_MAX}</p>
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-xs font-medium text-muted-foreground">{tp("uploadAvatar")}</label>
@@ -1137,7 +1138,7 @@ function ProfileContent() {
                               citizenship: sanitizeCitizenshipNationality(e.target.value),
                             })
                           }
-                          maxLength={PROFILE_TEXT_MAX}
+                          maxLength={PROFILE_LOCALE_LINE_MAX}
                           className="bg-background/50"
                         />
                       </div>
@@ -1151,7 +1152,7 @@ function ProfileContent() {
                               nationality: sanitizeCitizenshipNationality(e.target.value),
                             })
                           }
-                          maxLength={PROFILE_TEXT_MAX}
+                          maxLength={PROFILE_LOCALE_LINE_MAX}
                           className="bg-background/50"
                         />
                       </div>
@@ -1951,15 +1952,15 @@ function ProfileContent() {
                               onChange={(e) =>
                                 setEditForm({
                                   ...editForm,
-                                  bio: sanitizeLongText(e.target.value, PROFILE_TEXT_MAX),
+                                  bio: sanitizeBioText(e.target.value, PROFILE_BIO_MAX),
                                 })
                               }
                               placeholder={tp("bioPlaceholder")}
-                              maxLength={PROFILE_TEXT_MAX}
+                              maxLength={2000}
                               rows={3}
                               className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                             />
-                            <p className="text-xs text-muted-foreground">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
+                            <p className="text-xs text-muted-foreground">{editForm.bio.length}/{PROFILE_BIO_MAX}</p>
                           </div>
 
                           <div className="flex items-center justify-between py-2 border-t border-border/30">

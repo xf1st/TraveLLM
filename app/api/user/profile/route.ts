@@ -41,7 +41,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const rl = checkRateLimit(user.id, "user-profile-patch", 40)
+    const rl = checkRateLimit(user.id, "user-profile-patch", 24)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     let json: unknown
@@ -53,7 +53,8 @@ export async function PATCH(request: Request) {
 
     const parsed = UserProfilePatchSchema.safeParse(json)
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 })
+      console.warn("[user/profile] schema reject", parsed.error.flatten())
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 })
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey, {

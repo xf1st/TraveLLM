@@ -6,10 +6,11 @@
 import { z } from "zod"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import {
-  PROFILE_TEXT_MAX,
+  PROFILE_BIO_MAX,
   sanitizeDisplayName,
-  sanitizeLongText,
+  sanitizeBioText,
   sanitizeCitizenshipNationality,
+  sanitizePlainPreferenceString,
   normalizeUsername,
   validateDisplayName,
   validateUsername,
@@ -42,7 +43,6 @@ const PREFERENCE_KEYS_ALLOWLIST = new Set([
   "citizenship",
   "nationality",
   "skipped",
-  "budgetPreference",
   "languages",
 ])
 
@@ -64,6 +64,32 @@ export const UserProfilePatchSchema = z
   .strict()
 
 export type UserProfilePatchInput = z.infer<typeof UserProfilePatchSchema>
+
+/** Max grapheme clusters for string values inside `preferences` JSON */
+const PREFERENCE_STRING_MAX: Record<string, number> = {
+  gender: 40,
+  pace: 40,
+  accommodation: 80,
+  nationality: 80,
+  religion: 80,
+  currency: 12,
+  language: 24,
+  defaultTripDuration: 16,
+  travelFrequency: 60,
+  companionsCount: 8,
+  profileBackground: 48,
+  budgetPreference: 80,
+  citizenship: 80,
+}
+
+function scrubPreferenceStrings(obj: Record<string, unknown>) {
+  for (const key of Object.keys(obj)) {
+    const v = obj[key]
+    if (typeof v !== "string") continue
+    const max = PREFERENCE_STRING_MAX[key] ?? 120
+    obj[key] = sanitizePlainPreferenceString(v, max)
+  }
+}
 
 function pickAllowlistedPreferences(raw: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {}
@@ -100,43 +126,53 @@ function sanitizePreferencesPatch(
     const v = picked.visitedCountries
     if (Array.isArray(v)) {
       picked.visitedCountries = v
-        .map((x) => String(x || "").trim().slice(0, 120))
+        .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 120))
         .filter(Boolean)
         .slice(0, 200)
     } else if (typeof v === "string") {
       picked.visitedCountries = v
         .split(",")
-        .map((s) => s.trim().slice(0, 120))
+        .map((s) => sanitizePlainPreferenceString(s.trim(), 120))
         .filter(Boolean)
         .slice(0, 200)
     }
   }
   if ("preferredDestinations" in picked && Array.isArray(picked.preferredDestinations)) {
     picked.preferredDestinations = picked.preferredDestinations
-      .map((x) => String(x || "").trim().slice(0, 200))
+      .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 200))
       .filter(Boolean)
       .slice(0, 100)
   }
   if ("travelStyle" in picked && Array.isArray(picked.travelStyle)) {
-    picked.travelStyle = picked.travelStyle.map((x) => String(x || "").trim().slice(0, 80)).filter(Boolean).slice(0, 30)
+    picked.travelStyle = picked.travelStyle
+      .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 80))
+      .filter(Boolean)
+      .slice(0, 30)
   }
   if ("transport" in picked && Array.isArray(picked.transport)) {
-    picked.transport = picked.transport.map((x) => String(x || "").trim().slice(0, 80)).filter(Boolean).slice(0, 30)
+    picked.transport = picked.transport
+      .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 80))
+      .filter(Boolean)
+      .slice(0, 30)
   }
   if ("dietaryRestrictions" in picked && Array.isArray(picked.dietaryRestrictions)) {
     picked.dietaryRestrictions = picked.dietaryRestrictions
-      .map((x) => String(x || "").trim().slice(0, 80))
+      .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 80))
       .filter(Boolean)
       .slice(0, 40)
   }
   if ("languages" in picked && Array.isArray(picked.languages)) {
-    picked.languages = picked.languages.map((x) => String(x || "").trim().slice(0, 40)).filter(Boolean).slice(0, 20)
+    picked.languages = picked.languages
+      .map((x) => sanitizePlainPreferenceString(String(x || "").trim(), 40))
+      .filter(Boolean)
+      .slice(0, 20)
   }
   if ("budgetPreference" in picked && picked.budgetPreference !== null && picked.budgetPreference !== undefined) {
-    picked.budgetPreference = String(picked.budgetPreference).trim().slice(0, 80)
+    picked.budgetPreference = sanitizePlainPreferenceString(String(picked.budgetPreference).trim(), 80)
   }
 
   const merged = { ...base, ...picked }
+  scrubPreferenceStrings(merged)
   const json = JSON.stringify(merged)
   if (json.length > MAX_PREFERENCES_JSON_BYTES) {
     throw new Error("preferences too large")
@@ -202,7 +238,7 @@ export async function applyUserProfilePatch(
   }
 
   if (body.bio !== undefined) {
-    update.bio = body.bio === null ? null : sanitizeLongText(body.bio, PROFILE_TEXT_MAX) || null
+    update.bio = body.bio === null ? null : sanitizeBioText(body.bio, PROFILE_BIO_MAX) || null
   }
 
   if (body.citizenship !== undefined) {
@@ -258,7 +294,7 @@ export async function applyUserProfilePatch(
     if (upErr.code === "23505") {
       return { ok: false, error: "Username already taken", code: "username_taken", status: 409 }
     }
-    return { ok: false, error: upErr.message || "Update failed", status: 500 }
+    return { ok: false, error: "Update failed", status: 500 }
   }
 
   return { ok: true, row: updated as Record<string, unknown> }
