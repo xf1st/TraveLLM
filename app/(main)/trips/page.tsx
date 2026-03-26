@@ -106,8 +106,9 @@ function FeaturedTripCard({ trip, isFav, onToggleFav }: { trip: any; isFav: bool
             {t("newest")}
           </span>
           <button
+            type="button"
             onClick={(e) => onToggleFav(trip.id, e)}
-            className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-black/30 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/50 transition-colors"
+            className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-black/30 backdrop-blur-md transition-colors hover:bg-black/50 sm:h-9 sm:w-9"
           >
             <Heart className={cn("h-3 sm:h-4 w-3 sm:w-4 transition-all", isFav ? "fill-rose-500 text-rose-500" : "text-white")} />
           </button>
@@ -200,8 +201,9 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
             />
             {/* Fav overlay */}
             <button
+              type="button"
               onClick={(e) => onToggleFav(trip.id, e)}
-              className="absolute top-1.5 left-1.5 z-10 w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center"
+              className="absolute left-1.5 top-1.5 z-10 flex h-9 w-9 touch-manipulation items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
             >
               <Heart className={cn("h-3 w-3", isFav ? "fill-rose-500 text-rose-500" : "text-white/80")} />
             </button>
@@ -266,8 +268,9 @@ function TripCard({ trip, isFav, onToggleFav, index }: { trip: any; isFav: boole
               <Shield className="h-2.5 w-2.5" />{trip.safetyLevel || 10}/10
             </div>
             <button
+              type="button"
               onClick={(e) => onToggleFav(trip.id, e)}
-              className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-colors"
+              className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-md transition-colors hover:bg-black/60 sm:h-8 sm:w-8"
             >
               <Heart className={cn("h-3.5 w-3.5 transition-all", isFav ? "fill-rose-500 text-rose-500" : "text-white")} />
             </button>
@@ -332,9 +335,9 @@ function EmptyState({ view }: { view: "my" | "favorites" }) {
         badge={<Sparkles className="h-4 w-4 text-amber-400" aria-hidden />}
       >
         {view === "my" && (
-          <Button asChild className="rounded-full px-8 py-5 text-base font-bold shadow-lg hover:scale-105 transition-transform">
-            <Link href="/plan">
-              <Plus className="h-4 w-4 mr-2" />
+          <Button asChild className="mx-auto flex h-12 w-full max-w-sm touch-manipulation rounded-full px-8 text-base font-bold shadow-lg transition-transform hover:scale-[1.02] sm:h-auto sm:w-auto sm:py-5 sm:hover:scale-105">
+            <Link href="/plan" className="flex items-center justify-center gap-2">
+              <Plus className="h-4 w-4" />
               {t("createFirst")}
             </Link>
           </Button>
@@ -499,31 +502,31 @@ function TripsContent() {
 
   return (
     <AppLayout title={t("title")} description={t("description")} className="trip-bg">
-      <div className="relative z-10 max-w-7xl mx-auto space-y-8">
+      <div className="relative z-10 mx-auto min-w-0 max-w-7xl space-y-6 sm:space-y-8">
 
         {/* ─── Header ─── */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">{t("collectionLabel")}</p>
-            <h1 className="text-3xl md:text-4xl font-black text-foreground leading-none">
+        <div className="flex flex-col justify-between gap-4 pt-2 sm:flex-row sm:items-end">
+          <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">{t("collectionLabel")}</p>
+            <h1 className="text-2xl font-black leading-none text-foreground sm:text-3xl md:text-4xl">
               {t("title")}
             </h1>
           </div>
           {/* Stats row */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 trip-glass px-4 py-2.5 rounded-2xl border border-white/20 text-sm">
-              <TrendingUp className="h-4 w-4 text-primary" />
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="trip-glass flex items-center gap-1.5 rounded-2xl border border-white/20 px-3 py-2 text-xs sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm">
+              <TrendingUp className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />
               <span className="font-black text-foreground">{totalRoutes}</span>
-              <span className="text-muted-foreground font-medium">{t("routesCount")}</span>
+              <span className="font-medium text-muted-foreground">{t("routesCount")}</span>
             </div>
-            <div className="flex items-center gap-2 trip-glass px-4 py-2.5 rounded-2xl border border-white/20 text-sm">
-              <Globe className="h-4 w-4 text-emerald-400" />
+            <div className="trip-glass flex items-center gap-1.5 rounded-2xl border border-white/20 px-3 py-2 text-xs sm:gap-2 sm:px-4 sm:py-2.5 sm:text-sm">
+              <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-400 sm:h-4 sm:w-4" />
               <span className="font-black text-foreground">{uniqueDests}</span>
-              <span className="text-muted-foreground font-medium">{t("destinationsCount")}</span>
+              <span className="font-medium text-muted-foreground">{t("destinationsCount")}</span>
             </div>
-            <Button asChild size="sm" className="rounded-full px-5 py-2.5 h-auto font-bold shadow-lg hover:scale-105 transition-transform">
-              <Link href="/plan">
-                <Plus className="h-4 w-4 mr-1.5" />
+            <Button asChild size="sm" className="h-10 touch-manipulation rounded-full px-4 py-2.5 text-sm font-bold shadow-lg transition-transform hover:scale-[1.02] sm:h-auto sm:px-5 sm:hover:scale-105">
+              <Link href="/plan" className="flex items-center gap-1.5">
+                <Plus className="h-4 w-4" />
                 {t("newTrip")}
               </Link>
             </Button>
@@ -531,16 +534,17 @@ function TripsContent() {
         </div>
 
         {/* ─── Controls ─── */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
             {/* View tabs */}
-            <div className="flex trip-glass border border-white/20 rounded-2xl p-1 gap-1 w-full sm:w-auto">
+            <div className="flex w-full max-w-full gap-1 rounded-2xl border border-white/20 trip-glass p-1 sm:w-auto">
               {(["my", "favorites"] as const).map((v) => (
                 <button
+                  type="button"
                   key={v}
                   onClick={() => { setView(v); setSelectedTag(null); setSearchQuery(""); }}
                   className={cn(
-                    "flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all",
+                    "flex min-h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all sm:flex-none sm:min-h-0 sm:px-6",
                     view === v
                       ? "bg-white dark:bg-white/15 text-foreground shadow-sm border border-white/30 dark:border-white/10"
                       : "text-muted-foreground hover:text-foreground hover:bg-white/50 dark:hover:bg-white/5"
@@ -556,25 +560,26 @@ function TripsContent() {
             </div>
 
             {/* Search */}
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
+            <div className="group relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary sm:left-4" />
               <input
                 type="text"
                 placeholder={t("search")}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-12 pl-11 pr-4 rounded-2xl border border-white/20 bg-white/30 dark:bg-white/5 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                className="h-12 w-full min-w-0 rounded-2xl border border-white/20 bg-white/30 pl-10 pr-4 text-base text-foreground backdrop-blur-md placeholder:text-muted-foreground transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 dark:bg-white/5 sm:pl-11 sm:text-sm"
               />
             </div>
           </div>
 
           {/* Tag pills */}
           {allTags.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] no-scrollbar">
               <button
+                type="button"
                 onClick={() => setSelectedTag(null)}
                 className={cn(
-                  "shrink-0 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all border",
+                  "shrink-0 touch-manipulation rounded-full border px-3.5 py-2 text-xs font-bold uppercase tracking-wide transition-all sm:px-4 sm:py-1.5",
                   !selectedTag
                     ? "bg-primary text-primary-foreground border-primary"
                     : "border-white/20 text-muted-foreground hover:text-foreground hover:border-white/40"
@@ -587,10 +592,11 @@ function TripsContent() {
                 const active = selectedTag === tag;
                 return (
                   <button
+                    type="button"
                     key={tag}
                     onClick={() => setSelectedTag(active ? null : tag)}
                     className={cn(
-                      "shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all border",
+                      "flex shrink-0 touch-manipulation items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-bold uppercase tracking-wide transition-all sm:px-4 sm:py-1.5",
                       active
                         ? "bg-primary text-primary-foreground border-primary"
                         : "border-white/20 text-muted-foreground hover:text-foreground hover:border-white/40"
@@ -642,11 +648,12 @@ function TripsContent() {
 
             {/* Load more */}
             {hasMore && view === "my" && (
-              <div className="flex justify-center pt-4">
+              <div className="flex justify-center px-2 pt-4">
                 <button
+                  type="button"
                   onClick={loadMore}
                   disabled={isLoadingMore}
-                  className="flex items-center gap-2 px-8 py-3 rounded-full border border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex h-12 w-full max-w-md touch-manipulation items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold backdrop-blur-sm transition-all hover:scale-[1.02] hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 sm:h-auto sm:w-auto sm:px-8 sm:hover:scale-105"
                 >
                   {isLoadingMore ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> {t("loadingMore")}</>

@@ -27,6 +27,14 @@ import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { buildEnrichedPrompt } from "@/lib/prompt-builder"
 import { normalizeTravelMode } from "@/lib/travel-mode"
 import { type RouteData } from "@/types/itinerary"
+import {
+    buildSafePreferences,
+    computeDurationDays,
+    normalizeTravelStyleIds,
+    sanitizeDestinationList,
+    sanitizeRouteUserText,
+    tripDurationError,
+} from "@/lib/route-generation-guard"
 
 export const maxDuration = 60;
 
@@ -73,19 +81,23 @@ export async function POST(req: Request) {
         const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
         const travelMode = normalizeTravelMode(travelModeBody)
 
-        const safeHighlight = tripHighlight ? String(tripHighlight).replace(/"/g, "'").slice(0, 300) : ''
-        const safeTripVibe = tripVibe ? String(tripVibe).replace(/"/g, "'").slice(0, 2000) : ''
-        const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
-        const durationDays = startDate && endDate
-            ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-            : 7
-
-        const toArray = (val: any): string[] => {
-            if (!val) return []
-            if (Array.isArray(val)) return val.filter(Boolean)
-            if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
-            return []
+        const safePreferences = buildSafePreferences(preferences)
+        const travelStyles = normalizeTravelStyleIds(travelStyle)
+        const destinations = sanitizeDestinationList(customDestination, strictDestinations)
+        const durationDays = computeDurationDays(startDate, endDate)
+        const durationErr = tripDurationError(durationDays, userLocale)
+        if (durationErr) {
+            return NextResponse.json(durationErr.body, { status: durationErr.status })
         }
+
+        const safeHighlight = tripHighlight ? sanitizeRouteUserText(String(tripHighlight), 300) : ""
+        const safeTripVibe = tripVibe ? sanitizeRouteUserText(String(tripVibe), 2000) : ""
+        const companionsSafe = companions ? sanitizeRouteUserText(String(companions), 220) : ""
+        const effectiveDepartureCity =
+            sanitizeRouteUserText(String(departureCity || safePreferences.departureCity || "Москва"), 120) || "Москва"
+        const travelersRaw = parseInt(String(travelers), 10)
+        const travelersCount =
+            Number.isFinite(travelersRaw) && travelersRaw >= 1 && travelersRaw <= 50 ? travelersRaw : 2
 
         const MAX_BUDGET = 10_000_000;
         let budgetCap = 15000 * durationDays;
@@ -99,8 +111,6 @@ export async function POST(req: Request) {
         const budgetDesc = userLocale === 'en'
             ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
             : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
-        const destinations = strictDestinations === false ? [] : (customDestination ? customDestination.split(';').map((s: string) => s.trim()).filter(Boolean) : [])
-
         let dynamicContextStr = ""
         let adjustedBudget = budgetCap
         let warningsStr = ""
@@ -108,14 +118,19 @@ export async function POST(req: Request) {
         if (destinations.length > 0 && startDate && endDate) {
             try {
                 const validation = await validateRouteRequest({
-                    departureCity: effectiveDepartureCity, destinations, startDate, endDate, budget: budgetCap, citizenship: preferences?.citizenship || "RU"
+                    departureCity: effectiveDepartureCity, destinations, startDate, endDate, budget: budgetCap, citizenship: safePreferences.citizenship || "RU"
                 })
                 if (validation.blockers.length > 0) return NextResponse.json({ error: validation.blockers[0].message }, { status: 400 })
                 adjustedBudget = validation.adjustedBudget || budgetCap
                 warningsStr = validation.warnings?.map(w => w.message).join('; ') || ''
 
                 const dynamicContext = await collectDynamicContext({
-                    departureCity: effectiveDepartureCity, destinations, startDate, endDate, interests: toArray(preferences?.interestsDetailed), travelStyle: toArray(travelStyle)[0]
+                    departureCity: effectiveDepartureCity,
+                    destinations,
+                    startDate,
+                    endDate,
+                    interests: safePreferences.interestsDetailed || [],
+                    travelStyle: travelStyles[0] || "",
                 })
                 dynamicContextStr = formatDynamicContextForPrompt(dynamicContext)
             } catch (e) { console.error("[Validation Error]", e) }
@@ -140,14 +155,15 @@ export async function POST(req: Request) {
         const enriched = await buildEnrichedPrompt({
             locale: userLocale,
             departureCity: effectiveDepartureCity, destinations, startDate, endDate,
-            budget: budgetCap, adjustedBudget, budgetDesc, travelStyle: toArray(travelStyle),
-            companions, travelers: parseInt(travelers) || 2, preferences, dynamicContextStr,
+            budget: budgetCap, adjustedBudget, budgetDesc, travelStyle: travelStyles,
+            companions: companionsSafe, travelers: travelersCount, preferences: safePreferences, dynamicContextStr,
             warningsStr, safeHighlight, tripVibe: safeTripVibe || undefined, destinationType, strictDestinations, countryCount, filterByDocuments,
             travelMode,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
-        const aiTemperature = (body.aiCreativity || preferences?.aiCreativity) === "creative" ? 1.0 : 0.6
+        const aiTemperature =
+            (body.aiCreativity === "creative" || safePreferences.aiCreativity === "creative") ? 1.0 : 0.6
 
         resetSessionUsage();
         try {

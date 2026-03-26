@@ -261,7 +261,7 @@ export default function PlanVibePage() {
   if (!basePayload) {
     return (
       <AppLayout className={cn(fontBody.className, "min-h-screen bg-[#fff3fa] dark:bg-transparent")}>
-        <div className="flex min-h-[50vh] items-center justify-center text-sm text-[#6b5469] dark:text-zinc-400">
+        <div className="flex min-h-[50vh] items-center justify-center px-4 text-sm text-[#6b5469] dark:text-zinc-400">
           {tc("loading")}
         </div>
       </AppLayout>
@@ -278,7 +278,7 @@ export default function PlanVibePage() {
         "selection:bg-[#ff7941] selection:text-[#431200] dark:selection:bg-orange-500/40 dark:selection:text-white",
       )}
     >
-      <div className="relative -mx-4 -mt-4 px-4 pb-24 pt-6 lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-32 lg:pt-10">
+      <div className="relative -mx-3 -mt-4 min-w-0 max-w-[100vw] px-3 pb-28 pt-4 sm:-mx-4 sm:px-4 sm:pb-24 sm:pt-6 lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-32 lg:pt-10">
         <GeneratingModal open={loading} onCancel={handleCancelGeneration} />
         <ErrorModal
           open={errorModal.open}
@@ -290,7 +290,7 @@ export default function PlanVibePage() {
         />
 
         <Dialog open={showEconomyWarning} onOpenChange={setShowEconomyWarning}>
-          <DialogContent className="max-w-md border-[#c0a5bd]/40 bg-[#fff3fa] dark:border-white/10 dark:bg-zinc-900/95 dark:text-zinc-100">
+          <DialogContent className="w-[calc(100vw-1.25rem)] max-w-md border-[#c0a5bd]/40 bg-[#fff3fa] dark:border-white/10 dark:bg-zinc-900/95 dark:text-zinc-100 sm:w-full">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 font-bold text-foreground">
                 <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -305,7 +305,7 @@ export default function PlanVibePage() {
                 type="button"
                 onClick={() => handleEconomyChoice(true)}
                 className={cn(
-                  "w-full rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
+                  "w-full touch-manipulation rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
                   "dark:border-white/10 dark:bg-zinc-800/90 dark:hover:bg-zinc-800",
                   stickerShadow,
                 )}
@@ -317,7 +317,7 @@ export default function PlanVibePage() {
                 type="button"
                 onClick={() => handleEconomyChoice(false)}
                 className={cn(
-                  "w-full rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
+                  "w-full touch-manipulation rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
                   "dark:border-white/10 dark:bg-zinc-800/90 dark:hover:bg-zinc-800",
                   stickerShadow,
                 )}
@@ -343,7 +343,7 @@ export default function PlanVibePage() {
           type="button"
           onClick={() => router.push("/plan")}
           className={cn(
-            "relative z-10 mb-8 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[#a33800] transition hover:bg-[#ffebfa]",
+            "relative z-10 mb-6 sm:mb-8 inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[#a33800] transition hover:bg-[#ffebfa] touch-manipulation",
             "dark:text-orange-300 dark:hover:bg-white/10",
             fontBody.className,
           )}
@@ -352,9 +352,9 @@ export default function PlanVibePage() {
           {tv("back")}
         </button>
 
-        <div className="relative z-10 mx-auto max-w-5xl">
+        <div className="relative z-10 mx-auto min-w-0 max-w-5xl">
           {/* Header — Stitch */}
-          <header className="mb-10 overflow-visible lg:mb-12">
+          <header className="mb-8 overflow-visible sm:mb-10 lg:mb-12">
             <span
               className={cn(
                 "mb-4 inline-block rotate-[-2deg] rounded-full bg-[#a80096] px-4 py-1 text-xs font-bold uppercase tracking-widest text-[#ffeef6]",
@@ -366,7 +366,7 @@ export default function PlanVibePage() {
             </span>
             <h1
               className={cn(
-                "overflow-visible pb-1 pr-2 pt-2 text-5xl font-black italic leading-[1.1] tracking-tighter text-[#3b283b] sm:pr-3 md:text-7xl md:leading-[1.12] lg:text-8xl lg:pr-4 lg:leading-[1.12]",
+                "overflow-visible pb-1 pr-1 pt-2 text-4xl font-black italic leading-[1.08] tracking-tighter text-[#3b283b] sm:text-5xl sm:pr-3 sm:leading-[1.1] md:text-7xl md:leading-[1.12] lg:text-8xl lg:pr-4 lg:leading-[1.12]",
                 "dark:text-zinc-100",
                 fontHeadline.className,
               )}
@@ -380,7 +380,7 @@ export default function PlanVibePage() {
             </h1>
             <p
               className={cn(
-                "mt-6 max-w-md text-lg font-medium leading-relaxed text-[#6b5469] md:text-xl",
+                "mt-4 sm:mt-6 max-w-md text-base font-medium leading-relaxed text-[#6b5469] sm:text-lg md:text-xl",
                 "dark:text-zinc-400",
                 fontBody.className,
               )}
@@ -389,12 +389,12 @@ export default function PlanVibePage() {
             </p>
           </header>
 
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-8">
+          <div className="grid grid-cols-1 items-start gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-8">
             {/* Left: form */}
-            <div className="space-y-10 lg:col-span-7">
+            <div className="min-w-0 space-y-8 sm:space-y-10 lg:col-span-7">
               {/* 1 Energy */}
               <section>
-                <div className="mb-6 flex items-center gap-3">
+                <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a33800] text-sm font-bold text-[#ffefeb]"
                     style={{ fontFamily: "inherit" }}
@@ -403,14 +403,14 @@ export default function PlanVibePage() {
                   </span>
                   <h2
                     className={cn(
-                      "text-2xl font-black italic text-[#3b283b] dark:text-zinc-100",
+                      "text-xl sm:text-2xl font-black italic text-[#3b283b] dark:text-zinc-100",
                       fontHeadline.className,
                     )}
                   >
                     {tv("energyStep")}
                   </h2>
                 </div>
-                <div className="flex flex-wrap gap-3 md:gap-4">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3 md:gap-4">
                   {ENERGY_KEYS.map((key) => {
                     const Icon = ENERGY_ICON[key]
                     const selected = energy === key
@@ -437,7 +437,7 @@ export default function PlanVibePage() {
                         onClick={() => setEnergy(key)}
                         aria-pressed={selected}
                         className={cn(
-                          "group flex items-center gap-3 rounded-full border-4 border-transparent bg-white px-6 py-3 transition-all duration-300 md:px-8 md:py-4",
+                          "group flex w-full min-w-0 items-center justify-center gap-2.5 rounded-full border-4 border-transparent bg-white px-4 py-3 transition-all duration-300 touch-manipulation sm:w-auto sm:justify-start sm:gap-3 sm:px-6 md:px-8 md:py-4",
                           "dark:bg-zinc-900/90 dark:ring-1 dark:ring-white/10",
                           stickerShadow,
                           selected ? selectedStyles : "hover:scale-[1.02] dark:hover:bg-zinc-800",
@@ -452,7 +452,7 @@ export default function PlanVibePage() {
                         />
                         <span
                           className={cn(
-                            "text-lg font-black uppercase italic tracking-tighter text-[#3b283b] md:text-xl dark:text-zinc-100",
+                            "text-center text-base font-black uppercase italic tracking-tighter text-[#3b283b] sm:text-left sm:text-lg md:text-xl dark:text-zinc-100 leading-tight",
                             fontHeadline.className,
                             key === "serene" && "opacity-70 dark:opacity-90",
                           )}
@@ -467,13 +467,13 @@ export default function PlanVibePage() {
 
               {/* 2 Story */}
               <section>
-                <div className="mb-6 flex items-center gap-3">
+                <div className="mb-4 sm:mb-6 flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#a80096] text-sm font-bold text-[#ffeef6]">
                     2
                   </span>
                   <h2
                     className={cn(
-                      "text-2xl font-black italic text-[#3b283b] dark:text-zinc-100",
+                      "text-xl sm:text-2xl font-black italic text-[#3b283b] dark:text-zinc-100",
                       fontHeadline.className,
                     )}
                   >
@@ -498,7 +498,7 @@ export default function PlanVibePage() {
                       }}
                       placeholder={tv("placeholderLong")}
                       className={cn(
-                        "min-h-[12rem] w-full resize-y rounded-xl border-0 bg-white p-6 text-lg font-medium text-[#3b283b] shadow-none md:p-8",
+                        "min-h-[10rem] sm:min-h-[12rem] w-full resize-y rounded-xl border-0 bg-white p-4 text-base font-medium text-[#3b283b] shadow-none sm:p-6 sm:text-lg md:p-8",
                         "dark:bg-zinc-900/90 dark:text-zinc-100 dark:ring-1 dark:ring-white/10",
                         stickerShadow,
                         "placeholder:text-[#c0a5bd]/80 dark:placeholder:text-zinc-500",
@@ -541,7 +541,7 @@ export default function PlanVibePage() {
                         type="button"
                         onClick={() => appendChip(tv(`chips.${key}`))}
                         className={cn(
-                          "rounded-full border border-[#c0a5bd]/40 bg-[#ffebfa] px-3 py-1.5 text-left text-xs font-semibold text-[#3b283b] transition hover:bg-[#f7d1f3]",
+                          "rounded-full border border-[#c0a5bd]/40 bg-[#ffebfa] px-3 py-2 text-left text-xs font-semibold text-[#3b283b] transition hover:bg-[#f7d1f3] touch-manipulation",
                           "dark:border-white/15 dark:bg-zinc-800/90 dark:text-zinc-100 dark:hover:bg-zinc-700",
                           fontBody.className,
                         )}
@@ -553,19 +553,19 @@ export default function PlanVibePage() {
                 </div>
               </section>
 
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:flex-wrap">
                 <button
                   type="button"
                   onClick={handleContinue}
                   disabled={loading}
                   className={cn(
-                    "inline-flex items-center justify-center gap-4 rounded-full bg-gradient-to-r from-[#a33800] to-[#ff7941] px-10 py-4 text-xl font-black uppercase tracking-widest text-[#ffefeb] transition hover:scale-105 active:scale-95 disabled:opacity-60",
+                    "inline-flex w-full min-h-12 items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#a33800] to-[#ff7941] px-6 py-3.5 text-base font-black uppercase tracking-widest text-[#ffefeb] transition hover:scale-[1.02] sm:hover:scale-105 active:scale-95 disabled:opacity-60 touch-manipulation sm:w-auto sm:px-10 sm:py-4 sm:text-lg md:text-xl",
                     stickerShadow,
                     fontHeadline.className,
                   )}
                 >
                   {tv("continue")}
-                  <Sparkles className="h-6 w-6 shrink-0" />
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 shrink-0" />
                 </button>
                 <Button
                   type="button"
@@ -573,7 +573,7 @@ export default function PlanVibePage() {
                   onClick={handleSkip}
                   disabled={loading}
                   className={cn(
-                    "rounded-full text-[#6b5469] hover:bg-[#f7d1f3]/50 hover:text-[#3b283b]",
+                    "w-full min-h-11 rounded-full text-[#6b5469] hover:bg-[#f7d1f3]/50 hover:text-[#3b283b] touch-manipulation sm:w-auto",
                     "dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100",
                     fontBody.className,
                   )}
@@ -584,8 +584,8 @@ export default function PlanVibePage() {
             </div>
 
             {/* Right: moodboard sticker */}
-            <aside className="lg:col-span-5 lg:sticky lg:top-28">
-              <div className="group relative">
+            <aside className="min-w-0 px-1 sm:px-0 lg:col-span-5 lg:sticky lg:top-28">
+              <div className="group relative overflow-visible pb-8 sm:pb-0">
                 <div
                   className={cn(
                     "relative z-10 rotate-[2deg] rounded-lg border-b-[12px] border-[#f7d1f3] bg-white p-4 transition-transform duration-500 group-hover:rotate-[1deg]",
@@ -620,17 +620,17 @@ export default function PlanVibePage() {
 
                 <div
                   className={cn(
-                    "absolute -left-6 -top-6 z-20 rotate-[-12deg] rounded-full border-4 border-white bg-[#97daff] p-5 text-[#004d68]",
+                    "absolute -left-2 -top-4 z-20 rotate-[-12deg] scale-90 rounded-full border-4 border-white bg-[#97daff] p-4 text-[#004d68] sm:-left-6 sm:-top-6 sm:scale-100 sm:p-5",
                     "dark:border-zinc-800 dark:bg-sky-600 dark:text-sky-950",
                     stickerShadow,
                   )}
                 >
-                  <Star className="h-10 w-10 fill-[#004d68] dark:fill-sky-950" strokeWidth={0} />
+                  <Star className="h-8 w-8 sm:h-10 sm:w-10 fill-[#004d68] dark:fill-sky-950" strokeWidth={0} />
                 </div>
 
                 <div
                   className={cn(
-                    "absolute -bottom-8 -right-4 z-20 max-w-[200px] rotate-[-2deg] rounded-xl bg-[#ff85e4]/90 p-5 text-[#5e0053]",
+                    "absolute -bottom-6 -right-1 z-20 max-w-[min(100%,200px)] rotate-[-2deg] rounded-xl bg-[#ff85e4]/90 p-3 text-sm text-[#5e0053] sm:-bottom-8 sm:-right-4 sm:p-5 sm:text-base",
                     "dark:bg-fuchsia-900/95 dark:text-fuchsia-100",
                     stickerShadow,
                   )}
@@ -641,7 +641,7 @@ export default function PlanVibePage() {
                 </div>
               </div>
 
-              <div className={cn("mt-24 flex flex-wrap gap-2 opacity-90 dark:opacity-100", fontBody.className)}>
+              <div className={cn("mt-12 sm:mt-24 flex flex-wrap gap-2 opacity-90 dark:opacity-100", fontBody.className)}>
                 <span className="rounded-full bg-[#f7d1f3] px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-[#3b283b] dark:bg-zinc-800 dark:text-zinc-300">
                   {tv("tagAdventure")}
                 </span>

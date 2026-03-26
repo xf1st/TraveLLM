@@ -37,16 +37,16 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
   const visibleSpots = expanded ? normalizedSpots : normalizedSpots.slice(0, 4)
 
   return (
-    <div className="trip-glass p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] shadow-lg">
-      <div className="flex justify-between items-center mb-3 sm:mb-4">
-        <h4 className="text-[10px] sm:text-xs font-bold text-pink-600 dark:text-pink-300 uppercase tracking-widest opacity-90">
+    <div className="trip-glass min-w-0 rounded-2xl p-3 shadow-lg sm:rounded-[2rem] sm:p-6">
+      <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
+        <h4 className="min-w-0 text-[10px] font-bold uppercase tracking-widest text-pink-600 opacity-90 dark:text-pink-300 sm:text-xs">
           {t("title")}
         </h4>
         {normalizedSpots.length > 4 ? (
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/60 hover:text-sky-600 dark:hover:text-white transition-colors inline-flex items-center gap-1"
+            className="inline-flex min-h-10 touch-manipulation items-center gap-1 rounded-full py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 transition-colors hover:text-sky-600 dark:text-white/60 dark:hover:text-white"
           >
             {expanded ? t("collapse") : t("seeAll")}
             <span className={cn("material-symbols-outlined text-sm transition-transform", expanded && "rotate-90")}>
@@ -59,7 +59,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
       </div>
 
       {/* Mobile: horizontal strip of compact cards */}
-      <div className="flex md:grid md:grid-cols-2 gap-3 overflow-x-auto pb-1 -mx-0.5 px-0.5 md:mx-0 md:px-0 md:overflow-visible no-scrollbar snap-x snap-mandatory">
+      <div className="-mx-0.5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-0.5 pb-1 [-webkit-overflow-scrolling:touch] no-scrollbar md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0">
         {visibleSpots.map((spot, idx) => (
           <div
             key={`${spot.name}-${idx}`}
@@ -85,7 +85,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
                     spot.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.name)}`
                   window.open(url, "_blank")
                 }}
-                className="w-full py-1.5 sm:py-2 bg-white/20 dark:bg-white/10 backdrop-blur-md border border-white/40 dark:border-white/30 text-white text-[9px] sm:text-[10px] font-bold rounded-lg sm:rounded-xl hover:bg-white/30 dark:hover:bg-white/20 transition-all active:scale-95 flex items-center justify-center gap-1"
+                className="flex min-h-10 w-full touch-manipulation items-center justify-center gap-1 rounded-lg border border-white/40 bg-white/20 py-2 text-[10px] font-bold text-white backdrop-blur-md transition-all hover:bg-white/30 active:scale-[0.98] dark:border-white/30 dark:bg-white/10 dark:hover:bg-white/20 sm:rounded-xl sm:text-[10px]"
               >
                 <span className="material-symbols-outlined text-[10px] sm:text-xs">map</span>
                 {t("onMap")}

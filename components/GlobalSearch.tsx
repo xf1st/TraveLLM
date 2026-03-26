@@ -170,13 +170,22 @@ export function GlobalSearch({
         {/* Panel */}
         <RadixDialog.Content
           aria-describedby={undefined}
-          className="fixed left-1/2 top-[12%] z-[201] w-full max-w-xl -translate-x-1/2 px-4 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+          className={cn(
+            "fixed z-[201] w-full outline-none duration-200",
+            /* Mobile: bottom sheet — thumb reach, keyboard-friendly top margin */
+            "inset-x-0 bottom-0 top-[min(12dvh,5rem)] max-h-[min(88dvh,100%)] rounded-t-[1.25rem] px-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-0",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
+            /* md+: centered palette */
+            "md:inset-x-auto md:bottom-auto md:left-1/2 md:top-[12%] md:max-h-none md:w-full md:max-w-xl md:-translate-x-1/2 md:rounded-none md:bg-transparent md:p-0 md:px-4 md:pb-0 md:pt-0",
+            "md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=open]:slide-in-from-bottom-0",
+            "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
+          )}
         >
           <RadixDialog.Title className="sr-only">{ts("triggerLabel")}</RadixDialog.Title>
 
           <Command
             shouldFilter={false}
-            className="rounded-2xl overflow-hidden shadow-[0_32px_80px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] bg-white/96 dark:bg-neutral-900/98 backdrop-blur-md md:backdrop-blur-2xl"
+            className="flex h-full max-h-[min(88dvh,100%)] flex-col overflow-hidden rounded-t-[1.25rem] bg-white/96 shadow-[0_32px_80px_-8px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.08)] backdrop-blur-md dark:bg-neutral-900/98 md:max-h-none md:rounded-2xl md:backdrop-blur-2xl"
           >
             {/* ── Input ── */}
             <div className="flex items-center gap-3 px-4 border-b border-black/5 dark:border-white/8">
@@ -205,7 +214,7 @@ export function GlobalSearch({
             </div>
 
             {/* ── Results ── */}
-            <Command.List className="overflow-y-auto max-h-[380px] p-2 space-y-0.5 search-list">
+            <Command.List className="search-list min-h-0 flex-1 space-y-0.5 overflow-y-auto p-2 max-md:max-h-none md:max-h-[380px]">
               {/* My trips */}
               {state.myTrips.length > 0 && (
                 <Command.Group>
@@ -284,13 +293,13 @@ export function GlobalSearch({
             </Command.List>
 
             {/* ── Footer ── */}
-            <div className="border-t border-black/5 dark:border-white/8 px-4 py-2 flex items-center justify-between bg-muted/20">
-              <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
+            <div className="flex shrink-0 items-center justify-between border-t border-black/5 bg-muted/20 px-4 py-2 dark:border-white/8 max-md:py-2.5">
+              <div className="hidden items-center gap-3 text-[10px] text-muted-foreground/50 sm:flex">
                 <KbdGroup keys={["↑", "↓"]} label={ts("navigate")} />
                 <KbdGroup keys={["↵"]} label={ts("open")} />
                 <KbdGroup keys={["Esc"]} label={ts("close")} />
               </div>
-              <span className="text-[10px] text-muted-foreground/30 font-mono tracking-tight">
+              <span className="text-[10px] font-mono tracking-tight text-muted-foreground/30 max-sm:flex-1 max-sm:text-center sm:text-left">
                 {ts("shortcutSearch")}
               </span>
             </div>
@@ -331,7 +340,7 @@ export function SearchTriggerMobile({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      className="md:hidden flex items-center justify-center min-h-11 min-w-11 h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors touch-manipulation"
       aria-label={ts("triggerLabel")}
     >
       <Search className="w-4 h-4" />

@@ -34,6 +34,14 @@ import {
     injectAnchorIntoItinerary,
 } from "@/lib/reel-anchor"
 import { buildReelMandatoryPromptBlock } from "@/lib/reel-prompt"
+import {
+    buildSafePreferences,
+    computeDurationDays,
+    normalizeTravelStyleIds,
+    sanitizeDestinationList,
+    sanitizeRouteUserText,
+    tripDurationError,
+} from "@/lib/route-generation-guard"
 
 export const maxDuration = 60; // Allow long-running generations
 
@@ -90,6 +98,15 @@ export async function POST(req: Request) {
         const userLocale: 'ru' | 'en' = locale === 'en' ? 'en' : 'ru'
         const travelMode = normalizeTravelMode(travelModeBody)
 
+        const safePreferences = buildSafePreferences(preferences)
+        const travelStyles = normalizeTravelStyleIds(travelStyle)
+        const destinations = sanitizeDestinationList(customDestination, strictDestinations)
+        const durationDays = computeDurationDays(startDate, endDate)
+        const durationErr = tripDurationError(durationDays, userLocale)
+        if (durationErr) {
+            return NextResponse.json(durationErr.body, { status: durationErr.status })
+        }
+
         let reelRecord: DiscoveryReelRecord | null = null
         let reelAnchorPrompt: string | undefined
         const reelId = typeof reelIdRaw === "string" ? reelIdRaw.trim() : ""
@@ -116,23 +133,20 @@ export async function POST(req: Request) {
             reelAnchorPrompt = buildReelMandatoryPromptBlock(reelRecord, userLocale)
         }
 
-        // Strip control characters and prompt-injection vectors server-side
-        const sanitizeUserText = (s: string, max: number) =>
-            s.replace(/[<>{}[\]\\]/g, "").replace(/(\r\n|\n|\r)/gm, " ").replace(/"/g, "'").trim().slice(0, max)
-
-        let safeHighlight = tripHighlight ? sanitizeUserText(String(tripHighlight), 300) : ""
+        let safeHighlight = tripHighlight ? sanitizeRouteUserText(String(tripHighlight), 300) : ""
         if (reelRecord) {
             const prefix = userLocale === "en"
                 ? `[Inspired by reel: ${reelRecord.title}] `
                 : `[Из рилса: ${reelRecord.title}] `
             safeHighlight = (prefix + safeHighlight).trim().slice(0, 500)
         }
-        const safeTripVibe = tripVibe ? sanitizeUserText(String(tripVibe), 2000) : ''
-        const effectiveDepartureCity = departureCity || preferences?.departureCity || "Москва"
-        const travelersCount = parseInt(travelers) || 2
-        const durationDays = startDate && endDate
-            ? Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-            : 7
+        const safeTripVibe = tripVibe ? sanitizeRouteUserText(String(tripVibe), 2000) : ""
+        const companionsSafe = companions ? sanitizeRouteUserText(String(companions), 220) : ""
+        const effectiveDepartureCity =
+            sanitizeRouteUserText(String(departureCity || safePreferences.departureCity || "Москва"), 120) || "Москва"
+        const travelersRaw = parseInt(String(travelers), 10)
+        const travelersCount =
+            Number.isFinite(travelersRaw) && travelersRaw >= 1 && travelersRaw <= 50 ? travelersRaw : 2
 
         if (reelRecord && durationDays < reelRecord.anchor_day) {
             return NextResponse.json({
@@ -141,14 +155,6 @@ export async function POST(req: Request) {
                     ? `Trip must be at least ${reelRecord.anchor_day} days to include the reel activity.`
                     : `Поездка должна быть не короче ${reelRecord.anchor_day} дней, чтобы включить активность из рилса.`,
             }, { status: 400 })
-        }
-
-        // Helper to safely convert value to array
-        const toArray = (val: any): string[] => {
-            if (!val) return []
-            if (Array.isArray(val)) return val.filter(Boolean)
-            if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean)
-            return []
         }
 
         // Define budget caps (max 10M ₽ to prevent unrealistic values)
@@ -164,8 +170,6 @@ export async function POST(req: Request) {
         const budgetDesc = userLocale === 'en'
             ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
             : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`
-
-        const destinations = strictDestinations === false ? [] : (customDestination ? customDestination.split(';').map((s: string) => s.trim()).filter(Boolean) : [])
 
         if (reelRecord) {
             if (destinations.length === 0) {
@@ -203,7 +207,7 @@ export async function POST(req: Request) {
                     startDate,
                     endDate,
                     budget: budgetCap,
-                    citizenship: preferences?.citizenship || "RU"
+                    citizenship: safePreferences.citizenship || "RU"
                 })
 
                 if (validation.blockers.length > 0) {
@@ -218,8 +222,8 @@ export async function POST(req: Request) {
                     destinations,
                     startDate,
                     endDate,
-                    interests: toArray(preferences?.interestsDetailed),
-                    travelStyle: toArray(travelStyle)[0]
+                    interests: safePreferences.interestsDetailed || [],
+                    travelStyle: travelStyles[0] || ""
                 })
                 dynamicContextStr = formatDynamicContextForPrompt(dynamicContext)
             } catch (e) {
@@ -263,7 +267,6 @@ export async function POST(req: Request) {
             }
         }
 
-        const travelStyles = toArray(travelStyle)
         const enriched = await buildEnrichedPrompt({
             locale: userLocale,
             departureCity: effectiveDepartureCity,
@@ -274,9 +277,9 @@ export async function POST(req: Request) {
             adjustedBudget,
             budgetDesc,
             travelStyle: travelStyles,
-            companions,
+            companions: companionsSafe,
             travelers: travelersCount,
-            preferences,
+            preferences: safePreferences,
             dynamicContextStr,
             warningsStr,
             safeHighlight,
@@ -291,7 +294,8 @@ export async function POST(req: Request) {
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
-        const aiTemperature = (body.aiCreativity || preferences?.aiCreativity) === "creative" ? 0.8 : 0.6
+        const aiTemperature =
+            (body.aiCreativity === "creative" || safePreferences.aiCreativity === "creative") ? 0.8 : 0.6
 
         // Helper to parse JSON from AI response (with jsonrepair fallback)
         function parseJsonResponse(raw: string, source: string): any {
@@ -316,7 +320,7 @@ export async function POST(req: Request) {
                 locale: userLocale,
                 departureCity: effectiveDepartureCity, destinations, startDate, endDate,
                 budget: budgetCap, budgetDesc, travelStyle: travelStyles, countryCount,
-                safeHighlight, warningsStr, preferences,
+                safeHighlight, warningsStr, preferences: safePreferences,
                 tripVibe: safeTripVibe || undefined,
                 travelMode,
                 strictDestinations,
@@ -334,7 +338,7 @@ export async function POST(req: Request) {
                     : undefined
             const chunkPrompt = buildDayChunkPrompt({
                 startDay, endDay, durationDays, departureCity: effectiveDepartureCity,
-                destination, budgetDesc, travelStyle: travelStyles, preferences,
+                destination, budgetDesc, travelStyle: travelStyles, preferences: safePreferences,
                 safeHighlight, warningsStr, previousContext,
                 tripVibe: safeTripVibe || undefined,
                 locale: userLocale,

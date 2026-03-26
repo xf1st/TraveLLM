@@ -455,6 +455,8 @@
       "howWorks": "How does auto-optimization work?",
       "explanation": "Uses the Nearest Neighbor algorithm: starting from the departure city, always picks the closest unvisited city using Haversine distance (great-circle arc). This avoids unnecessary zigzags — for short lists this is nearly optimal.",
       "enterDeparture": "Enter departure city first",
+      "optimizeFallbackStart": "Without a departure city, optimization starts from the first city in the list.",
+      "optimizeNoChange": "Order is already optimal, or city names aren’t in our coordinate list — adjust names or set departure.",
       "maxDaysHint": "max. {max}d · optimization available",
       "unknownCoords": "unknown coordinates · manual order",
       "constructor": "Builder ({count})"

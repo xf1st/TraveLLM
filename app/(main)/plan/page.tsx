@@ -50,6 +50,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { supabase } from "@/lib/supabase"
 import { PlanTooltips } from "@/components/plan/PlanTooltips"
 import { PLAN_PENDING_GENERATION_KEY } from "@/lib/trip-generation-stream"
+import { appToast as toast } from "@/components/ui/sonner"
 
 // ─── Budget donut helpers ────────────────────────────────────────────────────
 const CIRC = 2 * Math.PI * 60 // r=60, ≈376.99
@@ -379,12 +380,34 @@ export default function PlanPage() {
     "одесса":[46.48,30.73],"киев":[50.45,30.52],"львов":[49.84,24.03],
   }
 
+  /** Латиница / англ. названия → ключ в CITY_COORDS (частые вводы в автокомплите) */
+  const CITY_COORD_ALIASES: Record<string, string> = {
+    tokyo: "токио", kyoto: "киото", osaka: "осака", nara: "нара", seoul: "сеул", busan: "пусан",
+    istanbul: "стамбул", cappadocia: "каппадокия", antalya: "анталья", bodrum: "бодрум",
+    tbilisi: "тбилиси", batumi: "батуми", kutaisi: "кутаиси",
+    barcelona: "барселона", madrid: "мадрид", seville: "севилья", valencia: "валенсия",
+    vienna: "вена", prague: "прага", budapest: "будапешт", krakow: "краков", warsaw: "варшава",
+    berlin: "берлин", munich: "мюнхен", hamburg: "гамбург", cologne: "кёльн",
+    london: "лондон", edinburgh: "эдинбург", paris: "париж", nice: "ницца", lyon: "лион", marseille: "марсель",
+    amsterdam: "амстердам", brussels: "брюссель", bruges: "брюгге",
+    rome: "рим", florence: "флоренция", venice: "венеция", milan: "милан", naples: "неаполь",
+    bali: "бали", ubud: "убуд", seminyak: "семиньяк",
+    moscow: "москва", "saint petersburg": "санкт-петербург", "st petersburg": "санкт-петербург",
+    dubrovnik: "дубровник", split: "сплит", zagreb: "загреб", kotor: "котор",
+    athens: "афины", dubai: "дубай", bangkok: "бангкок", singapore: "сингапур",
+    "new york": "нью-йорк", "los angeles": "лос-анджелес", miami: "майами",
+    sydney: "сидней", melbourne: "мельбурн",
+  }
+
   const parseDestinations = (s: string): string[] =>
     s.split(/[;,]/).map(c => c.trim()).filter(Boolean)
 
   const getCityCoords = (city: string): [number, number] | null => {
     const name = city.split(",")[0].trim().toLowerCase()
-    return CITY_COORDS[name] || null
+    if (CITY_COORDS[name]) return CITY_COORDS[name]
+    const mapped = CITY_COORD_ALIASES[name]
+    if (mapped && CITY_COORDS[mapped]) return CITY_COORDS[mapped]
+    return null
   }
 
   const haversine = ([lat1, lng1]: [number, number], [lat2, lng2]: [number, number]): number => {
@@ -398,29 +421,56 @@ export default function PlanPage() {
     if (cities.length <= 1) return cities
     const remaining = [...cities]
     const result: string[] = []
-    let cur = getCityCoords(fromCity)
+    const startLabel = fromCity.trim() || cities[0] || ""
+    let cur = getCityCoords(startLabel)
+    if (!cur) {
+      for (const c of cities) {
+        const p = getCityCoords(c)
+        if (p) { cur = p; break }
+      }
+    }
     while (remaining.length > 0) {
-      if (!cur) { result.push(...remaining); break }
-      let bestIdx = 0, bestDist = Infinity
+      if (!cur) {
+        result.push(...remaining)
+        break
+      }
+      let bestIdx = -1
+      let bestDist = Infinity
       remaining.forEach((c, i) => {
         const coords = getCityCoords(c)
-        if (coords) { const d = haversine(cur!, coords); if (d < bestDist) { bestDist = d; bestIdx = i } }
+        if (coords) {
+          const d = haversine(cur!, coords)
+          if (d < bestDist) {
+            bestDist = d
+            bestIdx = i
+          }
+        }
       })
+      if (bestIdx < 0 || bestDist === Infinity) {
+        result.push(...remaining)
+        break
+      }
       const city = remaining.splice(bestIdx, 1)[0]
       result.push(city)
-      cur = getCityCoords(city)
+      cur = getCityCoords(city) ?? cur
     }
     return result
   }
 
   const destinations = parseDestinations(customDestination)
 
-  const isSuboptimal = destinations.length > 1 && !!departureCity.trim() &&
-    optimizeOrder(destinations, departureCity).join("|") !== destinations.join("|")
+  const isSuboptimal =
+    destinations.length > 1 &&
+    optimizeOrder(destinations, departureCity.trim() || destinations[0] || "").join("|") !== destinations.join("|")
 
   const handleOptimize = () => {
-    if (!destinations.length) return
-    const opt = optimizeOrder(destinations, departureCity)
+    if (destinations.length <= 1) return
+    const anchor = departureCity.trim() || destinations[0]
+    const opt = optimizeOrder(destinations, anchor)
+    if (opt.join("|") === destinations.join("|")) {
+      toast.info(t("routeBuilder.optimizeNoChange"))
+      return
+    }
     setCustomDestination(opt.join("; "))
   }
 
@@ -696,15 +746,15 @@ export default function PlanPage() {
               <button
                 type="button"
                 onClick={handleOptimize}
-                disabled={!departureCity.trim() || destinations.length <= 1}
+                disabled={destinations.length <= 1}
                 className="flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/50 bg-emerald-500/25 px-4 text-sm font-bold text-emerald-50 transition-all hover:bg-emerald-500/35 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
               >
                 <Zap className="h-4 w-4 shrink-0 text-emerald-200" />
                 {t('routeBuilder.optimize')}
               </button>
               {!departureCity.trim() ? (
-                <span className="text-center text-[11px] leading-snug text-white/50 sm:text-left sm:text-[10px] sm:text-white/40">
-                  {t('routeBuilder.enterDeparture')}
+                <span className="text-center text-[11px] leading-snug text-white/50 sm:text-left sm:text-[10px] sm:text-white/45">
+                  {t("routeBuilder.optimizeFallbackStart")}
                 </span>
               ) : null}
             </div>
@@ -714,11 +764,11 @@ export default function PlanPage() {
 
       {/* ── Page ─────────────────────────────────────────────────────────── */}
       {/* Horizontal padding from AppLayout only — aligns with /trips; extra bottom for mobile bottom nav */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-0 pt-20 pb-28 sm:pt-24 md:pb-16">
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-7xl px-0 pt-16 pb-28 sm:pt-24 md:pb-16">
 
         {/* Header */}
-        <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h1 className="font-black text-4xl sm:text-5xl tracking-tight text-foreground dark:text-white mb-2">
+        <header className="mb-8 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <h1 className="font-black text-3xl sm:text-4xl md:text-5xl tracking-tight text-foreground dark:text-white mb-2">
             {t('heroTitle')}{" "}
             <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
               {t('heroWord')}
@@ -735,7 +785,7 @@ export default function PlanPage() {
           {/* ╔══════════════════════════════╗
               ║  01 — ХАБ МАРШРУТА           ║
               ╚══════════════════════════════╝ */}
-          <section className="lg:row-span-1 rounded-3xl p-6 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+          <section className="lg:row-span-1 rounded-3xl p-5 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.08)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center gap-3 mb-6">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/30">01</span>
               <h2 className="font-bold text-lg tracking-tight">{t('sections.routeHub')}</h2>
@@ -759,12 +809,12 @@ export default function PlanPage() {
               {/* Return destination toggle */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.returnTo')}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 min-w-0">
                   <button
                     type="button"
                     onClick={() => setReturnToOrigin(true)}
                     className={cn(
-                      "flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all duration-200 border",
+                      "flex min-w-0 items-center justify-center gap-1.5 sm:gap-2 h-12 sm:h-11 rounded-xl px-2 text-xs sm:text-sm font-semibold transition-all duration-200 border touch-manipulation",
                       returnToOrigin
                         ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25"
                         : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-500/40"
@@ -777,7 +827,7 @@ export default function PlanPage() {
                     type="button"
                     onClick={() => setReturnToOrigin(false)}
                     className={cn(
-                      "flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all duration-200 border",
+                      "flex min-w-0 items-center justify-center gap-1.5 sm:gap-2 h-12 sm:h-11 rounded-xl px-2 text-xs sm:text-sm font-semibold transition-all duration-200 border touch-manipulation",
                       !returnToOrigin
                         ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25"
                         : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-500/40"
@@ -803,7 +853,7 @@ export default function PlanPage() {
               {/* Primary transport (hub-to-hub) */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-blue-500 ml-1">{t('fieldLabels.travelMode')}</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-2 min-w-0">
                   {(
                     [
                       { id: "flight" as const, icon: Plane, label: t("travelMode.flight") },
@@ -816,7 +866,7 @@ export default function PlanPage() {
                       type="button"
                       onClick={() => setTravelMode(id)}
                       className={cn(
-                        "flex flex-col items-center justify-center gap-1 h-[4.25rem] rounded-xl text-xs font-semibold transition-all duration-200 border",
+                        "flex flex-col items-center justify-center gap-0.5 sm:gap-1 min-h-[3.75rem] sm:min-h-0 sm:h-[4.25rem] h-full py-2 rounded-xl text-[10px] sm:text-xs font-semibold transition-all duration-200 border touch-manipulation px-0.5",
                         travelMode === id
                           ? "bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25"
                           : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20 text-muted-foreground hover:border-blue-300 dark:hover:border-blue-500/40",
@@ -838,20 +888,20 @@ export default function PlanPage() {
                     <button
                       type="button"
                       className={cn(
-                        "w-full flex items-center h-12 px-4 rounded-xl text-sm border transition-all",
+                        "w-full min-w-0 flex items-center h-12 px-3 sm:px-4 rounded-xl text-sm border transition-all touch-manipulation",
                         "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20",
                         "hover:bg-white dark:hover:bg-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500/40",
                         !date && "text-muted-foreground"
                       )}
                     >
-                      <CalendarIcon className="mr-3 h-4 w-4 text-blue-400 shrink-0" />
+                      <CalendarIcon className="mr-2 sm:mr-3 h-4 w-4 text-blue-400 shrink-0" />
                       {date?.from ? (
                         date.to ? (
-                          <span className="flex-1 flex items-center justify-between">
-                            <span className="font-semibold">
+                          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="font-semibold truncate text-left text-xs sm:text-sm">
                               {format(date.from, locale === 'ru' ? "dd MMM" : "MMM dd", { locale: dateFnsLocale })} — {format(date.to, locale === 'ru' ? "dd MMM yyyy" : "MMM dd, yyyy", { locale: dateFnsLocale })}
                             </span>
-                            <span className="text-xs text-blue-500 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-bold">
+                            <span className="text-[10px] sm:text-xs text-blue-500 dark:text-blue-400 bg-blue-500/10 px-1.5 sm:px-2 py-0.5 rounded-full font-bold shrink-0">
                               {t("fieldLabels.durationDaysBadge", {
                                 count: Math.ceil((date.to.getTime() - date.from.getTime()) / 86400000) + 1,
                               })}
@@ -887,16 +937,16 @@ export default function PlanPage() {
           {/* ╔══════════════════════════════╗
               ║  02 — ВДОХНОВЕНИЕ            ║
               ╚══════════════════════════════╝ */}
-          <section className="lg:row-span-1 rounded-3xl p-6 sm:p-8 bg-white/55 dark:bg-white/[0.025] backdrop-blur-2xl border border-white/50 dark:border-white/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/30">02</span>
-                <h2 className="font-bold text-lg tracking-tight">{t('sections.inspiration')}</h2>
+          <section className="lg:row-span-1 rounded-3xl p-5 sm:p-8 bg-white/55 dark:bg-white/[0.025] backdrop-blur-2xl border border-white/50 dark:border-white/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 shrink-0">02</span>
+                <h2 className="font-bold text-base sm:text-lg tracking-tight">{t('sections.inspiration')}</h2>
               </div>
               <button
                 type="button"
                 onClick={handleLucky}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-2.5 sm:py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-all touch-manipulation"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 {t('actions.lucky')}
@@ -917,7 +967,7 @@ export default function PlanPage() {
 
               {/* Route optimization toolbar — shown when 2+ cities */}
               {destinations.length >= 2 && (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex flex-wrap items-stretch gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <button
                     type="button"
                     onClick={() => setShowRouteModal(true)}
@@ -983,7 +1033,7 @@ export default function PlanPage() {
           {/* ╔══════════════════════════════════╗
               ║  03 — МАТРИЦА БЮДЖЕТА (tall)     ║
               ╚══════════════════════════════════╝ */}
-          <section className="lg:row-span-2 rounded-3xl p-6 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.06)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+          <section className="lg:row-span-2 rounded-3xl p-5 sm:p-8 bg-white/70 dark:bg-white/[0.03] backdrop-blur-2xl border border-white/60 dark:border-white/[0.07] shadow-[0_8px_32px_rgba(0,122,255,0.06)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
             <div className="flex items-center gap-3 mb-6">
               <span className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 text-white font-bold text-xs shadow-lg shadow-amber-500/30">03</span>
               <h2 className="font-bold text-lg tracking-tight">{t('sections.budgetMatrix')}</h2>
@@ -1021,23 +1071,23 @@ export default function PlanPage() {
                   type="button"
                   onClick={() => setBudget(b.id)}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all duration-200",
+                    "w-full flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 rounded-xl border text-sm transition-all duration-200 text-left touch-manipulation min-w-0",
                     budget === b.id
                       ? `border-${b.color}-500/60 bg-${b.color}-500/8 ring-1 ring-${b.color}-500/20`
                       : "border-border bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-2.5 h-2.5 rounded-full transition-all", budget === b.id ? `bg-${b.color}-500` : "bg-muted-foreground/30")} />
-                    <span className="font-bold">{b.label}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <div className={cn("w-2.5 h-2.5 rounded-full shrink-0 transition-all", budget === b.id ? `bg-${b.color}-500` : "bg-muted-foreground/30")} />
+                    <span className="font-bold truncate">{b.label}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{b.sub}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground sm:text-right sm:shrink-0">{b.sub}</span>
                 </button>
               ))}
 
               {/* Custom budget */}
               <div className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
+                "flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-xl border transition-all min-w-0",
                 budget === "custom" ? "border-violet-500/60 bg-violet-500/8 ring-1 ring-violet-500/20" : "border-border bg-white/30 dark:bg-white/5"
               )}>
                 <div className={cn("w-2.5 h-2.5 rounded-full shrink-0 transition-all", budget === "custom" ? "bg-violet-500" : "bg-muted-foreground/30")} />
@@ -1062,7 +1112,7 @@ export default function PlanPage() {
             {/* Interests */}
             <div className="border-t border-border/50 pt-5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-amber-500/80 mb-4 block">{t('fieldLabels.interests')}</label>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 {[
                   { id: "culture",   label: t('interests.culture'),   icon: Compass,     color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
                   { id: "nature",    label: t('interests.nature'),    icon: Mountain,    color: "#10b981", glow: "rgba(16,185,129,0.25)" },
@@ -1084,7 +1134,7 @@ export default function PlanPage() {
                       onClick={() => toggleStyle(style.id)}
                       style={sel ? { borderColor: style.color, boxShadow: `0 0 14px ${style.glow}, inset 0 0 12px ${style.glow}` } : {}}
                       className={cn(
-                        "relative flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200",
+                        "relative flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2.5 sm:p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 touch-manipulation min-w-0",
                         "bg-[#1a1f2e] dark:bg-[#1a1f2e]",
                         sel ? "border-[var(--sel-color)]" : "border-white/10 hover:border-white/25"
                       )}
@@ -1112,7 +1162,7 @@ export default function PlanPage() {
           {/* ╔══════════════════════════════════╗
               ║  04 — ИЗЮМИНКА ПОЕЗДКИ           ║
               ╚══════════════════════════════════╝ */}
-          <section className="lg:col-span-2 rounded-3xl p-6 sm:p-8 bg-[#111827] text-white relative overflow-hidden group/highlight">
+          <section className="lg:col-span-2 rounded-3xl p-5 sm:p-8 bg-[#111827] text-white relative overflow-hidden group/highlight">
             {/* ambient glows */}
             <div className="absolute -right-16 -bottom-16 w-56 h-56 rounded-full bg-blue-500/15 blur-[80px] pointer-events-none transition-opacity duration-500 group-focus-within/highlight:opacity-150" />
             <div className="absolute -left-8 top-0 w-40 h-40 rounded-full bg-violet-500/12 blur-[60px] pointer-events-none" />
@@ -1120,15 +1170,15 @@ export default function PlanPage() {
             <div className="absolute inset-0 rounded-3xl opacity-0 group-focus-within/highlight:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.10) 50%, rgba(236,72,153,0.10) 100%)", boxShadow: "inset 0 0 0 1.5px rgba(139,92,246,0.35)" }} />
 
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2.5">
+            <div className="relative z-10 min-w-0">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/40 shrink-0">04</span>
                   <Sparkles className="h-4 w-4 text-blue-400 shrink-0" />
-                  <h2 className="font-bold text-lg tracking-tight">{t('sections.highlight')}</h2>
+                  <h2 className="font-bold text-base sm:text-lg tracking-tight">{t('sections.highlight')}</h2>
                   <span className="bg-gradient-to-r from-violet-500 to-fuchsia-500 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shrink-0">{t('fieldLabels.personalBadge')}</span>
                 </div>
-                <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest shrink-0">{t('fieldLabels.optional')}</span>
+                <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest shrink-0 sm:text-right">{t('fieldLabels.optional')}</span>
               </div>
 
               {/* textarea card with glow border */}
@@ -1192,7 +1242,7 @@ export default function PlanPage() {
         </div>
 
         {/* ── Full width: Конфигурация команды ───────────────────────────── */}
-        <section className="mt-4 sm:mt-6 rounded-3xl p-6 sm:p-8 bg-[#111827] text-white relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+        <section className="mt-4 sm:mt-6 rounded-3xl p-5 sm:p-8 bg-[#111827] text-white relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 min-w-0">
           <div className="absolute -left-20 -bottom-20 w-64 h-64 rounded-full bg-blue-500/10 blur-[80px] pointer-events-none" />
 
           <div className="relative z-10">
@@ -1206,7 +1256,7 @@ export default function PlanPage() {
                 </div>
 
                 {/* Companions */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/10 mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 bg-white/5 backdrop-blur-md p-3 sm:p-5 rounded-2xl border border-white/10 mb-4">
                   {[
                     { id: "solo",    label: t('companions.solo'),    icon: "👤" },
                     { id: "couple",  label: t('companions.couple'),  icon: "💑" },
@@ -1220,7 +1270,7 @@ export default function PlanPage() {
                       onClick={() => setCompanions(c.id)}
                       onKeyDown={(e) => e.key === "Enter" || e.key === " " ? setCompanions(c.id) : null}
                       className={cn(
-                        "flex flex-col items-center gap-2 py-4 px-3 rounded-xl cursor-pointer transition-all duration-200",
+                        "flex flex-col items-center gap-1.5 sm:gap-2 py-3 px-2 sm:py-4 sm:px-3 rounded-xl cursor-pointer transition-all duration-200 touch-manipulation min-w-0",
                         companions === c.id
                           ? "bg-blue-500/20 border border-blue-500/40 ring-1 ring-blue-500/20"
                           : "hover:bg-white/5 border border-transparent"
@@ -1272,7 +1322,7 @@ export default function PlanPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="w-full flex items-center justify-center gap-3 py-4 px-8 rounded-2xl font-bold text-lg bg-blue-500 text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] transition-all duration-200"
+                  className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 px-6 sm:px-8 rounded-2xl font-bold text-base sm:text-lg bg-blue-500 text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] transition-all duration-200 touch-manipulation"
                 >
                   {t('actions.continueToVibe')}
                   <Sparkles className="h-5 w-5" />

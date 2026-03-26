@@ -155,7 +155,7 @@ function ReelSlide({
           <button
             type="button"
             aria-label={t("prevImage")}
-            className="absolute left-0 top-0 bottom-32 w-[18%] z-20 max-w-[120px] cursor-w-resize opacity-0 hover:opacity-100 focus:opacity-100 focus:outline-none"
+            className="absolute bottom-32 left-0 top-0 z-20 w-[18%] max-w-[120px] cursor-w-resize opacity-25 focus:opacity-100 focus:outline-none sm:opacity-0 sm:hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation()
               bumpImage(-1)
@@ -164,7 +164,7 @@ function ReelSlide({
           <button
             type="button"
             aria-label={t("nextImage")}
-            className="absolute right-0 top-0 bottom-32 w-[18%] z-20 max-w-[120px] cursor-e-resize opacity-0 hover:opacity-100 focus:opacity-100 focus:outline-none"
+            className="absolute bottom-32 right-0 top-0 z-20 w-[18%] max-w-[120px] cursor-e-resize opacity-25 focus:opacity-100 focus:outline-none sm:opacity-0 sm:hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation()
               bumpImage(1)
@@ -176,12 +176,16 @@ function ReelSlide({
                 key={i}
                 type="button"
                 aria-label={`${i + 1}`}
-                className={cn(
-                  "h-1 rounded-full transition-all duration-300",
-                  i === imgIdx ? "w-7 bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)]" : "w-1.5 bg-white/35 hover:bg-white/55",
-                )}
                 onClick={() => setImgIdx(i)}
-              />
+                className="touch-manipulation rounded-full p-2 sm:p-1"
+              >
+                <span
+                  className={cn(
+                    "mx-auto block h-1 rounded-full transition-all duration-300",
+                    i === imgIdx ? "w-7 bg-white shadow-[0_0_12px_rgba(255,255,255,0.5)]" : "w-1.5 bg-white/35 sm:hover:bg-white/55",
+                  )}
+                />
+              </button>
             ))}
           </div>
         </>
@@ -193,11 +197,11 @@ function ReelSlide({
           <button
             type="button"
             onClick={toggleSound}
-            className="flex flex-col items-center gap-1 group"
+            className="group flex touch-manipulation flex-col items-center gap-1"
           >
             <div
               className={cn(
-                "h-12 w-12 rounded-full flex items-center justify-center border transition-transform active:scale-90",
+                "flex h-12 w-12 items-center justify-center rounded-full border transition-transform active:scale-90",
                 soundOn
                   ? "bg-primary/90 border-primary text-primary-foreground shadow-lg shadow-primary/30"
                   : "bg-white/10 border-white/25 text-white backdrop-blur-md",
@@ -219,7 +223,7 @@ function ReelSlide({
       </div>
 
       {/* Bottom copy + CTA */}
-      <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-8 pt-4 space-y-4 max-w-2xl mx-auto w-full">
+      <div className="absolute inset-x-0 bottom-0 z-20 mx-auto w-full max-w-2xl space-y-4 px-4 pb-[max(2rem,env(safe-area-inset-bottom,0px))] pt-4 sm:px-5 sm:pb-8">
         <motion.div
           initial={false}
           animate={{ opacity: isActive ? 1 : 0.85, y: isActive ? 0 : 6 }}
@@ -247,7 +251,7 @@ function ReelSlide({
         <Button
           asChild
           size="lg"
-          className="w-full rounded-full h-14 text-base font-bold shadow-xl shadow-primary/25 bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+          className="h-14 w-full touch-manipulation rounded-full border-0 bg-primary text-base font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
         >
           <Link href={`/plan/from-reel/${reel.id}`}>{t("ctaBuild")}</Link>
         </Button>

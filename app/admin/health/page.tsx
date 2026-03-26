@@ -112,7 +112,7 @@ export default function AdminHealthPage() {
           budget: "comfort",
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          travelStyle: ["культура"],
+          travelStyle: ["culture"],
           companions: "solo",
           preferences: {
             pace: "moderate",

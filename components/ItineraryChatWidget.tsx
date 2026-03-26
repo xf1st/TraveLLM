@@ -609,7 +609,7 @@ export function ItineraryChatWidget({
 
       <div
         className={cn(
-          "fixed bottom-4 right-4 z-[100] pointer-events-auto pb-[env(safe-area-inset-bottom,0px)] pr-[env(safe-area-inset-right,0px)]",
+          "fixed bottom-4 right-4 z-[110] pointer-events-auto pb-[env(safe-area-inset-bottom,0px)] pr-[env(safe-area-inset-right,0px)]",
           className
         )}
       >

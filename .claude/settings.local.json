@@ -58,7 +58,11 @@
       "Skill(gsd:fast)",
       "mcp__claude_ai_Figma__get_metadata",
       "mcp__claude_ai_Figma__use_figma",
-      "mcp__claude_ai_Figma__get_screenshot"
+      "mcp__claude_ai_Figma__get_screenshot",
+      "Bash(xargs grep:*)",
+      "Skill(update-config)",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__execute_sql"
     ]
   }
 }

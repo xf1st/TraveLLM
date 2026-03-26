@@ -142,11 +142,11 @@ export function Header({ floating = false }: HeaderProps) {
   if (floating) {
     return (
       <div className="fixed top-0 left-0 right-0 z-50 pointer-events-none px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:px-6 md:pb-6 md:pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
-        <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-md md:backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-md md:shadow-2xl">
+        <header className="pointer-events-auto mx-auto max-w-3xl flex h-12 min-w-0 items-center justify-between px-3 sm:px-5 rounded-2xl bg-card/95 dark:bg-neutral-900/90 backdrop-blur-md md:backdrop-blur-xl border border-border/50 dark:border-white/10 shadow-md md:shadow-2xl">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
+          <Link href="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2 transition-opacity hover:opacity-80">
             <Logo size={28} />
-            <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:block">
+            <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:block truncate">
               TraveLLM
             </span>
           </Link>
@@ -188,7 +188,7 @@ export function Header({ floating = false }: HeaderProps) {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {/* Search triggers */}
             <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
             <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
@@ -197,8 +197,8 @@ export function Header({ floating = false }: HeaderProps) {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label={t("userMenu")}>
-                    <Avatar className="h-7 w-7">
+                  <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full p-0 hover:bg-accent touch-manipulation" aria-label={t("userMenu")}>
+                    <Avatar className="h-8 w-8 md:h-7 md:w-7">
                       <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                       <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
                         {user.email?.substring(0, 2).toUpperCase()}
@@ -246,7 +246,7 @@ export function Header({ floating = false }: HeaderProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild size="sm" className="rounded-lg h-8 px-4">
+              <Button asChild size="sm" className="rounded-lg h-9 px-3 sm:px-4 md:h-8 touch-manipulation">
                 <Link href="/auth">{t("signIn")}</Link>
               </Button>
             )}
@@ -280,7 +280,7 @@ export function Header({ floating = false }: HeaderProps) {
         : "md:sticky md:top-0 md:px-3 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-4 lg:pb-4 lg:pt-[calc(1rem+env(safe-area-inset-top,0px))]"
     )}>
       <header className={cn(
-        "mx-auto max-w-5xl flex h-12 items-center justify-between px-3 sm:px-5 rounded-2xl transition-all duration-500",
+        "mx-auto max-w-5xl flex h-12 min-w-0 items-center justify-between px-2.5 sm:px-5 rounded-2xl transition-all duration-500",
         // Mobile: always glass
         "trip-glass shadow-md",
         // md+: transparent on landing before scroll
@@ -289,10 +289,10 @@ export function Header({ floating = false }: HeaderProps) {
           : "md:trip-glass md:shadow-2xl"
       )}>
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80 shrink-0">
+        <Link href="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2 transition-opacity hover:opacity-80 shrink-0">
           <Logo size={pathname === "/" && !isScrolled ? 28 : 24} />
           <span className={cn(
-            "text-sm font-semibold tracking-tight transition-colors duration-500",
+            "text-sm font-semibold tracking-tight transition-colors duration-500 max-[380px]:hidden",
             pathname === "/" && !isScrolled ? "text-white text-base" : "text-foreground"
           )}>TraveLLM</span>
         </Link>
@@ -334,7 +334,7 @@ export function Header({ floating = false }: HeaderProps) {
         </nav>
 
         {/* Actions & Mobile Menu */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {/* Search triggers */}
           <SearchTriggerDesktop onClick={() => setSearchOpen(true)} />
           <SearchTriggerMobile onClick={() => setSearchOpen(true)} />
@@ -344,8 +344,8 @@ export function Header({ floating = false }: HeaderProps) {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 hover:bg-accent" aria-label={t("userMenu")}>
-                  <Avatar className="h-7 w-7">
+                <Button variant="ghost" className="relative h-9 w-9 md:h-8 md:w-8 rounded-full p-0 hover:bg-accent touch-manipulation" aria-label={t("userMenu")}>
+                  <Avatar className="h-8 w-8 md:h-7 md:w-7">
                     <AvatarImage src={userData?.avatar_url || user.user_metadata?.avatar_url} alt={user.email} />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
                       {user.email?.substring(0, 2).toUpperCase()}
@@ -402,7 +402,7 @@ export function Header({ floating = false }: HeaderProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button asChild size="sm" className="rounded-lg h-8 px-4">
+            <Button asChild size="sm" className="rounded-lg h-9 px-3 sm:px-4 md:h-8 touch-manipulation">
               <Link href="/auth">{t("signIn")}</Link>
             </Button>
           )}

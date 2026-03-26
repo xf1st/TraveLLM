@@ -13,6 +13,7 @@ import { PwaInstallBanner } from "@/components/pwa-install-banner"
 import { AuthProvider } from "@/components/auth-provider"
 import { ChatProvider } from "@/lib/context/chat-context"
 import { GlobalLoader } from "@/components/GlobalLoader"
+import { DriveLegalLabelRelocator } from "@/components/partners/DriveLegalLabelRelocator"
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale, getMessages } from "next-intl/server"
 import { getHtmlLang, getOgLocale, type AppLocale } from "@/lib/locale-utils"
@@ -129,6 +130,7 @@ export default async function RootLayout({
                   <ErrorBoundary>
                     {children}
                   </ErrorBoundary>
+                  <DriveLegalLabelRelocator />
                 </GuardsWrapper>
                 <PwaRegister />
                 <PwaInstallBanner />

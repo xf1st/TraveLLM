@@ -60,7 +60,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Footer } from "@/components/footer"
 import { motion, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
-import { TripChat } from "@/components/TripChat"
 import { getPopularRoute } from "@/lib/popular-routes"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 import { toggleFavorite } from "@/app/actions/favorites"
@@ -179,7 +178,6 @@ export default function TripDetailPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [isChatOpen, setIsChatOpen] = useState(false)
 
   const [isOwner, setIsOwner] = useState(false)
   const [activeView, setActiveView] = useState<"itinerary" | "stats">("itinerary")
@@ -436,7 +434,7 @@ export default function TripDetailPage() {
           />
         </div>
         <AppSidebar />
-        <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
+        <div className={`relative z-10 min-w-0 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
           <div className="lg:hidden"><Header /></div>
           <main className="flex min-h-[80vh] items-center justify-center p-6">
             <div className="text-center space-y-6">
@@ -849,7 +847,7 @@ export default function TripDetailPage() {
         </div>
       )}
 
-      <div className={`relative z-10 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
+      <div className={`relative z-10 min-w-0 transition-[margin] duration-300 ${isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* ===== HERO IMAGE SECTION ===== */}
         <div className="relative w-full min-h-[min(68dvh,520px)] sm:min-h-[500px] md:min-h-[600px] shrink-0 overflow-hidden">
           <motion.div style={{ y: heroY, scale: heroScale }} className="absolute inset-0 h-[130%] w-full -top-[15%]">
@@ -878,14 +876,14 @@ export default function TripDetailPage() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
+                  className="flex h-11 w-11 flex-shrink-0 touch-manipulation items-center justify-center rounded-full border border-white/50 bg-white/40 text-slate-700 backdrop-blur-md transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/15 sm:h-10 sm:w-10"
                 >
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setTripInfoMenuOpen(true)}
-                  className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-white/25 dark:bg-white/10 hover:bg-white/40 dark:hover:bg-white/20 transition-colors text-slate-800 dark:text-white border border-white/40 dark:border-white/15 backdrop-blur-md"
+                  className="flex h-11 w-11 flex-shrink-0 touch-manipulation items-center justify-center rounded-full border border-white/40 bg-white/25 text-slate-800 backdrop-blur-md transition-colors hover:bg-white/40 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:h-10 sm:w-10"
                   aria-label={t("tripAboutMenuAria")}
                 >
                   <Menu className="h-5 w-5" strokeWidth={2.25} />
@@ -897,7 +895,7 @@ export default function TripDetailPage() {
                 <button
                   type="button"
                   onClick={() => router.back()}
-                  className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-white/40 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/15 transition-colors text-slate-700 dark:text-white border border-white/50 dark:border-white/10 backdrop-blur-md"
+                  className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full border border-white/50 bg-white/40 text-slate-700 backdrop-blur-md transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/15"
                 >
                   <span className="material-symbols-outlined text-sm">arrow_back</span>
                 </button>
@@ -943,7 +941,7 @@ export default function TripDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowBudgetModal(true)}
-                  className="text-right group cursor-pointer flex flex-col items-end"
+                  className="group flex touch-manipulation flex-col items-end text-right"
                 >
                   <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">
                     {t("totalBudgetLabel")}
@@ -960,7 +958,7 @@ export default function TripDetailPage() {
                       onClick={handleTogglePublic}
                       title={route.is_public ? t("publicTitle") : t("privateTitle")}
                       className={cn(
-                        "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all backdrop-blur-md",
+                        "hidden touch-manipulation sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium transition-all backdrop-blur-md",
                         route.is_public
                           ? "bg-emerald-500/20 border-emerald-400/40 text-emerald-200 hover:bg-emerald-500/30"
                           : "bg-white/10 border-white/20 text-white/70 hover:bg-white/20",
@@ -980,7 +978,7 @@ export default function TripDetailPage() {
                   <button
                     type="button"
                     onClick={handleShare}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
+                    className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:h-10 sm:w-10"
                   >
                     <span className="material-symbols-outlined text-lg sm:text-xl">share</span>
                   </button>
@@ -988,7 +986,7 @@ export default function TripDetailPage() {
                     type="button"
                     onClick={handleToggleFavorite}
                     disabled={favoriteLoading}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/20 transition-colors bg-white/10 backdrop-blur-md"
+                    className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 disabled:opacity-60 sm:h-10 sm:w-10"
                   >
                     <Heart
                       className={cn(
@@ -1024,8 +1022,8 @@ export default function TripDetailPage() {
                   </span>
                 )}
                 {route.status === 'completed' && (
-                  <button onClick={() => setActiveView("stats")}>
-                    <span className="px-3 py-1.5 cursor-pointer hover:bg-white/20 transition-colors bg-blue-500/20 text-white backdrop-blur-md text-xs font-bold rounded-full border border-blue-400/50 flex items-center gap-1.5 shadow-sm uppercase tracking-wide">
+                  <button type="button" onClick={() => setActiveView("stats")} className="touch-manipulation text-left">
+                    <span className="flex cursor-pointer items-center gap-1.5 rounded-full border border-blue-400/50 bg-blue-500/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white shadow-sm backdrop-blur-md transition-colors hover:bg-white/20">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       {t('completed')}
                     </span>
@@ -1063,7 +1061,7 @@ export default function TripDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowLinksModal(true)}
-                  className="group relative flex min-h-11 w-full shrink-0 flex-row items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 px-3 py-2.5 shadow-md transition-transform hover:scale-[1.01] md:hidden"
+                  className="group relative flex min-h-11 w-full shrink-0 touch-manipulation flex-row items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 px-3 py-2.5 shadow-md transition-transform hover:scale-[1.01] md:hidden"
                   style={{
                     background: "linear-gradient(135deg, rgba(56,189,248,0.28) 0%, rgba(99,102,241,0.32) 100%)",
                     backdropFilter: "blur(16px)",
@@ -1089,7 +1087,7 @@ export default function TripDetailPage() {
                     <button
                       type="button"
                       onClick={() => setShowWeatherModal(true)}
-                      className="flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 py-2.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                      className="flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 py-2.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
                     >
                       <span className="shrink-0">{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
                       <span className="min-w-0 text-center leading-tight">
@@ -1101,7 +1099,7 @@ export default function TripDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowTipsModal(true)}
-                    className="flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/15 px-2 py-2.5 text-[10px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                    className="flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/15 px-2 py-2.5 text-[10px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
                   >
                     <span className="material-symbols-outlined shrink-0 text-sm">lightbulb</span>
                     <span className="text-center leading-tight">{t("routeTips")}</span>
@@ -1114,7 +1112,7 @@ export default function TripDetailPage() {
             <button
               type="button"
               onClick={() => setShowLinksModal(true)}
-              className="group relative hidden shrink-0 items-center gap-2 overflow-hidden rounded-2xl px-5 py-3 transition-all duration-200 hover:scale-105 md:flex sm:gap-3"
+              className="group relative hidden shrink-0 touch-manipulation items-center gap-2 overflow-hidden rounded-2xl px-5 py-3 transition-all duration-200 hover:scale-105 md:flex sm:gap-3"
               style={{
                 background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.28) 100%)",
                 border: "1px solid rgba(255,255,255,0.18)",
@@ -1150,19 +1148,20 @@ export default function TripDetailPage() {
             showReadOnlyBanner ? "top-10" : "top-0"
           )}
         >
-          <div className="trip-glass rounded-full p-1.5 sm:p-2 shadow-md md:shadow-2xl max-w-7xl mx-auto flex items-center gap-1">
+          <div className="trip-glass mx-auto flex max-w-7xl items-center gap-1 rounded-full p-1.5 shadow-md sm:p-2 md:shadow-2xl">
             {/* Left arrow */}
             {tripDurationDays > 1 && (
               <button
+                type="button"
                 onClick={() => setActiveDay(Math.max(1, activeDay - 1))}
-                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/50 dark:text-white/60 dark:hover:bg-white/10 sm:h-9 sm:w-9"
               >
                 <span className="material-symbols-outlined text-lg">chevron_left</span>
               </button>
             )}
             <div className="relative flex-1 overflow-hidden">
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/20 dark:from-black/20 to-transparent pointer-events-none z-10 rounded-r-full" />
-            <div className="flex space-x-1 overflow-x-auto no-scrollbar px-1">
+            <div className="flex space-x-1 overflow-x-auto px-1 [-webkit-overflow-scrolling:touch] no-scrollbar">
               {route.itinerary?.map((day: any) => {
                 const isActive = activeDay === day.day
                 const hasFlight =
@@ -1177,12 +1176,13 @@ export default function TripDetailPage() {
 
                 return (
                   <button
+                    type="button"
                     key={day.day}
                     ref={(el) => { if (dayRefs.current) dayRefs.current[day.day] = el }}
                     onClick={() => setActiveDay(day.day)}
                     className={cn(
-                      "flex-shrink-0 rounded-full transition-all flex flex-col items-center relative border",
-                      isCompact ? "px-3 py-1.5 min-w-[56px]" : "px-4 sm:px-6 py-2 sm:py-3 min-w-[80px] sm:min-w-[100px]",
+                      "relative flex min-h-10 flex-shrink-0 touch-manipulation flex-col items-center rounded-full border transition-all sm:min-h-0",
+                      isCompact ? "min-w-[56px] px-3 py-1.5" : "min-w-[76px] px-3 py-2 sm:min-w-[100px] sm:px-6 sm:py-3",
                       isActive
                         ? "bg-sky-500 dark:bg-blue-600 text-white shadow-lg shadow-sky-400/40 dark:shadow-blue-500/40 border-sky-400/50 dark:border-blue-400/50"
                         : "text-slate-600 dark:text-white/70 hover:bg-white/50 dark:hover:bg-white/10 hover:text-sky-700 dark:hover:text-white border-transparent hover:border-white/30 dark:hover:border-white/10 group"
@@ -1228,8 +1228,9 @@ export default function TripDetailPage() {
             {/* Right arrow */}
             {tripDurationDays > 1 && (
               <button
+                type="button"
                 onClick={() => setActiveDay(Math.min(tripDurationDays, activeDay + 1))}
-                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/50 dark:text-white/60 dark:hover:bg-white/10 sm:h-9 sm:w-9"
               >
                 <span className="material-symbols-outlined text-lg">chevron_right</span>
               </button>
@@ -1237,9 +1238,10 @@ export default function TripDetailPage() {
             {/* Stats tab */}
             <div className="flex border-l border-slate-300/40 dark:border-white/10 pl-2 ml-1 shrink-0">
               <button
+                type="button"
                 onClick={() => setActiveView(v => v === "stats" ? "itinerary" : "stats")}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all",
+                  "flex min-h-10 touch-manipulation items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition-all sm:min-h-0",
                   activeView === "stats"
                     ? "bg-violet-500 text-white shadow-lg shadow-violet-500/30"
                     : "text-slate-500 dark:text-white/60 hover:bg-white/50 dark:hover:bg-white/10"
@@ -1376,6 +1378,7 @@ export default function TripDetailPage() {
                       {t('confirmed')}
                     </span>
                     <button
+                      type="button"
                       onClick={() => {
                         if (sidebarHotel.bookingUrl) {
                           window.open(sidebarHotel.bookingUrl, "_blank")
@@ -1391,7 +1394,7 @@ export default function TripDetailPage() {
                         p.set("group_adults", String(route.travelers || 2))
                         window.open(`https://www.booking.com/search.html?${p.toString()}`, "_blank")
                       }}
-                      className="text-[10px] sm:text-xs font-bold text-white bg-sky-500 dark:bg-blue-600 hover:bg-sky-400 dark:hover:bg-blue-500 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors shadow-lg shadow-sky-500/20 dark:shadow-blue-500/20"
+                      className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:shadow-blue-500/20 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
                     >
                       {t('bookNow')}
                     </button>
@@ -1679,12 +1682,6 @@ export default function TripDetailPage() {
           <Footer />
         </div>
 
-        <TripChat
-          tripId={params.id as string}
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          currentUser={user}
-        />
 
         {/* ===== AI trip assistant (FAB, owner only) ===== */}
         {isOwner && route && (

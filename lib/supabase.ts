@@ -1,4 +1,4 @@
-﻿import { createBrowserClient } from '@supabase/ssr'
+import { createBrowserClient } from '@supabase/ssr'
 
 const normalizeSupabaseUrl = (raw: string) => {
   const cleaned = String(raw || "")
@@ -31,8 +31,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
+function oauthReturnBaseUrl(): string {
+  const current = window.location.origin.replace(/\/$/, '')
+  const ref = typeof document !== 'undefined' ? document.referrer?.trim() : ''
+  if (!ref) return current
+  try {
+    const fromRef = new URL(ref).origin.replace(/\/$/, '')
+    if (fromRef === current) return fromRef
+  } catch {
+    /* ignore malformed referrer */
+  }
+  return current
+}
+
 export async function signInWithGoogle() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || window.location.origin
+  const siteUrl = oauthReturnBaseUrl()
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {

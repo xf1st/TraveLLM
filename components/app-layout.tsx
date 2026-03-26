@@ -76,7 +76,7 @@ export function AppLayout({ children, title, description, className, variant = "
                 {/* Page Header - optional title area */}
                 {(title || description) && (
                     <div className="border-b border-border/50 bg-card/30">
-                        <div className="px-6 py-8 lg:px-10">
+                        <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
                             {title && (
                                 <h1 className="text-2xl font-semibold tracking-tight lg:text-3xl">
                                     {title}
@@ -94,7 +94,7 @@ export function AppLayout({ children, title, description, className, variant = "
                 {/* Page Content */}
                 <div
                     className={cn(
-                        immersive ? "flex flex-1 flex-col min-h-0 overflow-hidden p-0" : "p-4 lg:p-8",
+                        immersive ? "flex flex-1 flex-col min-h-0 overflow-hidden p-0" : "min-w-0 max-w-[100vw] overflow-x-hidden p-3 sm:p-4 lg:p-8",
                     )}
                 >
                     {children}

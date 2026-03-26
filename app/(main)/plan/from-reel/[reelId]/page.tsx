@@ -387,7 +387,7 @@ export default function PlanFromReelPage() {
   if (loadError || !reelId) {
     return (
       <AppLayout className="trip-bg">
-        <div className="relative z-10 mx-auto max-w-lg px-4 py-24 text-center">
+        <div className="relative z-10 mx-auto min-w-0 max-w-lg px-3 sm:px-4 py-20 sm:py-24 text-center">
           <p className="mb-4 text-destructive">{loadError || t("invalidReel")}</p>
           <Button variant="outline" onClick={() => router.push("/reels")}>
             {t("backToReels")}
@@ -439,16 +439,16 @@ export default function PlanFromReelPage() {
         blockers={errorModal.blockers}
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-0 pt-16 pb-28 sm:pt-20 md:pb-16">
-        <div className="mb-6 flex items-center gap-3 px-4 sm:px-6 lg:px-8">
-          <Button variant="ghost" size="sm" className="gap-2 text-white/80 hover:text-white" onClick={() => router.push("/reels")}>
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-7xl px-0 pt-16 pb-28 sm:pt-20 md:pb-16">
+        <div className="mb-6 flex items-center gap-3 px-3 sm:px-6 lg:px-8">
+          <Button variant="ghost" size="sm" className="min-h-10 gap-2 touch-manipulation text-white/80 hover:text-white" onClick={() => router.push("/reels")}>
             <ArrowLeft className="h-4 w-4" />
             {t("back")}
           </Button>
         </div>
 
-        <header className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 px-4 sm:px-6 lg:px-8">
-          <h1 className="mb-2 font-black text-4xl tracking-tight text-foreground dark:text-white sm:text-5xl">
+        <header className="mb-8 sm:mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700 px-3 sm:px-6 lg:px-8">
+          <h1 className="mb-2 font-black text-3xl tracking-tight text-foreground dark:text-white sm:text-4xl md:text-5xl">
             {t("heroTitle")}{" "}
             <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 bg-clip-text text-transparent dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400">
               {t("heroAccent")}
@@ -457,9 +457,9 @@ export default function PlanFromReelPage() {
           <p className="max-w-xl text-sm text-muted-foreground sm:text-base">{t("subtitle")}</p>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 px-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150 sm:gap-6 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_1fr] lg:px-8">
+        <div className="grid grid-cols-1 gap-4 px-3 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150 sm:gap-6 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_1fr] lg:px-8">
           {/* 01 — hub */}
-          <section className="rounded-3xl border border-white/60 bg-white/70 p-6 shadow-[0_8px_32px_rgba(0,122,255,0.08)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-white/[0.03] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)] sm:p-8">
+          <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-[0_8px_32px_rgba(0,122,255,0.08)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-white/[0.03] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)] sm:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-500/30">
                 01
@@ -487,12 +487,12 @@ export default function PlanFromReelPage() {
                 <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-blue-500">
                   {tPlan("fieldLabels.returnTo")}
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid min-w-0 grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setReturnToOrigin(true)}
                     className={cn(
-                      "flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-all duration-200",
+                      "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-semibold transition-all duration-200 touch-manipulation sm:h-11 sm:gap-2 sm:text-sm",
                       returnToOrigin
                         ? "border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/25"
                         : "border-blue-100 bg-blue-50/50 text-muted-foreground hover:border-blue-300 dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:border-blue-500/40",
@@ -505,7 +505,7 @@ export default function PlanFromReelPage() {
                     type="button"
                     onClick={() => setReturnToOrigin(false)}
                     className={cn(
-                      "flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-all duration-200",
+                      "flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-semibold transition-all duration-200 touch-manipulation sm:h-11 sm:gap-2 sm:text-sm",
                       !returnToOrigin
                         ? "border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/25"
                         : "border-blue-100 bg-blue-50/50 text-muted-foreground hover:border-blue-300 dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:border-blue-500/40",
@@ -529,7 +529,7 @@ export default function PlanFromReelPage() {
                 <label className="ml-1 text-[10px] font-bold uppercase tracking-widest text-blue-500">
                   {tPlan("fieldLabels.travelMode")}
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid min-w-0 grid-cols-3 gap-1.5 sm:gap-2">
                   {(
                     [
                       { id: "flight" as const, icon: Plane, label: tPlan("travelMode.flight") },
@@ -542,7 +542,7 @@ export default function PlanFromReelPage() {
                       type="button"
                       onClick={() => setTravelMode(id)}
                       className={cn(
-                        "flex h-[4.25rem] flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition-all duration-200",
+                        "flex min-h-[3.75rem] flex-col items-center justify-center gap-0.5 rounded-xl border py-2 text-[10px] font-semibold transition-all duration-200 touch-manipulation sm:h-[4.25rem] sm:gap-1 sm:text-xs",
                         travelMode === id
                           ? "border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/25"
                           : "border-blue-100 bg-blue-50/50 text-muted-foreground hover:border-blue-300 dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:border-blue-500/40",
@@ -565,22 +565,22 @@ export default function PlanFromReelPage() {
                     <button
                       type="button"
                       className={cn(
-                        "flex h-12 w-full items-center rounded-xl border px-4 text-sm transition-all",
+                        "flex h-12 min-w-0 w-full items-center rounded-xl border px-3 text-sm transition-all touch-manipulation sm:px-4",
                         "border-blue-100 bg-blue-50/50 hover:border-blue-300 hover:bg-white dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10",
                         !date && "text-muted-foreground",
                       )}
                     >
-                      <CalendarIcon className="mr-3 h-4 w-4 shrink-0 text-blue-400" />
+                      <CalendarIcon className="mr-2 h-4 w-4 shrink-0 text-blue-400 sm:mr-3" />
                       {date?.from ? (
                         date.to ? (
-                          <span className="flex flex-1 items-center justify-between gap-2">
-                            <span className="font-semibold">
+                          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                            <span className="truncate text-left text-xs font-semibold sm:text-sm">
                               {format(date.from, locale === "ru" ? "dd MMM" : "MMM dd", { locale: dateFnsLocale })} —{" "}
                               {format(date.to, locale === "ru" ? "dd MMM yyyy" : "MMM dd, yyyy", {
                                 locale: dateFnsLocale,
                               })}
                             </span>
-                            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-bold text-blue-500 dark:text-blue-400">
+                            <span className="shrink-0 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-bold text-blue-500 dark:text-blue-400 sm:px-2 sm:text-xs">
                               {tPlan("fieldLabels.durationDaysBadge", {
                                 count: Math.ceil((date.to.getTime() - date.from.getTime()) / 86_400_000) + 1,
                               })}
@@ -624,7 +624,7 @@ export default function PlanFromReelPage() {
           </section>
 
           {/* 02 — reel anchor */}
-          <section className="rounded-3xl border border-white/50 bg-white/55 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.06] dark:bg-white/[0.025] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)] sm:p-8">
+          <section className="rounded-3xl border border-white/50 bg-white/55 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-2xl dark:border-white/[0.06] dark:bg-white/[0.025] dark:shadow-[0_4px_24px_rgba(0,0,0,0.3)] sm:p-8">
             <div className="mb-6 flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-500/30">
                 02
@@ -634,7 +634,7 @@ export default function PlanFromReelPage() {
             <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-emerald-500/90">
               {t("lockedDestinationLabel")}
             </p>
-            <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm font-semibold text-white/90 dark:text-white">
+            <div className="mb-5 min-w-0 break-words rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-3 text-sm font-semibold text-white/90 dark:text-white sm:px-4">
               {lockedDestination}
             </div>
             <ReelAnchorPreviewCard
@@ -650,7 +650,7 @@ export default function PlanFromReelPage() {
           </section>
 
           {/* 03 — budget + interests */}
-          <section className="rounded-3xl border border-white/60 bg-white/70 p-6 shadow-[0_8px_32px_rgba(0,122,255,0.06)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-white/[0.03] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)] sm:p-8 lg:row-span-2">
+          <section className="rounded-3xl border border-white/60 bg-white/70 p-5 shadow-[0_8px_32px_rgba(0,122,255,0.06)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-white/[0.03] dark:shadow-[0_8px_40px_rgba(0,0,0,0.4)] sm:p-8 lg:row-span-2">
             <div className="mb-6 flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white shadow-lg shadow-amber-500/30">
                 03
@@ -695,28 +695,28 @@ export default function PlanFromReelPage() {
                   type="button"
                   onClick={() => setBudget(b.id)}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-sm transition-all duration-200",
+                    "flex w-full min-w-0 flex-col items-stretch gap-1.5 rounded-xl border px-3 py-3 text-left text-sm transition-all duration-200 touch-manipulation sm:flex-row sm:items-center sm:justify-between sm:px-4",
                     budget === b.id
                       ? `border-${b.color}-500/60 bg-${b.color}-500/8 ring-1 ring-${b.color}-500/20`
                       : "border-border bg-white/30 hover:bg-white/50 dark:bg-white/5 dark:hover:bg-white/10",
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                     <div
                       className={cn(
-                        "h-2.5 w-2.5 rounded-full transition-all",
+                        "h-2.5 w-2.5 shrink-0 rounded-full transition-all",
                         budget === b.id ? `bg-${b.color}-500` : "bg-muted-foreground/30",
                       )}
                     />
-                    <span className="font-bold">{b.label}</span>
+                    <span className="truncate font-bold">{b.label}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{b.sub}</span>
+                  <span className="text-[10px] text-muted-foreground sm:text-right sm:text-xs">{b.sub}</span>
                 </button>
               ))}
 
               <div
                 className={cn(
-                  "flex items-center gap-3 rounded-xl border px-4 py-3 transition-all",
+                  "flex flex-wrap items-center gap-2 rounded-xl border px-3 py-3 transition-all sm:gap-3 sm:px-4",
                   budget === "custom"
                     ? "border-violet-500/60 bg-violet-500/8 ring-1 ring-violet-500/20"
                     : "border-border bg-white/30 dark:bg-white/5",
@@ -754,7 +754,7 @@ export default function PlanFromReelPage() {
               <label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-amber-500/80">
                 {tPlan("fieldLabels.interests")}
               </label>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
                 {[
                   { id: "culture", label: tPlan("interests.culture"), icon: Compass, color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
                   { id: "nature", label: tPlan("interests.nature"), icon: Mountain, color: "#10b981", glow: "rgba(16,185,129,0.25)" },
@@ -780,7 +780,7 @@ export default function PlanFromReelPage() {
                           : {}
                       }
                       className={cn(
-                        "relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3.5 transition-all duration-200",
+                        "relative flex min-w-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 p-2.5 transition-all duration-200 touch-manipulation sm:gap-2 sm:p-3.5",
                         "bg-[#1a1f2e] dark:bg-[#1a1f2e]",
                         sel ? "border-[var(--sel-color)]" : "border-white/10 hover:border-white/25",
                       )}
@@ -811,7 +811,7 @@ export default function PlanFromReelPage() {
           </section>
 
           {/* 04 — vibe */}
-          <section className="group/highlight relative col-span-1 overflow-hidden rounded-3xl bg-[#111827] p-6 text-white sm:col-span-2 sm:p-8 lg:col-span-2">
+          <section className="group/highlight relative col-span-1 min-w-0 overflow-hidden rounded-3xl bg-[#111827] p-5 text-white sm:col-span-2 sm:p-8 lg:col-span-2">
             <div className="pointer-events-none absolute -bottom-16 -right-16 h-56 w-56 rounded-full bg-blue-500/15 blur-[80px] transition-opacity duration-500 group-focus-within/highlight:opacity-150" />
             <div className="pointer-events-none absolute -left-8 top-0 h-40 w-40 rounded-full bg-violet-500/12 blur-[60px]" />
             <div
@@ -821,19 +821,19 @@ export default function PlanFromReelPage() {
                 boxShadow: "inset 0 0 0 1.5px rgba(139,92,246,0.35)",
               }}
             />
-            <div className="relative z-10">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative z-10 min-w-0">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 min-w-0 sm:gap-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-500/40">
                     04
                   </span>
                   <Sparkles className="h-4 w-4 shrink-0 text-blue-400" />
-                  <h2 className="text-lg font-bold tracking-tight">{tPlan("sections.highlight")}</h2>
+                  <h2 className="text-base font-bold tracking-tight sm:text-lg">{tPlan("sections.highlight")}</h2>
                   <span className="shrink-0 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider animate-pulse">
                     {tPlan("fieldLabels.personalBadge")}
                   </span>
                 </div>
-                <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-white/40">{tPlan("fieldLabels.optional")}</span>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-white/40 sm:text-right">{tPlan("fieldLabels.optional")}</span>
               </div>
 
               <div
@@ -871,7 +871,7 @@ export default function PlanFromReelPage() {
                       key={s.value}
                       type="button"
                       onClick={() => setTripVibe(s.value)}
-                      className="rounded-full border border-white/[0.08] bg-white/[0.07] px-3.5 py-1.5 text-xs font-medium text-white/65 transition-all hover:border-white/20 hover:bg-white/[0.13] hover:text-white active:scale-95"
+                      className="touch-manipulation rounded-full border border-white/[0.08] bg-white/[0.07] px-3.5 py-2 text-xs font-medium text-white/65 transition-all hover:border-white/20 hover:bg-white/[0.13] hover:text-white active:scale-95"
                     >
                       {s.label}
                     </button>
@@ -891,7 +891,7 @@ export default function PlanFromReelPage() {
         </div>
 
         {/* 05 — team + CTA */}
-        <section className="relative mx-4 mt-4 overflow-hidden rounded-3xl bg-[#111827] p-6 text-white animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 sm:mx-6 sm:mt-6 sm:p-8 lg:mx-8">
+        <section className="relative mx-3 mt-4 min-w-0 overflow-hidden rounded-3xl bg-[#111827] p-5 text-white animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 sm:mx-6 sm:mt-6 sm:p-8 lg:mx-8">
           <div className="pointer-events-none absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-500/10 blur-[80px]" />
           <div className="relative z-10 flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="w-full flex-1">
@@ -901,7 +901,7 @@ export default function PlanFromReelPage() {
                 </span>
                 <h2 className="text-lg font-bold tracking-tight">{tPlan("sections.teamConfig")}</h2>
               </div>
-              <div className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md sm:grid-cols-4 sm:p-5">
+              <div className="mb-4 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur-md sm:grid-cols-4 sm:gap-3 sm:p-5">
                 {[
                   { id: "solo", label: tPlan("companions.solo"), icon: "👤" },
                   { id: "couple", label: tPlan("companions.couple"), icon: "💑" },
@@ -915,7 +915,7 @@ export default function PlanFromReelPage() {
                     onClick={() => setCompanions(c.id)}
                     onKeyDown={(e) => (e.key === "Enter" || e.key === " " ? setCompanions(c.id) : null)}
                     className={cn(
-                      "flex cursor-pointer flex-col items-center gap-2 rounded-xl border px-3 py-4 transition-all duration-200",
+                      "flex min-w-0 cursor-pointer flex-col items-center gap-1.5 rounded-xl border px-2 py-3 transition-all duration-200 touch-manipulation sm:gap-2 sm:px-3 sm:py-4",
                       companions === c.id
                         ? "border-blue-500/40 bg-blue-500/20 ring-1 ring-blue-500/20"
                         : "border-transparent hover:bg-white/5",
@@ -979,18 +979,18 @@ export default function PlanFromReelPage() {
               </p>
               {!anchorOk && (
                 <div
-                  className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs"
+                  className="flex min-w-0 items-start gap-2 rounded-xl px-3 py-2 text-xs"
                   style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}
                 >
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-                  <span className="text-amber-200/90">{t("validation.anchor", { day: reel.anchor_day })}</span>
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                  <span className="min-w-0 text-left leading-snug text-amber-200/90">{t("validation.anchor", { day: reel.anchor_day })}</span>
                 </div>
               )}
               <button
                 type="button"
                 onClick={runGeneration}
                 disabled={loading || !anchorOk}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-blue-500 py-4 text-lg font-bold text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] transition-all duration-200 hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+                className="flex w-full min-h-[3.25rem] items-center justify-center gap-3 rounded-2xl bg-blue-500 py-3.5 text-base font-bold text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] transition-all duration-200 hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 touch-manipulation sm:py-4 sm:text-lg"
               >
                 {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("generate")}
                 {!loading && <Sparkles className="h-5 w-5" />}

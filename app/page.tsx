@@ -62,7 +62,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           HERO
       ═══════════════════════════════════════════════ */}
-      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-4 pt-20 pb-16 overflow-hidden bg-black">
+      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-3 sm:px-4 pt-24 pb-20 sm:pt-20 sm:pb-16 overflow-hidden bg-black">
 
         {/* Video Background Layer */}
         <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-950">
@@ -87,7 +87,7 @@ export default function LandingPage() {
           <FloatingIcons />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto w-full">
+        <div className="relative z-10 flex flex-col items-center text-center max-w-5xl mx-auto w-full min-w-0">
 
           {/* Eyebrow */}
           <motion.div variants={fadeUp} initial="hidden" animate="show" custom={0}>
@@ -99,7 +99,7 @@ export default function LandingPage() {
           {/* Headline - FORCED WHITE FOR READABILITY */}
           <motion.h1
             variants={fadeUp} initial="hidden" animate="show" custom={2}
-            className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.05] mb-6 text-white"
+            className="text-3xl sm:text-5xl md:text-7xl font-black tracking-tight leading-[1.08] mb-5 sm:mb-6 text-white px-1"
           >
             <span className="drop-shadow-2xl">{t("hero.headline1")}</span>
             <br />
@@ -111,27 +111,27 @@ export default function LandingPage() {
 
           <motion.p
             variants={fadeUp} initial="hidden" animate="show" custom={3}
-            className="text-lg md:text-xl text-white/80 max-w-2xl mb-10 leading-relaxed drop-shadow-md"
+            className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mb-8 sm:mb-10 leading-relaxed drop-shadow-md px-1"
           >
             {t("hero.subtitle")}
           </motion.p>
 
           {/* CTA */}
-          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="flex flex-col sm:flex-row gap-3 mb-14">
-            <Link href="/plan">
-              <Button size="lg" className="h-14 px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-2 text-white">
+          <motion.div variants={fadeUp} initial="hidden" animate="show" custom={4} className="flex w-full max-w-md flex-col gap-3 mb-12 sm:mb-14 sm:max-w-none sm:flex-row sm:justify-center">
+            <Link href="/plan" className="w-full sm:w-auto touch-manipulation">
+              <Button size="lg" className="h-14 w-full sm:w-auto px-8 sm:px-10 rounded-full text-base font-bold shadow-md md:shadow-2xl shadow-primary/30 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-[1.02] sm:hover:scale-105 transition-transform gap-2 text-white">
                 {t("hero.ctaCreate")} <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             {user ? (
-              <Link href="/trips">
-                <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
+              <Link href="/trips" className="w-full sm:w-auto touch-manipulation">
+                <Button size="lg" className="h-14 w-full sm:w-auto px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
                   {t("hero.ctaTrips")}
                 </Button>
               </Link>
             ) : (
-              <Link href="/auth">
-                <Button size="lg" className="h-14 px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
+              <Link href="/auth" className="w-full sm:w-auto touch-manipulation">
+                <Button size="lg" className="h-14 w-full sm:w-auto px-8 rounded-full text-base font-bold bg-white text-black hover:bg-white/90 transition-all shadow-lg border-none">
                   {t("hero.ctaSignIn")}
                 </Button>
               </Link>
@@ -166,16 +166,16 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           КАК ЭТО РАБОТАЕТ — 3 шага
       ═══════════════════════════════════════════════ */}
-      <section className="relative py-28 px-4">
-        <div className="max-w-6xl mx-auto">
+      <section className="relative py-16 sm:py-24 lg:py-28 px-3 sm:px-4">
+        <div className="max-w-6xl mx-auto min-w-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16 px-1"
           >
             <Badge variant="outline" className="mb-4 border-sky-500/40 text-sky-500 bg-sky-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
               {t("howItWorks.badge")}
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               {t("howItWorks.title")}{" "}
               <span className="text-primary">{t("howItWorks.titleAccent")}</span>
             </h2>
@@ -218,7 +218,7 @@ export default function LandingPage() {
                 key={step.num}
                 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={i}
                 className={cn(
-                  "relative rounded-3xl border bg-gradient-to-b p-8 flex flex-col gap-4",
+                  "relative rounded-3xl border bg-gradient-to-b p-5 sm:p-8 flex flex-col gap-4",
                   step.color
                 )}
               >
@@ -237,16 +237,16 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           ПРЕВЬЮ РЕАЛЬНОГО МАРШРУТА
       ═══════════════════════════════════════════════ */}
-      <section className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-14 sm:py-20 px-3 sm:px-4">
+        <div className="max-w-6xl mx-auto min-w-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8 sm:mb-12 px-1"
           >
             <Badge variant="outline" className="mb-4 border-emerald-500/40 text-emerald-400 bg-emerald-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
               {t("preview.badge")}
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               {t("preview.title")}{" "}
               <span className="text-emerald-400">{t("preview.titleAccent")}</span>
             </h2>
@@ -266,42 +266,43 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           СРАВНЕНИЕ С КОНКУРЕНТАМИ
       ═══════════════════════════════════════════════ */}
-      <section className="py-28 px-4 relative overflow-hidden">
+      <section className="py-16 sm:py-24 lg:py-28 px-3 sm:px-4 relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/4 to-transparent" />
         </div>
 
-        <div className="max-w-5xl mx-auto relative z-10">
+        <div className="max-w-5xl mx-auto relative z-10 min-w-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16 px-1"
           >
             <Badge variant="outline" className="mb-4 border-rose-500/40 text-rose-400 bg-rose-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
               {t("comparison.badge")}
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               {t("comparison.title")}{" "}
               <span className="bg-gradient-to-r from-rose-400 to-orange-400 bg-clip-text text-transparent">
                 {t("comparison.titleAccent")}
               </span>
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
               {t("comparison.subtitle")}
             </p>
           </motion.div>
 
+          <div className="-mx-1 overflow-x-auto overscroll-x-contain pb-1 sm:mx-0 sm:overflow-visible sm:pb-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="rounded-3xl border border-white/10 overflow-hidden bg-card/30 backdrop-blur-md md:backdrop-blur-xl"
+            className="min-w-[min(100%,300px)] sm:min-w-0 rounded-3xl border border-white/10 overflow-hidden bg-card/30 backdrop-blur-md md:backdrop-blur-xl"
           >
             {/* Table header */}
             <div className="grid grid-cols-3 border-b border-white/10">
-              <div className="p-5 text-sm font-bold text-muted-foreground">{t("comparison.colFeature")}</div>
-              <div className="p-5 text-center text-sm font-bold text-muted-foreground border-l border-white/10">
+              <div className="p-2.5 sm:p-5 text-[10px] sm:text-sm font-bold text-muted-foreground leading-tight">{t("comparison.colFeature")}</div>
+              <div className="p-2.5 sm:p-5 text-center text-[10px] sm:text-sm font-bold text-muted-foreground border-l border-white/10 leading-tight">
                 {t("comparison.colOthers")}
               </div>
-              <div className="p-5 text-center border-l border-white/10 bg-primary/8">
-                <span className="text-sm font-black text-primary">{t("comparison.colUs")}</span>
+              <div className="p-2.5 sm:p-5 text-center border-l border-white/10 bg-primary/8">
+                <span className="text-[10px] sm:text-sm font-black text-primary leading-tight">{t("comparison.colUs")}</span>
               </div>
             </div>
 
@@ -321,42 +322,43 @@ export default function LandingPage() {
                 key={row.featKey}
                 className={cn("grid grid-cols-3 border-b border-white/5 last:border-b-0 hover:bg-white/2 transition-colors", i % 2 === 0 ? "" : "bg-white/1")}
               >
-                <div className="p-4 text-sm font-medium">{t(`comparison.${row.featKey}`)}</div>
-                <div className="p-4 flex items-center justify-center border-l border-white/10">
+                <div className="p-2 sm:p-4 text-[11px] sm:text-sm font-medium leading-snug break-words min-w-0">{t(`comparison.${row.featKey}`)}</div>
+                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-white/10">
                   {row.them === true ? (
-                    <Check className="w-4 h-4 text-green-500" />
+                    <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 shrink-0" />
                   ) : row.them === "partly" ? (
-                    <span className="text-xs text-muted-foreground font-medium">{t("comparison.partly")}</span>
+                    <span className="text-[9px] sm:text-xs text-muted-foreground font-medium text-center leading-tight px-0.5">{t("comparison.partly")}</span>
                   ) : (
-                    <X className="w-4 h-4 text-red-400/60" />
+                    <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400/60 shrink-0" />
                   )}
                 </div>
-                <div className="p-4 flex items-center justify-center border-l border-white/10 bg-primary/5">
-                  <Check className="w-5 h-5 text-primary font-bold" />
+                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-white/10 bg-primary/5">
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5 text-primary font-bold shrink-0" />
                 </div>
               </div>
             ))}
           </motion.div>
+          </div>
         </div>
       </section>
 
       {/* ═══════════════════════════════════════════════
           ФИЧИ — bento grid
       ═══════════════════════════════════════════════ */}
-      <section className="py-28 px-4">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-16 sm:py-24 lg:py-28 px-3 sm:px-4">
+        <div className="max-w-6xl mx-auto min-w-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-center mb-16"
+            className="text-center mb-10 sm:mb-16 px-1"
           >
             <Badge variant="outline" className="mb-4 border-violet-500/40 text-violet-400 bg-violet-500/8 px-4 py-1 rounded-full uppercase tracking-widest text-[10px] font-bold">
               {t("features.badge")}
             </Badge>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               {t("features.title")}{" "}
               <span className="text-violet-400">{t("features.titleAccent")}</span>
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="text-muted-foreground max-w-xl mx-auto text-sm sm:text-base">
               {t("features.subtitle")}
             </p>
           </motion.div>
@@ -367,7 +369,7 @@ export default function LandingPage() {
             {/* Big feature — span 2 cols */}
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={0}
-              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-primary/15 to-violet-500/10 p-8 relative overflow-hidden group hover:border-primary/30 transition-colors"
+              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-primary/15 to-violet-500/10 p-5 sm:p-8 relative overflow-hidden group hover:border-primary/30 transition-colors"
             >
               <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-primary/15 blur-3xl pointer-events-none group-hover:bg-primary/25 transition-colors hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-5">
@@ -386,7 +388,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={1}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 p-7 relative overflow-hidden hover:border-sky-500/30 transition-colors group"
+              className="rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-sky-500/30 transition-colors group"
             >
               <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-sky-500/10 blur-2xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mb-4">
@@ -400,7 +402,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={2}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-amber-500/5 p-7 relative overflow-hidden hover:border-orange-500/30 transition-colors"
+              className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-orange-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center mb-4">
                 <CloudSun className="w-6 h-6 text-orange-400" />
@@ -413,7 +415,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={3}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-green-500/5 p-7 relative overflow-hidden hover:border-emerald-500/30 transition-colors"
+              className="rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-green-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-emerald-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-4">
                 <MessageSquare className="w-6 h-6 text-emerald-400" />
@@ -426,7 +428,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={4}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 to-pink-500/5 p-7 relative overflow-hidden hover:border-rose-500/30 transition-colors"
+              className="rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 to-pink-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-rose-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center mb-4">
                 <Wallet className="w-6 h-6 text-rose-400" />
@@ -440,7 +442,7 @@ export default function LandingPage() {
             {/* Big feature — span 2 cols */}
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={5}
-              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-8 relative overflow-hidden hover:border-indigo-500/30 transition-colors group"
+              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-5 sm:p-8 relative overflow-hidden hover:border-indigo-500/30 transition-colors group"
             >
               <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mb-5">
@@ -454,7 +456,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={6}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-yellow-500/10 to-amber-500/5 p-7 relative overflow-hidden hover:border-yellow-500/30 transition-colors"
+              className="rounded-3xl border border-white/10 bg-gradient-to-br from-yellow-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-yellow-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mb-4">
                 <Bot className="w-6 h-6 text-yellow-400" />
@@ -611,7 +613,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           FINAL CTA
       ═══════════════════════════════════════════════ */}
-      <section className="py-32 px-4 relative overflow-hidden">
+      <section className="py-20 sm:py-28 lg:py-32 px-3 sm:px-4 relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-primary/15 rounded-full blur-[130px]" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/4 to-transparent" />
@@ -619,40 +621,40 @@ export default function LandingPage() {
 
         <motion.div
           variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-          className="relative z-10 max-w-3xl mx-auto text-center"
+          className="relative z-10 max-w-3xl mx-auto text-center min-w-0 px-1"
         >
           {/* Mini testimonials */}
-          <div className="flex items-center justify-center gap-1.5 mb-8">
+          <div className="flex flex-wrap items-center justify-center gap-1.5 mb-6 sm:mb-8">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="w-5 h-5 text-yellow-400 fill-yellow-400" />
             ))}
             <span className="text-sm text-muted-foreground ml-2 font-medium">{t("cta.stars")}</span>
           </div>
 
-          <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight mb-4 sm:mb-6 leading-tight">
             {t("cta.title")}{" "}
             <br className="hidden md:block" />
             <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
               {t("cta.titleAccent")}
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground mb-10 max-w-lg mx-auto">
+          <p className="text-base sm:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed">
             {t("cta.subtitle")}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/plan">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center px-2">
+            <Link href="/plan" className="w-full max-w-md mx-auto sm:max-w-none sm:w-auto touch-manipulation">
               <Button
                 size="lg"
-                className="h-16 px-12 rounded-full text-lg font-black shadow-md md:shadow-2xl shadow-primary/40 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-105 transition-transform gap-3"
+                className="h-14 sm:h-16 w-full sm:w-auto px-8 sm:px-12 rounded-full text-base sm:text-lg font-black shadow-md md:shadow-2xl shadow-primary/40 bg-gradient-to-r from-primary to-violet-500 border-none hover:scale-[1.02] sm:hover:scale-105 transition-transform gap-3"
               >
-                <Route className="w-5 h-5" />
+                <Route className="w-5 h-5 shrink-0" />
                 {t("cta.button")}
               </Button>
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-8 sm:mt-10 text-xs sm:text-sm text-muted-foreground px-2">
             {(["check1", "check2", "check3"] as const).map(key => (
               <div key={key} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-400" />

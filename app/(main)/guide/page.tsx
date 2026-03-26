@@ -393,29 +393,29 @@ function GuidePageContent() {
                 <AppSidebar />
 
                 <main className={cn(
-                    "flex-1 transition-all duration-300 flex flex-col pt-24 relative",
+                    "relative flex flex-1 flex-col pt-24 transition-all duration-300",
                     "lg:ml-64",
                     isSidebarCollapsed && "lg:ml-[72px]"
                 )}>
-                    <div className="container p-6 w-full max-w-5xl mx-auto z-10 space-y-12 mb-auto">
-                        <div className="text-center space-y-4">
-                            <Badge variant="secondary" className="px-4 py-1.5 text-sm gap-2 bg-primary/10 text-primary border-primary/20 backdrop-blur-sm">
-                                <Sparkles className="w-4 h-4" />
+                    <div className="container z-10 mx-auto mb-auto w-full min-w-0 max-w-5xl space-y-8 px-4 py-4 max-lg:pb-10 sm:space-y-12 sm:p-6">
+                        <div className="space-y-3 text-center sm:space-y-4">
+                            <Badge variant="secondary" className="gap-2 border-primary/20 bg-primary/10 px-3 py-1.5 text-xs text-primary backdrop-blur-sm sm:px-4 sm:text-sm">
+                                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                 AI Travel Companion
                             </Badge>
-                            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-2">
-                                Ваше умное <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">путешествие</span>
+                            <h1 className="mb-1 text-3xl font-black tracking-tight text-white sm:mb-2 sm:text-4xl md:text-6xl">
+                                Ваше умное <span className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">путешествие</span>
                             </h1>
-                            <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+                            <p className="mx-auto max-w-2xl px-1 text-base leading-relaxed text-zinc-400 sm:px-0 sm:text-lg">
                                 Ассистент, который знает ваш маршрут, подскажет лучшие места и поможет в любой ситуации. Выберите поездку, чтобы начать.
                             </p>
                         </div>
 
                         {/* Trips Grid - Dark Glass Style */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
                             {/* Create New Trip Card */}
-                            <Link href="/plan" className="group block h-full">
-                                <Card className="h-64 relative overflow-hidden border border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-300 rounded-[2rem] flex flex-col items-center justify-center text-center gap-4 group-hover:scale-[1.02]">
+                            <Link href="/plan" className="group block h-full touch-manipulation">
+                                <Card className="relative flex h-56 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-dashed border-white/10 bg-white/5 text-center transition-all duration-300 hover:border-white/20 hover:bg-white/10 group-hover:scale-[1.02] sm:h-64 sm:gap-4 sm:rounded-[2rem]">
                                     <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
                                         <Sparkles className="h-8 w-8 text-white/50 group-hover:text-white transition-colors" />
                                     </div>
@@ -428,12 +428,12 @@ function GuidePageContent() {
 
                             {loadingTrips ? (
                                 Array(3).fill(0).map((_, i) => (
-                                    <Card key={i} className="h-64 animate-pulse bg-zinc-900 border-white/5 rounded-[2rem]" />
+                                    <Card key={i} className="h-56 animate-pulse rounded-2xl border border-white/5 bg-zinc-900 sm:h-64 sm:rounded-[2rem]" />
                                 ))
                             ) : trips.length > 0 ? (
                                 trips.map(trip => (
-                                    <Link key={trip.id} href={`/guide?tripId=${trip.id}`} className="group block h-full">
-                                        <Card className="h-full relative overflow-hidden border border-white/5 bg-zinc-900 shadow-md md:shadow-2xl backdrop-blur-md md:backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-primary/10 rounded-[2rem]">
+                                    <Link key={trip.id} href={`/guide?tripId=${trip.id}`} className="group block h-full touch-manipulation">
+                                        <Card className="relative h-full overflow-hidden rounded-2xl border border-white/5 bg-zinc-900 shadow-md backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:shadow-primary/10 sm:rounded-[2rem] md:shadow-2xl md:backdrop-blur-xl md:hover:-translate-y-2">
                                             {/* Status Badge */}
                                             <div className="absolute top-4 right-4 z-20">
                                                 <div className={cn(
@@ -448,7 +448,7 @@ function GuidePageContent() {
                                             </div>
 
                                             {/* Cover Image Section */}
-                                            <div className="relative h-48 w-full overflow-hidden">
+                                            <div className="relative h-40 w-full overflow-hidden sm:h-48">
                                                 {trip.cover_image ? (
                                                     <img
                                                         src={trip.cover_image}
@@ -472,9 +472,9 @@ function GuidePageContent() {
                                                 </div>
                                             </div>
 
-                                            <div className="p-6 pt-2 flex items-center justify-between">
-                                                <span className="text-xs font-medium text-zinc-500">Нажмите, чтобы открыть</span>
-                                                <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary group-hover:text-white transition-all">
+                                            <div className="flex items-center justify-between p-4 pt-2 sm:p-6">
+                                                <span className="text-[11px] font-medium text-zinc-500 sm:text-xs">Нажмите, чтобы открыть</span>
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-all group-hover:bg-primary group-hover:text-white sm:h-8 sm:w-8">
                                                     <ArrowRight className="w-4 h-4" />
                                                 </div>
                                             </div>
@@ -482,21 +482,21 @@ function GuidePageContent() {
                                     </Link>
                                 ))
                             ) : (
-                                <div className="col-span-full text-center py-16 bg-zinc-900/50 rounded-[2rem] border border-white/5 border-dashed backdrop-blur-sm">
+                                <div className="col-span-full rounded-2xl border border-dashed border-white/5 bg-zinc-900/50 px-4 py-12 text-center backdrop-blur-sm sm:rounded-[2rem] sm:py-16">
                                     <div className="mx-auto h-16 w-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-6">
                                         <Compass className="w-8 h-8 text-zinc-500" />
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">У вас пока нет маршрутов</h3>
                                     <p className="text-zinc-400 mb-8 max-w-md mx-auto">Создайте свой первый идеальный маршрут, и я стану вашим личным ассистентом!</p>
-                                    <Button asChild size="lg" className="rounded-full bg-white text-black hover:bg-white/90 font-bold px-8 h-12 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
-                                        <Link href="/plan"><Sparkles className="w-4 h-4 mr-2 text-purple-500" /> Создать маршрут</Link>
+                                    <Button asChild size="lg" className="mx-auto flex h-12 w-full max-w-sm touch-manipulation rounded-full bg-white px-8 font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:bg-white/90 sm:h-12 sm:w-auto">
+                                        <Link href="/plan" className="flex items-center justify-center gap-2"><Sparkles className="h-4 w-4 text-purple-500" /> Создать маршрут</Link>
                                     </Button>
                                 </div>
                             )}
                         </div>
 
                         {/* Feature Highlights - Clean Glass */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-white/5">
+                        <div className="grid grid-cols-1 gap-4 border-t border-white/5 pt-8 md:grid-cols-3 md:gap-6 md:pt-12">
                             <div className="flex flex-col items-center text-center gap-4 p-6 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                                 <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400">
                                     <MessageSquare className="w-6 h-6" />
@@ -545,26 +545,26 @@ function GuidePageContent() {
 
                 {/* Main Content - Offset by sidebar width on desktop */}
                 <main className={cn(
-                    "min-h-screen transition-all duration-300 flex flex-col pt-16 lg:pt-0",
+                    "flex min-h-screen flex-col pt-16 transition-all duration-300 lg:pt-0",
                     isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
                 )}>
-                    <header className="px-6 py-4 flex items-center gap-4 bg-background/80 backdrop-blur-md md:backdrop-blur-xl sticky top-0 z-30 shrink-0 border-b border-white/5">
+                    <header className="sticky top-0 z-30 flex shrink-0 items-center gap-3 border-b border-white/5 bg-background/80 px-4 py-3 backdrop-blur-md sm:gap-4 sm:px-6 sm:py-4 md:backdrop-blur-xl">
                         <Link href={`/trip/${tripId}`}>
-                            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
+                            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 touch-manipulation rounded-full hover:bg-white/10 sm:h-10 sm:w-10">
                                 <ChevronLeft className="h-6 w-6" />
                             </Button>
                         </Link>
-                        <div>
-                            <h1 className="font-bold text-lg leading-tight line-clamp-1 text-white">{tripData?.title || "Подготовка к путешествию"}</h1>
-                            <p className="text-xs text-zinc-400 font-medium">Этап бронирования</p>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="line-clamp-1 text-base font-bold leading-tight text-white sm:text-lg">{tripData?.title || "Подготовка к путешествию"}</h1>
+                            <p className="text-[11px] font-medium text-zinc-400 sm:text-xs">Этап бронирования</p>
                         </div>
                     </header>
 
-                    <div className="flex-1 container max-w-2xl mx-auto p-6 flex flex-col items-center justify-center min-h-[80vh]">
+                    <div className="container mx-auto flex min-h-[min(70dvh,32rem)] flex-1 max-w-2xl flex-col items-center justify-center p-4 pb-8 max-lg:pb-10 sm:min-h-[min(80dvh,40rem)] sm:p-6">
 
-                        <div className="text-center mb-10">
-                            <h2 className="text-4xl font-black mb-3 text-white">Готовы лететь? ✈️</h2>
-                            <p className="text-zinc-400 text-lg">Давайте проверим готовность перед стартом.</p>
+                        <div className="mb-8 text-center sm:mb-10">
+                            <h2 className="mb-2 text-2xl font-black text-white sm:mb-3 sm:text-4xl">Готовы лететь? ✈️</h2>
+                            <p className="text-base text-zinc-400 sm:text-lg">Давайте проверим готовность перед стартом.</p>
                         </div>
 
                         <div className="w-full space-y-4 mb-10">
@@ -575,13 +575,13 @@ function GuidePageContent() {
                                     ? "bg-emerald-500/10 border-emerald-500/30"
                                     : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                <div className="p-6 flex items-start gap-5">
-                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.tickets ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-blue-500/10 text-blue-400")}>
+                                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-6">
+                                    <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors sm:mt-1", bookings.tickets ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-blue-500/10 text-blue-400")}>
                                         <Plane className="h-6 w-6" />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-bold text-xl text-white">Авиабилеты</h3>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <h3 className="text-lg font-bold text-white sm:text-xl">Авиабилеты</h3>
                                             {bookings.tickets && (
                                                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                                                     <CheckCircle2 className="w-3.5 h-3.5" /> Куплено
@@ -590,19 +590,19 @@ function GuidePageContent() {
                                         </div>
                                         <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Самый важный шаг. Найдите лучшие рейсы и зафиксируйте цены.</p>
 
-                                        <div className="flex gap-3 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+                                            <Button variant="outline" size="sm" className="h-11 w-full touch-manipulation gap-2 rounded-full border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white sm:h-10 sm:w-auto sm:px-5" asChild>
                                                 <a href={smartLinks.aviasales} target="_blank" rel="noopener noreferrer">
                                                     <Ticket className="h-4 w-4 text-blue-400" />
                                                     Найти на Aviasales
-                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
+                                                    <ExternalLink className="ml-1 h-3 w-3 opacity-30" />
                                                 </a>
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className={cn(
-                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    "h-11 w-full touch-manipulation gap-2 rounded-full px-5 font-bold transition-all sm:h-10 sm:w-auto",
                                                     bookings.tickets
                                                         ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
                                                         : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -623,13 +623,13 @@ function GuidePageContent() {
                                     ? "bg-emerald-500/10 border-emerald-500/30"
                                     : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                <div className="p-6 flex items-start gap-5">
-                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.hotel ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-purple-500/10 text-purple-400")}>
+                                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-6">
+                                    <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors sm:mt-1", bookings.hotel ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-purple-500/10 text-purple-400")}>
                                         <Hotel className="h-6 w-6" />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-bold text-xl text-white">Жилье</h3>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <h3 className="text-lg font-bold text-white sm:text-xl">Жилье</h3>
                                             {bookings.hotel && (
                                                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                                                     <CheckCircle2 className="w-3.5 h-3.5" /> Забронировано
@@ -638,19 +638,19 @@ function GuidePageContent() {
                                         </div>
                                         <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Забронируйте отель заранее, чтобы не переплачивать в последний момент.</p>
 
-                                        <div className="flex gap-3 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+                                            <Button variant="outline" size="sm" className="h-11 w-full touch-manipulation gap-2 rounded-full border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white sm:h-10 sm:w-auto sm:px-5" asChild>
                                                 <a href={smartLinks.ostrovok} target="_blank" rel="noopener noreferrer">
                                                     <Building2 className="h-4 w-4 text-purple-400" />
                                                     Ostrovok
-                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
+                                                    <ExternalLink className="ml-1 h-3 w-3 opacity-30" />
                                                 </a>
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className={cn(
-                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    "h-11 w-full touch-manipulation gap-2 rounded-full px-5 font-bold transition-all sm:h-10 sm:w-auto",
                                                     bookings.hotel
                                                         ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
                                                         : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -671,13 +671,13 @@ function GuidePageContent() {
                                     ? "bg-emerald-500/10 border-emerald-500/30"
                                     : "bg-zinc-900/50 border-white/5 hover:bg-zinc-900 hover:border-white/10"
                             )}>
-                                <div className="p-6 flex items-start gap-5">
-                                    <div className={cn("mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-colors", bookings.insurance ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-orange-500/10 text-orange-400")}>
+                                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:gap-5 sm:p-6">
+                                    <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-colors sm:mt-1", bookings.insurance ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-orange-500/10 text-orange-400")}>
                                         <ShieldCheck className="h-6 w-6" />
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h3 className="font-bold text-xl text-white">Страховка</h3>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <h3 className="text-lg font-bold text-white sm:text-xl">Страховка</h3>
                                             {bookings.insurance && (
                                                 <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                                                     <CheckCircle2 className="w-3.5 h-3.5" /> Оформлено
@@ -686,19 +686,19 @@ function GuidePageContent() {
                                         </div>
                                         <p className="text-sm text-zinc-400 mb-5 leading-relaxed">Безопасность превыше всего. Оформите полис онлайн за 5 минут.</p>
 
-                                        <div className="flex gap-3 flex-wrap">
-                                            <Button variant="outline" size="sm" className="gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:text-white text-zinc-300 h-10 px-5" asChild>
+                                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+                                            <Button variant="outline" size="sm" className="h-11 w-full touch-manipulation gap-2 rounded-full border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white sm:h-10 sm:w-auto sm:px-5" asChild>
                                                 <a href="https://www.cherehapa.ru" target="_blank" rel="noopener noreferrer">
                                                     <ShieldCheck className="h-4 w-4 text-orange-400" />
                                                     Cherehapa
-                                                    <ExternalLink className="h-3 w-3 opacity-30 ml-1" />
+                                                    <ExternalLink className="ml-1 h-3 w-3 opacity-30" />
                                                 </a>
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className={cn(
-                                                    "gap-2 rounded-full h-10 px-5 font-bold transition-all",
+                                                    "h-11 w-full touch-manipulation gap-2 rounded-full px-5 font-bold transition-all sm:h-10 sm:w-auto",
                                                     bookings.insurance
                                                         ? "bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white"
                                                         : "bg-zinc-800 text-zinc-300 hover:bg-emerald-500 hover:text-white"
@@ -715,7 +715,7 @@ function GuidePageContent() {
 
                         <Button
                             size="lg"
-                            className="w-full max-w-sm h-14 text-lg rounded-full font-bold shadow-[0_0_20px_rgba(255,255,255,0.2)] bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105"
+                            className="h-14 w-full max-w-sm touch-manipulation rounded-full bg-white text-lg font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.2)] transition-all hover:scale-[1.02] hover:bg-zinc-200 sm:hover:scale-105"
                             disabled={!bookings.tickets || !bookings.hotel}
                             onClick={startTrip}
                         >
@@ -745,25 +745,28 @@ function GuidePageContent() {
 
             {/* Main Content - Offset by sidebar width on desktop */}
             <main className={cn(
-                "h-[calc(100vh-57px)] lg:h-screen transition-all duration-300 flex flex-col",
+                "flex min-h-0 flex-col transition-all duration-300",
+                /* Mobile: leave room for sticky header + fixed bottom nav (matches app/(main)/layout pb) */
+                "max-lg:h-[calc(100dvh-10rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))]",
+                "lg:h-screen",
                 isSidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"
             )}>
-                <header className="p-4 border-b flex items-center gap-4 bg-card/50 backdrop-blur-md sticky top-0 z-30 justify-between shrink-0">
-                    <div className="flex items-center gap-3">
+                <header className="sticky top-0 z-30 flex shrink-0 flex-col gap-3 border-b bg-card/50 p-3 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+                    <div className="flex min-w-0 items-center gap-3">
                         <Link href={`/trip/${tripId}`}>
-                            <Button variant="ghost" size="icon" className="rounded-full">
+                            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0 touch-manipulation rounded-full sm:h-10 sm:w-10">
                                 <ChevronLeft className="h-6 w-6" />
                             </Button>
                         </Link>
-                        <div>
-                            <h1 className="font-bold text-lg leading-tight line-clamp-1">{tripData?.title || "Путешествие"}</h1>
-                            <p className="text-xs text-green-500 font-medium flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <div className="min-w-0 flex-1">
+                            <h1 className="line-clamp-1 text-base font-bold leading-tight sm:text-lg">{tripData?.title || "Путешествие"}</h1>
+                            <p className="flex items-center gap-1 text-[11px] font-medium text-green-500 sm:text-xs">
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
                                 Активный маршрут
                             </p>
                         </div>
                     </div>
-                    <Button variant="outline" size="sm" className="hidden md:flex rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10" onClick={finishTrip}>Завершить поездку</Button>
+                    <Button variant="outline" size="sm" className="h-11 w-full touch-manipulation rounded-full border-red-500/30 text-red-500 hover:bg-red-500/10 sm:h-9 sm:w-auto" onClick={finishTrip}>Завершить поездку</Button>
                 </header>
 
                 {/* Main Content Split */}

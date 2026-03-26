@@ -552,15 +552,15 @@ export function ActivityTimelineCard({
 
         <div
           className={cn(
-            "trip-glass p-4 sm:p-6 rounded-[2rem] transition-all duration-300",
+            "trip-glass min-w-0 rounded-[2rem] p-4 transition-all duration-300 sm:p-6",
             isPlaceholder
               ? "border-dashed !border-slate-300 dark:!border-white/20 hover:!border-solid hover:shadow-lg group-hover/card:!border-indigo-300 dark:group-hover/card:!border-indigo-400/50"
               : "hover:shadow-lg trip-glass-hover"
           )}
         >
-          <div className="flex justify-between items-start mb-2 sm:mb-3">
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2 mb-2">
+          <div className="mb-2 flex items-start justify-between gap-2 sm:mb-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <span
                   className={cn(
                     "px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-wide border shadow-sm",
@@ -588,7 +588,7 @@ export function ActivityTimelineCard({
               <h3 className="font-bold text-slate-800 dark:text-white text-base sm:text-xl">{displayTitle}</h3>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {activity.cost && (
                 <span className="whitespace-nowrap text-[10px] sm:text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
                   {activity.cost}
@@ -597,7 +597,10 @@ export function ActivityTimelineCard({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white transition-colors p-1.5 sm:p-2 hover:bg-white/40 dark:hover:bg-white/10 rounded-full">
+                  <button
+                    type="button"
+                    className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-white/40 hover:text-slate-600 dark:text-white/50 dark:hover:bg-white/10 dark:hover:text-white sm:h-9 sm:w-9"
+                  >
                     <span className="material-symbols-outlined text-lg sm:text-xl">more_horiz</span>
                   </button>
                 </DropdownMenuTrigger>
@@ -644,8 +647,8 @@ export function ActivityTimelineCard({
           )}
 
           {!isPlaceholder ? (
-            <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-slate-200/50 dark:border-white/5">
-              <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 pt-3 sm:pt-4 border-t border-slate-200/50 dark:border-white/5">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3 [&_a]:touch-manipulation [&_button]:touch-manipulation [&>a]:inline-flex [&>a]:min-h-9 [&>a]:items-center [&>button]:inline-flex [&>button]:min-h-9 [&>button]:items-center">
                 {theme === "transport" ? (
                   (() => {
                     const tt = transportText
@@ -678,8 +681,8 @@ export function ActivityTimelineCard({
                             </a>
                           )}
                           {(activity.mapLink || activity.placeName) && (
-                            <button onClick={handleOpenMap}
-                              className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors">
+                            <button type="button" onClick={handleOpenMap}
+                              className="flex min-h-9 items-center rounded-full border border-white/30 bg-white/40 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-white/60 dark:border-transparent dark:bg-white/5 dark:text-blue-100/70 dark:hover:bg-white/10">
                               <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">map</span>
                               {t('buttons.route')}
                             </button>
@@ -704,8 +707,9 @@ export function ActivityTimelineCard({
                     {/* Map button — direct link if mapLink exists, else Google Maps search */}
                     {(activity.placeName || activity.mapLink) && (
                       <button
+                        type="button"
                         onClick={handleOpenMap}
-                        className="flex items-center text-xs text-slate-600 dark:text-blue-100/70 font-semibold bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full border border-white/30 dark:border-transparent hover:bg-white/60 dark:hover:bg-white/10 transition-colors"
+                        className="flex min-h-9 items-center rounded-full border border-white/30 bg-white/40 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-white/60 dark:border-transparent dark:bg-white/5 dark:text-blue-100/70 dark:hover:bg-white/10 sm:px-3"
                       >
                         <span className="material-symbols-outlined text-sm mr-1.5 text-slate-500 dark:text-blue-300">map</span>
                         {t('buttons.map')}
@@ -773,10 +777,11 @@ export function ActivityTimelineCard({
               </div>
 
               <button
+                type="button"
                 onClick={() => setIsDetailsOpen(true)}
-                className="text-xs font-bold text-sky-600 dark:text-blue-300 hover:text-sky-800 dark:hover:text-white flex items-center gap-1 bg-white/40 dark:bg-white/5 px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-white/60 dark:hover:bg-white/10 transition-colors border border-white/30 dark:border-transparent"
+                className="inline-flex min-h-10 w-full shrink-0 touch-manipulation items-center justify-center gap-1 rounded-full border border-white/30 bg-white/40 px-2.5 py-2 text-xs font-bold text-sky-600 transition-colors hover:bg-white/60 hover:text-sky-800 dark:border-transparent dark:bg-white/5 dark:text-blue-300 dark:hover:bg-white/10 dark:hover:text-white sm:ml-auto sm:w-auto sm:min-h-0 sm:px-3 sm:py-1.5"
               >
-                {t('buttons.details')} <span className="material-symbols-outlined text-sm">chevron_right</span>
+                {t('buttons.details')} <span className="material-symbols-outlined text-sm shrink-0">chevron_right</span>
               </button>
             </div>
           ) : (
@@ -786,9 +791,10 @@ export function ActivityTimelineCard({
               </p>
 
               <button
+                type="button"
                 onClick={onGenerateInline ? handleOpenInlinePanel : () => onGenerateExtraActivity?.(dayNumber)}
                 disabled={isGeneratingExtra || isInlineOpen}
-                className="text-white text-xs font-bold bg-indigo-500 hover:bg-indigo-400 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-indigo-400/20 transition-colors flex items-center gap-1 backdrop-blur-sm shadow-md shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                className="flex min-h-10 shrink-0 touch-manipulation items-center gap-1 whitespace-nowrap rounded-full border border-indigo-400/20 bg-indigo-500 px-3 py-2 text-xs font-bold text-white shadow-md shadow-indigo-500/20 backdrop-blur-sm transition-colors hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0 sm:px-4 sm:py-1.5"
               >
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
                 <span className="hidden sm:inline">{isGeneratingExtra ? t('buttons.generating') : t('buttons.generate')}</span>
@@ -808,9 +814,10 @@ export function ActivityTimelineCard({
                 <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 uppercase tracking-[0.1em]">{t('inline.header')}</span>
               </div>
               <button
+                type="button"
                 onClick={handleCloseInline}
                 disabled={isInlineLoading}
-                className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 dark:text-white/40 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors disabled:opacity-30"
+                className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white"
               >
                 <span className="material-symbols-outlined text-sm">close</span>
               </button>
@@ -861,12 +868,12 @@ export function ActivityTimelineCard({
                     value={inlinePrompt}
                     onChange={(e) => setInlinePrompt(e.target.value)}
                     placeholder={t('inline.placeholder')}
-                    className="flex-1 bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-xl h-10 px-3 text-[13px] text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/25 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/40 transition-all outline-none"
+                    className="h-11 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-base text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-indigo-500/40 focus:ring-2 focus:ring-indigo-500/30 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white dark:placeholder:text-white/25 sm:h-10 sm:text-[13px]"
                   />
                   <button
                     type="submit"
                     disabled={!inlinePrompt.trim()}
-                    className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/25 disabled:opacity-30 disabled:shadow-none transition-all flex-shrink-0 flex items-center justify-center"
+                    className="flex h-11 w-11 flex-shrink-0 touch-manipulation items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-600/25 transition-all hover:from-indigo-400 hover:to-purple-500 disabled:opacity-30 disabled:shadow-none sm:h-10 sm:w-10"
                   >
                     <span className="material-symbols-outlined text-lg">send</span>
                   </button>
@@ -878,7 +885,7 @@ export function ActivityTimelineCard({
       </div>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-8">
+        <DialogContent className="w-[calc(100vw-1.25rem)] max-w-xl rounded-3xl p-5 sm:p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">{displayTitle}</DialogTitle>
             <DialogDescription>{t('details.dayLabel', { day: dayNumber })}</DialogDescription>
@@ -925,24 +932,27 @@ export function ActivityTimelineCard({
             <div className="flex flex-wrap gap-2 pt-2">
               {activity.placeName && (
                 <button
+                  type="button"
                   onClick={handleOpenMap}
-                  className="px-3 py-2 rounded-xl text-xs font-bold bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20 hover:bg-sky-500/20 transition-colors"
+                  className="min-h-10 touch-manipulation rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-bold text-sky-700 transition-colors hover:bg-sky-500/20 dark:text-sky-300"
                 >
                   {t('buttons.viewOnMap')}
                 </button>
               )}
 
               <button
+                  type="button"
                   onClick={handleModifyViaChat}
-                  className="px-3 py-2 rounded-xl text-xs font-bold bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors"
+                  className="min-h-10 touch-manipulation rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-500/20 dark:text-indigo-300"
                 >
                   {t('buttons.modifyViaChat')}
               </button>
 
               {activity.ticketsRequired && activity.link && (
                 <button
+                  type="button"
                   onClick={() => window.open(activity.link, "_blank")}
-                  className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+                  className="min-h-10 touch-manipulation rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
                 >
                   {t('buttons.openTickets')}
                 </button>

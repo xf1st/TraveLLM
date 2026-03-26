@@ -107,10 +107,10 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
   ]
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 px-3 pb-28 pt-4 sm:px-4 sm:pb-24 lg:px-8">
+    <div className="mx-auto min-w-0 max-w-7xl space-y-6 px-3 pb-28 pt-4 sm:px-4 sm:pb-24 lg:px-8">
 
       {/* ── Stat cards row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-4">
         {statCards.map((card, i) => {
           const Icon = card.icon
           return (
@@ -119,7 +119,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              className="trip-glass rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex flex-col gap-3"
+              className="trip-glass flex min-w-0 flex-col gap-3 rounded-2xl p-3.5 sm:rounded-3xl sm:p-5"
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -127,10 +127,10 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
               >
                 <Icon className="w-4 h-4" style={{ color: card.color }} />
               </div>
-              <div>
-                <div className="text-2xl sm:text-3xl font-black text-foreground">{card.value}</div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">{card.label}</div>
-                <div className="text-[11px] text-muted-foreground/70 mt-1 line-clamp-1">{card.sub}</div>
+              <div className="min-w-0">
+                <div className="text-xl font-black text-foreground sm:text-2xl md:text-3xl">{card.value}</div>
+                <div className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground sm:text-[10px]">{card.label}</div>
+                <div className="mt-1 line-clamp-2 text-[10px] text-muted-foreground/70 sm:line-clamp-1 sm:text-[11px]">{card.sub}</div>
               </div>
             </motion.div>
           )
@@ -147,7 +147,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           type="button"
           onClick={() => setMemoryOpen(true)}
           className={cn(
-            "group flex w-full max-w-md items-center justify-center gap-2 rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-600/90 via-fuchsia-600/85 to-sky-600/90 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-110 sm:w-auto"
+            "group flex min-h-11 w-full max-w-md touch-manipulation items-center justify-center gap-2 rounded-2xl border border-violet-500/30 bg-gradient-to-r from-violet-600/90 via-fuchsia-600/85 to-sky-600/90 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-violet-500/25 transition hover:brightness-110 sm:w-auto sm:min-h-0"
           )}
         >
           <ImageIcon className="h-4 w-4 opacity-90" />
@@ -197,7 +197,7 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
                 <p className="text-sm text-muted-foreground">{t("statsAfterTrip")}</p>
               )}
             </div>
-            <div className="h-[240px] w-full">
+            <div className="h-[200px] w-full min-w-0 sm:h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
                   <PolarGrid stroke="currentColor" strokeOpacity={0.15} />
@@ -273,16 +273,16 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           className="trip-glass rounded-2xl sm:rounded-3xl p-5 sm:p-7"
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">{t("tripBudget")}</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             {[
               { label: t("accommodation"), value: route.budgetAnalysis.avgAccommodation, sub: t("perNight") },
               { label: t("food"), value: route.budgetAnalysis.avgFood, sub: t("perDay") },
               { label: t("transport"), value: route.budgetAnalysis.avgTransport, sub: t("total") },
               { label: t("totalBudget"), value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${locale === "en" ? "$" : ""}${Math.round(totalCost).toLocaleString(locale === "en" ? "en-US" : "ru-RU")}${locale !== "en" ? " ₽" : ""}` : null), sub: t("estimate") },
             ].map(item => item.value && (
-              <div key={item.label} className="rounded-2xl bg-muted/50 border border-border p-4">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{item.label}</div>
-                <div className="text-lg font-black text-foreground whitespace-nowrap overflow-hidden text-ellipsis">{item.value}</div>
+              <div key={item.label} className="min-w-0 rounded-2xl border border-border bg-muted/50 p-3 sm:p-4">
+                <div className="mb-1 text-[9px] font-bold uppercase tracking-widest text-muted-foreground sm:text-[10px]">{item.label}</div>
+                <div className="truncate text-base font-black text-foreground sm:text-lg">{item.value}</div>
                 <div className="text-[10px] text-muted-foreground mt-0.5">{item.sub}</div>
               </div>
             ))}

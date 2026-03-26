@@ -190,29 +190,6 @@ export interface Database {
                     user_id?: string
                 }
             }
-            trip_members: {
-                Row: {
-                    id: string
-                    joined_at: string
-                    role: string
-                    trip_id: string
-                    user_id: string
-                }
-                Insert: {
-                    id?: string
-                    joined_at?: string
-                    role?: string
-                    trip_id: string
-                    user_id: string
-                }
-                Update: {
-                    id?: string
-                    joined_at?: string
-                    role?: string
-                    trip_id?: string
-                    user_id?: string
-                }
-            }
             trips: {
                 Row: {
                     budget_analysis: Json | null

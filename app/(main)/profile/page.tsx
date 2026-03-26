@@ -173,7 +173,7 @@ function EditSection({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-5 py-3.5 bg-muted/30 border-b border-border/30 text-left hover:bg-muted/50 transition-colors"
+        className="flex min-h-11 w-full touch-manipulation items-center gap-3 border-b border-border/30 bg-muted/30 px-4 py-3.5 text-left transition-colors hover:bg-muted/50 sm:px-5"
       >
         <span className="text-primary/80">{icon}</span>
         <span className="text-sm font-semibold text-foreground flex-1">{title}</span>
@@ -811,7 +811,7 @@ function ProfileContent() {
     <AppLayout className="bg-background">
       <div className="min-h-[calc(100vh-4rem)] pb-20">
 
-        <div className="max-w-4xl mx-auto px-4 pt-8">
+        <div className="mx-auto min-w-0 max-w-4xl px-3 pt-6 sm:px-4 sm:pt-8">
 
           {/* ===== PROFILE HERO ===== */}
           <motion.div
@@ -821,7 +821,7 @@ function ProfileContent() {
             className="mb-6"
           >
             {/* Row 1 — Banner */}
-            <div className="relative rounded-[2rem] overflow-hidden h-32 mb-[-48px]">
+            <div className="relative mb-[-48px] h-28 overflow-hidden rounded-2xl sm:h-32 sm:rounded-[2rem]">
               {editForm.profileBackground === "avatar" && avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -838,10 +838,10 @@ function ProfileContent() {
             </div>
 
             {/* Row 2 — Identity bar overlapping banner */}
-            <div className="relative px-6 pb-4 flex items-end gap-4">
+            <div className="relative flex flex-wrap items-end gap-x-4 gap-y-3 px-4 pb-4 sm:px-6">
               {/* Avatar */}
               <div className="relative shrink-0 group">
-                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md md:shadow-2xl">
+                <div className="h-20 w-20 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md sm:h-24 sm:w-24 md:shadow-2xl">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -889,27 +889,30 @@ function ProfileContent() {
                           if (e.key === "Enter") saveNameInline()
                           if (e.key === "Escape") setNameEditing(false)
                         }}
-                        className="text-xl font-black bg-transparent border-b-2 border-primary outline-none w-full text-foreground leading-tight py-0"
+                        className="w-full border-b-2 border-primary bg-transparent py-0 text-lg font-black leading-tight text-foreground outline-none sm:text-xl"
                         placeholder="Ваше имя"
                       />
                       <button
+                        type="button"
                         onClick={saveNameInline}
                         disabled={savingName}
-                        className="h-7 w-7 rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 transition-colors shrink-0"
+                        className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-full text-emerald-500 transition-colors hover:bg-emerald-500/10"
                       >
                         {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       </button>
                       <button
+                        type="button"
                         onClick={() => setNameEditing(false)}
-                        className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors text-xs shrink-0"
+                        className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-full text-xs text-muted-foreground transition-colors hover:bg-muted/50"
                       >
                         ✕
                       </button>
                     </div>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => { setNameTemp(profile?.full_name || user?.user_metadata?.full_name || ""); setNameEditing(true) }}
-                      className="text-xl font-black truncate text-foreground leading-tight hover:text-primary transition-colors flex items-center gap-2 group text-left"
+                      className="group flex touch-manipulation items-center gap-2 truncate text-left text-lg font-black leading-tight text-foreground transition-colors hover:text-primary sm:text-xl"
                     >
                       {profile?.full_name || user?.user_metadata?.full_name || tp("defaultTraveler")}
                       <Edit2 className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
@@ -935,31 +938,35 @@ function ProfileContent() {
                         maxLength={20}
                       />
                       <button
+                        type="button"
                         onClick={saveUsernameInline}
                         disabled={savingUsername}
-                        className="h-5 w-5 rounded flex items-center justify-center text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                        className="flex h-8 w-8 touch-manipulation items-center justify-center rounded text-emerald-500 transition-colors hover:bg-emerald-500/10"
                       >
                         <Check className="h-3 w-3" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setUsernameEditing(false)}
-                        className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:bg-muted/50 transition-colors text-xs"
+                        className="flex h-8 w-8 touch-manipulation items-center justify-center rounded text-xs text-muted-foreground transition-colors hover:bg-muted/50"
                       >
                         ✕
                       </button>
                     </div>
                   ) : profile?.username ? (
                     <button
+                      type="button"
                       onClick={() => { setUsernameTemp(profile.username || ""); setUsernameEditing(true) }}
-                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground group transition-colors"
+                      className="group flex touch-manipulation items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       <span className="font-mono">@{profile.username}</span>
                       <Edit2 className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => { setUsernameTemp(""); setUsernameEditing(true) }}
-                      className="text-xs text-primary/60 hover:text-primary transition-colors flex items-center gap-1"
+                      className="flex touch-manipulation items-center gap-1 text-xs text-primary/60 transition-colors hover:text-primary"
                     >
                       <span className="font-mono">@</span>
                       <span>Добавить username</span>
@@ -969,14 +976,14 @@ function ProfileContent() {
               </div>
 
               {/* Buttons */}
-              <div className="flex items-center gap-2 shrink-0 self-center">
+              <div className="flex w-full shrink-0 justify-end gap-2 self-center sm:w-auto sm:justify-start">
                 {profile?.username && profile?.public_profile && (
                   <Button
                     onClick={handleShareProfile}
                     variant="outline"
                     size="icon"
                     className={cn(
-                      "rounded-xl transition-all h-10 w-10 md:w-auto md:px-4 md:gap-2",
+                      "h-11 touch-manipulation rounded-xl transition-all sm:h-10 sm:w-10 md:w-auto md:px-4 md:gap-2",
                       copiedProfile
                         ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                         : "border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md"
@@ -990,7 +997,7 @@ function ProfileContent() {
                   onClick={() => setIsEditing(!isEditing)}
                   variant="outline"
                   size="icon"
-                  className="rounded-xl border-white/20 bg-white/10 dark:bg-white/5 hover:bg-white/20 backdrop-blur-md h-10 w-10 md:w-auto md:px-4 md:gap-2"
+                  className="h-11 touch-manipulation rounded-xl border-white/20 bg-white/10 backdrop-blur-md dark:bg-white/5 hover:bg-white/20 sm:h-10 sm:w-10 md:w-auto md:px-4 md:gap-2"
                 >
                   <Edit2 className="h-4 w-4" />
                   <span className="hidden md:inline">{isEditing ? tp("cancel") : tp("configure")}</span>
@@ -999,13 +1006,14 @@ function ProfileContent() {
             </div>
 
             {/* Bio */}
-            <div className="px-6 mt-2 relative group">
+            <div className="relative mt-2 px-4 group sm:px-6">
               {profile?.bio ? (
                 <p className="text-sm text-muted-foreground line-clamp-2 max-w-lg">{profile.bio}</p>
               ) : (
-                <button 
+                <button
+                  type="button"
                   onClick={() => setIsEditing(true)}
-                  className="text-xs text-muted-foreground/50 hover:text-primary transition-colors"
+                  className="touch-manipulation text-xs text-muted-foreground/50 transition-colors hover:text-primary"
                 >
                   {tp("bioHint")}
                 </button>
@@ -1013,8 +1021,8 @@ function ProfileContent() {
             </div>
 
             {/* Stats strip modernized */}
-            <div className="px-6 mt-5">
-              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+            <div className="mt-5 px-4 sm:px-6">
+              <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] no-scrollbar sm:gap-3">
                 {[
                   { value: userRoutes.length, label: tp("statsTrips"), icon: MapIcon, color: "text-blue-400" },
                   { value: visitedSummary.countries.length, label: tp("statsCountries"), icon: Globe, color: "text-emerald-400" },
@@ -1051,8 +1059,9 @@ function ProfileContent() {
                     <h2 className="text-base font-bold">{tp("editProfileTitle")}</h2>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setIsEditing(false)}
-                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+                    className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -1106,7 +1115,7 @@ function ProfileContent() {
                           placeholder={tp("aboutMePlaceholder")}
                           maxLength={PROFILE_TEXT_MAX}
                           rows={2}
-                          className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                          className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                         />
                         <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
                       </div>
@@ -1314,9 +1323,9 @@ function ProfileContent() {
                 </div>
 
                 {/* Sticky footer */}
-                <div className="sticky bottom-0 border-t border-border/50 bg-card/80 backdrop-blur-md px-6 py-4 flex justify-end gap-3">
-                  <Button onClick={() => setIsEditing(false)} variant="ghost">{tp("cancel")}</Button>
-                  <Button onClick={handleUpdateProfile} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-border/50 bg-card/80 px-4 py-4 backdrop-blur-md sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                  <Button onClick={() => setIsEditing(false)} variant="ghost" className="w-full touch-manipulation sm:w-auto">{tp("cancel")}</Button>
+                  <Button onClick={handleUpdateProfile} disabled={loading} className="w-full touch-manipulation bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
                     {loading ? tp("saving") : tp("saveChanges")}
                   </Button>
                 </div>
@@ -1326,16 +1335,17 @@ function ProfileContent() {
             <>
               {/* ===== TABS ===== */}
               <div className="mb-6">
-                <div className="flex gap-1 overflow-x-auto no-scrollbar p-1 bg-muted/40 dark:bg-white/5 rounded-2xl border border-border/50">
+                <div className="flex gap-1 overflow-x-auto rounded-2xl border border-border/50 bg-muted/40 p-1 [-webkit-overflow-scrolling:touch] no-scrollbar dark:bg-white/5">
                   {tabs.map(tab => {
                     const Icon = tab.icon
                     const isActive = activeTab === tab.id
                     return (
                       <button
+                        type="button"
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                          "flex min-h-10 shrink-0 touch-manipulation items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 sm:px-3.5",
                           isActive
                             ? "bg-background dark:bg-white/10 text-foreground shadow-sm"
                             : "text-muted-foreground hover:text-foreground"
@@ -1947,7 +1957,7 @@ function ProfileContent() {
                               placeholder={tp("bioPlaceholder")}
                               maxLength={PROFILE_TEXT_MAX}
                               rows={3}
-                              className="w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                              className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                             />
                             <p className="text-xs text-muted-foreground">{editForm.bio.length}/{PROFILE_TEXT_MAX}</p>
                           </div>
@@ -2066,7 +2076,7 @@ function ProfileContent() {
       </div>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[calc(100vw-1.25rem)] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{tp("deleteAccountTitle")}</DialogTitle>
             <DialogDescription>

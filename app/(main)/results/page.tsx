@@ -33,7 +33,6 @@ import {
 import Image from "next/image";
 import { TripImage } from "@/components/TripImage";
 import { FadeIn } from "@/components/FadeIn";
-import { RouteSearch } from "@/components/RouteSearch";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { FloatingIcons } from "@/components/FloatingIcons";
@@ -503,15 +502,15 @@ function ResultsContent() {
         <FloatingIcons />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-        <div className="mb-10 flex flex-col gap-6">
-          <div className="flex flex-col-reverse md:flex-row md:items-center justify-between gap-6">
-            <div className="trip-glass p-1.5 rounded-2xl border border-white/20 backdrop-blur-md inline-flex w-full md:w-auto overflow-x-auto hide-scrollbar">
+      <div className="relative z-10 mx-auto min-w-0 max-w-7xl">
+        <div className="mb-8 flex flex-col gap-4 sm:mb-10 sm:gap-6">
+          <div className="flex flex-col-reverse gap-4 md:flex-row md:items-center md:justify-between md:gap-6">
+            <div className="trip-glass inline-flex w-full max-w-full overflow-x-auto hide-scrollbar rounded-2xl border border-white/20 p-1.5 backdrop-blur-md md:w-auto">
               <Button
                 variant="ghost"
                 onClick={() => setView("favorites")}
                 className={cn(
-                  "px-8 rounded-xl transition-all duration-300 whitespace-nowrap",
+                  "min-h-11 touch-manipulation rounded-xl px-5 transition-all duration-300 sm:px-8 whitespace-nowrap",
                   view === "favorites"
                     ? "bg-white/20 text-slate-800 dark:text-white shadow-lg border border-white/10"
                     : "text-slate-600 dark:text-white/60 hover:bg-white/10 hover:text-slate-900 dark:hover:text-white",
@@ -523,7 +522,7 @@ function ResultsContent() {
                 variant="ghost"
                 onClick={() => setView("my")}
                 className={cn(
-                  "px-8 rounded-xl transition-all duration-300 whitespace-nowrap",
+                  "min-h-11 touch-manipulation rounded-xl px-5 transition-all duration-300 sm:px-8 whitespace-nowrap",
                   view === "my"
                     ? "bg-white/20 text-slate-800 dark:text-white shadow-lg border border-white/10"
                     : "text-slate-600 dark:text-white/60 hover:bg-white/10 hover:text-slate-900 dark:hover:text-white",
@@ -533,9 +532,9 @@ function ResultsContent() {
               </Button>
             </div>
 
-            <div className="w-full md:w-auto relative group">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <div className="group relative w-full min-w-0 md:w-auto">
+              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center sm:left-4">
+                <Search className="h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary sm:h-5 sm:w-5" />
               </div>
               <input
                 type="text"
@@ -546,17 +545,18 @@ function ResultsContent() {
                 }
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full md:w-[400px] shadow-md md:shadow-xl border border-white/20 bg-white/40 dark:bg-black/40 backdrop-blur-md md:backdrop-blur-xl rounded-full pl-12 pr-4 outline-none focus:ring-2 focus:ring-primary/50 text-slate-800 dark:text-white transition-all placeholder:text-slate-500"
+                className="h-12 w-full min-w-0 rounded-full border border-white/20 bg-white/40 pr-4 pl-11 text-base text-slate-800 shadow-md outline-none transition-all placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 dark:bg-black/40 dark:text-white dark:placeholder:text-zinc-500 sm:pl-12 sm:text-sm md:w-[400px] md:shadow-xl md:backdrop-blur-xl backdrop-blur-md"
               />
             </div>
           </div>
 
           {allTags.length > 0 && (
-            <div className="flex overflow-x-auto pb-4 gap-2 hide-scrollbar mask-edges">
+            <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar mask-edges sm:pb-4 [-webkit-overflow-scrolling:touch]">
               <button
+                type="button"
                 onClick={() => setSelectedTag(null)}
                 className={cn(
-                  "px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border outline-none focus:ring-2 focus:ring-primary/50",
+                  "touch-manipulation shrink-0 rounded-full border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all outline-none focus:ring-2 focus:ring-primary/50 sm:px-5",
                   !selectedTag
                     ? "bg-primary text-primary-foreground border-primary shadow-md"
                     : "bg-white/60 dark:bg-black/40 border-white/20 text-slate-600 dark:text-white/70 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md",
@@ -574,12 +574,13 @@ function ResultsContent() {
 
                 return (
                   <button
+                    type="button"
                     key={tag}
                     onClick={() =>
                       setSelectedTag(tag === selectedTag ? null : tag)
                     }
                     className={cn(
-                      "flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all border outline-none focus:ring-2 focus:ring-primary/50",
+                      "flex shrink-0 touch-manipulation items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-all outline-none focus:ring-2 focus:ring-primary/50 sm:px-5",
                       tag === selectedTag
                         ? "bg-primary text-primary-foreground border-primary shadow-md"
                         : "bg-white/60 dark:bg-black/40 border-white/20 text-slate-600 dark:text-white/70 hover:bg-white/80 dark:hover:bg-white/10 backdrop-blur-md",
@@ -599,16 +600,16 @@ function ResultsContent() {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 auto-rows-fr">
+          <div className="space-y-6 sm:space-y-8">
+            <div className="grid auto-rows-fr gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredRoutes.length > 0 ? (
                 filteredRoutes.map((trip, index) => {
                   const isFav = favoriteIds.has(trip.id);
                   return (
                     <FadeIn key={trip.id} delay={index * 50} className="h-full">
-                      <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 trip-glass shadow-md md:shadow-xl backdrop-blur-md md:backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-md md:shadow-2xl rounded-[2rem] hover:bg-white/40 dark:hover:bg-black/40">
+                      <Card className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/20 trip-glass shadow-md backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:bg-white/40 hover:shadow-md dark:hover:bg-black/40 sm:rounded-[2rem] md:shadow-xl md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:shadow-2xl">
                         {/* Image Section */}
-                        <div className="relative h-72 w-full shrink-0 overflow-hidden rounded-t-[2rem]">
+                        <div className="relative h-52 w-full shrink-0 overflow-hidden rounded-t-3xl sm:h-64 md:h-72 md:rounded-t-[2rem]">
                           <TripImage
                             src={trip.image}
                             query={trip.destination || "travel"}
@@ -619,11 +620,11 @@ function ResultsContent() {
                           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-card via-card/80 to-transparent dark:from-zinc-900 dark:via-zinc-900/80" />
 
                           {/* Favorite Button (Heart) */}
-                          <div className="absolute top-4 left-4 z-30">
+                          <div className="absolute left-3 top-3 z-30 sm:left-4 sm:top-4">
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="rounded-full bg-black/20 hover:bg-black/40 backdrop-blur-md text-white border-white/10"
+                              className="h-11 w-11 touch-manipulation rounded-full border border-white/10 bg-black/20 text-white backdrop-blur-md hover:bg-black/40 sm:h-10 sm:w-10"
                               onClick={(e) => handleToggleFavorite(trip.id, e)}
                             >
                               <Heart
@@ -654,25 +655,25 @@ function ResultsContent() {
                         </div>
 
                         {/* Content */}
-                        <div className="flex flex-1 flex-col p-6 pt-0 relative z-10 -mt-20">
+                        <div className="relative z-10 -mt-14 flex flex-1 flex-col p-4 pt-0 sm:-mt-16 sm:p-6 md:-mt-20">
                           {/* Destination Flag/Name */}
-                          <div className="mb-3 flex items-center gap-3 text-xs font-bold uppercase tracking-wider text-muted-foreground/90">
-                            <div className="flex items-center gap-1.5">
-                              <MapPin className="h-3.5 w-3.5 text-primary" />
-                              {trip.destination}
+                          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/90 sm:mb-3 sm:gap-3 sm:text-xs">
+                            <div className="flex min-w-0 max-w-full items-center gap-1.5">
+                              <MapPin className="h-3 w-3 shrink-0 text-primary sm:h-3.5 sm:w-3.5" />
+                              <span className="truncate">{trip.destination}</span>
                             </div>
-                            <div className="h-1 w-1 rounded-full bg-border dark:bg-white/20" />
-                            <div className="flex items-center gap-1.5">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-amber-400" />
+                            <div className="h-1 w-1 shrink-0 rounded-full bg-border dark:bg-white/20" />
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              <CheckCircle2 className="h-3 w-3 text-amber-400 sm:h-3.5 sm:w-3.5" />
                               {trip.duration}
                             </div>
                           </div>
 
-                          <h3 className="text-2xl font-bold text-foreground dark:text-white mb-3 leading-tight group-hover:text-primary transition-colors">
+                          <h3 className="mb-2 text-xl font-bold leading-tight text-foreground transition-colors group-hover:text-primary dark:text-white sm:mb-3 sm:text-2xl">
                             {trip.title}
                           </h3>
 
-                          <p className="mb-6 text-sm leading-relaxed text-muted-foreground dark:text-zinc-400 line-clamp-3 font-medium">
+                          <p className="mb-4 text-sm font-medium leading-relaxed text-muted-foreground line-clamp-3 dark:text-zinc-400 sm:mb-6">
                             {trip.description}
                           </p>
 
@@ -716,12 +717,12 @@ function ResultsContent() {
                             )}
                           </div>
 
-                          <div className="flex items-center justify-between pt-0 mt-auto">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                                <Wallet className="h-5 w-5 text-blue-400" />
+                          <div className="mt-auto flex flex-col gap-4 pt-0 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10 sm:h-10 sm:w-10">
+                                <Wallet className="h-4 w-4 text-blue-400 sm:h-5 sm:w-5" />
                               </div>
-                              <span className="text-xl font-black text-foreground dark:text-white tracking-tight">
+                              <span className="truncate text-lg font-black tracking-tight text-foreground dark:text-white sm:text-xl">
                                 {typeof trip.budget === "number"
                                   ? new Intl.NumberFormat("ru-RU", {
                                       style: "currency",
@@ -736,11 +737,11 @@ function ResultsContent() {
 
                             <Button
                               asChild
-                              className="rounded-full bg-primary text-primary-foreground dark:bg-white dark:text-black hover:bg-primary/90 dark:hover:bg-white/90 font-bold px-8 h-12 shadow-lg transition-all hover:scale-105 group/btn"
+                              className="h-12 w-full touch-manipulation rounded-full bg-primary px-6 font-bold text-primary-foreground shadow-lg transition-all hover:scale-[1.02] hover:bg-primary/90 group/btn dark:bg-white dark:text-black dark:hover:bg-white/90 sm:w-auto sm:px-8 sm:hover:scale-105"
                             >
-                              <Link href={`/trip/${trip.id}`}>
+                              <Link href={`/trip/${trip.id}`} className="flex items-center justify-center gap-2">
                                 Открыть
-                                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                                <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                               </Link>
                             </Button>
                           </div>
@@ -750,8 +751,8 @@ function ResultsContent() {
                   );
                 })
               ) : (
-                <div className="col-span-full py-20 text-center">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted/50 dark:bg-white/5 border border-border/50 dark:border-white/10">
+                <div className="col-span-full px-3 py-16 text-center sm:py-20">
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-border/50 bg-muted/50 dark:border-white/10 dark:bg-white/5">
                     <Sparkles className="h-10 w-10 text-muted-foreground opacity-50" />
                   </div>
                   <h3 className="text-xl font-bold text-foreground dark:text-white">
@@ -767,10 +768,10 @@ function ResultsContent() {
                   {view === "my" && (
                     <Button
                       asChild
-                      className="mt-8 rounded-full px-8 py-6 text-lg shadow-glow"
+                      className="mx-auto mt-8 flex h-12 w-full max-w-sm touch-manipulation rounded-full px-8 text-base font-bold shadow-glow sm:h-auto sm:w-auto sm:py-6 sm:text-lg"
                       variant="default"
                     >
-                      <Link href="/plan">Спланировать поездку</Link>
+                      <Link href="/plan" className="flex items-center justify-center">Спланировать поездку</Link>
                     </Button>
                   )}
                 </div>
@@ -778,12 +779,12 @@ function ResultsContent() {
             </div>
 
             {hasMore && view === "my" && (
-              <div className="flex justify-center py-8">
+              <div className="flex justify-center px-2 py-6 sm:py-8">
                 <Button
                   variant="outline"
                   onClick={loadMore}
                   disabled={isLoadingMore}
-                  className="rounded-full px-8 py-3 h-auto font-semibold border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all"
+                  className="h-12 w-full max-w-md touch-manipulation rounded-full border-white/20 bg-white/10 px-6 py-3 font-semibold backdrop-blur-sm transition-all hover:bg-white/20 sm:h-auto sm:w-auto sm:px-8"
                 >
                   {isLoadingMore ? (
                     <>

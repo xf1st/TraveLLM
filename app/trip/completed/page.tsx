@@ -214,13 +214,13 @@ export default function TripCompletedPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-emerald-500/30 font-sans">
+    <main className="min-h-screen min-w-0 bg-background font-sans text-foreground selection:bg-emerald-500/30">
       <Header />
       {/* Hero Section */}
-      <section className="relative pt-32 pb-12 overflow-hidden px-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[500px] bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl pointer-events-none hidden md:block" />
+      <section className="relative overflow-hidden px-3 pb-10 pt-28 sm:px-4 sm:pb-12 sm:pt-32">
+        <div className="pointer-events-none absolute left-1/2 top-0 hidden h-[500px] w-full max-w-7xl -translate-x-1/2 bg-gradient-to-b from-emerald-500/10 to-transparent blur-3xl md:block" />
         
-        <div className="max-w-6xl mx-auto relative z-10">
+        <div className="relative z-10 mx-auto min-w-0 max-w-6xl">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -231,7 +231,7 @@ export default function TripCompletedPage() {
                Путешествие завершено
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground dark:from-white dark:to-white/60">
+            <h1 className="mb-5 break-words bg-gradient-to-b from-foreground to-muted-foreground bg-clip-text px-1 text-3xl font-black tracking-tight text-transparent dark:from-white dark:to-white/60 sm:mb-6 sm:text-4xl md:text-6xl lg:text-7xl">
                {trip?.destination ? `Воспоминания: ${trip.destination}` : "Ваше приключение"}
             </h1>
             
@@ -239,32 +239,32 @@ export default function TripCompletedPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex items-center gap-3 mb-10"
+              className="mb-8 flex w-full max-w-md flex-col gap-3 sm:mb-10 sm:max-w-none sm:flex-row sm:items-center sm:justify-center"
             >
-              <Link href={`/trip/${tripId}`}>
-                <Button variant="outline" className="border-border dark:border-white/10 text-foreground dark:text-white hover:bg-muted dark:hover:bg-white/10 rounded-full h-12 px-6 font-bold flex items-center gap-2 bg-transparent">
-                  <ArrowLeft className="w-4 h-4" /> К маршруту
+              <Link href={`/trip/${tripId}`} className="w-full sm:w-auto">
+                <Button variant="outline" className="flex h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full border-border bg-transparent px-6 font-bold text-foreground hover:bg-muted dark:border-white/10 dark:text-white dark:hover:bg-white/10 sm:w-auto">
+                  <ArrowLeft className="h-4 w-4" /> К маршруту
                 </Button>
               </Link>
               <Button
                 onClick={() => setIsShareOpen(true)}
-                className="bg-muted dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-foreground dark:text-white rounded-full h-12 px-6 font-bold border border-border dark:border-white/10 flex items-center gap-2"
+                className="flex h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full border border-border bg-muted px-6 font-bold text-foreground hover:bg-zinc-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:w-auto"
               >
-                <Share2 className="w-4 h-4" /> Поделиться
+                <Share2 className="h-4 w-4" /> Поделиться
               </Button>
             </motion.div>
             
-            <p className="text-muted-foreground dark:text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-medium">
+            <p className="mx-auto mb-8 max-w-2xl px-1 text-base font-medium leading-relaxed text-muted-foreground dark:text-zinc-400 sm:mb-10 sm:text-lg md:text-xl">
               Каждое путешествие оставляет след. Мы проанализировали ваши впечатления и составили уникальный портрет вашего приключения.
             </p>
           </motion.div>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 pb-24 space-y-20">
+      <div className="mx-auto min-w-0 max-w-7xl space-y-12 px-3 pb-20 sm:space-y-20 sm:px-4 sm:pb-24">
         
         {/* Profile and Stats Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           
           {/* Personality Card */}
           <motion.div 
@@ -273,14 +273,14 @@ export default function TripCompletedPage() {
              className="lg:col-span-2 relative group"
           >
             <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative h-full bg-card dark:bg-[#0a0a0a] border border-border dark:border-white/5 rounded-3xl p-6 md:p-10 overflow-hidden shadow-md md:shadow-xl">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center h-full">
+            <div className="relative h-full overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-md dark:border-white/5 dark:bg-[#0a0a0a] sm:rounded-3xl sm:p-6 md:p-10 md:shadow-xl">
+               <div className="grid h-full grid-cols-1 items-center gap-6 md:grid-cols-2 md:gap-8">
                   <div className="space-y-6">
                      <div>
                         <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Профиль путешественника</div>
-                        <h2 className="text-3xl md:text-4xl font-black text-foreground">{aiStats?.personality || "Исследователь"}</h2>
+                        <h2 className="text-2xl font-black text-foreground sm:text-3xl md:text-4xl">{aiStats?.personality || "Исследователь"}</h2>
                      </div>
-                     <p className="text-muted-foreground dark:text-zinc-400 leading-relaxed text-lg italic">
+                     <p className="text-base italic leading-relaxed text-muted-foreground dark:text-zinc-400 sm:text-lg">
                         "{aiStats?.description || "Загружаем анализ нашего приключения..."}"
                      </p>
                      
@@ -294,7 +294,7 @@ export default function TripCompletedPage() {
                      )}
                   </div>
                   
-                  <div className="h-[280px] w-full relative">
+                  <div className="relative h-[220px] w-full sm:h-[280px]">
                      <ResponsiveContainer width="100%" height="100%">
                         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                            <PolarGrid stroke="currentColor" strokeOpacity={0.2} />
@@ -376,27 +376,27 @@ export default function TripCompletedPage() {
 
         {/* Gallery Section */}
         <section>
-           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-              <div>
-                 <div className="text-emerald-500 dark:text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                    <Camera className="w-4 h-4" /> Polaroid Memories
+           <div className="mb-8 flex flex-col justify-between gap-4 sm:mb-12 md:flex-row md:items-end md:gap-6">
+              <div className="min-w-0">
+                 <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500 dark:text-emerald-400 sm:mb-3">
+                    <Camera className="h-4 w-4" /> Polaroid Memories
                  </div>
-                 <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight">Запечатленные моменты</h2>
+                 <h2 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl md:text-4xl lg:text-5xl">Запечатленные моменты</h2>
               </div>
-              <div className="flex flex-col items-end gap-3">
+              <div className="flex w-full flex-col gap-2 sm:items-end md:w-auto">
                 <Button 
                   onClick={() => setIsEditGalleryOpen(true)}
-                  className="bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-black dark:text-white rounded-full px-6 font-bold flex items-center gap-2 h-10 border border-border dark:border-white/5 shadow-lg"
+                  className="flex h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-full border border-border bg-zinc-100 px-6 font-bold text-black shadow-lg hover:bg-zinc-200 dark:border-white/5 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:h-10 md:w-auto"
                 >
-                  <Pencil className="w-4 h-4" /> Изменить галерею
+                  <Pencil className="h-4 w-4" /> Изменить галерею
                 </Button>
-                <p className="text-muted-foreground dark:text-zinc-500 max-w-sm text-sm text-right leading-relaxed">
+                <p className="text-sm leading-relaxed text-muted-foreground dark:text-zinc-500 sm:max-w-sm sm:text-right">
                    Лучшие кадры вашего путешествия, бережно сохраненные в нашей цифровой галерее.
                 </p>
               </div>
            </div>
            
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
               {gallery.length > 0 ? gallery.slice(0, 8).map((img, i) => (
                 <motion.div
                   key={img + i}
@@ -427,30 +427,30 @@ export default function TripCompletedPage() {
 
         {/* Action Footer */}
         <section className="pt-12 border-t border-border dark:border-white/5">
-           <div className="flex flex-col items-center bg-muted/50 dark:bg-zinc-900/50 rounded-[40px] p-8 md:p-16 border border-border dark:border-white/5 relative overflow-hidden">
+           <div className="relative flex flex-col items-center overflow-hidden rounded-3xl border border-border bg-muted/50 p-6 dark:border-white/5 dark:bg-zinc-900/50 sm:rounded-[40px] sm:p-8 md:p-16">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
               
               <div className="relative z-10 text-center max-w-2xl">
-                 <h3 className="text-3xl md:text-4xl font-black mb-6 text-foreground">Готовы к новому открытию?</h3>
-                 <p className="text-muted-foreground dark:text-zinc-400 mb-10 leading-relaxed font-medium">
+                 <h3 className="mb-4 text-2xl font-black text-foreground sm:mb-6 sm:text-3xl md:text-4xl">Готовы к новому открытию?</h3>
+                 <p className="mb-8 font-medium leading-relaxed text-muted-foreground dark:text-zinc-400 sm:mb-10">
                     Мы уже подбираем для вас следующие невероятные локации на основе вашего профиля {aiStats?.personality || "исследователя"}.
                  </p>
                  
-                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                 <div className="flex w-full max-w-md flex-col justify-center gap-3 sm:max-w-none sm:flex-row sm:gap-4">
                     <Button 
                        onClick={() => setIsFeedbackOpen(true)}
-                       className="bg-emerald-500 text-white dark:text-black hover:bg-emerald-600 dark:hover:bg-emerald-400 font-extrabold rounded-2xl h-16 px-10 text-lg shadow-md md:shadow-xl shadow-emerald-500/20"
+                       className="h-14 w-full touch-manipulation rounded-2xl bg-emerald-500 px-8 text-base font-extrabold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-600 dark:text-black dark:hover:bg-emerald-400 sm:h-16 sm:w-auto sm:px-10 sm:text-lg md:shadow-xl"
                     >
-                       <Star className="w-5 h-5 mr-3 fill-current" />
+                       <Star className="mr-2 h-5 w-5 fill-current sm:mr-3" />
                        {feedback?.rating ? `Оценка: ${feedback.rating}/5` : "Оценить поездку"}
                     </Button>
                     <Button 
                        asChild
                        variant="outline"
-                       className="border-border dark:border-white/10 h-16 px-10 rounded-2xl font-extrabold text-lg hover:bg-muted dark:hover:bg-white/5 text-foreground dark:text-white"
+                       className="h-14 w-full touch-manipulation rounded-2xl border-border px-8 text-base font-extrabold text-foreground hover:bg-muted dark:border-white/10 dark:text-white dark:hover:bg-white/5 sm:h-16 sm:w-auto sm:px-10 sm:text-lg"
                     >
-                       <Link href="/trips">
-                          <Compass className="w-5 h-5 mr-3" /> Все маршруты
+                       <Link href="/trips" className="flex items-center justify-center gap-2">
+                          <Compass className="h-5 w-5" /> Все маршруты
                        </Link>
                     </Button>
                  </div>
@@ -460,9 +460,9 @@ export default function TripCompletedPage() {
       </div>
 
       <Dialog open={isEditGalleryOpen} onOpenChange={setIsEditGalleryOpen}>
-        <DialogContent className="max-w-3xl bg-zinc-950 border-white/10 rounded-[32px] p-8">
+        <DialogContent className="w-[calc(100vw-1.25rem)] max-w-3xl rounded-3xl border border-white/10 bg-zinc-950 p-5 sm:rounded-[32px] sm:p-8">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-3xl font-black tracking-tight text-white uppercase italic">Настройка галереи</DialogTitle>
+            <DialogTitle className="text-xl font-black uppercase italic tracking-tight text-white sm:text-2xl md:text-3xl">Настройка галереи</DialogTitle>
             <DialogDescription className="text-zinc-400 font-medium">
               Добавьте до 8 своих фотографий, чтобы создать уникальный альбом воспоминаний.
             </DialogDescription>
@@ -474,8 +474,9 @@ export default function TripCompletedPage() {
                 <img src={url} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity gap-2">
                   <button 
+                    type="button"
                     onClick={() => removePhoto(url)}
-                    className="p-3 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/40 transition-colors"
+                    className="touch-manipulation rounded-full bg-red-500/20 p-3 text-red-400 transition-colors hover:bg-red-500/40"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -484,9 +485,10 @@ export default function TripCompletedPage() {
             ))}
             {gallery.length < 8 && (
               <button 
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="aspect-[4/5] rounded-2xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all group"
+                className="group flex aspect-[4/5] touch-manipulation flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-white/10 text-zinc-500 transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5 hover:text-emerald-400"
               >
                 {isUploading ? (
                   <Loader2 className="w-8 h-8 animate-spin" />
@@ -510,10 +512,10 @@ export default function TripCompletedPage() {
             className="hidden" 
           />
 
-          <div className="mt-8 flex justify-end">
+          <div className="mt-6 flex justify-stretch sm:mt-8 sm:justify-end">
             <Button 
               onClick={() => setIsEditGalleryOpen(false)}
-              className="bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-2xl px-8"
+              className="h-12 w-full touch-manipulation rounded-2xl bg-emerald-500 px-8 font-black text-black hover:bg-emerald-400 sm:h-auto sm:w-auto"
             >
               Готово
             </Button>

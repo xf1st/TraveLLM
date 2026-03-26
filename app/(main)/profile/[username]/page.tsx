@@ -124,13 +124,13 @@ export default function PublicProfilePage() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background text-center px-4">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4 pb-8 text-center">
         <Lock className="w-12 h-12 text-muted-foreground" />
         <h1 className="text-2xl font-bold">Профиль недоступен</h1>
         <p className="text-muted-foreground max-w-sm">
           Пользователь @{username} не существует или его профиль закрыт.
         </p>
-        <Button variant="outline" onClick={() => router.push("/")} className="rounded-full px-6">
+        <Button variant="outline" onClick={() => router.push("/")} className="h-11 w-full max-w-xs touch-manipulation rounded-full px-6 sm:h-auto sm:w-auto">
           <ArrowLeft className="w-4 h-4 mr-2" /> На главную
         </Button>
       </div>
@@ -140,24 +140,24 @@ export default function PublicProfilePage() {
   return (
     <AppLayout className="bg-background">
       {/* Back button fixed top-left */}
-      <div className="fixed top-4 left-4 z-50 lg:left-72">
+      <div className="fixed left-3 top-[max(1rem,env(safe-area-inset-top,0px))] z-50 sm:left-4 lg:left-72">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => router.back()}
-          className="rounded-full bg-background/80 backdrop-blur-md border border-border/50 shadow-sm"
+          className="h-11 w-11 touch-manipulation rounded-full border border-border/50 bg-background/80 shadow-sm backdrop-blur-md sm:h-10 sm:w-10"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
       </div>
 
       <div className="min-h-[calc(100vh-4rem)] pb-20">
-        <div className="max-w-4xl mx-auto px-4 pt-8">
+        <div className="mx-auto min-w-0 max-w-4xl px-3 pt-6 sm:px-4 sm:pt-8">
 
           {/* ===== PROFILE HERO ===== */}
           <div className="mb-8">
             {/* Banner */}
-            <div className="relative rounded-[2rem] overflow-hidden h-32 mb-[-48px]">
+            <div className="relative mb-[-48px] h-28 overflow-hidden rounded-2xl sm:h-32 sm:rounded-[2rem]">
               {profileBackground === "avatar" && avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -174,10 +174,10 @@ export default function PublicProfilePage() {
             </div>
 
             {/* Identity bar overlapping banner */}
-            <div className="relative px-6 pb-4 flex items-end gap-4">
+            <div className="relative flex flex-wrap items-end gap-x-4 gap-y-3 px-4 pb-4 sm:px-6">
               {/* Avatar */}
               <div className="shrink-0">
-                <div className="h-24 w-24 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md md:shadow-2xl">
+                <div className="h-20 w-20 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md sm:h-24 sm:w-24 md:shadow-2xl">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -194,7 +194,7 @@ export default function PublicProfilePage() {
 
               {/* Name + username */}
               <div className="flex-1 min-w-0 pb-1">
-                <h1 className="text-xl font-black truncate text-foreground leading-tight">
+                <h1 className="truncate text-lg font-black leading-tight text-foreground sm:text-xl">
                   {profile.full_name || "Путешественник"}
                 </h1>
                 <p className="text-xs text-muted-foreground font-mono mt-0.5">@{username}</p>
@@ -202,9 +202,10 @@ export default function PublicProfilePage() {
 
               {/* Share button */}
               <button
+                type="button"
                 onClick={handleShare}
                 className={cn(
-                  "shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium border transition-all duration-200",
+                  "flex min-h-10 w-full basis-full touch-manipulation items-center justify-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-all duration-200 sm:w-auto sm:basis-auto sm:justify-start",
                   copied
                     ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
                     : "bg-white/10 border-white/20 text-muted-foreground hover:text-foreground hover:bg-white/20 backdrop-blur-sm"
@@ -226,12 +227,12 @@ export default function PublicProfilePage() {
 
             {/* Bio */}
             {profile?.bio && (
-              <p className="px-6 text-sm text-muted-foreground mt-1 mb-3 max-w-lg">{profile.bio}</p>
+              <p className="mb-3 mt-1 max-w-lg px-4 text-sm text-muted-foreground sm:px-6">{profile.bio}</p>
             )}
 
             {/* Stats strip */}
-            <div className="px-6 mt-3">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            <div className="mt-3 px-4 sm:px-6">
+              <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch] no-scrollbar">
                 {[
                   { value: tripCount, label: "маршрутов" },
                   {
@@ -253,7 +254,7 @@ export default function PublicProfilePage() {
 
             {/* Interests */}
             {interests.length > 0 && (
-              <div className="px-6 mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2 px-4 sm:px-6">
                 {interests.map((interest: string) => {
                   const key = interest.toLowerCase()
                   const config = INTEREST_CONFIG[key]
@@ -294,7 +295,7 @@ export default function PublicProfilePage() {
                 <p className="text-muted-foreground text-sm">У пользователя пока нет публичных маршрутов</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
                 {trips.map((trip) => (
                   <Link key={trip.id} href={`/trip/${trip.id}`} className="group block">
                     <div className="rounded-2xl border border-border/50 bg-card/30 hover:bg-card/50 overflow-hidden transition-all hover:shadow-lg hover:border-border/80 hover:-translate-y-0.5 duration-300">

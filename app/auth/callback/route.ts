@@ -9,7 +9,8 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') // 'email', 'recovery', 'invite', etc.
     const next = searchParams.get('next') ?? '/'
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || requestOrigin
+    // Host user landed on (multi-domain); do not use NEXT_PUBLIC_SITE_URL — OAuth return URL must match this origin.
+    const siteUrl = requestOrigin.replace(/\/$/, '')
 
     const cookieStore = await cookies()
     const supabase = createServerClient(

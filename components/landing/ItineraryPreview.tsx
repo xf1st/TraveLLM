@@ -524,7 +524,7 @@ export function ItineraryPreview() {
   const day = days[activeDay]
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full min-w-0 max-w-5xl mx-auto">
       {/* Browser chrome */}
       <div className="rounded-3xl border border-border bg-card/95 backdrop-blur-md md:backdrop-blur-xl shadow-md md:shadow-2xl shadow-foreground/10 overflow-hidden">
 
