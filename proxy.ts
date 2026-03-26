@@ -58,6 +58,18 @@ export async function proxy(request: NextRequest) {
     if (isFullyPublic) return NextResponse.next()
   }
 
+  // API, Next.js internals, Vercel: no auth/maintenance redirects (avoids loops & wasted Supabase calls)
+  if (!isAdminSubdomain) {
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/_vercel') ||
+      pathname === '/404'
+    ) {
+      return NextResponse.next()
+    }
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
@@ -116,7 +128,7 @@ export async function proxy(request: NextRequest) {
   // ─── Maintenance mode ─────────────────────────────────────────────────────
   // Only check on non-API, non-maintenance routes to avoid overhead
   const isMaintPath = pathname === '/maintenance'
-  const isApiRoute = pathname.startsWith('/api/')
+  const isApiRoute = pathname.startsWith('/api')
   if (!isMaintPath && !isApiRoute) {
     const { data: appSettings } = await supabase
       .from('app_settings')
