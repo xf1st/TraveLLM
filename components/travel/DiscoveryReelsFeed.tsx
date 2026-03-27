@@ -214,12 +214,16 @@ function ReelSlide({
             </span>
           </button>
         )}
-        <div className="flex flex-col items-center gap-1 opacity-80">
+        <Link
+          href={`/plan/from-reel/${reel.id}`}
+          title={t("inspireTitle")}
+          className="flex flex-col items-center gap-1 opacity-80 touch-manipulation transition-transform active:scale-90 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-2xl"
+        >
           <div className="h-11 w-11 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center">
             <Sparkles className="h-5 w-5 text-amber-300" />
           </div>
           <span className="text-[9px] font-bold text-white/60 uppercase">{t("inspire")}</span>
-        </div>
+        </Link>
       </div>
 
       {/* Bottom copy + CTA */}

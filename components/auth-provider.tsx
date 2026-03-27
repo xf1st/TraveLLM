@@ -57,10 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [])
 
-    // Initial load + refresh on route change
+    // Initial session only — refreshing on every pathname change + TOKEN_REFRESHED → router.refresh()
+    // caused a loop with root loading.tsx on 404 and other transient routes.
     useEffect(() => {
         refreshSession()
-    }, [pathname, refreshSession])
+    }, [refreshSession])
 
     useEffect(() => {
         if (typeof window === "undefined") return
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(session?.user || null)
                 setIsLoading(false)
 
-                if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
+                if (event === "SIGNED_IN") {
                     router.refresh()
                 }
 

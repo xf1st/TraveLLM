@@ -34,6 +34,7 @@ export function Header({ floating = false }: HeaderProps) {
   const { user } = useAuth()
   const [isAdmin, setIsAdmin] = useState(false)
   const [userData, setUserData] = useState<{ full_name?: string, avatar_url?: string } | null>(null)
+  const [genUsage, setGenUsage] = useState<{ used: number; limit: number } | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
 
   // -- Fix: Hydration Mismatch --
@@ -48,28 +49,37 @@ export function Header({ floating = false }: HeaderProps) {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, full_name, avatar_url')
+          .select('role, full_name, avatar_url, gen_limit_override')
           .eq('id', user.id)
           .maybeSingle()
 
         if (profile) {
-          // console.log("Header: Profile loaded", profile)
           setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
           setUserData({
             full_name: profile.full_name || user.user_metadata?.full_name,
             avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
           })
+          const now = new Date()
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+          const { count } = await supabase
+            .from('ai_usage_events')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('source', 'route-generation')
+            .gte('created_at', monthStart)
+          const limit = profile.gen_limit_override ?? 10
+          setGenUsage({ used: count ?? 0, limit })
         } else {
-          console.log("Header: No profile found for user")
-          // Fallback to metadata if no profile row
           setUserData({
             full_name: user.user_metadata?.full_name,
             avatar_url: user.user_metadata?.avatar_url
           })
+          setGenUsage({ used: 0, limit: 10 })
         }
       } else {
         setIsAdmin(false)
         setUserData(null)
+        setGenUsage(null)
       }
     }
 
@@ -107,6 +117,28 @@ export function Header({ floating = false }: HeaderProps) {
       document.removeEventListener("keydown", handleSearchKey)
     }
   }, [user])
+
+  const userMenuGenUsage =
+    genUsage && user ? (
+      <div className="mt-2.5 pt-2 border-t border-border/30">
+        <div className="flex items-center justify-between text-xs mb-1.5">
+          <span className="text-muted-foreground">{t("generationsMonth")}</span>
+          <span
+            className={
+              genUsage.used >= genUsage.limit ? "text-destructive font-semibold" : "font-medium"
+            }
+          >
+            {genUsage.used}/{genUsage.limit}
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${genUsage.used >= genUsage.limit ? "bg-destructive" : genUsage.used >= genUsage.limit * 0.8 ? "bg-amber-500" : "bg-primary"}`}
+            style={{ width: `${Math.min(100, (genUsage.used / genUsage.limit) * 100)}%` }}
+          />
+        </div>
+      </div>
+    ) : null
 
   const handleLogout = async () => {
     try {
@@ -214,6 +246,7 @@ export function Header({ floating = false }: HeaderProps) {
                       </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
+                    {userMenuGenUsage}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
@@ -361,6 +394,7 @@ export function Header({ floating = false }: HeaderProps) {
                     </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
+                  {userMenuGenUsage}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
