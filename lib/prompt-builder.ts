@@ -26,6 +26,7 @@ function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): strin
     if (isEn) {
         return `
 7. TP.MEDIA DEEP LINKS (RU stack — required for partners below; NO bare homepages):
+SCOPE: Apply this section **only** to activities and hotel nights **in Russia (RF)**. For places outside Russia use global partners (§0, §5–§6) — do NOT invent tripster.ru or sputnik8.com paths for foreign cities.
 Wrap the **full target URL** on the partner site in:
 https://tp.media/r?marker=${marker || "YOUR_MARKER"}&p=PROGRAM_ID&u=ENCODEURIComponent(TARGET_HTTPS_URL)&tr_id=${trId}
 Use real https targets: search results, city/category pages, hotel search — never only domain root for Sputnik8/Tripster.
@@ -50,6 +51,7 @@ If a program ID is missing in .env, output the partner deep URL without tp.media
     }
     return `
 7. ГЛУБОКИЕ ССЫЛКИ tp.media (стек travellm.ru — обязательно; не главные страницы партнёров):
+ОБЛАСТЬ: этот пункт — **только** для активностей и ночёвок **в России (РФ)**. Для зарубежных городов — глобальные партнёры (п.0, п.5–п.6); не придумывай tripster.ru / sputnik8.com для Бангкока, Парижа и т.п.
 Оборачивай **полный целевой https** на сайте партнёра (поиск, категория, город) в ссылку вида:
 https://tp.media/r?marker=${marker || "ВАШ_МАРКЕР"}&p=ID_ПРОГРАММЫ&u=ENCODEURIComponent(ЦЕЛЕВОЙ_URL)&tr_id=${trId}
 Параметр u — это encodeURIComponent от готового URL на tripster.ru, sputnik8.com, ostrovok.ru, travel.yandex.ru, kiwitaxi.ru, sutochno.ru и т.д.
@@ -181,6 +183,58 @@ function formatPlanInterestTags(ids: string[], isEn: boolean): string {
     if (!ids?.length) return isEn ? "(not specified)" : "(не указано)"
     const map = isEn ? PLAN_INTEREST_LABELS_EN : PLAN_INTEREST_LABELS_RU
     return ids.map((id) => map[id] || id).join(isEn ? " · " : " · ")
+}
+
+/**
+ * Партнёры TP привязаны к географии активности, а не к домену TraveLLM (.ru / .world).
+ */
+function buildRegionalPartnerRoutingBlock(
+    isEn: boolean,
+    destinations: string[],
+    destinationType?: string
+): string {
+    const destLine =
+        destinations.length > 0
+            ? destinations.join(", ")
+            : isEn
+              ? "(infer from trip context)"
+              : "(из контекста поездки)"
+    const russiaFocused =
+        destinationType === "russia" ||
+        destinations.some((d) =>
+            /росси|рф\b|russia\b|камчатк|крым|байкал|сочи|кавказ|алтай|карели|петербург|москв|казань|екатеринбург|владивосток|иркутск|калининград|дагестан/i.test(
+                d
+            )
+        )
+
+    if (isEn) {
+        return `
+0. REGION → PARTNER STACK (Travelpayouts — use the programs you have connected; **per activity geography**):
+Pick \`link\` / \`bookingUrl\` / \`ticketUrl\` by **where that card happens** (city/country of the hotel or place), not by TraveLLM UI locale.
+
+• **Russia (RF)** — hotel night or activity in a Russian city: PRIMARY your **RU-connected** stack — Yandex Travel + Ostrovok (hotels, deep URLs + tp.media §7), Tripster (excursions/guides), Sputnik8 (tickets/categories), Kiwitaxi.ru (airport↔hotel), Sutochno (daily apartments), Aviasales.ru for flight legs when appropriate, Tomesto for restaurants in RF.
+
+• **Outside Russia:** Do **not** use Tripster / Sputnik8 / Yandex Travel / Sutochno as the main booking path for that foreign city (coverage is RF-centric). Use the **global connected** stack from §5–§6 — Booking.com / Trip.com (hotels), Klook / Tiqets / WeGoTrip (activities), TripAdvisor or official sites (food), kiwitaxi.com / Intui / Welcome Pickups (transfers), Aviasales domain that matches the segment (§5–§6).
+
+• **Mixed trips** (e.g. Kazan → Dubai): RU stack **only** for Russian segments; switch to global stack for each foreign day/activity.
+
+Trip focus from the form: ${destLine}
+${russiaFocused ? "Russia-focused itinerary — RU stack is the default unless a day is clearly abroad." : ""}
+`.trim()
+    }
+    return `
+0. РЕГИОН → СТЕК ПАРТНЁРОВ Travelpayouts (удобно по географии; только подключённые программы):
+Поля \`link\` / \`bookingUrl\` / \`ticketUrl\` выбирай по **месту этой карточки** (город/страна отеля или места), а не по тому, открыт ли TraveLLM как .ru или .world.
+
+• **Россия (РФ)** — ночёвка или активность в российском городе: основной канал **RU-программы TP** — Яндекс.Путешествия + Островок (отели, глубокие ссылки + tp.media п.7), Tripster, Sputnik8, Kiwitaxi.ru, Суточно, Aviasales.ru для перелётов где уместно, ТоМесто для ресторанов в РФ.
+
+• **За рубежом:** не ставь Tripster / Sputnik8 / Яндекс.Путешествия / Суточно **главной** ссылкой на активность в иностранном городе. Используй **глобальный стек из п.5–п.6** — Booking.com / Trip.com, Klook / Tiqets / WeGoTrip, TripAdvisor или официальный сайт, kiwitaxi.com / Intui / Welcome Pickups, домен Aviasales по сегменту.
+
+• **Смешанные маршруты** (РФ + зарубежье): в России — стек РФ; за границей — глобальный; **переключай по каждой активности**.
+
+Направления из формы: ${destLine}
+${russiaFocused ? "Поездка в основном по России — по умолчанию стек РФ, кроме явно зарубежных дней." : ""}
+`.trim()
 }
 
 function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): string {
@@ -734,6 +788,8 @@ ${airportValidationContext ? `- АЭРОПОРТЫ: ${airportValidationContext}`
             ? `1b. OWN CAR MODE: For intercity transport activities, do NOT use Kiwitaxi/intercity taxi booking links as the primary link; prefer Google Maps route or omit paid booking — the user drives.`
             : `1b. РЕЖИМ «СВОЯ МАШИНА»: для межгородского transport НЕ ставь kiwitaxi/intui как основную ссылку; достаточно mapLink маршрута или пояснения «свой автомобиль» без заказа трансфера.`)
         : ""
+
+    userParts.push(buildRegionalPartnerRoutingBlock(isEn, destinations, destinationType))
 
     userParts.push(`
 ТЕХНИЧЕСКИЕ ПРАВИЛА:

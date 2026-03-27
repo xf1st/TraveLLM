@@ -66,7 +66,7 @@ FOOD (ресторан):
 
 ACTIVITY (музей, достопримечательность):
   mapLink = Google Maps места
-  link = для РФ: Tripster / Sputnik8 (глубокие URL) через tp.media; иначе Klook/Tiqets/WeGoTrip или официальный сайт
+  link = география места в РФ → Tripster / Sputnik8 (глубокие URL) + tp.media; за рубежом → Klook / Tiqets / WeGoTrip или официальный сайт (не подставляй tripster/sputnik8 для иностранных городов)
   ticketUrl = покупка билетов (тот же партнёр или официальный сайт)
 
 === ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ — РЕАЛЬНЫЕ САЙТЫ ===
