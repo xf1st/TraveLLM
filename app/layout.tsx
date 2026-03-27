@@ -3,7 +3,6 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import type { Metadata, Viewport } from "next"
 import { Rubik, JetBrains_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { GuardsWrapper } from "@/components/admin/guards-wrapper"
@@ -139,7 +138,6 @@ export default async function RootLayout({
               </ChatProvider>
             </AuthProvider>
             <Toaster />
-            <Analytics />
             <GlobalLoader />
           </ThemeProvider>
         </NextIntlClientProvider>

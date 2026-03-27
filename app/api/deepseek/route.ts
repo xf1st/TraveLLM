@@ -35,6 +35,7 @@ import {
     sanitizeRouteUserText,
     tripDurationError,
 } from "@/lib/route-generation-guard"
+import { getBookingMarketFromRequest } from "@/lib/booking-market"
 
 export const maxDuration = 60;
 
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         const body = await req.json()
+        const bookingMarket = getBookingMarketFromRequest(req)
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, customDestination,
@@ -140,8 +142,15 @@ export async function POST(req: Request) {
             try {
                 if (travelMode === "flight") {
                     const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
-                    if (flightCheck.hasDirect) dynamicContextStr += `\n🛫 Прямые рейсы доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
-                    else dynamicContextStr += `\n🚆 Прямых рейсов нет, используй поезд или пересадку.`
+                    if (flightCheck.hasDirect && flightCheck.minPrice != null) {
+                        dynamicContextStr += `\n🛫 Прямые рейсы доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
+                    } else if (flightCheck.hasDirect) {
+                        dynamicContextStr += `\n🛫 По данным API цен есть варианты без пересадок; точное расписание — Aviasales.`
+                    } else if (flightCheck.flightDataReliable) {
+                        dynamicContextStr += `\n🚆 В кэше цен на месяц нет прямого рейса с минимальной ценой — предложи пересадку или поезд; не утверждай, что прямых рейсов нет вообще.`
+                    } else {
+                        dynamicContextStr += `\n🛫 Прямые рейсы кэшем не проверены. Не утверждай их отсутствие; популярные внутренние маршруты (Москва — Сочи и т.п.) обычно с прямыми рейсами — авиа + ссылка Aviasales.`
+                    }
                 } else if (travelMode === "train") {
                     dynamicContextStr += `\n🚆 РЕЖИМ МАРШРУТА: пользователь выбрал ж/д как основной транспорт — не навязывай авиа без необходимости.`
                 } else {
@@ -159,6 +168,7 @@ export async function POST(req: Request) {
             companions: companionsSafe, travelers: travelersCount, preferences: safePreferences, dynamicContextStr,
             warningsStr, safeHighlight, tripVibe: safeTripVibe || undefined, destinationType, strictDestinations, countryCount, filterByDocuments,
             travelMode,
+            bookingMarket,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
@@ -181,11 +191,11 @@ export async function POST(req: Request) {
             }
 
             // Post-processing
-            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
+            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
             routeData = await enrichViralSpotsWithWebSearch(routeData);
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
-            routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
+            routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
             
             routeData.tokenUsage = getSessionUsage();
             await recordAiUsageEvent({ userId, source: "route-generation", provider: "deepseek", usage: routeData.tokenUsage });
@@ -204,10 +214,10 @@ export async function POST(req: Request) {
                 console.warn('[Gemini-Fallback] JSON malformed, attempting repair…')
                 routeData = JSON.parse(jsonrepair(clean2))
             }
-            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
+            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
-            routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
+            routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
 
             return NextResponse.json(routeData);
         }

@@ -9,6 +9,69 @@ import { getApplicableRules, STRICT_RULES, ACTIVITY_STRUCTURE_RULES, ITINERARY_S
 import { type ValidationResult } from "./real-time-validation"
 import { GROUNDING_DATA_2026 } from "./grounding"
 import { normalizeTravelMode, type TravelMode } from "./travel-mode"
+import type { BookingMarket } from "./booking-market"
+import { getTpProgramIdsForPrompt, getTpTrId } from "./tp-media"
+
+/** ТоМесто — бронь столиков в РФ. Все ссылки на tomesto.ru с ref_id=2163507. */
+const TOMESTO_RU_REF_URL = "https://tomesto.ru/?ref_id=2163507"
+
+function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): string {
+    if (market !== "ru") return ""
+    const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
+    const p = getTpProgramIdsForPrompt()
+    const trId = getTpTrId()
+    const pid = (key: keyof typeof p, envName: string) =>
+        p[key] ? `p=${p[key]}` : `p=(set ${envName} in .env)`
+
+    if (isEn) {
+        return `
+7. TP.MEDIA DEEP LINKS (RU stack — required for partners below; NO bare homepages):
+Wrap the **full target URL** on the partner site in:
+https://tp.media/r?marker=${marker || "YOUR_MARKER"}&p=PROGRAM_ID&u=ENCODEURIComponent(TARGET_HTTPS_URL)&tr_id=${trId}
+Use real https targets: search results, city/category pages, hotel search — never only domain root for Sputnik8/Tripster.
+
+Program IDs for this project:
+- Yandex Travel hotels: ${pid("yandexTravel", "NEXT_PUBLIC_TP_P_YANDEX_TRAVEL")}
+- Ostrovok: ${pid("ostrovok", "NEXT_PUBLIC_TP_P_OSTROVOK")}
+- Tripster: ${pid("tripster", "NEXT_PUBLIC_TP_P_TRIPSTER")}
+- Sputnik8: ${pid("sputnik8", "NEXT_PUBLIC_TP_P_SPUTNIK8")} (default 1173 if unset)
+- Kiwitaxi: ${pid("kiwitaxi", "NEXT_PUBLIC_TP_P_KIWITAXI")}
+- Sutochno: ${pid("sutochno", "NEXT_PUBLIC_TP_P_SUTOCHNO")}
+
+Activity → partner → target URL pattern (then wrap in tp.media with matching p):
+| Excursions / guided tours | Tripster | https://tripster.ru/destinations/{city_slug}/ (latin slug: moscow, kazan, irkutsk…) |
+| Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (e.g. muzei, ekskursii, vodnyie-progulki — pick what fits) |
+| Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to places (not generic / only) |
+| Apartment / daily rent (not hotel room) | Sutochno | City subdomain or search: https://spb.sutochno.ru/ https://sochi.sutochno.ru/ https://www.sutochno.ru/ (Moscow), https://kazan.sutochno.ru/, etc. |
+| Hotels | Yandex + Ostrovok | bookingUrl: tp.media + Yandex Travel hotel URL with dates (§5). link: tp.media + https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
+
+If a program ID is missing in .env, output the partner deep URL without tp.media (still deep, not homepage).
+`.trim()
+    }
+    return `
+7. ГЛУБОКИЕ ССЫЛКИ tp.media (стек travellm.ru — обязательно; не главные страницы партнёров):
+Оборачивай **полный целевой https** на сайте партнёра (поиск, категория, город) в ссылку вида:
+https://tp.media/r?marker=${marker || "ВАШ_МАРКЕР"}&p=ID_ПРОГРАММЫ&u=ENCODEURIComponent(ЦЕЛЕВОЙ_URL)&tr_id=${trId}
+Параметр u — это encodeURIComponent от готового URL на tripster.ru, sputnik8.com, ostrovok.ru, travel.yandex.ru, kiwitaxi.ru, sutochno.ru и т.д.
+
+ID программ (p) для этого проекта:
+- Яндекс.Путешествия (отели): ${pid("yandexTravel", "NEXT_PUBLIC_TP_P_YANDEX_TRAVEL")}
+- Островок: ${pid("ostrovok", "NEXT_PUBLIC_TP_P_OSTROVOK")}
+- Tripster: ${pid("tripster", "NEXT_PUBLIC_TP_P_TRIPSTER")}
+- Sputnik8: ${pid("sputnik8", "NEXT_PUBLIC_TP_P_SPUTNIK8")} (по умолчанию 1173, если не задано)
+- Kiwitaxi: ${pid("kiwitaxi", "NEXT_PUBLIC_TP_P_KIWITAXI")}
+- Суточно.ру: ${pid("sutochno", "NEXT_PUBLIC_TP_P_SUTOCHNO")}
+
+Маппинг типа активности → партнёр → целевой URL (затем обернуть в tp.media с нужным p):
+| Экскурсии, гиды, туры с местным гидом | Tripster | https://tripster.ru/destinations/{city_slug}/ (латиница: moscow, kazan, vladivostok…) |
+| Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
+| Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL поиска/заказа на kiwitaxi.ru с пунктами from/to |
+| Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, kazan.sutochno.ru, www.sutochno.ru (Москва), ekaterinburg.sutochno.ru и т.п. — не просто корень без города |
+| Отели | Яндекс + Островок | bookingUrl: tp.media + URL Яндекс.Путешествий с датами заезда/выезда (как в п.5). link: tp.media + https://ostrovok.ru/hotel/search/?q=Город+или+НазваниеОтеля — вторая ссылка как альтернатива Островку |
+
+Запрещено отдавать одну только https://sputnik8.com/ru/ без города и категории. Если p не задан в .env — дай глубокий URL партнёра без tp.media.
+`.trim()
+}
 
 export type { TravelMode }
 
@@ -72,6 +135,8 @@ export interface PromptBuilderParams {
     travelMode?: TravelMode
     /** Обязательная активность из discovery reel (локализованный блок текста) */
     reelAnchorPrompt?: string
+    /** Домен: RU-агрегаторы vs глобальные (Booking, Trip.com, aviasales.com) */
+    bookingMarket?: BookingMarket
 }
 
 export interface EnrichedPrompt {
@@ -118,46 +183,210 @@ function formatPlanInterestTags(ids: string[], isEn: boolean): string {
     return ids.map((id) => map[id] || id).join(isEn ? " · " : " · ")
 }
 
-/**
- * Домены из программ Travelpayouts (Drive подменяет ссылки на сайте).
- * Aviasales + Booking — базовые, не убираем; остальное — по смыслу активности.
- */
-function buildTravelpayoutsPartnerLinksBlock(isEn: boolean): string {
+function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): string {
+    const ruStack = market === "ru"
     if (isEn) {
+        if (ruStack) {
+            return `
+5. LINKS — CRITICAL, fill for EVERY activity:
+
+   mapLink (ALWAYS except flights):
+     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
+
+   transport (flight) → link:
+     "https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1"
+     Example: "https://www.aviasales.ru/search/MOW1506BKK1"
+
+   transport (train) → link:
+     Russia/CIS: "https://ticket.rzd.ru/" or "https://travel.yandex.ru/trains/"
+
+   transport (transfer/taxi) → link:
+     Kiwitaxi deep search URL (from/to airport or hotel), not generic homepage — wrap in tp.media §7 when p known.
+
+   hotel → bookingUrl (NOT map) + link:
+     bookingUrl: Yandex Travel hotels deep URL with dates (see §7 tp.media wrap with program p for Yandex).
+     link: Ostrovok hotel search deep URL https://ostrovok.ru/hotel/search/?q={CityOrHotel} (§7 tp.media with Ostrovok p). Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
+
+   food → link (and bookingUrl when table booking matters):
+     Russian cities: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
+     Also TripAdvisor or official restaurant site where Tomesto is not a fit.
+
+   activity → link + ticketUrl:
+     Russian cities: Tripster (excursions/guides), Sputnik8 (museums/boats/water parks — category deep URLs), Sutochno (daily apartments); then Klook/Tiqets/WeGoTrip; official site. All partner links via tp.media §7 when program p is known.
+
+   Adventure activities → same; Russia: skydiving.ru, rafting.ru, rechnoyflot.ru where they are the real channel.
+`.trim()
+        }
         return `
-6. TRAVELPAYOUTS PARTNER DOMAINS (real https:// on these hosts where relevant; site rewrites via Drive; NEVER invent path slugs — use official search or section home + query):
-- KEEP UNCHANGED: flight legs → Aviasales in \`link\` (same /search/{ORG}{DDMM}{DEST}1 pattern). Prefer https://www.aviasales.com/ for international EN trips; https://www.aviasales.ru/ when the trip is Russia-focused.
-- KEEP UNCHANGED: hotels → Booking.com in \`bookingUrl\`; Ostrovok.ru as extra option for Russia trips.
-- Airport / city transfers: https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
-- Car rental (when the plan includes hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
-- Museums, attractions, timed entry: https://www.tiqets.com/, https://www.klook.com/ (search)
-- Self-guided audio tours: https://wegotrip.com/
-- Yacht / charter (only if the activity is sailing or yacht hire): https://searadar.com/
-- Luggage storage: https://www.radicalstorage.com/ (early arrival, late checkout, between hotels)
-- Travel eSIM — at most 1–2 mentions per whole trip (prep / day tips): https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
-- Travel insurance (international): https://ekta.io/ in visa block or tips where appropriate
-- Flight disruption claims: https://compensair.com/, https://www.airhelp.com/ in tips if relevant
-- VPN: https://nordvpn.com/ only in safety tips when justified (risky public Wi‑Fi, censorship)
-- Shows / sports / events: https://www.ticketnetwork.com/
-- Activities: keep GetYourGuide / Klook / Viator search URLs from §5; prefer Klook + Tiqets for Asia–Pacific, GYG + Viator for Europe/Americas when unsure.
+5. LINKS — CRITICAL, fill for EVERY activity:
+
+   mapLink (ALWAYS except flights):
+     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
+
+   transport (flight) → link:
+     "https://www.aviasales.com/search/{ORG}{DDMM}{DEST}1"
+
+   transport (train) → link:
+     "https://www.trip.com/trains/" or "https://www.omio.com/" for booking; use RZD only for segments inside Russia.
+
+   transport (transfer/taxi) → link:
+     "https://kiwitaxi.com/"
+
+   hotel → bookingUrl (NOT map):
+     Russian cities: Yandex Travel (Travelpayouts): "https://travel.yandex.ru/hotels/{city-slug}/?..." — required; do NOT use Booking.com as primary for Russia.
+     Other countries: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"; Trip.com as alternative.
+
+   food → link:
+     TripAdvisor or official site.
+
+   activity → link + ticketUrl:
+     Klook, Tiqets, WeGoTrip, or official site (connected Travelpayouts programs — not GetYourGuide/Viator).
+
+   Adventure activities → Klook/Tiqets/WeGoTrip + local official sites where people actually book.
+`.trim()
+    }
+    if (ruStack) {
+        return `
+5. ССЫЛКИ — КРИТИЧЕСКИ ВАЖНО, заполняй для КАЖДОЙ активности:
+
+   mapLink (ВСЕГДА, кроме перелётов):
+     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
+
+   transport (авиа) → link:
+     "https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1"
+     Пример: "https://www.aviasales.ru/search/MOW1506BKK1"
+     (mapLink НЕ нужен для перелётов)
+
+   transport (поезд) → link:
+     "https://ticket.rzd.ru/" для РФ; также "https://travel.yandex.ru/trains/" (Яндекс.Путешествия + Островок)
+
+   transport (трансфер/такси) → link:
+     Kiwitaxi — глубокий URL маршрута (аэропорт↔отель/адрес), не только главная; tp.media п.7 при известном p.
+
+   hotel → bookingUrl (НЕ карта!) + link:
+     bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обёртка tp.media — п.7).
+     link: Островок — глубокий поиск https://ostrovok.ru/hotel/search/?q=Город+или+отель (tp.media п.7). По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
+
+   food → link (и bookingUrl, если важна бронь столика):
+     Города РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
+     Дополнительно TripAdvisor или официальный сайт, если заведения нет на ТоМесто.
+
+   activity (музей/экскурсия) → link + ticketUrl:
+     Города РФ: Tripster (экскурсии), Sputnik8 (музеи/катера/аквапарки — URL категории), при посуточном жилье — Суточно; плюс Klook/Tiqets/WeGoTrip и официальный сайт. Ссылки партнёров — через tp.media (п.7).
+
+   ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ → link:
+     Tripster/Sputnik8/Klook/Tiqets/WeGoTrip по смыслу; РФ — приоритет Tripster/Sputnik8; официальные сайты, skydiving.ru, rafting.ru, rechnoyflot.ru где уместно.
 `.trim()
     }
     return `
-6. ПАРТНЁРЫ Travelpayouts (реальные https:// на этих доменах по смыслу; на сайте Drive монетизирует переходы; НЕ выдумывай slug — только официальный поиск или главная раздела + query):
-- БЕЗ ИЗМЕНЕНИЙ: перелёты → в \`link\` только Aviasales: https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 (как в п.5).
-- БЕЗ ИЗМЕНЕНИЙ: отели → \`bookingUrl\` на Booking.com; при необходимости запасной Ostrovok.ru.
-- Трансфер аэропорт ↔ город: https://kiwitaxi.ru/ или https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
-- Аренда авто (если в маршруте аренда, не режим «своя машина»): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
-- Музеи, достопримечательности, билеты: https://www.tiqets.com/, https://www.klook.com/ru/ (поиск)
+5. ССЫЛКИ — КРИТИЧЕСКИ ВАЖНО, заполняй для КАЖДОЙ активности:
+
+   mapLink (ВСЕГДА, кроме перелётов):
+     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
+
+   transport (авиа) → link:
+     "https://www.aviasales.com/search/{ORG}{DDMM}{DEST}1"
+
+   transport (поезд) → link:
+     "https://www.trip.com/trains/" или "https://www.omio.com/" для международных маршрутов; внутри РФ при необходимости ticket.rzd.ru
+
+   transport (трансфер/такси) → link:
+     "https://kiwitaxi.com/"
+
+   hotel → bookingUrl (НЕ карта!):
+     Города России: обязательно Яндекс.Путешествия — "https://travel.yandex.ru/hotels/{city-slug}/?..."; не делай Booking.com основным для РФ.
+     Другие страны: Booking.com; Trip.com как альтернатива.
+
+   food → link:
+     TripAdvisor или официальный сайт
+
+   activity → link + ticketUrl:
+     Klook / Tiqets / WeGoTrip или официальный сайт (только подключённые партнёры — не GetYourGuide/Viator).
+
+   ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ — Klook/Tiqets/WeGoTrip + локальные официальные сайты, где реально бронируют.
+`.trim()
+}
+
+/**
+ * Домены из программ Travelpayouts (Drive подменяет ссылки на сайте).
+ */
+function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarket): string {
+    const ruStack = market === "ru"
+    if (isEn) {
+        if (ruStack) {
+            return `
+6. TRAVELPAYOUTS PARTNER DOMAINS (RU stack — travellm.ru; real https://; NEVER invent path slugs):
+- Flights: Aviasales https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 in \`link\`.
+- Hotels: Yandex Travel in \`bookingUrl\`; Ostrovok search in \`link\` (both deep + tp.media §7). Booking.com only as extra for non-Russian cities abroad.
+- Trains: ticket.rzd.ru, travel.yandex.ru/trains
+- Airport / city transfers: https://kiwitaxi.ru/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Car rental (when hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Museums, attractions, timed entry: https://www.tiqets.com/, https://www.klook.com/ (search)
+- Self-guided audio tours: https://wegotrip.com/
+- Yacht / charter (only if sailing or yacht hire): https://searadar.com/
+- Luggage storage: https://www.radicalstorage.com/
+- Travel insurance (trips abroad): https://ekta.io/
+- Flight disruption claims (where airline/EU-style rules apply, e.g. via EU hubs): https://compensair.com/, https://www.airhelp.com/
+- Restaurants / table booking in Russia: ${TOMESTO_RU_REF_URL} in \`link\` or \`bookingUrl\`; fine dining — Tomesto first (keep ref_id=2163507 on all tomesto.ru links).
+- Excursions / guides (Russia): Tripster; tickets & entertainment: Sputnik8; daily apartments: Sutochno; transfers: Kiwitaxi — all deep URLs + tp.media §7.
+- Activities / tours: also Klook, Tiqets, WeGoTrip per §5 — do NOT mention GetYourGuide, Viator, TicketNetwork, NordVPN, or eSIM shops (limited/unavailable for RU audience).
+`.trim()
+        }
+        return `
+6. TRAVELPAYOUTS PARTNER DOMAINS (global stack — travellm.world; real https://; NEVER invent path slugs):
+- Flights: Aviasales.com same /search/{ORG}{DDMM}{DEST}1 pattern in \`link\`.
+- Hotels: Booking.com primary in \`bookingUrl\` outside Russia; Russian cities — Yandex Travel (same URL pattern as RU stack).
+- Trains: https://www.trip.com/trains/, https://www.omio.com/
+- Airport / city transfers: https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Car rental (when hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Museums, attractions, timed entry: https://www.tiqets.com/, https://www.klook.com/ (search)
+- Self-guided audio tours: https://wegotrip.com/
+- Yacht / charter (only if sailing or yacht hire): https://searadar.com/
+- Luggage storage: https://www.radicalstorage.com/
+- Travel eSIM — at most 1–2 mentions per whole trip: https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
+- Travel insurance (international): https://ekta.io/
+- Flight disruption claims: https://compensair.com/, https://www.airhelp.com/
+- VPN: https://nordvpn.com/ only when justified
+- Shows / sports / events: https://www.ticketnetwork.com/
+- Activities / tours: Klook, Tiqets, WeGoTrip per §5 — do NOT use GetYourGuide or Viator (not in connected partner set).
+`.trim()
+    }
+    if (ruStack) {
+        return `
+6. ПАРТНЁРЫ Travelpayouts (стек travellm.ru — реальные https://; НЕ выдумывай slug):
+- Перелёты → в \`link\` Aviasales: https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 (как в п.5).
+- Отели → \`bookingUrl\`: Яндекс.Путешествия; \`link\`: Островок поиск — оба глубокие URL + tp.media (п.7). Booking.com — дополнительно только для нероссийских городов за границей.
+- Ж/д: ticket.rzd.ru, travel.yandex.ru/trains
+- Трансфер аэропорт ↔ город: https://kiwitaxi.ru/, https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Аренда авто (не режим «своя машина»): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Музеи, билеты: https://www.tiqets.com/, https://www.klook.com/ru/ (поиск)
 - Аудиогиды: https://wegotrip.com/
 - Яхты / чартер: https://searadar.com/ только если активность про аренду яхты.
-- Камера хранения: https://www.radicalstorage.com/ при ранний заезд, поздний выезд, переезд между отелями.
-- eSIM — не чаще 1–2 раз на всю поездку (подготовка / tips дня): https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
-- Страховка (зарубеж): https://ekta.io/ в visa или советах, где уместно.
-- Компенсация за сбой рейса: https://compensair.com/, https://www.airhelp.com/ в tips при релевантности.
-- VPN: https://nordvpn.com/ только в safety-tips при обосновании.
-- Шоу / спорт / ивенты: https://www.ticketnetwork.com/
-- Активности: наряду с GetYourGuide/Klook/Viator из п.5 усиль Klook и Tiqets там, где логичнее по региону.
+- Камера хранения: https://www.radicalstorage.com/
+- Страховка (поездки за границу): https://ekta.io/
+- Компенсация за сбой рейса (где действуют правила авиакомпании/EU и т.п.): https://compensair.com/, https://www.airhelp.com/
+- Рестораны, бронь столиков в РФ: в \`link\` или \`bookingUrl\` — ${TOMESTO_RU_REF_URL}; люкс — в первую очередь ТоМесто, затем официальный сайт (ref_id=2163507 на всех ссылках tomesto.ru).
+- Экскурсии Tripster, билеты Sputnik8, посуточно Суточно, трансфер Kiwitaxi — глубокие ссылки и п.7 tp.media.
+- Также Klook, Tiqets, WeGoTrip из п.5. НЕ упоминай GetYourGuide, Viator, TicketNetwork, NordVPN и магазины eSIM.
+`.trim()
+    }
+    return `
+6. ПАРТНЁРЫ Travelpayouts (стек travellm.world — реальные https://; НЕ выдумывай slug):
+- Перелёты → \`link\` на Aviasales.com: https://www.aviasales.com/search/{ORG}{DDMM}{DEST}1
+- Отели → \`bookingUrl\`: Booking.com; Trip.com как альтернатива; города РФ — Яндекс.Путешествия (как в п.5).
+- Ж/д: Trip.com/trains, Omio
+- Трансфер: https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
+- Аренда авто (не «своя машина»): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
+- Музеи, билеты: https://www.tiqets.com/, https://www.klook.com/ru/ (поиск)
+- Аудиогиды: https://wegotrip.com/
+- Яхты / чартер: https://searadar.com/ только если про аренду яхты.
+- Камера хранения: https://www.radicalstorage.com/
+- eSIM: https://www.airalo.com/, https://yesim.app/, https://drimsim.com/
+- Страховка: https://ekta.io/
+- Компенсация за рейс: https://compensair.com/, https://www.airhelp.com/
+- VPN: https://nordvpn.com/ при обосновании.
+- Ивенты: https://www.ticketnetwork.com/
+- Экскурсии и активности: п.5 — Klook, Tiqets, WeGoTrip; не используй GetYourGuide и Viator (нет в подключённых программах).
 `.trim()
 }
 
@@ -288,8 +517,10 @@ export async function buildEnrichedPrompt(params: PromptBuilderParams): Promise<
         airportValidationContext,
         travelMode: travelModeRaw,
         reelAnchorPrompt,
+        bookingMarket: bookingMarketParam,
     } = params
 
+    const bookingMarket: BookingMarket = bookingMarketParam ?? "ru"
     const travelMode = normalizeTravelMode(travelModeRaw)
 
     const isEn = locale === 'en'
@@ -511,47 +742,12 @@ ${carLinkNote ? `${carLinkNote}\n` : ""}2. ФОРМАТ ТРАНСПОРТА: В
 3. VIRAL SPOTS: Добавь 3-5 популярных в TikTok/Instagram локаций в отдельный массив viralSpots.
 4. IMAGE QUERY: Для каждой активности (hotel, food, activity) добавь imageQuery на АНГЛИЙСКОМ для Pexels (например: "Art Deco hotel rooftop pool skyline Istanbul golden hour"). НЕ используй собственные имена.
 
-5. ССЫЛКИ — КРИТИЧЕСКИ ВАЖНО, заполняй для КАЖДОЙ активности:
-
-   mapLink (ВСЕГДА, кроме перелётов):
-     "https://www.google.com/maps/search/?api=1&query={PlaceName}+{City}"
-
-   transport (авиа) → link:
-     "https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1"
-     Пример: "https://www.aviasales.ru/search/MOW1506BKK1"
-     (mapLink НЕ нужен для перелётов)
-
-   transport (поезд) → link:
-     "https://ticket.rzd.ru/"
-
-   transport (трансфер/такси) → link:
-     "https://kiwitaxi.ru/"
-
-   hotel → bookingUrl (НЕ карта!):
-     "https://www.booking.com/hotel/{cc}/{hotel-slug}.ru.html"
-     Если нет прямой ссылки: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
-     Запасной: "https://ostrovok.ru/hotel/russia/{city}/{hotel-slug}/"
-
-   food → link:
-     TripAdvisor или официальный сайт ресторана
-     Пример: "https://www.tripadvisor.ru/Restaurant_Review-g..."
-
-   activity (музей/экскурсия) → link + ticketUrl:
-     Официальный сайт ИЛИ GetYourGuide: "https://www.getyourguide.ru/s/?q={PlaceName}+{City}"
-     Если продаёт онлайн-билеты — ticketUrl = та же ссылка
-
-   ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ (дайвинг, серфинг, парашют, параглайдинг, яхта, рафтинг,
-   вертолётная экскурсия, джип-тур, квадроциклы, зиплайн, скалолазание, каяк, теплоход) → link:
-     GetYourGuide: "https://www.getyourguide.ru/s/?q={activity+keyword}+{city}"
-     Klook: "https://www.klook.com/ru/search/?q={activity}+{city}"
-     Viator: "https://www.viator.com/ru-RU/search?q={activity}+{city}"
-     (Россия, прыжок с парашютом): "https://skydiving.ru/"
-     (Россия, рафтинг): "https://www.rafting.ru/"
-     (Москва/СПб, теплоход): "https://rechnoyflot.ru/"
-     Правило: ВСЕГДА выбирай ту платформу, где реально можно забронировать данную активность в данном городе.
+${buildBookingLinksTechnicalBlock(isEn, bookingMarket)}
 `.trim())
 
-    userParts.push(buildTravelpayoutsPartnerLinksBlock(isEn))
+    userParts.push(buildTravelpayoutsPartnerLinksBlock(isEn, bookingMarket))
+    const tpDeepBlock = buildTpMediaDeepLinksBlock(isEn, bookingMarket)
+    if (tpDeepBlock) userParts.push(tpDeepBlock)
 
     // 8. ФОРМАТ ОТВЕТА
     userParts.push(isEn ? `

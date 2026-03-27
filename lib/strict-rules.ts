@@ -24,8 +24,8 @@ export const ITINERARY_STRUCTURE = `
   "desc": "Средневековая крепость на слиянии Савы и Дуная. Панорамные виды на Нови-Сад.",
   "cost": "1 500 ₽",
   "mapLink": "https://www.google.com/maps/search/?api=1&query=Kalemegdan+Fortress+Belgrade",
-  "link": "https://www.getyourguide.ru/belgrade-l33/kalemegdan-fortress-guided-tour-t12345/",
-  "ticketUrl": "https://www.getyourguide.ru/belgrade-l33/kalemegdan-fortress-guided-tour-t12345/"
+  "link": "https://www.klook.com/ru/search/?q=Kalemegdan+Belgrade",
+  "ticketUrl": "https://www.klook.com/ru/search/?q=Kalemegdan+tickets+Belgrade"
 }
 
 Поля обязательны: time, type, title, placeName, desc, cost, mapLink.
@@ -54,9 +54,10 @@ HOTEL:
   ✅ ПРАВИЛЬНО: "placeName": "Hotel Moskva 4*", "title": "Заселение в Hotel Moskva 4*"
   ❌ НЕПРАВИЛЬНО: "placeName": "Заселение в отель", "title": "Отель"
   mapLink = Google Maps с КОНКРЕТНЫМ названием отеля
-  bookingUrl = "https://www.booking.com/hotel/{cc}/{hotel-slug}.ru.html"
-  Пример: "https://www.booking.com/hotel/rs/moskva.ru.html"
-  Запасной вариант: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
+  bookingUrl — Яндекс.Путешествия (глубокий URL с датами); при стеке Travelpayouts оберни в https://tp.media/r?marker=...&p=...&u=encodeURIComponent(...) &tr_id=...
+  link — альтернатива Островок: "https://ostrovok.ru/hotel/search/?q=Город+Отель" (тоже через tp.media при известном p).
+  Ночёвка в городе РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
+  За границей при необходимости: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
 
 FOOD (ресторан):
   mapLink = Google Maps ресторана
@@ -65,53 +66,51 @@ FOOD (ресторан):
 
 ACTIVITY (музей, достопримечательность):
   mapLink = Google Maps места
-  link = официальный сайт или GetYourGuide: "https://www.getyourguide.ru/..."
-  ticketUrl = ссылка на покупку билетов (если есть онлайн-продажа)
+  link = для РФ: Tripster / Sputnik8 (глубокие URL) через tp.media; иначе Klook/Tiqets/WeGoTrip или официальный сайт
+  ticketUrl = покупка билетов (тот же партнёр или официальный сайт)
 
 === ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ — РЕАЛЬНЫЕ САЙТЫ ===
 
 Для экстремальных и приключенческих активностей ОБЯЗАТЕЛЬНО добавляй link на реальную платформу бронирования:
 
 Дайвинг / снорклинг:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=diving+{city}"
   Klook: "https://www.klook.com/ru/search/?q=diving+{city}"
+  Tiqets / WeGoTrip — поиск по городу и активности на их сайтах
 
 Прыжок с парашютом (Россия):
   link = "https://skydiving.ru/"
 
 Параглайдинг / парапланеризм:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=paragliding+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=paragliding+{city}"
 
 Вертолётная экскурсия:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=helicopter+tour+{city}"
-  Viator: "https://www.viator.com/ru-RU/search?q=helicopter+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=helicopter+tour+{city}"
 
 Морская прогулка / яхта / теплоход:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=boat+tour+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=boat+tour+{city}"
+  Яхта/чартер (если уместно): https://searadar.com/
   (Москва/СПб): "https://rechnoyflot.ru/" или "https://flotpobedy.ru/"
 
 Рафтинг / каяк:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=rafting+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=rafting+{city}"
   (Россия): "https://www.rafting.ru/"
 
 Серфинг / кайтсёрфинг / виндсёрфинг:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=surfing+lessons+{city}"
   Klook: "https://www.klook.com/ru/search/?q=surf+{city}"
 
 Зиплайн / верёвочный парк:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=zipline+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=zipline+{city}"
 
 Джип-тур / квадроциклы / ATV:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=jeep+tour+{city}"
-  Viator: "https://www.viator.com/ru-RU/search?q=ATV+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=ATV+{city}"
 
 Горный треккинг / хайкинг:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=hiking+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=hiking+{city}"
 
 Скалолазание:
-  GetYourGuide: "https://www.getyourguide.ru/s/?q=rock+climbing+{city}"
+  Klook: "https://www.klook.com/ru/search/?q=rock+climbing+{city}"
 
-ПРАВИЛО: Для ЛЮБОЙ приключенческой активности, если нет конкретного сайта — используй GetYourGuide или Viator с поисковым запросом по названию активности и городу.
+ПРАВИЛО: Если нет конкретного официального сайта — Klook или Tiqets с поисковым запросом по активности и городу; аудиогиды — WeGoTrip где уместно.
 
 === ШАБЛОНЫ ДНЕЙ ===
 

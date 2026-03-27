@@ -10,7 +10,8 @@ import {
     getIataCode,
     resolveIataCode,
     formatPrice,
-    hasApiToken
+    hasApiToken,
+    pickCheapTicketBucket,
 } from "../travelpayouts"
 
 export interface FlightContextData {
@@ -89,8 +90,8 @@ export async function fetchFlightContext(
             const departMonth = startDate ? startDate.substring(0, 7) : undefined
             const tickets = await getCheapestTickets(originIata, destIata, departMonth)
 
-            if (tickets?.success && tickets.data[destIata]) {
-                const destData = tickets.data[destIata]
+            const destData = tickets?.success && tickets.data ? pickCheapTicketBucket(tickets.data, destIata) : null
+            if (destData) {
                 const entries = Object.entries(destData) as [string, any][]
 
                 if (entries.length > 0) {
@@ -125,7 +126,9 @@ export async function fetchFlightContext(
                         })
 
                         if (!hasDirect) {
-                            recommendations.push(`${departureCity} → ${dest}: прямых рейсов нет, только с пересадкой`)
+                            recommendations.push(
+                                `${departureCity} → ${dest}: в выборке API цен на месяц минимальные предложения с пересадкой; прямые рейсы могут быть в другие даты — не утверждай, что прямых рейсов не существует`
+                            )
                         }
                     }
                 }
@@ -176,8 +179,11 @@ export async function fetchFlightContext(
                 const returnMonth = endDate.substring(0, 7)
                 const returnTickets = await getCheapestTickets(lastDestIata, originIata, returnMonth)
 
-                if (returnTickets?.success && returnTickets.data[originIata]) {
-                    const returnData = returnTickets.data[originIata]
+                const returnData =
+                    returnTickets?.success && returnTickets.data
+                        ? pickCheapTicketBucket(returnTickets.data, originIata)
+                        : null
+                if (returnData) {
                     const entries = Object.entries(returnData) as [string, any][]
 
                     if (entries.length > 0) {

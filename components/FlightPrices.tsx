@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getFlightSearchLink, getIataCode } from "@/lib/travelpayouts"
+import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
 
 interface Ticket {
   transfers: number
@@ -45,6 +46,7 @@ export function FlightPrices({
   compact = false,
   showBookButton = true
 }: FlightPricesProps) {
+  const bookingMarket = useBookingMarket()
   const [data, setData] = useState<FlightPricesData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -93,7 +95,8 @@ export function FlightPrices({
       destination,
       departDate,
       returnDate,
-      subId: "price_widget"
+      subId: "price_widget",
+      market: bookingMarket,
     })
   }
 

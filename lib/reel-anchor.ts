@@ -8,7 +8,7 @@ export type ActivityAnchor = {
   desc?: string
   cost?: string
   mapLink?: string
-  /** HTTPS link to book (GetYourGuide, Viator, official site, etc.) */
+  /** HTTPS link to book (Klook, Tiqets, WeGoTrip, official site, etc.) */
   bookingUrl?: string
   bookingLabel?: string
   infoLinks?: ActivityInfoLink[]

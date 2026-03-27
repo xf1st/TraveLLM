@@ -7,9 +7,12 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { useTranslations, useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 import { normalizeTravelMode, type TravelMode } from "@/lib/travel-mode"
 import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
+import { isRussianHotelDestinationSync } from "@/lib/travelpayouts"
+import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
+import type { BookingMarket } from "@/lib/booking-market"
 
 type ActivityType = "transport" | "food" | "hotel" | "activity"
 
@@ -63,12 +66,21 @@ const SVC: Record<string, { color: string; label: string }> = {
   "Skyscanner":   { color: "#0770e3", label: "Skyscanner"   },
   "Booking.com":  { color: "#57b8f0", label: "Booking.com"  },
   "Ostrovok":     { color: "#ed1c24", label: "Ostrovok"     },
+  "Yandex Travel": { color: "#fc3f1e", label: "Яндекс Путешествия" },
+  "Travelpayouts": { color: "#7c3aed", label: "Travelpayouts" },
+  "Tripster":     { color: "#e11d48", label: "Tripster"     },
+  "Sputnik8":     { color: "#0ea5e9", label: "Sputnik8"     },
+  "Суточно.ру":   { color: "#f97316", label: "Суточно.ру"   },
   "Airbnb":       { color: "#ff5a5f", label: "Airbnb"       },
   "Hotels.com":   { color: "#d4370c", label: "Hotels.com"   },
   "GetYourGuide": { color: "#ff5f00", label: "GetYourGuide" },
   "Klook":        { color: "#ff5722", label: "Klook"        },
+  "Tiqets":       { color: "#00aa6c", label: "Tiqets"       },
+  "WeGoTrip":     { color: "#6b4ce6", label: "WeGoTrip"     },
   "Viator":       { color: "#328276", label: "Viator"       },
   "TripAdvisor":  { color: "#34e0a1", label: "TripAdvisor"  },
+  "Trip.com":     { color: "#287dfa", label: "Trip.com"     },
+  "Omio":         { color: "#32bb78", label: "Omio"         },
 }
 
 const TYPE_ORDER: ActivityType[] = ["transport", "hotel", "food", "activity"]
@@ -82,13 +94,23 @@ function parseService(url: string): string {
   if (/aviasales/i.test(url))        return "Aviasales"
   if (/skyscanner/i.test(url))       return "Skyscanner"
   if (/booking\.com/i.test(url))     return "Booking.com"
+  if (/tp\.media\/r\?/i.test(url))       return "Travelpayouts"
+  if (/travel\.yandex\.ru\/hotels/i.test(url)) return "Yandex Travel"
   if (/ostrovok/i.test(url))         return "Ostrovok"
   if (/airbnb/i.test(url))           return "Airbnb"
   if (/hotels\.com/i.test(url))      return "Hotels.com"
   if (/tripadvisor/i.test(url))      return "TripAdvisor"
+  if (/tripster\.ru/i.test(url))     return "Tripster"
+  if (/sputnik8\.com/i.test(url))    return "Sputnik8"
+  if (/sutochno\.ru/i.test(url))     return "Суточно.ру"
+  if (/tomesto\.ru/i.test(url))      return "ТоМесто"
   if (/getyourguide/i.test(url))     return "GetYourGuide"
+  if (/tiqets\.com/i.test(url))      return "Tiqets"
+  if (/wegotrip\.com/i.test(url))    return "WeGoTrip"
   if (/klook/i.test(url))            return "Klook"
   if (/viator/i.test(url))           return "Viator"
+  if (/trip\.com/i.test(url))        return "Trip.com"
+  if (/omio\.com/i.test(url))        return "Omio"
   try { return new URL(url).hostname.replace("www.", "") } catch { return "Link" }
 }
 
@@ -386,9 +408,16 @@ function CategorySection({
 }
 
 /* ─── Quick external tools (travelMode from /plan) ─── */
-function TripQuickLinks({ route, travelMode }: { route: any; travelMode: TravelMode }) {
+function TripQuickLinks({
+  route,
+  travelMode,
+  bookingMarket,
+}: {
+  route: any
+  travelMode: TravelMode
+  bookingMarket: BookingMarket
+}) {
   const t = useTranslations("links")
-  const locale = useLocale()
   const from = String(route?.departure_city || route?.departureCity || "").trim()
   const firstAct = route?.itinerary?.[0]?.activities?.find((a: { placeName?: string; title?: string }) => a.placeName || a.title)
   const to = String(firstAct?.placeName || firstAct?.title || route?.destination || "").trim()
@@ -397,7 +426,7 @@ function TripQuickLinks({ route, travelMode }: { route: any; travelMode: TravelM
       ? `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`
       : "https://www.google.com/maps"
 
-  const aviasales = locale === "en" ? "https://www.aviasales.com/" : "https://www.aviasales.ru/"
+  const aviasales = bookingMarket === "world" ? "https://www.aviasales.com/" : "https://www.aviasales.ru/"
   const skyscanner = "https://www.skyscanner.com/"
 
   const pillStyle =
@@ -426,6 +455,28 @@ function TripQuickLinks({ route, travelMode }: { route: any; travelMode: TravelM
     )
   }
   if (travelMode === "train") {
+    if (bookingMarket === "world") {
+      return (
+        <div className="flex flex-wrap gap-2 pb-4 -mt-1">
+          <span className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">{t("quick.title")}</span>
+          <a href="https://www.trip.com/trains/" target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+            <Train className="w-3.5 h-3.5 text-[#85adff]" />
+            Trip.com
+            <ExternalLink className="w-3 h-3 opacity-40" />
+          </a>
+          <a href="https://www.omio.com/" target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+            <Train className="w-3.5 h-3.5 text-[#85adff]" />
+            Omio
+            <ExternalLink className="w-3 h-3 opacity-40" />
+          </a>
+          <a href={mapsDir} target="_blank" rel="noopener noreferrer" className={`${pillStyle} ${pillDefault}`}>
+            <Compass className="w-3.5 h-3.5 text-[#85adff]" />
+            {t("quick.mapsRoute")}
+            <ExternalLink className="w-3 h-3 opacity-40" />
+          </a>
+        </div>
+      )
+    }
     return (
       <div className="flex flex-wrap gap-2 pb-4 -mt-1">
         <span className="w-full text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">{t("quick.title")}</span>
@@ -472,6 +523,7 @@ interface Props {
 
 export function TripLinksPanel({ route, onGoToDay }: Props) {
   const t = useTranslations("links")
+  const bookingMarket = useBookingMarket()
   const travelMode = normalizeTravelMode(route?.travelMode ?? route?.travel_mode)
 
   const TransportIcon = travelMode === "train" ? Train : travelMode === "car" ? Car : Plane
@@ -493,6 +545,19 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
       transport: [], hotel: [], food: [], activity: [],
     }
     if (!Array.isArray(route?.itinerary)) return result
+
+    const yandexHotelsFallback = () => {
+      const m = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
+      const p = new URLSearchParams()
+      if (m) p.set("marker", m)
+      return `https://travel.yandex.ru/hotels/?${p.toString()}`
+    }
+    const hotelFallbackUrl = (title: string) => {
+      if (bookingMarket === "world" && !isRussianHotelDestinationSync(title)) {
+        return `https://www.booking.com/search.html?ss=${encodeURIComponent(title)}`
+      }
+      return yandexHotelsFallback()
+    }
 
     for (const day of route.itinerary) {
       const dayNum: number = day.day
@@ -520,9 +585,9 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           : "activity"
         const imageQuery: string | undefined = act.imageQuery || undefined
 
-        // For hotels with no direct booking link, generate Booking.com search fallback
+        // Hotels with no link: Yandex Travel (RU stack / Russian cities) or Booking.com (world, non-RU)
         if (actType === "hotel" && finalUrls.length === 0) {
-          finalUrls.push(`https://www.booking.com/search.html?ss=${encodeURIComponent(actTitle)}`)
+          finalUrls.push(hotelFallbackUrl(actTitle))
         }
 
         for (const url of finalUrls) {
@@ -536,7 +601,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
     }
     for (const k of Object.keys(result) as ActivityType[]) result[k].sort((a, b) => a.day - b.day)
     return result
-  }, [route, t])
+  }, [route, t, bookingMarket])
 
   const firstNonEmpty = TYPE_ORDER.find(key => grouped[key].length > 0) ?? null
   const [openKey, setOpenKey] = useState<ActivityType | null>(firstNonEmpty)
@@ -553,7 +618,7 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
 
   return (
     <div className="space-y-1">
-      <TripQuickLinks route={route} travelMode={travelMode} />
+      <TripQuickLinks route={route} travelMode={travelMode} bookingMarket={bookingMarket} />
       {TYPE_ORDER.map(key => (
         <CategorySection
           key={key}

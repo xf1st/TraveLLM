@@ -54,12 +54,24 @@ export function getWeatherEmoji(code: number): string {
   return '🌡️'
 }
 
+/** YYYY-MM-DD in UTC — короткий формат для query, без «+» в ISO (избегаем поломки query string). */
+function toUtcDateOnly(d: Date): string | null {
+  if (!d || Number.isNaN(d.getTime())) return null
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0")
+  const day = String(d.getUTCDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
 export async function getWeatherForLocation(lat: number, lon: number, startDate: Date, endDate: Date): Promise<WeatherData[]> {
   try {
-    const startStr = startDate.toISOString()
-    const endStr = endDate.toISOString()
-    
-    const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}&start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`)
+    const startStr = toUtcDateOnly(startDate)
+    const endStr = toUtcDateOnly(endDate)
+    if (!startStr || !endStr) return []
+
+    const res = await fetch(
+      `/api/weather?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&start=${startStr}&end=${endStr}`
+    )
     if (!res.ok) {
         console.error('Failed to fetch weather via proxy API', res.statusText)
         throw new Error('Failed to fetch weather')

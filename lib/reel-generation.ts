@@ -267,8 +267,8 @@ Hard rules:
   • title, placeName, time (HH:MM), type "activity"
   • desc: 2–4 sentences with concrete detail (duration, what is included, skill level if relevant) — not vague marketing.
   • cost: repeat the price hint from price_label.
-  • booking_url: optional string — ONE real https URL to book or reserve (GetYourGuide, Viator, Klook, official operator, Google Maps place, Tripadvisor listing). If you are not sure the URL exists, use null. NEVER invent paths or slugs.
-  • booking_label: optional short CTA in English (e.g. "Book on GetYourGuide"); default can be "Book".
+  • booking_url: optional string — ONE real https URL to book or reserve (Klook, Tiqets, WeGoTrip, official operator, Google Maps place, Tripadvisor). If you are not sure the URL exists, use null. NEVER invent paths or slugs.
+  • booking_label: optional short CTA in English (e.g. "Book on Klook"); default can be "Book".
   • info_links: optional array of 0–3 objects { "title", "url" } with extra official/read-more links (tourism board, venue site). Same rule: real https URLs only or omit.
 - imageQueries: 3–5 short ENGLISH stock-photo search phrases (Pexels/Unsplash) that describe THIS place and activity visually — no people faces, no NSFW.
 - music_url: always null (we add tracks later).
@@ -294,8 +294,8 @@ ${avoidBlock}
   • title, placeName, time (ЧЧ:ММ), type "activity"
   • desc: 2–4 предложения с практикой (длительность, что входит, уровень подготовки если важно) — не вода.
   • cost: как в price_label.
-  • booking_url: опционально — одна реальная https-ссылка для брони (GetYourGuide, Viator, Klook, официальный сайт оператора, карточка в Google Maps, Tripadvisor). Если нет уверенности в URL — null. НЕ выдумывай пути.
-  • booking_label: опционально — короткий текст кнопки на русском (например «Забронировать на GetYourGuide»).
+  • booking_url: опционально — одна реальная https-ссылка для брони (Klook, Tiqets, WeGoTrip, официальный сайт оператора, карточка в Google Maps, Tripadvisor). Если нет уверенности в URL — null. НЕ выдумывай пути.
+  • booking_label: опционально — короткий текст кнопки на русском (например «Забронировать на Klook»).
   • info_links: опционально 0–3 объекта { "title", "url" } — доп. официальные/инфо ссылки. Только реальные https или не включай.
 - imageQueries: 3–5 коротких запросов на АНГЛИЙСКОМ для стоковых фото (место + активность), без лиц в кадре, без NSFW.
 - music_url: всегда null.

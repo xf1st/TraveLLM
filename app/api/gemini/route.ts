@@ -34,6 +34,7 @@ import {
     injectAnchorIntoItinerary,
 } from "@/lib/reel-anchor"
 import { buildReelMandatoryPromptBlock } from "@/lib/reel-prompt"
+import { getBookingMarketFromRequest } from "@/lib/booking-market"
 import {
     buildSafePreferences,
     computeDurationDays,
@@ -89,6 +90,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json()
+        const bookingMarket = getBookingMarketFromRequest(req)
         const {
             departureCity, destinationType, countryCount, budget, startDate, endDate,
             travelStyle, companions, preferences, paymentMethods, requireRussianGuide,
@@ -236,10 +238,14 @@ export async function POST(req: Request) {
             try {
                 if (travelMode === "flight") {
                     const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
-                    if (flightCheck.hasDirect) {
+                    if (flightCheck.hasDirect && flightCheck.minPrice != null) {
                         dynamicContextStr += `\n🛫 Прямые рейсы в ${destinations[0]} доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
+                    } else if (flightCheck.hasDirect) {
+                        dynamicContextStr += `\n🛫 По данным API цен для маршрута есть варианты без пересадок; точное расписание — по ссылке Aviasales в активности.`
+                    } else if (flightCheck.flightDataReliable) {
+                        dynamicContextStr += `\n🚆 В выборке API цен на выбранный месяц нет прямого рейса с минимальной ценой — предложи пересадку или поезд; не утверждай, что прямых рейсов не существует вообще (проверка по кэшу, не полное расписание).`
                     } else {
-                        dynamicContextStr += `\n🚆 Прямых рейсов в ${destinations[0]} нет, предложи поезд или рейс с пересадкой.`
+                        dynamicContextStr += `\n🛫 Расписание и прямые рейсы не проверены кэшем цен (нет данных или токена). Не утверждай отсутствие прямых рейсов; для популярных внутренних линий (например Москва — Сочи/Адлер) прямые рейсы обычно есть — укажи авиа как норму и дай ссылку Aviasales.`
                     }
                 } else if (travelMode === "train") {
                     dynamicContextStr += `\n🚆 РЕЖИМ МАРШРУТА: пользователь выбрал ж/д как основной транспорт — не навязывай авиа без необходимости.`
@@ -291,6 +297,7 @@ export async function POST(req: Request) {
             airportValidationContext,
             travelMode,
             reelAnchorPrompt,
+            bookingMarket,
         })
 
         const { systemPrompt, userPrompt: prompt } = enriched
@@ -407,11 +414,11 @@ export async function POST(req: Request) {
                     }
                     
                     // Post-processing
-                    await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate);
+                    await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
                     routeData = await enrichViralSpotsWithWebSearch(routeData);
                     routeData = normalizeActivityTypes(routeData);
                     routeData = removeSameCityFlights(routeData);
-                    routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate);
+                    routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
 
                     if (reelRecord && Array.isArray(routeData.itinerary)) {
                         if (!itineraryContainsAnchor(routeData.itinerary, reelRecord)) {

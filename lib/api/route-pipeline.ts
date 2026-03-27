@@ -6,6 +6,7 @@
  */
 
 import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
+import type { BookingMarket } from "@/lib/booking-market"
 import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
@@ -61,7 +62,13 @@ export interface RouteData {
 /**
  * Enriches transport activities with real booking links
  */
-export function enrichTransportLinks(routeData: any, origin: string, mainDestination: string, startDate?: string) {
+export function enrichTransportLinks(
+    routeData: any,
+    origin: string,
+    mainDestination: string,
+    startDate?: string,
+    market: BookingMarket = "ru"
+) {
     if (!Array.isArray(routeData?.itinerary)) return routeData
 
     const originParsed = parseCityIata(origin)
@@ -117,7 +124,8 @@ export function enrichTransportLinks(routeData: any, origin: string, mainDestina
                         destination: toCity,
                         destinationIata: toIata,
                         departDate: date,
-                        subId: `flight_day_${i+1}`
+                        subId: `flight_day_${i+1}`,
+                        market,
                     })
 
                     if (toIata) currentIata = toIata
@@ -137,7 +145,8 @@ export function enrichTransportLinks(routeData: any, origin: string, mainDestina
 export async function sanitizeClosedAirportLogistics(
     routeData: any,
     departureCity?: string,
-    startDate?: string
+    startDate?: string,
+    market: BookingMarket = "ru"
 ) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
     console.log(`[Pipeline] Sanitize logistics for ${itinerary.length} days...`)
@@ -158,13 +167,15 @@ export async function sanitizeClosedAirportLogistics(
                 if (decision.mode === 'train' || decision.mode === 'bus') {
                     console.log(`[Pipeline] Replacing flight with ${decision.mode}: ${fromCity} -> ${toCity}`);
                     
-                    let transportLink = "https://travel.yandex.ru/trains/"
+                    let transportLink =
+                        market === "world" ? "https://www.trip.com/trains/" : "https://travel.yandex.ru/trains/"
                     try {
                         transportLink = await getTrainSearchLink({
                             origin: fromCity,
                             destination: toCity,
                             departDate: startDate,
-                            subId: `pipeline_${i}`
+                            subId: `pipeline_${i}`,
+                            market,
                         })
                     } catch (e) {}
 

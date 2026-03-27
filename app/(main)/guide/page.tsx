@@ -10,6 +10,7 @@ import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { generateTripBookingLinks, getInsuranceLink } from "@/lib/travelpayouts"
+import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
 import { ItineraryChatWidget } from "@/components/ItineraryChatWidget"
@@ -45,6 +46,7 @@ export default function GuidePage() {
 function GuidePageContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
+    const bookingMarket = useBookingMarket()
     const tripId = searchParams.get("tripId")
     const [trip, setTrip] = useState<any>(null)
     const [tripData, setTripData] = useState<any>(null)
@@ -228,7 +230,7 @@ function GuidePageContent() {
 
     const [smartLinks, setSmartLinks] = useState({
         aviasales: "https://www.aviasales.ru",
-        ostrovok: "https://ostrovok.ru",
+        hotels: "https://travel.yandex.ru/hotels/",
         cherehapa: "https://www.cherehapa.ru"
     })
 
@@ -255,11 +257,11 @@ function GuidePageContent() {
                     startDate: trip?.start_date,
                     endDate: trip?.end_date,
                     travelers: trip?.travelers || 1
-                })
+                }, bookingMarket)
 
                 setSmartLinks({
                     aviasales: bookingLinks.flights,
-                    ostrovok: bookingLinks.hotels,
+                    hotels: bookingLinks.hotels,
                     cherehapa: bookingLinks.insurance
                 })
             } catch (error) {
@@ -270,7 +272,7 @@ function GuidePageContent() {
         if (trip || tripData) {
             fetchLinks()
         }
-    }, [trip, tripData])
+    }, [trip, tripData, bookingMarket])
 
     const updateBooking = async (key: keyof typeof bookings) => {
         const newStatus = !bookings[key]
@@ -640,9 +642,9 @@ function GuidePageContent() {
 
                                         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
                                             <Button variant="outline" size="sm" className="h-11 w-full touch-manipulation gap-2 rounded-full border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white sm:h-10 sm:w-auto sm:px-5" asChild>
-                                                <a href={smartLinks.ostrovok} target="_blank" rel="noopener noreferrer">
+                                                <a href={smartLinks.hotels} target="_blank" rel="noopener noreferrer">
                                                     <Building2 className="h-4 w-4 text-purple-400" />
-                                                    Ostrovok
+                                                    Яндекс Путешествия
                                                     <ExternalLink className="ml-1 h-3 w-3 opacity-30" />
                                                 </a>
                                             </Button>

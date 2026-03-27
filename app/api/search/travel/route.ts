@@ -9,7 +9,14 @@
 
 import { NextResponse } from "next/server"
 import { openrouterInference } from "@/lib/openrouter"
-import { getFlightSearchLink, getHotelSearchLink, getIataCode } from "@/lib/travelpayouts"
+import {
+    getFlightSearchLink,
+    getHotelSearchLink,
+    getIataCode,
+    resolveCityInfo,
+    isRussianHotelDestinationIata,
+    isRussianHotelDestinationSync,
+} from "@/lib/travelpayouts"
 import {
     getRequestUserId,
     recordAiUsageEvent,
@@ -18,6 +25,7 @@ import {
 } from "@/lib/ai-usage-events"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { enforceAiAccess } from "@/lib/server/user-access"
+import { getBookingMarketFromRequest } from "@/lib/booking-market"
 
 interface SearchRequest {
     departureCity: string
@@ -63,6 +71,7 @@ export async function POST(req: Request) {
         if (!rl.allowed) return rateLimitResponse(rl)
 
         const body: SearchRequest = await req.json()
+        const bookingMarket = getBookingMarketFromRequest(req)
         const {
             departureCity,
             destinationCity,
@@ -91,7 +100,8 @@ export async function POST(req: Request) {
             destinationIata: destIata || undefined,
             departDate: startDate,
             returnDate: endDate,
-            adults: passengers
+            adults: passengers,
+            market: bookingMarket,
         })
 
         const hotelBookingUrl = await getHotelSearchLink({
@@ -100,8 +110,18 @@ export async function POST(req: Request) {
             checkOut: endDate,
             adults: passengers,
             rooms,
-            subId: "search_api"
+            subId: "search_api",
+            market: bookingMarket,
         })
+
+        const destResolved = await resolveCityInfo(destinationCity)
+        const hotelsRuFocus =
+            bookingMarket === "ru" ||
+            isRussianHotelDestinationIata(destResolved?.iata) ||
+            isRussianHotelDestinationSync(destinationCity)
+        const hotelSearchSources = hotelsRuFocus
+            ? "Yandex Travel (travel.yandex.ru hotels) and other major Russian hotel sources"
+            : "booking.com, Trip.com, hotels.com"
 
         const searchPrompt = `
 - From: ${departureCity} (${originIata || "unknown IATA"})
@@ -129,7 +149,7 @@ For each flight provide:
 Find at least 2-3 flight options (cheapest, fastest, best value).
 
 TASK 2 - HOTELS:
-Search booking.com, ostrovok.ru, hotels.com for REAL hotels in ${destinationCity} for dates ${startDate} to ${endDate}.
+Search ${hotelSearchSources} for REAL hotels in ${destinationCity} for dates ${startDate} to ${endDate}.
 For each hotel provide:
 - Real hotel name (exact name from booking site)
 - Star rating (1-5)

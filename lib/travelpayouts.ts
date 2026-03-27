@@ -7,6 +7,12 @@
  * Получить: https://www.travelpayouts.com/programs/100/tools/api
  */
 
+import type { BookingMarket } from "./booking-market"
+
+function aviasalesOrigin(market?: BookingMarket): string {
+  return market === "world" ? "https://www.aviasales.com" : "https://www.aviasales.ru"
+}
+
 // No static import of undici, it causes "Cannot find module 'node:net'" when imported in Client Components
 // Proxy configuration deferred to avoid client-side bundling issues
 const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
@@ -92,6 +98,8 @@ export const IATA_CODES: Record<string, string> = {
   "surgut": "SGC",
   "норильск": "NSK",
   "norilsk": "NSK",
+  "симферополь": "SIP",
+  "simferopol": "SIP",
 
   // Европа
   "париж": "PAR",
@@ -438,6 +446,8 @@ interface FlightSearchParams {
   children?: number
   tripClass?: "economy" | "business"
   subId?: string         // Дополнительный маркер для аналитики
+  /** Host-based market: .ru vs .world */
+  market?: BookingMarket
 }
 
 /**
@@ -466,8 +476,11 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
     departDate,
     returnDate,
     adults = 1,
-    subId
+    subId,
+    market,
   } = params
+
+  const base = aviasalesOrigin(market)
 
   const origIata = originIata || (origin ? getIataCode(origin) : null) || ""
   const destIata = destinationIata || (destination ? getIataCode(destination) : null) || ""
@@ -490,7 +503,7 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
     const d1 = toDDMM(departStr)
     if (!d1) {
       // Дата непарсируется - фолбек без даты
-      return `https://www.aviasales.ru/search/${origIata}${destIata}${adults}?marker=${marker}`
+      return `${base}/search/${origIata}${destIata}${adults}?marker=${marker}`
     }
 
     let path = `${origIata}${d1}${destIata}`
@@ -503,11 +516,11 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
 
     path += adults.toString()
 
-    return `https://www.aviasales.ru/search/${path}?marker=${marker}`
+    return `${base}/search/${path}?marker=${marker}`
   }
 
   // Fallback без IATA: хотя бы открываем авиасейлс с правильным маркером
-  return `https://www.aviasales.ru/?marker=${marker}`
+  return `${base}/?marker=${marker}`
 }
 
 interface HotelSearchParams {
@@ -518,6 +531,7 @@ interface HotelSearchParams {
   children?: number
   rooms?: number
   subId?: string
+  market?: BookingMarket
 }
 
 /** Resolve a city name (Russian or English, possibly hotel name) to IATA code + English name */
@@ -608,15 +622,127 @@ export function createYandexSlug(englishName: string): string {
     .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
 
+/** IATA городских узлов РФ (+ Крым) — для отелей на Яндекс.Путешествиях даже при market=world */
+const RUSSIA_HOTEL_IATA = new Set<string>([
+  "MOW", "LED", "AER", "KZN", "SVX", "OVB", "KGD", "VVO", "KJA", "GOJ", "KUF", "UFA", "ROV", "MRV",
+  "VOZ", "KRR", "PEE", "TJM", "CEK", "OMS", "BAX", "IKT", "KHV", "MMK", "ARH", "ASF", "VOG", "STW",
+  "EGO", "URS", "LPK", "TBW", "BZK", "TOF", "YKS", "MQF", "NJC", "SGC", "NSK", "SIP",
+  "MCX", "OGZ", "GRV",
+])
+
+export function isRussianHotelDestinationIata(iata: string | null | undefined): boolean {
+  if (!iata) return false
+  return RUSSIA_HOTEL_IATA.has(iata.toUpperCase())
+}
+
+/** Синхронная проверка по словарю IATA_CODES (без сети) */
+export function isRussianHotelDestinationSync(city: string): boolean {
+  const iata = getIataCode(city)
+  return iata ? RUSSIA_HOTEL_IATA.has(iata) : false
+}
+
 /**
- * Генерация партнёрской ссылки на поиск отелей (Yandex Travel)
+ * Slug сегмента /hotels/{slug}/ на travel.yandex.ru (латиница).
+ * Несовпадение даёт 404 — поэтому приоритет IATA, правки автокомплита, иначе без slug.
  */
+const YANDEX_HOTELS_PATH_BY_IATA: Record<string, string> = {
+  MOW: "moscow",
+  LED: "saint-petersburg",
+  AER: "sochi",
+  KZN: "kazan",
+  SVX: "yekaterinburg",
+  OVB: "novosibirsk",
+  KGD: "kaliningrad",
+  VVO: "vladivostok",
+  KJA: "krasnoyarsk",
+  GOJ: "nizhny-novgorod",
+  KUF: "samara",
+  UFA: "ufa",
+  ROV: "rostov-on-don",
+  MRV: "pyatigorsk",
+  VOZ: "voronezh",
+  KRR: "krasnodar",
+  PEE: "perm",
+  TJM: "tyumen",
+  CEK: "chelyabinsk",
+  OMS: "omsk",
+  BAX: "barnaul",
+  IKT: "irkutsk",
+  KHV: "khabarovsk",
+  MMK: "murmansk",
+  ARH: "arkhangelsk",
+  ASF: "astrakhan",
+  VOG: "volgograd",
+  STW: "stavropol",
+  EGO: "belgorod",
+  URS: "kursk",
+  LPK: "lipetsk",
+  TBW: "tambov",
+  BZK: "bryansk",
+  TOF: "tomsk",
+  YKS: "yakutsk",
+  MQF: "magnitogorsk",
+  NJC: "nizhnevartovsk",
+  SGC: "surgut",
+  NSK: "norilsk",
+  SIP: "simferopol",
+  MCX: "makhachkala",
+  OGZ: "vladikavkaz",
+  GRV: "grozny",
+}
+
+const YANDEX_HOTEL_SLUG_ALIASES: Record<string, string> = {
+  "sankt-peterburg": "saint-petersburg",
+  "sankt-petersburg": "saint-petersburg",
+  "st-petersburg": "saint-petersburg",
+  "st-peterburg": "saint-petersburg",
+  "st-petersburg-russia": "saint-petersburg",
+  "saint-petersburg-russia": "saint-petersburg",
+  "moskva": "moscow",
+  "sankt-peterburg-russia": "saint-petersburg",
+}
+
+function resolveYandexHotelsPathSlug(englishName: string, iata?: string): string | null {
+  const upper = iata?.toUpperCase()
+  if (upper && YANDEX_HOTELS_PATH_BY_IATA[upper]) return YANDEX_HOTELS_PATH_BY_IATA[upper]
+
+  const raw = createYandexSlug(englishName)
+  if (raw && YANDEX_HOTEL_SLUG_ALIASES[raw]) return YANDEX_HOTEL_SLUG_ALIASES[raw]
+
+  if (upper && RUSSIA_HOTEL_IATA.has(upper)) {
+    return null
+  }
+
+  return raw || null
+}
+
+function buildYandexHotelsUrl(params: {
+  englishName: string
+  iata?: string
+  checkIn?: Date | string
+  checkOut?: Date | string
+  adults: number
+  marker: string
+}): string {
+  const { englishName, iata, checkIn, checkOut, adults, marker } = params
+  const qp = new URLSearchParams()
+  if (checkIn) qp.set("checkinDate", formatDate(checkIn))
+  if (checkOut) qp.set("checkoutDate", formatDate(checkOut))
+  qp.set("adults", adults.toString())
+  if (marker) qp.set("marker", marker)
+
+  const slug = resolveYandexHotelsPathSlug(englishName, iata)
+  if (!slug) {
+    return `https://travel.yandex.ru/hotels/?${qp.toString()}`
+  }
+  return `https://travel.yandex.ru/hotels/${slug}/?${qp.toString()}`
+}
+
 /**
- * Генерация партнёрской ссылки на поиск отелей (Yandex Travel)
- * 
+ * Генерация партнёрской ссылки на поиск отелей (Яндекс.Путешествия через Travelpayouts)
+ *
  * CRITICAL: destination должен быть названием ГОРОДА, а не отеля!
  * Формат: https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=...&checkoutDate=...&adults=N&marker=...
- * Пример: https://travel.yandex.ru/hotels/istanbul/?checkinDate=2026-02-22&checkoutDate=2026-02-23&adults=2&marker=698017
  */
 export async function getHotelSearchLink(params: HotelSearchParams): Promise<string> {
   const {
@@ -624,36 +750,37 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     checkIn,
     checkOut,
     adults = 2,
-    subId
+    subId,
+    market: marketParam,
   } = params
 
-  const marker = subId
-    ? `${TRAVELPAYOUTS_MARKER}.${subId}`
-    : TRAVELPAYOUTS_MARKER
+  const market = marketParam ?? "ru"
+  const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
 
-  // Разрешаем город через Travelpayouts autocomplete API
-  // resolveCityInfo умеет работать с названием отеля в формате "Hotel Name, City" -B вытаскивает город
   const cityInfo = await resolveCityInfo(destination)
   const englishName = cityInfo?.nameEn || ""
 
-  if (!englishName) {
-    // Если не нашли город - открываем базовый поиск с маркером
-    const params2 = new URLSearchParams()
-    if (marker) params2.set("marker", marker)
-    if (checkIn) params2.set("checkinDate", formatDate(checkIn))
-    if (checkOut) params2.set("checkoutDate", formatDate(checkOut))
-    params2.set("adults", adults.toString())
-    return `https://travel.yandex.ru/hotels/?${params2.toString()}`
+  const russianHotelDestination =
+    isRussianHotelDestinationIata(cityInfo?.iata) || isRussianHotelDestinationSync(destination)
+
+  const useYandex = market !== "world" || russianHotelDestination
+
+  if (!useYandex) {
+    const ss = encodeURIComponent(englishName || destination.trim())
+    const aid = process.env.NEXT_PUBLIC_BOOKING_AID
+    let url = `https://www.booking.com/search.html?ss=${ss}`
+    if (aid) url += `&aid=${encodeURIComponent(aid)}`
+    return url
   }
 
-  const slug = createYandexSlug(englishName)
-  const qp = new URLSearchParams()
-  if (checkIn) qp.set("checkinDate", formatDate(checkIn))
-  if (checkOut) qp.set("checkoutDate", formatDate(checkOut))
-  qp.set("adults", adults.toString())
-  if (marker) qp.set("marker", marker)
-
-  return `https://travel.yandex.ru/hotels/${slug}/?${qp.toString()}`
+  return buildYandexHotelsUrl({
+    englishName,
+    iata: cityInfo?.iata,
+    checkIn,
+    checkOut,
+    adults,
+    marker,
+  })
 }
 
 /**
@@ -691,13 +818,19 @@ interface TrainSearchParams {
   destination: string
   departDate?: Date | string
   subId?: string
+  market?: BookingMarket
 }
 
 /**
  * Ссылка на поиск ЖД билетов (Tutu.ru через Travelpayouts)
  */
 export async function getTrainSearchLink(params: TrainSearchParams): Promise<string> {
-  const { origin, destination, departDate, subId } = params
+  const { origin, destination, departDate, subId, market: marketParam } = params
+  const market = marketParam ?? "ru"
+
+  if (market === "world") {
+    return "https://www.trip.com/trains/"
+  }
 
   const originInfo = await resolveCityInfo(origin);
   const origSlug = createYandexSlug(originInfo?.nameEn || origin) || "unknown";
@@ -743,13 +876,16 @@ export function getInsuranceLink(destination: string, departDate?: Date | string
 /**
  * Генерация всех партнёрских ссылок для маршрута
  */
-export async function generateTripBookingLinks(tripData: {
-  origin?: string
-  destination: string
-  startDate?: string
-  endDate?: string
-  travelers?: number
-}) {
+export async function generateTripBookingLinks(
+  tripData: {
+    origin?: string
+    destination: string
+    startDate?: string
+    endDate?: string
+    travelers?: number
+  },
+  bookingMarket: BookingMarket = "ru"
+) {
   const { origin, destination, startDate, endDate, travelers = 1 } = tripData
 
   const [hotels, trains] = await Promise.all([
@@ -758,13 +894,15 @@ export async function generateTripBookingLinks(tripData: {
       checkIn: startDate,
       checkOut: endDate,
       adults: travelers,
-      subId: "trip_page"
+      subId: "trip_page",
+      market: bookingMarket,
     }),
     origin ? getTrainSearchLink({
       origin,
       destination,
       departDate: startDate,
-      subId: "trip_page"
+      subId: "trip_page",
+      market: bookingMarket,
     }) : Promise.resolve(null)
   ]);
 
@@ -775,7 +913,8 @@ export async function generateTripBookingLinks(tripData: {
       departDate: startDate,
       returnDate: endDate,
       adults: travelers,
-      subId: "trip_page"
+      subId: "trip_page",
+      market: bookingMarket,
     }),
     hotels,
     hotellook: getHotellookLink({
@@ -835,6 +974,21 @@ interface CheapTicketsResponse {
   success: boolean
   data: Record<string, Record<string, CheapTicket>>
   currency: string
+}
+
+/**
+ * Travelpayouts /v1/prices/cheap возвращает data[DESTINATION_IATA] → { "0"|airline: ticket }.
+ */
+export function pickCheapTicketBucket(
+  data: Record<string, Record<string, CheapTicket>> | undefined,
+  destIata: string
+): Record<string, CheapTicket> | null {
+  if (!data || typeof data !== "object") return null
+  const u = destIata.toUpperCase()
+  if (data[u]) return data[u]
+  const matchKey = Object.keys(data).find((k) => k.toUpperCase() === u)
+  if (matchKey) return data[matchKey]
+  return null
 }
 
 /**
@@ -899,65 +1053,99 @@ interface CalendarPrice {
 }
 
 /**
- * Проверка наличия прямых рейсов в реальном времени (для контекста LLM)
+ * Проверка наличия прямых рейсов в реальном времени (для контекста LLM).
+ * Ответ Travelpayouts cheap — data[код аэропорта назначения], а не даты.
  */
 export async function checkDirectFlightsLive(
   origin: string,
   destination: string,
   targetDate?: string // YYYY-MM-DD
-): Promise<{ hasDirect: boolean; minPrice?: number; currency: string }> {
+): Promise<{
+  hasDirect: boolean
+  minPrice?: number
+  currency: string
+  /** false = нет токена, ошибка сети, пустой ответ — не утверждать «прямых рейсов нет» */
+  flightDataReliable: boolean
+}> {
+  const inconclusive = { hasDirect: false, currency: "rub" as const, flightDataReliable: false }
+
   try {
-    // Strip region/country suffixes: "Белгород, Белгородская Область, Россия" → "Белгород"
-    const extractCityName = (s: string) => s.split(',')[0].trim()
+    const extractCityName = (s: string) => s.split(",")[0].trim()
     const originCity = extractCityName(origin)
     const destCity = extractCityName(destination)
 
-    // Try sync dict first, fall back to async Travelpayouts autocomplete
-    const originIata = getIataCode(originCity) || getIataCode(origin)
-      || await resolveIataCode(originCity) || await resolveIataCode(origin) || origin;
-    const destIata = getIataCode(destCity) || getIataCode(destination)
-      || await resolveIataCode(destCity) || await resolveIataCode(destination) || destination;
-
-    // Fallback: If we can't determine both IATAs, skip silently
-    if (!originIata || !destIata || originIata === origin || destIata === destination) {
-        console.log(`[Aviasales API] Could not resolve IATA for "${originCity}" or "${destCity}", skipping pre-check`)
-        return { hasDirect: false, currency: "rub" };
+    const toIata = (code: string | null | undefined): string | null => {
+      if (!code) return null
+      const c = String(code).trim().toUpperCase()
+      return /^[A-Z]{3}$/.test(c) ? c : null
     }
 
-    const month = targetDate ? targetDate.substring(0, 7) : undefined; // YYYY-MM
-    const tickets = await getCheapestTickets(originIata, destIata, month);
+    const originResolved =
+      getIataCode(originCity) ||
+      getIataCode(origin) ||
+      (await resolveIataCode(originCity)) ||
+      (await resolveIataCode(origin))
+    const destResolved =
+      getIataCode(destCity) ||
+      getIataCode(destination) ||
+      (await resolveIataCode(destCity)) ||
+      (await resolveIataCode(destination))
 
-    if (!tickets || !tickets.data || !tickets.success) {
-      return { hasDirect: false, currency: "rub" };
+    const originIata = toIata(originResolved)
+    const destIata = toIata(destResolved)
+
+    if (!originIata || !destIata) {
+      console.log(
+        `[Aviasales API] Could not resolve IATA for "${originCity}" or "${destCity}" (got ${originResolved}/${destResolved})`
+      )
+      return inconclusive
     }
 
-    // Traverse the dates returned in the data
-    const dates = Object.keys(tickets.data);
-    let minDirectPrice = Infinity;
-    
-    for (const date of dates) {
-      const ticketMap = tickets.data[date];
-      if (!ticketMap) continue;
-      
-      // ticketMap looks like { "SU": { price: 3000, transfers: 0, ... } }
-      for (const airline of Object.keys(ticketMap)) {
-         const ticket = ticketMap[airline];
-         if (ticket.transfers === 0) {
-             if (ticket.price < minDirectPrice) {
-                 minDirectPrice = ticket.price;
-             }
-         }
+    const month = targetDate ? targetDate.substring(0, 7) : undefined
+    const tickets = await getCheapestTickets(originIata, destIata, month)
+
+    if (!tickets?.success || !tickets.data) {
+      return { ...inconclusive, currency: tickets?.currency || "rub" }
+    }
+
+    const bucket = pickCheapTicketBucket(tickets.data, destIata)
+    if (!bucket) {
+      console.log(`[Aviasales API] No price bucket for ${originIata}→${destIata} (month ${month ?? "any"})`)
+      return { hasDirect: false, currency: tickets.currency || "rub", flightDataReliable: false }
+    }
+
+    const ticketList = Object.values(bucket).filter(
+      (t): t is CheapTicket => t != null && typeof t.price === "number"
+    )
+    if (ticketList.length === 0) {
+      return { hasDirect: false, currency: tickets.currency || "rub", flightDataReliable: false }
+    }
+
+    let minDirect = Infinity
+    let minAny = Infinity
+    for (const t of ticketList) {
+      minAny = Math.min(minAny, t.price)
+      if (t.transfers === 0) minDirect = Math.min(minDirect, t.price)
+    }
+
+    if (minDirect !== Infinity) {
+      return {
+        hasDirect: true,
+        minPrice: minDirect,
+        currency: tickets.currency || "rub",
+        flightDataReliable: true,
       }
     }
 
-    if (minDirectPrice !== Infinity) {
-        return { hasDirect: true, minPrice: minDirectPrice, currency: tickets.currency || "rub" };
+    return {
+      hasDirect: false,
+      minPrice: minAny < Infinity ? minAny : undefined,
+      currency: tickets.currency || "rub",
+      flightDataReliable: true,
     }
-
-    return { hasDirect: false, currency: tickets.currency || "rub" };
   } catch (err) {
-    console.error("[Aviasales API] Live check failed:", err);
-    return { hasDirect: false, currency: "rub" };
+    console.error("[Aviasales API] Live check failed:", err)
+    return inconclusive
   }
 }
 
@@ -1348,7 +1536,8 @@ export async function searchFlightsForDates(
   departDate: string,
   returnDate?: string,
   passengers: number = 1,
-  limit: number = 3
+  limit: number = 3,
+  market: BookingMarket = "ru"
 ): Promise<RealFlight[]> {
   if (!TRAVELPAYOUTS_API_TOKEN) {
     console.warn("TRAVELPAYOUTS_API_TOKEN not set, falling back to booking links")
@@ -1454,7 +1643,8 @@ export async function searchFlightsForDates(
         departDate: dep.date,
         returnDate: ret?.date,
         adults: passengers,
-        subId: "flightcard"
+        subId: "flightcard",
+        market,
       })
 
       // Travelpayouts returns price PER PERSON
@@ -1523,7 +1713,8 @@ export async function searchFlightsForDates(
         destinationIata: originIata,
         departDate: returnDate,
         adults: passengers,
-        subId: "flightcard_return"
+        subId: "flightcard_return",
+        market,
       })
 
       const returnFlight: RealFlight = {
@@ -1572,7 +1763,8 @@ export function createFallbackFlight(
   returnDate: string | undefined,
   passengers: number,
   direction: "outbound" | "return",
-  dayNumber: number
+  dayNumber: number,
+  market: BookingMarket = "ru"
 ): RealFlight {
   const bookingUrl = getFlightSearchLink({
     origin: originCity,
@@ -1582,7 +1774,8 @@ export function createFallbackFlight(
     departDate,
     returnDate,
     adults: passengers,
-    subId: "fallback"
+    subId: "fallback",
+    market,
   })
 
   return {
@@ -1852,7 +2045,8 @@ function normalizeCityKey(text: string): string {
 export async function groupHotelStays(
   itinerary: any[],
   startDate: string,
-  travelers: number
+  travelers: number,
+  market: BookingMarket = "ru"
 ): Promise<HotelStay[]> {
   if (!itinerary || itinerary.length === 0) return []
 
@@ -1943,7 +2137,8 @@ export async function groupHotelStays(
       checkIn: stay.checkIn,
       checkOut: stay.checkOut,
       adults: travelers,
-      subId: `hotel_${index}`
+      subId: `hotel_${index}`,
+      market,
     });
 
     try {
@@ -1988,7 +2183,8 @@ export function createAiFallbackFlight(
     direction: "outbound" | "return" | "intercity"
     aiData: any // raw logistics object from AI
   },
-  travelers: number
+  travelers: number,
+  market: BookingMarket = "ru"
 ): RealFlight {
   const ai = leg.aiData || {}
 
@@ -2000,7 +2196,8 @@ export function createAiFallbackFlight(
     destinationIata: leg.to.iata,
     departDate: leg.date,
     adults: travelers,
-    subId: "ai_fallback"
+    subId: "ai_fallback",
+    market,
   })
 
   return {
@@ -2045,7 +2242,8 @@ export async function extractLogisticsFromItinerary(
   departureCity: string,
   startDate: string,
   endDate: string,
-  travelers: number
+  travelers: number,
+  bookingMarket: BookingMarket = "ru"
 ): Promise<{ flights: RealFlight[]; hotels: HotelStay[]; interCity: any[] }> {
   const itinerary: any[] = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
 
@@ -2116,7 +2314,7 @@ export async function extractLogisticsFromItinerary(
   for (const leg of legs) {
     if (!leg.from.iata || !leg.to.iata) {
       console.log(`extractLogistics: no IATA for ${leg.from.city} → ${leg.to.city}, using AI fallback`)
-      allFlights.push(createAiFallbackFlight(leg, travelers))
+      allFlights.push(createAiFallbackFlight(leg, travelers, bookingMarket))
       continue
     }
 
@@ -2128,7 +2326,8 @@ export async function extractLogisticsFromItinerary(
         leg.date,
         undefined,
         travelers,
-        1 // 1 best flight per direction
+        1, // 1 best flight per direction
+        bookingMarket
       )
 
       if (realFlights.length > 0) {
@@ -2139,16 +2338,16 @@ export async function extractLogisticsFromItinerary(
         allFlights.push(best)
       } else {
         console.log(`extractLogistics: no Travelpayouts results for ${leg.from.iata} → ${leg.to.iata}, using AI fallback`)
-        allFlights.push(createAiFallbackFlight(leg, travelers))
+        allFlights.push(createAiFallbackFlight(leg, travelers, bookingMarket))
       }
     } catch (err) {
       console.error(`extractLogistics: error searching ${leg.from.iata} → ${leg.to.iata}:`, err)
-      allFlights.push(createAiFallbackFlight(leg, travelers))
+      allFlights.push(createAiFallbackFlight(leg, travelers, bookingMarket))
     }
   }
 
   // 3. Group hotel stays from itinerary
-  const hotels = await groupHotelStays(itinerary, startDate, travelers)
+  const hotels = await groupHotelStays(itinerary, startDate, travelers, bookingMarket)
 
   console.log(`extractLogistics: returning ${allFlights.length} flights, ${hotels.length} hotels`)
 

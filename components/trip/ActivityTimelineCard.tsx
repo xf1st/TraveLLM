@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { appToast as toast } from "@/components/ui/sonner"
 import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
+import type { BookingMarket } from "@/lib/booking-market"
 
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 
@@ -54,14 +55,15 @@ function extractFlightIata(text: string): { orig: string; dest: string } | null 
  * Build a smart Aviasales deep link for a transport activity.
  * Prefers activity.link if available. Falls back to IATA extraction or generic search.
  */
-function buildFlightLink(activity: { link?: string; title?: string; desc?: string }): string {
-  if (activity.link && !activity.link.endsWith("aviasales.ru/")) return activity.link
+function buildFlightLink(activity: { link?: string; title?: string; desc?: string }, market: BookingMarket = "ru"): string {
+  const base = market === "world" ? "https://www.aviasales.com" : "https://www.aviasales.ru"
+  const u = activity.link?.trim() || ""
+  if (u.includes("/search/")) return u
+  if (u && !/aviasales\.(ru|com)/i.test(u)) return u
   const textToSearch = `${activity.title || ""} ${activity.desc || ""}`
   const iata = extractFlightIata(textToSearch)
-  if (iata) {
-    return `https://www.aviasales.ru/search/${iata.orig}${iata.dest}1`
-  }
-  return "https://www.aviasales.ru/"
+  if (iata) return `${base}/search/${iata.orig}${iata.dest}1`
+  return `${base}/`
 }
 
 const transportKeywords = [
@@ -402,6 +404,7 @@ interface ActivityTimelineCardProps {
   activity: Activity
   destination: string
   dayNumber: number
+  bookingMarket?: BookingMarket
   onGenerateExtraActivity?: (dayNumber: number) => void
   onGenerateInline?: (dayNumber: number, prompt: string) => Promise<{ reply: string; success: boolean }>
   onRequestModifyInChat?: (activity: Activity, dayNumber: number) => void
@@ -412,6 +415,7 @@ export function ActivityTimelineCard({
   activity,
   destination,
   dayNumber,
+  bookingMarket = "ru",
   onGenerateExtraActivity,
   onGenerateInline,
   onRequestModifyInChat,
@@ -693,7 +697,7 @@ export function ActivityTimelineCard({
                     // Only show flight button if flight-related keywords are found
                     if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(tt)) {
                       return (
-                        <a href={buildFlightLink(activity)} target="_blank" rel="noopener noreferrer"
+                        <a href={buildFlightLink(activity, bookingMarket)} target="_blank" rel="noopener noreferrer"
                           className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
                           <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
                           {t('buttons.findFlights')}

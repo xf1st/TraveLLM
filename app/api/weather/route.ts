@@ -12,13 +12,26 @@ export async function GET(req: NextRequest) {
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const searchParams = req.nextUrl.searchParams;
-    const lat = parseFloat(searchParams.get("lat") || "");
-    const lon = parseFloat(searchParams.get("lon") || "");
+    const lat = Number(searchParams.get("lat"));
+    const lon = Number(searchParams.get("lon"));
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
 
-    if (isNaN(lat) || isNaN(lon) || !startParam || !endParam) {
-        return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    function parseWeatherDate(s: string): Date | null {
+        if (!s) return null
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            const d = new Date(`${s}T12:00:00.000Z`)
+            return Number.isNaN(d.getTime()) ? null : d
+        }
+        const d = new Date(s)
+        return Number.isNaN(d.getTime()) ? null : d
+    }
+
+    const startDateParsed = startParam ? parseWeatherDate(startParam) : null
+    const endDateParsed = endParam ? parseWeatherDate(endParam) : null
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !startDateParsed || !endDateParsed) {
+        return NextResponse.json({ error: "Missing or invalid parameters" }, { status: 400 });
     }
 
     // Validate coordinate bounds
@@ -27,19 +40,23 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const startDate = new Date(startParam);
-        const endDate = new Date(endParam);
-        
+        const startDate = startDateParsed
+        const endDate = endDateParsed
+
         const startStr = startDate.toISOString().split('T')[0];
         const endStr = endDate.toISOString().split('T')[0];
-        
+
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setUTCHours(0, 0, 0, 0);
 
         const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        start.setUTCHours(0, 0, 0, 0);
         const end = new Date(endDate);
-        end.setHours(0, 0, 0, 0);
+        end.setUTCHours(0, 0, 0, 0);
+
+        if (end.getTime() < start.getTime()) {
+            return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
+        }
 
         const isPast = end < today;
         const isNearFuture = start >= today && (start.getTime() - today.getTime()) <= 14 * 24 * 60 * 60 * 1000;

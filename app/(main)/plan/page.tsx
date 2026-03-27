@@ -399,8 +399,9 @@ export default function PlanPage() {
     sydney: "сидней", melbourne: "мельбурн",
   }
 
+  /** Multiselect и автокомплит склеивают города через `;`. Запятые внутри строки — часть одного места (город, регион, страна из геокодера). */
   const parseDestinations = (s: string): string[] =>
-    s.split(/[;,]/).map(c => c.trim()).filter(Boolean)
+    s.split(/[;\n]+/).map((c) => c.trim()).filter(Boolean)
 
   const getCityCoords = (city: string): [number, number] | null => {
     const name = city.split(",")[0].trim().toLowerCase()

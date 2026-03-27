@@ -78,6 +78,7 @@ import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } f
 import { addDays } from "date-fns"
 
 import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
+import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
 
 // ===== Constants =====
 
@@ -151,6 +152,7 @@ export default function TripDetailPage() {
   const router = useRouter()
   const t = useTranslations('trip')
   const locale = useLocale()
+  const bookingMarket = useBookingMarket()
 
   const getModeLabel = (mode: string) => {
     const key = `modes.${mode}` as any
@@ -278,11 +280,11 @@ export default function TripDetailPage() {
     const start = route.start_date ? new Date(route.start_date) : null
     const days = Array.isArray(route.itinerary) ? route.itinerary.length : 0
     const end = route.end_date ? new Date(route.end_date) : (start && days > 0 ? addDays(start, days - 1) : null)
-    if (!start || !end) return
+    if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return
     ;(async () => {
       try {
         const coords = await getCoordinates(dest)
-        if (!coords) return
+        if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return
         const data = await getWeatherForLocation(coords.lat, coords.lng, start, end)
         setTripWeather(data)
       } catch (e) {
@@ -548,9 +550,12 @@ export default function TripDetailPage() {
     rating: apiHotel?.rating,
     checkIn: hotelActivityForDay.desc?.match(/(\d{2}:\d{2})/)?.[1] || apiHotel?.checkIn || "14:00",
     cost: hotelActivityForDay.cost,
-    bookingUrl: apiHotel?.bookingUrl || hotelActivityForDay.link,
+    bookingUrl: hotelActivityForDay.bookingUrl || apiHotel?.bookingUrl || hotelActivityForDay.link,
     desc: hotelActivityForDay.desc,
+    city: destinationName,
   } : apiHotel
+    ? { ...apiHotel, city: (apiHotel as { city?: string }).city || destinationName }
+    : null
 
   // Trip date range for calendar
   const tripStartDate = route.start_date ? new Date(route.start_date) : null
@@ -603,7 +608,8 @@ export default function TripDetailPage() {
             ? new Date(flight.departureDate)
             : (tripStartDate ? addDays(tripStartDate, (flight.dayNumber || 1) - 1) : undefined),
           adults: route.travelers || 2,
-          subId: "timeline_btn"
+          subId: "timeline_btn",
+          market: bookingMarket,
         })
 
         return {
@@ -630,7 +636,8 @@ export default function TripDetailPage() {
           destinationIata: toIata,
           departDate: dayDate,
           adults: route.travelers || 2,
-          subId: "logistics_day"
+          subId: "logistics_day",
+          market: bookingMarket,
         })
 
         return { ...activity, ticketsRequired: true, link: url }
@@ -656,7 +663,8 @@ export default function TripDetailPage() {
         destinationIata: dest,
         departDate: fDate,
         adults: route.travelers || 2,
-        subId: "timeline_btn_synthetic"
+        subId: "timeline_btn_synthetic",
+        market: bookingMarket,
       })
 
       finalDayActivities.unshift({
@@ -687,7 +695,8 @@ export default function TripDetailPage() {
           destinationIata: toIata,
           departDate: dayDate,
           adults: route.travelers || 2,
-          subId: "logistics_synthetic"
+          subId: "logistics_synthetic",
+          market: bookingMarket,
         })
 
         finalDayActivities.unshift({
@@ -1323,6 +1332,7 @@ export default function TripDetailPage() {
                         activity={activity}
                         destination={currentDayDestination}
                         dayNumber={activeDay}
+                        bookingMarket={bookingMarket}
                         onGenerateExtraActivity={handleGenerateExtraActivity}
                         onGenerateInline={handleGenerateInline}
                         onRequestModifyInChat={handleRequestModifyInChat}
@@ -1379,20 +1389,29 @@ export default function TripDetailPage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (sidebarHotel.bookingUrl) {
-                          window.open(sidebarHotel.bookingUrl, "_blank")
+                      onClick={async () => {
+                        const rawUrl = sidebarHotel.bookingUrl
+                        if (typeof rawUrl === "string" && /^https?:\/\//i.test(rawUrl)) {
+                          window.open(rawUrl, "_blank")
                           return
                         }
-                        // Build Booking.com deep-search for the specific hotel name + city
-                        const checkInDate = tripStartDate ? addDays(tripStartDate, activeDay - 1) : undefined
-                        const checkOutDate = checkInDate ? addDays(checkInDate, 1) : undefined
-                        const q = [sidebarHotel.hotelName, sidebarHotel.city || destinationName].filter(Boolean).join(", ")
-                        const p = new URLSearchParams({ ss: q, lang: "ru", selected_currency: "RUB" })
-                        if (checkInDate) p.set("checkin", checkInDate.toISOString().slice(0, 10))
-                        if (checkOutDate) p.set("checkout", checkOutDate.toISOString().slice(0, 10))
-                        p.set("group_adults", String(route.travelers || 2))
-                        window.open(`https://www.booking.com/search.html?${p.toString()}`, "_blank")
+                        const destCity =
+                          (sidebarHotel as { city?: string }).city || destinationName
+                        try {
+                          const url = await getHotelSearchLink({
+                            destination: destCity || "Москва",
+                            checkIn: route.start_date || undefined,
+                            checkOut: route.end_date || undefined,
+                            adults: route.travelers || 2,
+                            market: bookingMarket,
+                          })
+                          window.open(url, "_blank")
+                        } catch {
+                          const m = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
+                          const p = new URLSearchParams()
+                          if (m) p.set("marker", m)
+                          window.open(`https://travel.yandex.ru/hotels/?${p.toString()}`, "_blank")
+                        }
                       }}
                       className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:shadow-blue-500/20 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
                     >
