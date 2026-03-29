@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { appToast as toast } from "@/components/ui/sonner"
 
 const STORAGE_KEY = "travellm_pwa_install_banner_dismissed_at"
+const SESSION_KEY = "travellm_pwa_install_banner_shown"
 const DISMISS_DAYS = 14
 
 type BannerMode = "ios" | "install" | "androidManual" | null
@@ -104,9 +105,15 @@ export function PwaInstallBanner() {
     if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") return
     if (isStandalone()) return
     if (wasDismissedRecently()) return
+    try {
+      if (sessionStorage.getItem(SESSION_KEY)) return
+    } catch {
+      /* ignore */
+    }
 
     if (isIosDevice()) {
       setMode("ios")
+      try { sessionStorage.setItem(SESSION_KEY, "1") } catch { /* ignore */ }
       return
     }
 
@@ -114,6 +121,7 @@ export function PwaInstallBanner() {
       e.preventDefault()
       deferredRef.current = e as BeforeInstallPromptEvent
       setMode("install")
+      try { sessionStorage.setItem(SESSION_KEY, "1") } catch { /* ignore */ }
       if (androidHintTimerRef.current) {
         clearTimeout(androidHintTimerRef.current)
         androidHintTimerRef.current = null
@@ -126,6 +134,7 @@ export function PwaInstallBanner() {
       androidHintTimerRef.current = setTimeout(() => {
         if (deferredRef.current) return
         setMode((m) => (m === "install" ? "install" : "androidManual"))
+        try { sessionStorage.setItem(SESSION_KEY, "1") } catch { /* ignore */ }
       }, 5000)
     }
 

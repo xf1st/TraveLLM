@@ -556,7 +556,7 @@ export function ActivityTimelineCard({
 
         <div
           className={cn(
-            "trip-glass min-w-0 rounded-[2rem] p-4 transition-all duration-300 sm:p-6",
+            "trip-glass min-w-0 rounded-2xl sm:rounded-[2rem] p-4 transition-all duration-300 sm:p-6",
             isPlaceholder
               ? "border-dashed !border-slate-300 dark:!border-white/20 hover:!border-solid hover:shadow-lg group-hover/card:!border-indigo-300 dark:group-hover/card:!border-indigo-400/50"
               : "hover:shadow-lg trip-glass-hover"
@@ -652,7 +652,7 @@ export function ActivityTimelineCard({
 
           {!isPlaceholder ? (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 pt-3 sm:pt-4 border-t border-slate-200/50 dark:border-white/5">
-              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3 [&_a]:touch-manipulation [&_button]:touch-manipulation [&>a]:inline-flex [&>a]:min-h-9 [&>a]:items-center [&>button]:inline-flex [&>button]:min-h-9 [&>button]:items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3 [&_a]:touch-manipulation [&_button]:touch-manipulation [&>a]:inline-flex [&>a]:min-h-9 [&>a]:items-center [&>a]:justify-center [&>button]:inline-flex [&>button]:min-h-9 [&>button]:items-center [&>button]:justify-center sm:[&>a]:justify-start sm:[&>button]:justify-start">
                 {theme === "transport" ? (
                   (() => {
                     const tt = transportText

@@ -955,7 +955,7 @@ export default function TripDetailPage() {
                   <p className="hidden sm:block text-[10px] sm:text-xs text-white/70 font-medium uppercase tracking-wide leading-none mb-0.5">
                     {t("totalBudgetLabel")}
                   </p>
-                  <p className="text-xs sm:text-xl font-bold text-white group-hover:text-sky-300 transition-colors bg-white/10 sm:bg-transparent px-2 py-0.5 sm:p-0 rounded-lg sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/20 sm:border-none whitespace-nowrap">
+                  <p className="text-sm sm:text-xl font-black text-white group-hover:text-sky-300 transition-colors bg-white/20 sm:bg-transparent px-3 py-1.5 sm:p-0 rounded-full sm:rounded-none backdrop-blur-md sm:backdrop-blur-none border border-white/30 sm:border-none whitespace-nowrap">
                     {displayBudget}
                   </p>
                 </button>
@@ -1070,48 +1070,40 @@ export default function TripDetailPage() {
                 <button
                   type="button"
                   onClick={() => setShowLinksModal(true)}
-                  className="group relative flex min-h-11 w-full shrink-0 touch-manipulation flex-row items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/20 px-3 py-2.5 shadow-md transition-transform hover:scale-[1.01] md:hidden"
+                  className="group relative flex min-h-12 w-full shrink-0 touch-manipulation flex-row items-center justify-center gap-3 overflow-hidden rounded-full border border-white/25 px-5 py-3 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] md:hidden"
                   style={{
-                    background: "linear-gradient(135deg, rgba(56,189,248,0.28) 0%, rgba(99,102,241,0.32) 100%)",
-                    backdropFilter: "blur(16px)",
-                    boxShadow: "0 6px 24px rgba(56,189,248,0.18), inset 0 1px 0 rgba(255,255,255,0.12)",
+                    background: "linear-gradient(135deg, rgba(56,189,248,0.50) 0%, rgba(99,102,241,0.55) 100%)",
+                    backdropFilter: "blur(20px)",
+                    boxShadow: "0 8px 32px rgba(56,189,248,0.28), inset 0 1px 0 rgba(255,255,255,0.20)",
                   }}
                 >
-                  <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                    style={{ background: "rgba(56,189,248,0.22)", border: "1px solid rgba(56,189,248,0.35)" }}
-                  >
-                    <ExternalLink className="text-sky-200" style={{ width: 16, height: 16 }} />
-                  </div>
+                  <ExternalLink className="text-white shrink-0" style={{ width: 18, height: 18 }} />
                   <div className="flex min-w-0 flex-col items-start text-left">
-                    <span className="text-[11px] font-black uppercase leading-tight tracking-wide text-white">
+                    <span className="text-[12px] font-black uppercase leading-tight tracking-widest text-white">
                       {t("checkPrices")}
                     </span>
-                    <span className="text-[10px] font-medium leading-tight text-white/60">{t("ticketsHotelsMap")}</span>
+                    <span className="text-[10px] font-medium leading-tight text-white/70">{t("ticketsHotelsMap")}</span>
                   </div>
                 </button>
 
-                <div className="flex w-full flex-row flex-wrap gap-2 max-md:[&>button]:min-w-0 max-md:[&>button]:w-[calc(50%-0.25rem)] max-md:[&>button:only-child]:w-full md:flex md:flex-row md:flex-wrap md:gap-2 md:[&>button]:w-auto">
+                <div className="flex w-full flex-row gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 md:[&>button]:w-auto">
                   {currentDayWeather && (
                     <button
                       type="button"
                       onClick={() => setShowWeatherModal(true)}
-                      className="flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-white/20 bg-white/10 px-2 py-2.5 text-[10px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                      className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/12 px-3 py-2 text-[11px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
                     >
-                      <span className="shrink-0">{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
-                      <span className="min-w-0 text-center leading-tight">
-                        <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
-                        <span className="hidden sm:inline whitespace-nowrap text-[10px] opacity-60"> · {t("weatherTrip")}</span>
-                      </span>
+                      <span className="shrink-0 text-base leading-none">{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
+                      <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => setShowTipsModal(true)}
-                    className="flex min-h-11 min-w-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-amber-400/30 bg-amber-500/15 px-2 py-2.5 text-[10px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 max-md:leading-tight md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:rounded-full md:px-3 md:py-1.5 md:text-xs"
+                    className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-[11px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
                   >
-                    <span className="material-symbols-outlined shrink-0 text-sm">lightbulb</span>
-                    <span className="text-center leading-tight">{t("routeTips")}</span>
+                    <span className="material-symbols-outlined shrink-0 text-base leading-none">lightbulb</span>
+                    <span className="whitespace-nowrap">{t("routeTips")}</span>
                   </button>
                 </div>
               </div>
