@@ -362,13 +362,9 @@ function RouteContent({
       })
   }, [tripId])
 
-  if (!route?.itinerary || !Array.isArray(route.itinerary)) {
-    return <div className="text-muted-foreground px-4 py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">Нет данных маршрута</div>
-  }
-
-  const itinerary = route.itinerary
-  const dayCount = itinerary.length || route.days || 1
-  const safeDay = Math.min(Math.max(activeDay || 1, 1), dayCount)
+  const itinerary = Array.isArray(route?.itinerary) ? route.itinerary : []
+  const dayCount = itinerary.length || route?.days || 1
+  const safeDay = Math.min(Math.max(activeDay || 1, 1), Math.max(dayCount, 1))
   const dayData = itinerary[safeDay - 1] || { activities: [] }
   const activities = Array.isArray(dayData.activities) ? dayData.activities : []
 
@@ -376,6 +372,10 @@ function RouteContent({
     if (activeActivity === null || activeActivity === undefined) return null
     return activities[activeActivity] || null
   }, [activities, activeActivity])
+
+  if (!route?.itinerary || !Array.isArray(route.itinerary)) {
+    return <div className="text-muted-foreground px-4 py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">Нет данных маршрута</div>
+  }
 
   const destinationName = route?.destination || route?.countries?.[0]?.name || ""
 

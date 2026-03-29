@@ -65,21 +65,40 @@ function toUtcDateOnly(d: Date): string | null {
 
 export async function getWeatherForLocation(lat: number, lon: number, startDate: Date, endDate: Date): Promise<WeatherData[]> {
   try {
-    const startStr = toUtcDateOnly(startDate)
-    const endStr = toUtcDateOnly(endDate)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return []
+
+    let s = startDate
+    let e = endDate
+    if (e.getTime() < s.getTime()) {
+      const t = s
+      s = e
+      e = t
+    }
+
+    const startStr = toUtcDateOnly(s)
+    const endStr = toUtcDateOnly(e)
     if (!startStr || !endStr) return []
 
     const res = await fetch(
       `/api/weather?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}&start=${startStr}&end=${endStr}`
     )
     if (!res.ok) {
-        console.error('Failed to fetch weather via proxy API', res.statusText)
-        throw new Error('Failed to fetch weather')
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[weather] API returned", res.status, res.statusText)
+      }
+      return []
     }
-    const data = await res.json()
+    let data: unknown
+    try {
+      data = await res.json()
+    } catch {
+      return []
+    }
     return Array.isArray(data) ? data : []
   } catch (error) {
-    console.error("Weather fetch error:", error)
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Weather fetch error:", error)
+    }
     return []
   }
 }

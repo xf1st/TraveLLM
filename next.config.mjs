@@ -9,7 +9,7 @@ const nextConfig = {
   },
   output: 'standalone',
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 
   // Required in Next.js 16 where Turbopack is the default.
