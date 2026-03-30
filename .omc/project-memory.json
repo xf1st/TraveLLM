@@ -1,0 +1,312 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1774870993825,
+  "projectRoot": "D:\\sites\\TraveLLM",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "next",
+        "version": "16.1.6",
+        "category": "fullstack"
+      },
+      {
+        "name": "react",
+        "version": "19.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "19.2.0",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "build": "next build",
+      "dev": "next dev",
+      "lint": "eslint .",
+      "typecheck": "tsc --noEmit",
+      "start": "next start",
+      "preview": "next build && next start",
+      "check": "npm run typecheck && npm run lint && npm run build"
+    }
+  },
+  "conventions": {
+    "namingStyle": "camelCase",
+    "importStyle": "ES modules",
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "app",
+      "components",
+      "docs",
+      "lib",
+      "public",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "app": {
+      "path": "app",
+      "purpose": "Application code",
+      "fileCount": 9,
+      "lastAccessed": 1774870993737,
+      "keyFiles": [
+        "globals.css",
+        "layout.tsx",
+        "loading.tsx",
+        "manifest.ts",
+        "not-found.tsx"
+      ]
+    },
+    "components": {
+      "path": "components",
+      "purpose": "UI components",
+      "fileCount": 47,
+      "lastAccessed": 1774870993744,
+      "keyFiles": [
+        "Achievements.tsx",
+        "app-layout.tsx",
+        "app-sidebar.tsx",
+        "Aurora.tsx",
+        "auth-provider.tsx"
+      ]
+    },
+    "conductor": {
+      "path": "conductor",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774870993768,
+      "keyFiles": [
+        "profile-redesign-phase4.md"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 5,
+      "lastAccessed": 1774870993769,
+      "keyFiles": [
+        "ADMIN_SETUP.md",
+        "getting-started.md",
+        "README.md",
+        "stitch-vibe-export.md",
+        "SUMMARY.md"
+      ]
+    },
+    "DsitesTraveLLM": {
+      "path": "DsitesTraveLLM",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1774870993771,
+      "keyFiles": []
+    },
+    "i18n": {
+      "path": "i18n",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774870993775,
+      "keyFiles": [
+        "request.ts"
+      ]
+    },
+    "lib": {
+      "path": "lib",
+      "purpose": "Library code",
+      "fileCount": 55,
+      "lastAccessed": 1774870993776,
+      "keyFiles": [
+        "admin-auth.ts",
+        "admin-stats.ts",
+        "admin.ts",
+        "ai-usage-events.ts",
+        "articles.ts"
+      ]
+    },
+    "messages": {
+      "path": "messages",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1774870993776,
+      "keyFiles": [
+        "en.json",
+        "ru.json"
+      ]
+    },
+    "Obsidian": {
+      "path": "Obsidian",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774870993779,
+      "keyFiles": [
+        "travellm.md"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 33,
+      "lastAccessed": 1774870993785,
+      "keyFiles": [
+        "airplane-in-flight.png",
+        "apple-icon.png",
+        "auth-bg.jpg",
+        "auth-bg2.png",
+        "batumi-seaside-boulevard-palm-trees.jpg"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 9,
+      "lastAccessed": 1774870993792,
+      "keyFiles": [
+        "check-domain.js",
+        "check_bots.js",
+        "check_pr_bot.js",
+        "download-map.mjs",
+        "extract_style.js"
+      ]
+    },
+    "styles": {
+      "path": "styles",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1774870993797,
+      "keyFiles": [
+        "globals.css"
+      ]
+    },
+    "supabase": {
+      "path": "supabase",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1774870993798,
+      "keyFiles": []
+    },
+    "TraveLLMux": {
+      "path": "TraveLLMux",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1774870993801,
+      "keyFiles": [
+        "logo.png",
+        "logo2.svg"
+      ]
+    },
+    "types": {
+      "path": "types",
+      "purpose": "Type definitions",
+      "fileCount": 2,
+      "lastAccessed": 1774870993802,
+      "keyFiles": [
+        "database.types.ts",
+        "itinerary.ts"
+      ]
+    },
+    "app\\api": {
+      "path": "app\\api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1774870993809,
+      "keyFiles": [
+        "route.ts"
+      ]
+    },
+    "lib\\api": {
+      "path": "lib\\api",
+      "purpose": "API routes",
+      "fileCount": 7,
+      "lastAccessed": 1774870993813,
+      "keyFiles": [
+        "aerodatabox-client.ts",
+        "airport-validator.ts",
+        "flight-validator.ts"
+      ]
+    },
+    "supabase\\migrations": {
+      "path": "supabase\\migrations",
+      "purpose": "Database migrations",
+      "fileCount": 17,
+      "lastAccessed": 1774870993821,
+      "keyFiles": [
+        "20250324120000_discovery_reels_unsplash_and_feed.sql",
+        "20250324140000_app_settings_admin_columns.sql",
+        "20250324150000_app_settings_maintenance_columns.sql"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "lib\\supabase.ts",
+      "accessCount": 4,
+      "lastAccessed": 1774905723343,
+      "type": "directory"
+    },
+    {
+      "path": "app\\auth\\callback\\route.ts",
+      "accessCount": 3,
+      "lastAccessed": 1774906047369,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\auth\\[provider]\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774905670027,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\auth\\callback\\[provider]\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774905670541,
+      "type": "file"
+    },
+    {
+      "path": "proxy.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774905684145,
+      "type": "file"
+    },
+    {
+      "path": "app\\auth\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774905690772,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

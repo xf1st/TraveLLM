@@ -1,16 +1,20 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
-    const { searchParams, origin: requestOrigin, host } = new URL(request.url)
+export async function GET(request: NextRequest) {
+    const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
     const tokenHash = searchParams.get('token_hash')
     const type = searchParams.get('type') // 'email', 'recovery', 'invite', etc.
     const next = searchParams.get('next') ?? '/'
 
-    // Host user landed on (multi-domain); do not use NEXT_PUBLIC_SITE_URL — OAuth return URL must match this origin.
-    const siteUrl = requestOrigin.replace(/\/$/, '')
+    // In Docker/Coolify, request.url contains the internal address (e.g. http://0.0.0.0:3000).
+    // Use X-Forwarded-* headers set by the reverse proxy to get the real public origin.
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https'
+    const host = (forwardedHost || request.headers.get('host') || new URL(request.url).host).split(',')[0].trim()
+    const siteUrl = `${forwardedProto}://${host}`.replace(/\/$/, '')
 
     const cookieStore = await cookies()
     const supabase = createServerClient(
