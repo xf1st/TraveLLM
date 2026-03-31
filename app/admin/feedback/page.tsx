@@ -10,7 +10,22 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+import { Loader2, Star } from "lucide-react"
+
+interface TripFeedback {
+  id: string
+  trip_id: string
+  user_id: string
+  rating: number
+  comment: string | null
+  liked: string | null
+  disliked: string | null
+  source: string | null
+  updated_at: string
+  trip_title?: string | null
+  user_name?: string | null
+  user_email?: string | null
+}
 
 // Types based on the feedback table
 interface Feedback {
@@ -54,6 +69,24 @@ export default function AdminFeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tripFeedbacks, setTripFeedbacks] = useState<TripFeedback[]>([])
+  const [isLoadingTrip, setIsLoadingTrip] = useState(true)
+
+  useEffect(() => {
+    async function loadTripFeedbacks() {
+      try {
+        const res = await fetch("/api/admin/trip-feedback")
+        if (!res.ok) throw new Error(await res.text())
+        const payload = await res.json()
+        setTripFeedbacks(payload.feedback || [])
+      } catch (e: any) {
+        console.error("trip feedbacks load error", e)
+      } finally {
+        setIsLoadingTrip(false)
+      }
+    }
+    loadTripFeedbacks()
+  }, [])
 
   useEffect(() => {
     async function loadFeedbacks() {
@@ -112,6 +145,10 @@ export default function AdminFeedbackPage() {
     loadFeedbacks()
   }, [])
 
+  const avgTripRating = tripFeedbacks.length
+    ? (tripFeedbacks.reduce((s, f) => s + f.rating, 0) / tripFeedbacks.length).toFixed(2)
+    : "—"
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -128,14 +165,6 @@ export default function AdminFeedbackPage() {
         <p className="mt-4 text-sm opacity-80">
           Убедитесь, что таблица <code>beta_feedback</code> создана в Supabase с нужными колонками, включая новые: <code>map_convenience</code> (int), <code>subscription_price</code> (text) и <code>usage_frequency</code> (text).
         </p>
-      </div>
-    )
-  }
-
-  if (feedbacks.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-400 bg-zinc-900/50 rounded-xl border border-white/5">
-        <p>Пока нет ни одного отзыва от бета-тестеров.</p>
       </div>
     )
   }
@@ -243,45 +272,54 @@ export default function AdminFeedbackPage() {
           <TabsTrigger value="stats">Статистика</TabsTrigger>
           <TabsTrigger value="by_question">Ответы по вопросам</TabsTrigger>
           <TabsTrigger value="feedbacks">Карточки пользователей</TabsTrigger>
+          <TabsTrigger value="trip_ratings">Оценки маршрутов</TabsTrigger>
         </TabsList>
 
         <TabsContent value="stats" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-zinc-900 border-white/10">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Общая оценка (из 10)</CardDescription>
-                <CardTitle className="text-4xl text-blue-400">{stats.avgOverall}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="bg-zinc-900 border-white/10">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Удобство интерфейса (из 10)</CardDescription>
-                <CardTitle className="text-4xl text-emerald-400">{stats.avgUI}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="bg-zinc-900 border-white/10">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">3D-Карта (из 10)</CardDescription>
-                <CardTitle className="text-4xl text-purple-400">{stats.avgMap}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card className="bg-zinc-900 border-white/10">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-gray-400">Оценка виз. инфо (из 5)</CardDescription>
-                <CardTitle className="text-4xl text-amber-400">{stats.avgVisa}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
+          {feedbacks.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 bg-zinc-900/50 rounded-xl border border-white/5">
+              <p>Пока нет ни одного отзыва от бета-тестеров.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-zinc-900 border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-gray-400">Общая оценка (из 10)</CardDescription>
+                    <CardTitle className="text-4xl text-blue-400">{stats.avgOverall}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="bg-zinc-900 border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-gray-400">Удобство интерфейса (из 10)</CardDescription>
+                    <CardTitle className="text-4xl text-emerald-400">{stats.avgUI}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="bg-zinc-900 border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-gray-400">3D-Карта (из 10)</CardDescription>
+                    <CardTitle className="text-4xl text-purple-400">{stats.avgMap}</CardTitle>
+                  </CardHeader>
+                </Card>
+                <Card className="bg-zinc-900 border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardDescription className="text-gray-400">Оценка виз. инфо (из 5)</CardDescription>
+                    <CardTitle className="text-4xl text-amber-400">{stats.avgVisa}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </div>
 
-          <h2 className="text-2xl font-semibold mt-8 mb-4 border-b border-white/10 pb-2 text-white">Популярные ответы</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {renderCategoricalStat("Релевантность мест", stats.placesFreq)}
-            {renderCategoricalStat("Точность бюджета", stats.budgetFreq)}
-            {renderCategoricalStat("Готовность использовать снова", stats.useFreq)}
-            {renderCategoricalStat("Оценка скорости", stats.speedFreq)}
-            {renderCategoricalStat("Справедливая цена", stats.priceFreq)}
-            {renderCategoricalStat("Частота использования", stats.usageRateFreq)}
-          </div>
+              <h2 className="text-2xl font-semibold mt-8 mb-4 border-b border-white/10 pb-2 text-white">Популярные ответы</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {renderCategoricalStat("Релевантность мест", stats.placesFreq)}
+                {renderCategoricalStat("Точность бюджета", stats.budgetFreq)}
+                {renderCategoricalStat("Готовность использовать снова", stats.useFreq)}
+                {renderCategoricalStat("Оценка скорости", stats.speedFreq)}
+                {renderCategoricalStat("Справедливая цена", stats.priceFreq)}
+                {renderCategoricalStat("Частота использования", stats.usageRateFreq)}
+              </div>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="by_question" className="bg-black/20 p-6 rounded-xl border border-white/10">
@@ -405,6 +443,56 @@ export default function AdminFeedbackPage() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="trip_ratings" className="space-y-6">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Card className="bg-zinc-900 border-white/10 flex-1 min-w-[160px]">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-gray-400">Всего оценок</CardDescription>
+                <CardTitle className="text-4xl text-violet-400">{tripFeedbacks.length}</CardTitle>
+              </CardHeader>
+            </Card>
+            <Card className="bg-zinc-900 border-white/10 flex-1 min-w-[160px]">
+              <CardHeader className="pb-2">
+                <CardDescription className="text-gray-400">Средний балл (из 5)</CardDescription>
+                <CardTitle className="text-4xl text-amber-400">{avgTripRating}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+
+          {isLoadingTrip ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-violet-400" /></div>
+          ) : tripFeedbacks.length === 0 ? (
+            <div className="p-8 text-center text-gray-400 bg-zinc-900/50 rounded-xl border border-white/5">
+              Пока нет ни одной оценки маршрута.
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {tripFeedbacks.map((fb) => (
+                <Card key={fb.id} className="bg-zinc-900 border-white/10 text-white">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white truncate">{fb.trip_title || fb.trip_id}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{fb.user_name || fb.user_email || fb.user_id}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {[1,2,3,4,5].map(s => (
+                          <Star key={s} className={`w-4 h-4 ${s <= fb.rating ? "fill-amber-400 text-amber-400" : "text-zinc-600"}`} />
+                        ))}
+                        <span className="ml-1 text-sm font-bold text-amber-400">{fb.rating}/5</span>
+                        <span className="ml-3 text-xs text-gray-500">{new Date(fb.updated_at).toLocaleDateString("ru-RU")}</span>
+                      </div>
+                    </div>
+                    {fb.liked && <p className="text-sm text-emerald-300"><span className="text-gray-400 mr-1">👍</span>{fb.liked}</p>}
+                    {fb.disliked && <p className="text-sm text-red-300"><span className="text-gray-400 mr-1">👎</span>{fb.disliked}</p>}
+                    {fb.comment && <p className="text-sm text-gray-300 border-t border-white/5 pt-2">{fb.comment}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

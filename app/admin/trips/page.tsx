@@ -39,6 +39,7 @@ type Trip = {
   itinerary: unknown
   countries: unknown
   token_usage?: unknown
+  cover_image?: string | null
 }
 
 const parseMaybeJson = <T,>(value: unknown, fallback: T): T => {
@@ -139,7 +140,7 @@ export default function AdminTripsPage() {
 
       const { data: tripsData, error: tripsError } = await supabase
         .from("trips")
-        .select("id,title,destination,user_id,created_at,updated_at,status,itinerary,countries,token_usage")
+        .select("id,title,destination,user_id,created_at,updated_at,status,itinerary,countries,token_usage,cover_image")
         .order("created_at", { ascending: false })
         .limit(500)
 
@@ -250,7 +251,14 @@ export default function AdminTripsPage() {
 
                       return (
                         <TableRow key={trip.id}>
-                          <TableCell className="font-medium max-w-[200px] truncate">{trip.title || "Без названия"}</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2 min-w-0 max-w-[220px]">
+                              {trip.cover_image && (
+                                <img src={trip.cover_image} alt="" className="h-8 w-12 rounded object-cover shrink-0 opacity-80" />
+                              )}
+                              <span className="truncate">{trip.title || "Без названия"}</span>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm">
                               <MapPin className="h-3 w-3 shrink-0" />
@@ -258,7 +266,7 @@ export default function AdminTripsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm truncate max-w-[160px]">{trip.user_email || "-"}</div>
+                            <div className="text-sm break-all min-w-[120px] max-w-[180px]">{trip.user_email || "-"}</div>
                           </TableCell>
                           <TableCell className="text-center tabular-nums">{getDaysCount(trip)}</TableCell>
                           <TableCell>

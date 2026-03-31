@@ -660,6 +660,9 @@ export default function AdminUsersPage() {
                       {/* User info */}
                       <TableCell>
                         <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-7 w-7 shrink-0 rounded-full bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-[11px] font-bold text-indigo-300 uppercase select-none">
+                            {(user.full_name?.[0] || user.email[0] || "?").toUpperCase()}
+                          </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium text-sm truncate">{user.email}</span>

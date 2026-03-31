@@ -126,10 +126,21 @@ export async function POST(request: Request) {
 
   for (let i = 0; i < count; i++) {
     try {
-      const payload = await generateOneReelCard(locale, {
-        creativity,
-        avoidRows: avoidList.slice(0, 40),
-      })
+      let payload: Awaited<ReturnType<typeof generateOneReelCard>> | null = null
+      let lastGenErr: Error | null = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          payload = await generateOneReelCard(locale, {
+            creativity,
+            avoidRows: avoidList.slice(0, 40),
+          })
+          break
+        } catch (genErr) {
+          lastGenErr = genErr instanceof Error ? genErr : new Error(String(genErr))
+          console.warn(`[admin/reels/batch] reel ${i} attempt ${attempt + 1} failed:`, lastGenErr.message)
+        }
+      }
+      if (!payload) throw lastGenErr ?? new Error("generateOneReelCard failed after 3 attempts")
       const row = {
         title: payload.title,
         country: payload.country,

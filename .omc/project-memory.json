@@ -272,15 +272,63 @@
   },
   "hotPaths": [
     {
+      "path": "app\\admin\\feedback\\page.tsx",
+      "accessCount": 16,
+      "lastAccessed": 1774937901983,
+      "type": "file"
+    },
+    {
+      "path": "app\\trip\\[id]\\page.tsx",
+      "accessCount": 12,
+      "lastAccessed": 1774910117190,
+      "type": "file"
+    },
+    {
+      "path": "app\\admin\\trips\\page.tsx",
+      "accessCount": 7,
+      "lastAccessed": 1774937548262,
+      "type": "file"
+    },
+    {
       "path": "lib\\supabase.ts",
       "accessCount": 4,
       "lastAccessed": 1774905723343,
       "type": "directory"
     },
     {
+      "path": "app\\api\\admin\\reels\\batch\\route.ts",
+      "accessCount": 4,
+      "lastAccessed": 1774937477577,
+      "type": "file"
+    },
+    {
+      "path": "app\\admin\\users\\page.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1774937520088,
+      "type": "file"
+    },
+    {
       "path": "app\\auth\\callback\\route.ts",
       "accessCount": 3,
       "lastAccessed": 1774906047369,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\trip-feedback\\route.ts",
+      "accessCount": 3,
+      "lastAccessed": 1774922464534,
+      "type": "file"
+    },
+    {
+      "path": "proxy.ts",
+      "accessCount": 2,
+      "lastAccessed": 1774922387520,
+      "type": "file"
+    },
+    {
+      "path": "lib\\reel-generation.ts",
+      "accessCount": 2,
+      "lastAccessed": 1774937410102,
       "type": "file"
     },
     {
@@ -296,15 +344,33 @@
       "type": "file"
     },
     {
-      "path": "proxy.ts",
-      "accessCount": 1,
-      "lastAccessed": 1774905684145,
-      "type": "file"
-    },
-    {
       "path": "app\\auth\\page.tsx",
       "accessCount": 1,
       "lastAccessed": 1774905690772,
+      "type": "file"
+    },
+    {
+      "path": "components\\travel\\TripFeedbackDialog.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774909863613,
+      "type": "file"
+    },
+    {
+      "path": "supabase\\migrations\\add_trip_feedback.sql",
+      "accessCount": 1,
+      "lastAccessed": 1774909998467,
+      "type": "file"
+    },
+    {
+      "path": "lib\\server\\user-access.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774910748203,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\admin\\trip-feedback\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774937886262,
       "type": "file"
     }
   ],

@@ -69,6 +69,7 @@ import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
 import { TripTooltips } from "@/components/trip/TripTooltips"
 import { TripStatsPanel } from "@/components/trip/TripStatsPanel"
 import { TripLinksPanel } from "@/components/trip/TripLinksPanel"
+import { TripFeedbackDialog, TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 
 import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
 import { TripWeatherWidget } from "@/components/trip/TripWeatherWidget"
@@ -187,6 +188,8 @@ export default function TripDetailPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false)
+  const [tripFeedback, setTripFeedback] = useState<TripFeedbackRecord | null>(null)
   const [tripWeather, setTripWeather] = useState<WeatherData[]>([])
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
 
@@ -394,6 +397,13 @@ export default function TripDetailPage() {
               .eq("user_id", currentUser.id)
               .maybeSingle()
             setIsFavorite(!!favData)
+
+            if (tripOwner) {
+              fetch(`/api/trip-feedback?tripId=${data.id}`)
+                .then((r) => r.json())
+                .then((payload) => { if (payload?.feedback) setTripFeedback(payload.feedback) })
+                .catch(() => {})
+            }
           }
         }
       } catch (err) {
@@ -844,6 +854,17 @@ export default function TripDetailPage() {
     <div className="min-h-screen trip-bg relative">
       <AppSidebar />
       <TripTooltips userId={user?.id} />
+      {isOwner && (
+        <TripFeedbackDialog
+          open={showFeedbackDialog}
+          onOpenChange={setShowFeedbackDialog}
+          tripId={route?.id ?? ""}
+          tripTitle={route?.title}
+          source="profile"
+          initialFeedback={tripFeedback}
+          onSubmitted={(fb) => setTripFeedback(fb)}
+        />
+      )}
 
       {/* Read-only banner for non-owners viewing someone else's public trip */}
       {showReadOnlyBanner && (
@@ -1105,6 +1126,16 @@ export default function TripDetailPage() {
                     <span className="material-symbols-outlined shrink-0 text-base leading-none">lightbulb</span>
                     <span className="whitespace-nowrap">{t("routeTips")}</span>
                   </button>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setShowFeedbackDialog(true)}
+                      className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-[11px] font-bold text-violet-200 shadow-sm backdrop-blur-md hover:bg-violet-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
+                    >
+                      <Star className={cn("shrink-0 w-3.5 h-3.5", tripFeedback ? "fill-violet-300 text-violet-300" : "")} />
+                      <span className="whitespace-nowrap">{tripFeedback ? `${tripFeedback.rating}/5` : "Оценить"}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

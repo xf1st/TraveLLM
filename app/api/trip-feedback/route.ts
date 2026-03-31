@@ -97,11 +97,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[trip-feedback][POST] step 1: getRequestUserId")
     const userId = await getRequestUserId()
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    console.log("[trip-feedback][POST] step 2: enforceFullSiteAccess", userId)
 
     const accessErr = await enforceFullSiteAccess(userId)
     if (accessErr) return accessErr
+    console.log("[trip-feedback][POST] step 3: parseBody")
 
     const client = createServiceClient()
     if (!client) return NextResponse.json({ error: "Server is not configured" }, { status: 500 })
@@ -113,6 +116,7 @@ export async function POST(req: NextRequest) {
     const comment = sanitizeText(body?.comment, 4000)
     const liked = sanitizeText(body?.liked, 1000)
     const disliked = sanitizeText(body?.disliked, 1000)
+    console.log("[trip-feedback][POST] step 4: validated body", { tripId, rating })
 
     if (!UUID_REGEX.test(tripId)) {
       return NextResponse.json({ error: "Invalid tripId" }, { status: 400 })
@@ -124,6 +128,7 @@ export async function POST(req: NextRequest) {
     const { data: trip, error: tripError } = await client.from("trips").select("id,user_id").eq("id", tripId).maybeSingle()
     if (tripError) throw tripError
     if (!trip?.id) return NextResponse.json({ error: "Trip not found" }, { status: 404 })
+    console.log("[trip-feedback][POST] step 5: trip found, checking ownership")
 
     if (String(trip.user_id || "") !== userId) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
@@ -141,8 +146,10 @@ export async function POST(req: NextRequest) {
       parsed,
       updated_at: new Date().toISOString(),
     }
+    console.log("[trip-feedback][POST] step 6: upsert")
 
     const { data, error } = await client.from("trip_feedback").upsert(payload, { onConflict: "trip_id,user_id" }).select("*").single()
+    console.log("[trip-feedback][POST] step 7: upsert done", { error })
     if (error) throw error
 
     return NextResponse.json({ feedback: data })
