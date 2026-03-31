@@ -332,6 +332,18 @@
       "type": "file"
     },
     {
+      "path": "components\\admin\\AdminSidebar.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1774939886209,
+      "type": "file"
+    },
+    {
+      "path": "app\\admin\\layout.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1774939899950,
+      "type": "file"
+    },
+    {
       "path": "app\\api\\auth\\[provider]\\route.ts",
       "accessCount": 1,
       "lastAccessed": 1774905670027,
@@ -371,6 +383,12 @@
       "path": "app\\api\\admin\\trip-feedback\\route.ts",
       "accessCount": 1,
       "lastAccessed": 1774937886262,
+      "type": "file"
+    },
+    {
+      "path": "components\\admin\\AdminHeader.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1774939861404,
       "type": "file"
     }
   ],

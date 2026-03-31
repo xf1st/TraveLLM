@@ -1,7 +1,7 @@
 {
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"D:\\\\sites\\\\TraveLLM\\\\app\\\\trip\\\\[id]\\\\page.tsx\"}",
-  "error": "File content (26510 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
-  "timestamp": "2026-03-30T22:31:04.424Z",
+  "tool_name": "mcp__stitch__get_screen",
+  "tool_input_preview": "{\"name\":\"projects/4530503185124721119/screens/asset-stub-assets-c2a872f474804b10a12ac1e77aee9237-1774939308294\",\"projectId\":\"4530503185124721119\",\"screenId\":\"asset-stub-assets-c2a872f474804b10a12ac1e7...",
+  "error": "Requested entity was not found.",
+  "timestamp": "2026-03-31T06:49:54.682Z",
   "retry_count": 1
 }
