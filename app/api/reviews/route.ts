@@ -65,19 +65,19 @@ async function generateAIReviews(
       "author": "Анна К.",
       "rating": 5,
       "text": "Краткий отзыв 1-2 предложения",
-      "date": "Декабрь 2024"
+      "date": "Декабрь 2025"
     },
     {
       "author": "Михаил П.",
       "rating": 4,
       "text": "Краткий отзыв 1-2 предложения",
-      "date": "Ноябрь 2024"
+      "date": "Ноябрь 2025"
     },
     {
       "author": "Elena S.",
       "rating": 4,
       "text": "Short review in English",
-      "date": "October 2024"
+      "date": "October 2025"
     }
   ],
   "pros": ["Плюс 1", "Плюс 2", "Плюс 3"],
@@ -114,7 +114,7 @@ async function generateAIReviews(
           author: r.author || "Гость",
           rating: r.rating || 4,
           text: r.text || "",
-          date: r.date || "2024",
+          date: r.date || "2026",
           source: "ai" as const
         })),
         pros: data.pros || [],
@@ -136,7 +136,7 @@ async function generateAIReviews(
             author: "Путешественник",
             rating: 4,
             text: "Хорошее место для посещения",
-            date: "2024",
+            date: "2026",
             source: "ai"
           }
         ],

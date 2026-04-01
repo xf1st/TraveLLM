@@ -61,10 +61,10 @@ export const articlesLibrary: Article[] = [
 Эти места — настоящие жемчужины Стамбула, которые позволят вам почувствовать дух города вдали от толп туристов.
     `,
         tags: ["#халяль", "#тишина", "#Стамбул"],
-        image: "https://images.unsplash.com/photo-1541432901042-2dad8bd9c791?auto=format&fit=crop&q=80&w=1600",
+        image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Амина Карамова", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" },
         readTime: "7 мин",
-        publishedAt: "2024-01-15",
+        publishedAt: "2026-01-15",
         category: "spiritual"
     },
     {
@@ -117,10 +117,10 @@ export const articlesLibrary: Article[] = [
 Алтай — это место, которое меняет ваше понимание красоты. Привезите достаточно карт памяти.
     `,
         tags: ["#фото", "#горы", "#природа"],
-        image: "https://images.unsplash.com/photo-1544457070-4cd773b0d778?auto=format&fit=crop&q=80&w=1600",
+        image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Дмитрий Волков", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200" },
         readTime: "9 мин",
-        publishedAt: "2024-01-10",
+        publishedAt: "2026-01-10",
         category: "photo"
     },
     {
@@ -178,10 +178,10 @@ export const articlesLibrary: Article[] = [
 Настоящий узбекский плов — это опыт, который останется с вами навсегда. И да, тот, что вы пробовали в ресторанах Москвы — это совсем другое блюдо.
     `,
         tags: ["#еда", "#аутентично", "#Узбекистан"],
-        image: "https://images.unsplash.com/photo-1619623602162-819754b51841?auto=format&fit=crop&q=80&w=1600",
+        image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Тимур Рахимов", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=200" },
         readTime: "6 мин",
-        publishedAt: "2024-01-08",
+        publishedAt: "2026-01-08",
         category: "food"
     },
     {
@@ -260,7 +260,7 @@ export const articlesLibrary: Article[] = [
         image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Алексей Горный", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200" },
         readTime: "12 мин",
-        publishedAt: "2024-01-05",
+        publishedAt: "2026-01-05",
         category: "adventure"
     },
     {
@@ -326,7 +326,7 @@ export const articlesLibrary: Article[] = [
         image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Мария Светлова", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=200" },
         readTime: "8 мин",
-        publishedAt: "2024-01-03",
+        publishedAt: "2026-01-03",
         category: "culture"
     },
     {
@@ -422,21 +422,21 @@ export const articlesLibrary: Article[] = [
         image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Екатерина Морская", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=200" },
         readTime: "10 мин",
-        publishedAt: "2024-01-01",
+        publishedAt: "2026-01-01",
         category: "beach"
     },
     {
-        id: "travel-trends-2024",
-        title: "10 тревел-трендов 2024 года, которые стоит попробовать",
+        id: "travel-trends-2026",
+        title: "10 тревел-трендов 2026 года, которые стоит попробовать",
         excerpt: "От slow travel до workation — что в моде у современных путешественников...",
         content: `
-# 10 тревел-трендов 2024 года, которые стоит попробовать
+# 10 тревел-трендов 2026 года, которые стоит попробовать
 
 Мир путешествий меняется. Вот что определит ваши поездки в этом году.
 
 ## 1. Slow Travel — медленные путешествия
 
-Забудьте о галопе по достопримечательностям. Тренд 2024 — провести неделю в одном месте, узнать его по-настоящему.
+Забудьте о галопе по достопримечательностям. Тренд 2026 — провести неделю в одном месте, узнать его по-настоящему.
 
 **Как попробовать:** Вместо 5 городов за 10 дней — один город за те же 10 дней.
 
@@ -488,11 +488,11 @@ export const articlesLibrary: Article[] = [
 
 Какой тренд попробуете первым?
     `,
-        tags: ["#тренды", "#советы", "#2024"],
+        tags: ["#тренды", "#советы", "#2026"],
         image: "https://images.unsplash.com/photo-1488085061387-422e29b40080?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Редакция TraveLLM", avatar: "https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&q=80&w=200" },
         readTime: "5 мин",
-        publishedAt: "2024-01-20",
+        publishedAt: "2026-01-20",
         category: "default"
     },
     {
@@ -572,10 +572,21 @@ export const articlesLibrary: Article[] = [
         image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=1600",
         author: { name: "Нино Чхеидзе", avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=200" },
         readTime: "8 мин",
-        publishedAt: "2024-01-12",
+        publishedAt: "2026-01-12",
         category: "food"
     }
 ]
+
+/** Newest first — for /news listing and sitemap */
+export function getAllArticlesSorted(): Article[] {
+    return [...articlesLibrary].sort(
+        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    )
+}
+
+export function getAllArticleIds(): string[] {
+    return articlesLibrary.map((a) => a.id)
+}
 
 export function getArticleById(id: string): Article | undefined {
     return articlesLibrary.find(article => article.id === id)

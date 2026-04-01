@@ -88,7 +88,30 @@
     "previewDay": "Day",
     "previewTickets": "Tickets",
     "previewMap": "Map",
-    "previewAiTip": "AI Assistant Tip"
+    "previewAiTip": "AI Assistant Tip",
+    "news": {
+      "badge": "Guides & ideas",
+      "title": "News & articles",
+      "subtitle": "Trip inspiration — then turn ideas into a day-by-day TraveLLM itinerary and grab flights at real prices.",
+      "readArticle": "Read",
+      "allArticles": "All articles",
+      "minRead": "min read"
+    }
+  },
+  "newsPage": {
+    "listTitle": "Travel guides — TraveLLM",
+    "listDescription": "Ideas for your next trip. Build an AI itinerary in about a minute, then book flights and hotels.",
+    "backHome": "Back to home",
+    "backToNews": "All articles",
+    "published": "Published",
+    "author": "Author",
+    "notFound": "Article not found",
+    "ctaTitle": "Turn this inspiration into a trip",
+    "ctaBody": "TraveLLM builds a day-by-day plan with budgets, weather, and an in-trip AI chat — then find flights in a few clicks.",
+    "ctaPlan": "Create itinerary — free",
+    "ctaFlights": "Find flights",
+    "ctaFlightsHint": "Aviasales — compare prices, no extra fee",
+    "stickyNote": "On TraveLLM you don’t just read a guide — you turn it into a real itinerary and add flights."
   },
   "generating": {
     "title": "Planning your trip",
@@ -1165,10 +1188,19 @@
   },
   "meta": {
     "title": "TraveLLM — Your AI Travel Assistant",
-    "description": "Create personalized travel itineraries in seconds with AI. TraveLLM helps you plan trips, discover hidden gems and save time.",
-    "ogTitle": "TraveLLM — Your Smart AI Travel Assistant",
-    "ogDescription": "Personalized itineraries and smart travel advice for your next adventure.",
-    "keywords": "AI travel assistant, trip planner, create itinerary, travel planning, smart travel"
+    "description": "Free within monthly limits: day-by-day AI itineraries with rough costs, weather, and an in-trip chat—built in about a minute (Gemini/DeepSeek). English UI; USD-aware tips.",
+    "ogTitle": "TraveLLM — Day-by-day AI trips with prices & chat",
+    "ogDescription": "Plan faster: hourly pacing, activities, budget hints, and route chat in the browser—no app install. Start free, upgrade only if you hit limits.",
+    "keywords": "AI trip planner, day by day itinerary generator, free travel itinerary maker, AI vacation planner, Gemini travel app, plan a trip with AI, travel budget estimator, weather in itinerary, TraveLLM, smart travel assistant",
+    "faq1Q": "Is TraveLLM free?",
+    "faq1A": "Route generation and AI chat run under monthly per-account limits; there is no separate subscription for the basic flow—check the current limits in the app after sign-in.",
+    "faq2Q": "Which AI models are used?",
+    "faq2A": "Itineraries and chat use modern models (including Gemini via OpenRouter and DeepSeek) with fallbacks for reliability.",
+    "faq3Q": "What do I get in an itinerary?",
+    "faq3A": "A day-by-day plan with activities, rough costs and tips, weather hints, and booking links where relevant—all in your browser.",
+    "faq4Q": "Do I need to install an app?",
+    "faq4A": "No—TraveLLM is a web app; you create and edit trips in the browser on phone or desktop.",
+    "faqSectionTitle": "FAQ"
   },
   "cookie": {
     "title": "Cookie preferences",

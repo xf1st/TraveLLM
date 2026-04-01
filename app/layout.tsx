@@ -61,6 +61,9 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: meta.keywords ? meta.keywords.split(", ") : ["AI travel assistant", "trip planner"],
     verification: {
       yandex: "7b52a6c68729b348",
+      ...(process.env.GOOGLE_SITE_VERIFICATION
+        ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+        : {}),
     },
     alternates: {
       canonical: siteUrl,
@@ -77,6 +80,11 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "TraveLLM",
       locale: getOgLocale(locale),
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.ogTitle ?? "TraveLLM",
+      description: meta.ogDescription ?? "",
     },
     applicationName: "TraveLLM",
     appleWebApp: {

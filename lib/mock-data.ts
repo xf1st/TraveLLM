@@ -59,7 +59,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 9,
     budget: "₽45,000",
     image: "/tbilisi-old-town-colorful-balconies.jpg",
-    createdAt: "2024-01-15",
+    createdAt: "2026-01-15",
     preferences: {
       destination: "abroad",
       budget: "comfort",
@@ -117,7 +117,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 8,
     budget: "₽65,000",
     image: "/bali-rice-terraces-sunset.jpg",
-    createdAt: "2024-01-10",
+    createdAt: "2026-01-10",
     preferences: {
       destination: "abroad",
       budget: "comfort",
@@ -137,7 +137,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 8,
     budget: "₽28,000",
     image: "/istanbul-blue-mosque-architecture.jpg",
-    createdAt: "2024-01-05",
+    createdAt: "2026-01-05",
     preferences: {
       destination: "abroad",
       budget: "economy",
@@ -157,7 +157,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 9,
     budget: "₽42,000",
     image: "/------------------------.jpg",
-    createdAt: "2024-01-12",
+    createdAt: "2026-01-12",
     preferences: {
       destination: "russia",
       budget: "comfort",
@@ -177,7 +177,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 10,
     budget: "₽95,000",
     image: "/---------------------.jpg",
-    createdAt: "2024-01-08",
+    createdAt: "2026-01-08",
     preferences: {
       destination: "abroad",
       budget: "premium",
@@ -197,7 +197,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 10,
     budget: "₽22,000",
     image: "/--------------------.jpg",
-    createdAt: "2024-01-03",
+    createdAt: "2026-01-03",
     preferences: {
       destination: "russia",
       budget: "economy",
@@ -217,7 +217,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 10,
     budget: "₽28,000",
     image: "/-----------------------------.jpg",
-    createdAt: "2024-01-20",
+    createdAt: "2026-01-20",
     preferences: {
       destination: "russia",
       budget: "economy",
@@ -237,7 +237,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 10,
     budget: "₽55,000",
     image: "/------------------------.jpg",
-    createdAt: "2024-01-18",
+    createdAt: "2026-01-18",
     preferences: {
       destination: "russia",
       budget: "comfort",
@@ -257,7 +257,7 @@ export const mockTrips: Trip[] = [
     safetyLevel: 9,
     budget: "₽52,000",
     image: "/------------------------.jpg",
-    createdAt: "2024-01-16",
+    createdAt: "2026-01-16",
     preferences: {
       destination: "russia",
       budget: "comfort",

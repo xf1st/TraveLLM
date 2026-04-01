@@ -6,6 +6,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = headersList.get('host') ?? 'travellm.ru'
   const baseUrl = `https://${host}`
 
+  const isRuPrimary =
+    host === 'travellm.ru' ||
+    host.endsWith('.travellm.ru')
+
   return {
     rules: [
       {
@@ -15,5 +19,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       },
     ],
     sitemap: `${baseUrl}/sitemap.xml`,
+    /* Yandex: явный главный зеркальный адрес для .ru */
+    ...(isRuPrimary ? { host: 'https://travellm.ru' } : {}),
   }
 }
