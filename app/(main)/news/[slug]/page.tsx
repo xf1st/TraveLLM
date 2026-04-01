@@ -1,15 +1,12 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import Image from "next/image"
 import { notFound } from "next/navigation"
 import { headers } from "next/headers"
 import { getTranslations } from "next-intl/server"
 import { AppLayout } from "@/components/app-layout"
-import { Badge } from "@/components/ui/badge"
 import { getAllArticleIds, getArticleById } from "@/lib/articles"
 import { ArticleMarkdown } from "@/components/news/ArticleMarkdown"
 import { ArticleCta } from "@/components/news/ArticleCta"
-import { ArrowLeft } from "lucide-react"
+import { AnimatedArticleLayout } from "@/components/news/AnimatedArticleLayout"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -51,76 +48,45 @@ export default async function NewsArticlePage({ params }: Props) {
   const host = (await headers()).get("host") ?? "travellm.ru"
   const siteUrl = `https://${host}`
 
+  const texts = {
+    backToNews: t("backToNews"),
+    published: t("published"),
+    author: t("author"),
+  }
+
   return (
     <AppLayout>
-      <article className="mx-auto max-w-3xl min-w-0 pb-16">
-        <Link
-          href="/news"
-          className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t("backToNews")}
-        </Link>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: article.title,
+            description: article.excerpt,
+            image: [article.image],
+            datePublished: article.publishedAt,
+            author: { "@type": "Person", name: article.author.name },
+            publisher: {
+              "@type": "Organization",
+              name: "TraveLLM",
+              url: siteUrl,
+            },
+            mainEntityOfPage: {
+              "@type": "WebPage",
+              "@id": `${siteUrl}/news/${article.id}`,
+            },
+          }),
+        }}
+      />
 
-        <header className="mb-8">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="font-bold uppercase tracking-wide">
-              {article.category}
-            </Badge>
-            <time className="text-sm text-muted-foreground" dateTime={article.publishedAt}>
-              {t("published")}: {article.publishedAt}
-            </time>
-          </div>
-          <h1 className="text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl">
-            {article.title}
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground">{article.excerpt}</p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            {t("author")}: <span className="font-medium text-foreground">{article.author.name}</span>
-          </p>
-        </header>
-
-        <div className="relative mb-10 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border/50 bg-muted shadow-lg">
-          <Image
-            src={article.image}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 768px"
-            priority
-          />
-        </div>
-
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Article",
-              headline: article.title,
-              description: article.excerpt,
-              image: [article.image],
-              datePublished: article.publishedAt,
-              author: { "@type": "Person", name: article.author.name },
-              publisher: {
-                "@type": "Organization",
-                name: "TraveLLM",
-                url: siteUrl,
-              },
-              mainEntityOfPage: {
-                "@type": "WebPage",
-                "@id": `${siteUrl}/news/${article.id}`,
-              },
-            }),
-          }}
-        />
-
-        <div className="news-article-body text-base">
+      <AnimatedArticleLayout article={article} texts={texts}>
+        <div className="news-article-body text-base md:text-lg">
           <ArticleMarkdown content={article.content} />
         </div>
 
         <ArticleCta />
-      </article>
+      </AnimatedArticleLayout>
     </AppLayout>
   )
 }
