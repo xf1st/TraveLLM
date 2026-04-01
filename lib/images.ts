@@ -403,9 +403,18 @@ export async function getDestinationImage(query: string): Promise<string> {
  *   2. Pexels    — blocked in Russia without VPN, but client handles via /api/proxy-image
  *   3. Wikimedia — encyclopedia photos as supplement
  *   4. Local fallback — always succeeds
+ *
+ * @param options.variant — 0–29; maps to API page 1–10 so same city fallback queries get different photos per activity
  */
-export async function getGalleryImages(query: string, count: number = 4, excludeUrls?: string[]): Promise<string[]> {
-    const cacheKey = `gallery:${query.toLowerCase().trim()}:${count}`
+export async function getGalleryImages(
+    query: string,
+    count: number = 4,
+    excludeUrls?: string[],
+    options?: { variant?: number }
+): Promise<string[]> {
+    const variantIndex = Math.min(29, Math.max(0, options?.variant ?? 0))
+    const page = 1 + (variantIndex % 10)
+    const cacheKey = `gallery:${query.toLowerCase().trim()}:${count}:v${variantIndex}`
 
     // Build exclusion set for fast lookup
     const excluded = excludeUrls && excludeUrls.length > 0 ? new Set(excludeUrls) : null
@@ -454,9 +463,9 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
 
         // 1. Unsplash + Pexels + Pixabay in parallel (fastest path, covers most queries)
         const [unsplashUrls, pexelsUrls, pixabayUrls] = await Promise.all([
-            searchUnsplash(translatedQuery, count),
-            searchPexels(translatedQuery, count),
-            searchPixabay(translatedQuery, count),
+            searchUnsplash(translatedQuery, count, page),
+            searchPexels(translatedQuery, count, page),
+            searchPixabay(translatedQuery, count, page),
         ])
         addUrls(unsplashUrls)
         addUrls(pexelsUrls)
@@ -476,9 +485,9 @@ export async function getGalleryImages(query: string, count: number = 4, exclude
                 // Last 2 words are typically city/country — try them alone
                 const simpleQuery = words.slice(-2).join(" ")
                 const [u2, p2, px2] = await Promise.all([
-                    searchUnsplash(simpleQuery, count),
-                    searchPexels(simpleQuery, count),
-                    searchPixabay(simpleQuery, count),
+                    searchUnsplash(simpleQuery, count, page),
+                    searchPexels(simpleQuery, count, page),
+                    searchPixabay(simpleQuery, count, page),
                 ])
                 addUrls(u2); addUrls(p2); addUrls(px2)
                 if (finalUrls.length < count) {

@@ -63,7 +63,8 @@
       "Skill(update-config)",
       "mcp__supabase__get_advisors",
       "mcp__supabase__execute_sql",
-      "mcp__supabase__list_projects"
+      "mcp__supabase__list_projects",
+      "Bash(git checkout:*)"
     ]
   }
 }

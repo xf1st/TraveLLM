@@ -10,6 +10,8 @@ import { needsProxyImage } from "@/lib/image-utils"
 interface PlaceGalleryProps {
     query: string
     count?: number
+    /** 0–29: different API page per activity so shared city/fallback queries are not identical */
+    variant?: number
     showProviderBadge?: boolean
     displayTitle?: string
 }
@@ -67,8 +69,9 @@ export function clearTripGalleryCache() {
     galleryClientCache.clear()
 }
 
-export function PlaceGallery({ query, count = 4, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
-    const cacheKey = `${query}:${count}`
+export function PlaceGallery({ query, count = 4, variant = 0, showProviderBadge = false, displayTitle }: PlaceGalleryProps) {
+    const safeVariant = Math.min(29, Math.max(0, variant))
+    const cacheKey = `${query}:${count}:v${safeVariant}`
     const [images, setImages] = useState<string[]>(() => galleryClientCache.get(cacheKey) ?? [])
     const [loading, setLoading] = useState(() => !galleryClientCache.has(cacheKey))
     const [activeIndex, setActiveIndex] = useState(0)
@@ -84,22 +87,45 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
     }, [isPreviewOpen])
 
     useEffect(() => {
-        const key = `${query}:${count}`
+        const key = `${query}:${count}:v${safeVariant}`
         if (galleryClientCache.has(key)) return // already cached, skip fetch
 
         const fetchImages = async () => {
             setLoading(true)
             try {
-                // Request extra images so we can filter out cross-activity duplicates client-side
-                // (avoids URL length explosion from passing exclude URLs as query param)
                 const requestCount = count + Math.min(tripUsedUrls.size, count * 2)
-                const res = await fetch(`/api/gallery?query=${encodeURIComponent(query)}&count=${requestCount}`)
-                const data = await res.json()
-                if (data.images && data.images.length > 0) {
-                    // Client-side dedup: prefer images not yet shown in this trip
-                    const fresh = data.images.filter((u: string) => !tripUsedUrls.has(u))
-                    const finalImages = (fresh.length >= count ? fresh : data.images).slice(0, count)
-                    // Register in trip-wide set
+                const base = `/api/gallery?query=${encodeURIComponent(query)}&count=${requestCount}&variant=`
+
+                const load = async (v: number) => {
+                    const res = await fetch(`${base}${v}`)
+                    return res.json() as Promise<{ images?: string[] }>
+                }
+
+                let data = await load(safeVariant)
+                let pool = data.images ?? []
+                let fresh = pool.filter((u: string) => !tripUsedUrls.has(u))
+
+                if (safeVariant < 29) {
+                    if (fresh.length === 0 && pool.length > 0) {
+                        data = await load(safeVariant + 1)
+                        pool = data.images ?? []
+                        fresh = pool.filter((u: string) => !tripUsedUrls.has(u))
+                    } else if (pool.length === 0) {
+                        data = await load(safeVariant + 1)
+                        pool = data.images ?? []
+                        fresh = pool.filter((u: string) => !tripUsedUrls.has(u))
+                    }
+                }
+
+                let finalImages: string[] = []
+                if (fresh.length >= count) finalImages = fresh.slice(0, count)
+                else if (fresh.length > 0) finalImages = fresh
+                else if (pool.length > 0) {
+                    // No unseen URLs left (rare); avoid repeating the same block as siblings
+                    finalImages = []
+                }
+
+                if (finalImages.length > 0) {
                     for (const url of finalImages) tripUsedUrls.add(url)
                     galleryClientCache.set(key, finalImages)
                     setImages(finalImages)
@@ -111,7 +137,7 @@ export function PlaceGallery({ query, count = 4, showProviderBadge = false, disp
             }
         }
         fetchImages()
-    }, [query, count])
+    }, [query, count, safeVariant])
 
     if (loading) {
         return (

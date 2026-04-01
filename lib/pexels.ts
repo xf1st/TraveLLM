@@ -22,14 +22,15 @@ if (typeof window === "undefined" && httpProxy) {
  * Returns array of image URLs (large size, ~940px wide).
  * Returns [] on failure or missing key — caller falls through to next provider.
  */
-export async function searchPexels(query: string, count: number = 4): Promise<string[]> {
+export async function searchPexels(query: string, count: number = 4, page: number = 1): Promise<string[]> {
     if (!PEXELS_API_KEY) return []
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 4000)
 
     try {
-        const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${Math.min(count, 15)}&orientation=landscape`
+        const safePage = Math.min(Math.max(1, page), 100)
+        const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${Math.min(count, 15)}&orientation=landscape&page=${safePage}`
         
         const fetchOptions: any = {
             headers: { Authorization: PEXELS_API_KEY },

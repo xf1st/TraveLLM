@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1774870993825,
+  "lastScanned": 1774983314549,
   "projectRoot": "D:\\sites\\TraveLLM",
   "techStack": {
     "languages": [
@@ -84,7 +84,7 @@
       "path": "app",
       "purpose": "Application code",
       "fileCount": 9,
-      "lastAccessed": 1774870993737,
+      "lastAccessed": 1774983314483,
       "keyFiles": [
         "globals.css",
         "layout.tsx",
@@ -97,7 +97,7 @@
       "path": "components",
       "purpose": "UI components",
       "fileCount": 47,
-      "lastAccessed": 1774870993744,
+      "lastAccessed": 1774983314484,
       "keyFiles": [
         "Achievements.tsx",
         "app-layout.tsx",
@@ -110,7 +110,7 @@
       "path": "conductor",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774870993768,
+      "lastAccessed": 1774983314499,
       "keyFiles": [
         "profile-redesign-phase4.md"
       ]
@@ -119,7 +119,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 5,
-      "lastAccessed": 1774870993769,
+      "lastAccessed": 1774983314501,
       "keyFiles": [
         "ADMIN_SETUP.md",
         "getting-started.md",
@@ -132,14 +132,14 @@
       "path": "DsitesTraveLLM",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1774870993771,
+      "lastAccessed": 1774983314501,
       "keyFiles": []
     },
     "i18n": {
       "path": "i18n",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774870993775,
+      "lastAccessed": 1774983314502,
       "keyFiles": [
         "request.ts"
       ]
@@ -148,7 +148,7 @@
       "path": "lib",
       "purpose": "Library code",
       "fileCount": 55,
-      "lastAccessed": 1774870993776,
+      "lastAccessed": 1774983314502,
       "keyFiles": [
         "admin-auth.ts",
         "admin-stats.ts",
@@ -161,7 +161,7 @@
       "path": "messages",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774870993776,
+      "lastAccessed": 1774983314502,
       "keyFiles": [
         "en.json",
         "ru.json"
@@ -171,7 +171,7 @@
       "path": "Obsidian",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774870993779,
+      "lastAccessed": 1774983314503,
       "keyFiles": [
         "travellm.md"
       ]
@@ -180,7 +180,7 @@
       "path": "public",
       "purpose": "Public files",
       "fileCount": 33,
-      "lastAccessed": 1774870993785,
+      "lastAccessed": 1774983314504,
       "keyFiles": [
         "airplane-in-flight.png",
         "apple-icon.png",
@@ -193,7 +193,7 @@
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 9,
-      "lastAccessed": 1774870993792,
+      "lastAccessed": 1774983314504,
       "keyFiles": [
         "check-domain.js",
         "check_bots.js",
@@ -206,7 +206,7 @@
       "path": "styles",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774870993797,
+      "lastAccessed": 1774983314504,
       "keyFiles": [
         "globals.css"
       ]
@@ -215,14 +215,14 @@
       "path": "supabase",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1774870993798,
+      "lastAccessed": 1774983314505,
       "keyFiles": []
     },
     "TraveLLMux": {
       "path": "TraveLLMux",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774870993801,
+      "lastAccessed": 1774983314506,
       "keyFiles": [
         "logo.png",
         "logo2.svg"
@@ -232,7 +232,7 @@
       "path": "types",
       "purpose": "Type definitions",
       "fileCount": 2,
-      "lastAccessed": 1774870993802,
+      "lastAccessed": 1774983314506,
       "keyFiles": [
         "database.types.ts",
         "itinerary.ts"
@@ -242,7 +242,7 @@
       "path": "app\\api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1774870993809,
+      "lastAccessed": 1774983314507,
       "keyFiles": [
         "route.ts"
       ]
@@ -251,7 +251,7 @@
       "path": "lib\\api",
       "purpose": "API routes",
       "fileCount": 7,
-      "lastAccessed": 1774870993813,
+      "lastAccessed": 1774983314510,
       "keyFiles": [
         "aerodatabox-client.ts",
         "airport-validator.ts",
@@ -261,8 +261,8 @@
     "supabase\\migrations": {
       "path": "supabase\\migrations",
       "purpose": "Database migrations",
-      "fileCount": 17,
-      "lastAccessed": 1774870993821,
+      "fileCount": 18,
+      "lastAccessed": 1774983314512,
       "keyFiles": [
         "20250324120000_discovery_reels_unsplash_and_feed.sql",
         "20250324140000_app_settings_admin_columns.sql",
@@ -272,123 +272,45 @@
   },
   "hotPaths": [
     {
-      "path": "app\\admin\\feedback\\page.tsx",
-      "accessCount": 16,
-      "lastAccessed": 1774937901983,
-      "type": "file"
-    },
-    {
-      "path": "app\\trip\\[id]\\page.tsx",
+      "path": "app\\admin\\images\\page.tsx",
       "accessCount": 12,
-      "lastAccessed": 1774910117190,
+      "lastAccessed": 1775032511210,
       "type": "file"
     },
     {
-      "path": "app\\admin\\trips\\page.tsx",
-      "accessCount": 7,
-      "lastAccessed": 1774937548262,
-      "type": "file"
-    },
-    {
-      "path": "lib\\supabase.ts",
+      "path": "components\\PlaceGallery.tsx",
       "accessCount": 4,
-      "lastAccessed": 1774905723343,
-      "type": "directory"
-    },
-    {
-      "path": "app\\api\\admin\\reels\\batch\\route.ts",
-      "accessCount": 4,
-      "lastAccessed": 1774937477577,
+      "lastAccessed": 1774985847282,
       "type": "file"
     },
     {
-      "path": "app\\admin\\users\\page.tsx",
-      "accessCount": 4,
-      "lastAccessed": 1774937520088,
-      "type": "file"
-    },
-    {
-      "path": "app\\auth\\callback\\route.ts",
+      "path": "lib\\images.ts",
       "accessCount": 3,
-      "lastAccessed": 1774906047369,
+      "lastAccessed": 1774985807658,
       "type": "file"
     },
     {
-      "path": "app\\api\\trip-feedback\\route.ts",
-      "accessCount": 3,
-      "lastAccessed": 1774922464534,
-      "type": "file"
-    },
-    {
-      "path": "proxy.ts",
+      "path": "lib\\unsplash.ts",
       "accessCount": 2,
-      "lastAccessed": 1774922387520,
+      "lastAccessed": 1774985161509,
       "type": "file"
     },
     {
-      "path": "lib\\reel-generation.ts",
+      "path": "lib\\pexels.ts",
       "accessCount": 2,
-      "lastAccessed": 1774937410102,
+      "lastAccessed": 1774985168026,
       "type": "file"
     },
     {
-      "path": "components\\admin\\AdminSidebar.tsx",
+      "path": "lib\\pixabay.ts",
       "accessCount": 2,
-      "lastAccessed": 1774939886209,
+      "lastAccessed": 1774985785629,
       "type": "file"
     },
     {
-      "path": "app\\admin\\layout.tsx",
-      "accessCount": 2,
-      "lastAccessed": 1774939899950,
-      "type": "file"
-    },
-    {
-      "path": "app\\api\\auth\\[provider]\\route.ts",
+      "path": "app\\api\\gallery\\route.ts",
       "accessCount": 1,
-      "lastAccessed": 1774905670027,
-      "type": "file"
-    },
-    {
-      "path": "app\\api\\auth\\callback\\[provider]\\route.ts",
-      "accessCount": 1,
-      "lastAccessed": 1774905670541,
-      "type": "file"
-    },
-    {
-      "path": "app\\auth\\page.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1774905690772,
-      "type": "file"
-    },
-    {
-      "path": "components\\travel\\TripFeedbackDialog.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1774909863613,
-      "type": "file"
-    },
-    {
-      "path": "supabase\\migrations\\add_trip_feedback.sql",
-      "accessCount": 1,
-      "lastAccessed": 1774909998467,
-      "type": "file"
-    },
-    {
-      "path": "lib\\server\\user-access.ts",
-      "accessCount": 1,
-      "lastAccessed": 1774910748203,
-      "type": "file"
-    },
-    {
-      "path": "app\\api\\admin\\trip-feedback\\route.ts",
-      "accessCount": 1,
-      "lastAccessed": 1774937886262,
-      "type": "file"
-    },
-    {
-      "path": "components\\admin\\AdminHeader.tsx",
-      "accessCount": 1,
-      "lastAccessed": 1774939861404,
+      "lastAccessed": 1774984656972,
       "type": "file"
     }
   ],

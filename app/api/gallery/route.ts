@@ -42,6 +42,9 @@ export async function GET(req: NextRequest) {
     // Cap count to prevent abusive bulk image fetches
     const count = Math.min(Math.max(1, parseInt(searchParams.get("count") || "4")), 12);
 
+    const variantRaw = parseInt(searchParams.get("variant") || "0", 10);
+    const variant = Number.isFinite(variantRaw) ? Math.min(29, Math.max(0, variantRaw)) : 0;
+
     // Limit exclude list size
     const excludeParam = (searchParams.get("exclude") || "").slice(0, 4000)
     const excludeUrls = excludeParam ? excludeParam.split(",").filter(Boolean).slice(0, 50) : []
@@ -49,7 +52,12 @@ export async function GET(req: NextRequest) {
     const query = sanitizeQuery(rawQuery)
 
     try {
-        const images = await getGalleryImages(query, count, excludeUrls.length > 0 ? excludeUrls : undefined);
+        const images = await getGalleryImages(
+            query,
+            count,
+            excludeUrls.length > 0 ? excludeUrls : undefined,
+            { variant }
+        );
         return NextResponse.json({ images }, {
             headers: { "Cache-Control": "public, max-age=86400, s-maxage=604800" }
         });

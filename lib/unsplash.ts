@@ -23,14 +23,15 @@ if (typeof window === "undefined" && httpProxy) {
  * Returns array of image URLs (regular size, 1080px wide).
  * Returns [] on failure or missing key — caller falls through to next provider.
  */
-export async function searchUnsplash(query: string, count: number = 1): Promise<string[]> {
+export async function searchUnsplash(query: string, count: number = 1, page: number = 1): Promise<string[]> {
     if (!UNSPLASH_ACCESS_KEY) return []
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 4000)
 
     try {
-        const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${Math.min(count, 10)}&orientation=landscape`
+        const safePage = Math.min(Math.max(1, page), 100)
+        const url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${Math.min(count, 10)}&orientation=landscape&page=${safePage}`
         
         const fetchOptions: any = {
             headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` },

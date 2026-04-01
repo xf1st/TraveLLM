@@ -1,7 +1,0 @@
-{
-  "tool_name": "mcp__stitch__get_screen",
-  "tool_input_preview": "{\"name\":\"projects/4530503185124721119/screens/asset-stub-assets-c2a872f474804b10a12ac1e77aee9237-1774939308294\",\"projectId\":\"4530503185124721119\",\"screenId\":\"asset-stub-assets-c2a872f474804b10a12ac1e7...",
-  "error": "Requested entity was not found.",
-  "timestamp": "2026-03-31T06:49:54.682Z",
-  "retry_count": 1
-}

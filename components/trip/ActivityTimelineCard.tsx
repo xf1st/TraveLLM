@@ -404,6 +404,8 @@ interface ActivityTimelineCardProps {
   activity: Activity
   destination: string
   dayNumber: number
+  /** Index within the day's activity list — used to diversify PlaceGallery results */
+  activityIndex: number
   bookingMarket?: BookingMarket
   onGenerateExtraActivity?: (dayNumber: number) => void
   onGenerateInline?: (dayNumber: number, prompt: string) => Promise<{ reply: string; success: boolean }>
@@ -415,12 +417,14 @@ export function ActivityTimelineCard({
   activity,
   destination,
   dayNumber,
+  activityIndex,
   bookingMarket = "ru",
   onGenerateExtraActivity,
   onGenerateInline,
   onRequestModifyInChat,
   isGeneratingExtra = false,
 }: ActivityTimelineCardProps) {
+  const galleryVariant = (dayNumber * 31 + activityIndex) % 30
   const t = useTranslations('activity')
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isInlineOpen, setIsInlineOpen] = useState(false)
@@ -645,6 +649,7 @@ export function ActivityTimelineCard({
                 query={buildGalleryQuery(activity, destination)}
                 displayTitle={activity.title || activity.placeName}
                 count={theme === "hotel" ? 2 : 3}
+                variant={galleryVariant}
                 showProviderBadge={process.env.NODE_ENV === "development"}
               />
             </div>

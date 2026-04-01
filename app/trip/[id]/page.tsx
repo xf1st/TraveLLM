@@ -1034,20 +1034,22 @@ export default function TripDetailPage() {
               Mobile: clamp top so text never sits under the floating header (safe area + bar + gap). */}
           <div
             className={cn(
-              "absolute z-30 left-3 right-3 sm:left-8 sm:right-8 flex gap-2 sm:gap-4 md:gap-6",
+              "absolute z-30 left-3 right-3 sm:left-8 sm:right-8 flex gap-2 sm:gap-4 md:gap-3 lg:gap-4",
               /* Mobile: start below floating header so title isn’t clipped; scroll if needed */
               "flex-col max-md:top-0 max-md:justify-start max-md:items-stretch",
-              "max-md:pt-[calc(env(safe-area-inset-top,0px)+6.5rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:[scrollbar-width:thin]",
+              "max-md:pt-[calc(env(safe-area-inset-top,0px)+8.25rem)] max-md:overflow-y-auto max-md:overscroll-contain max-md:[scrollbar-width:thin]",
+              /* Desktop: band between header + gap and hero bottom so long titles don’t sit under the glass bar */
+              "md:top-[calc(env(safe-area-inset-top,0px)+7rem)] md:bottom-6 lg:top-[calc(env(safe-area-inset-top,0px)+7.25rem)] lg:bottom-12",
               "md:flex-row md:justify-between md:items-end",
-              "bottom-6 sm:bottom-12 max-md:pb-3",
+              "max-md:bottom-6 max-md:pb-3",
             )}
           >
-            <div className="max-w-3xl w-full min-w-0">
-              {/* Star Rating & Completed Status */}
+            <div className="w-full min-w-0 max-w-3xl md:flex-1 md:max-w-none md:pr-1 lg:pr-2">
+              {/* Safety score & completed status */}
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 {route.safetyInfo?.rating && (
                   <span className="whitespace-nowrap px-3 py-1.5 bg-emerald-500/20 text-emerald-300 backdrop-blur-md text-xs font-bold rounded-full border border-emerald-500/30 flex items-center gap-1 shadow-sm">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                    <Shield className="w-3.5 h-3.5 shrink-0 text-emerald-200" strokeWidth={2.25} aria-hidden />
                     {route.safetyInfo.rating}/10
                   </span>
                 )}
@@ -1355,6 +1357,7 @@ export default function TripDetailPage() {
                         activity={activity}
                         destination={currentDayDestination}
                         dayNumber={activeDay}
+                        activityIndex={i}
                         bookingMarket={bookingMarket}
                         onGenerateExtraActivity={handleGenerateExtraActivity}
                         onGenerateInline={handleGenerateInline}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { appToast as toast } from "@/components/ui/sonner"
 
 const PRESET_QUERIES = [
@@ -121,6 +121,7 @@ function ImageCard({ img, index, query }: { img: ImageResult; index: number; que
         <img
           src={currentSrc}
           alt={`Image ${index + 1}`}
+          loading="lazy"
           className={`w-full h-full object-cover transition-opacity duration-300 ${status === "ok" ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setStatus("ok")}
           onError={handleError}
@@ -153,6 +154,22 @@ export default function AdminImagesPage() {
   const [selectedCacheKeys, setSelectedCacheKeys] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
   const [brokenKeys, setBrokenKeys] = useState<Set<string>>(new Set())
+  const [visibleCount, setVisibleCount] = useState(12)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Reset visible count when cache entries reload
+  useEffect(() => { setVisibleCount(12) }, [cacheEntries.length])
+
+  // Intersection observer — load 12 more cards when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(n => n + 12)
+    }, { rootMargin: "200px" })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [cacheEntries.length])
 
   const fetchCache = useCallback(async () => {
     setLoadingCache(true)
@@ -349,8 +366,9 @@ export default function AdminImagesPage() {
             ) : cacheEntries.length === 0 ? (
               <div className="py-20 text-center text-zinc-500">Кэш пуст</div>
             ) : (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {cacheEntries.map((entry) => {
+                {cacheEntries.slice(0, visibleCount).map((entry) => {
                   const isSelected = selectedCacheKeys.has(entry.query);
                   const isBroken = brokenKeys.has(entry.query);
                   return (
@@ -387,20 +405,22 @@ export default function AdminImagesPage() {
                     <div className="flex-1 p-3 flex flex-wrap gap-2 overflow-auto max-h-60" onClick={() => toggleSelect(entry.query)}>
                       {entry.image_url && (
                         <div className="w-full aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 cursor-pointer relative">
-                          <img 
-                              src={entry.image_url} 
-                              alt="hero" 
-                              className="w-full h-full object-cover" 
+                          <img
+                              src={entry.image_url}
+                              alt="hero"
+                              loading="lazy"
+                              className="w-full h-full object-cover"
                               onError={() => markBroken(entry.query)}
                           />
                         </div>
                       )}
                       {entry.gallery_urls && entry.gallery_urls.map((u: string, i: number) => (
                         <div key={i} className="w-[45%] aspect-square rounded overflow-hidden bg-black flex-shrink-0 relative">
-                          <img 
-                              src={u} 
-                              alt={`gallery-${i}`} 
-                              className="w-full h-full object-cover" 
+                          <img
+                              src={u}
+                              alt={`gallery-${i}`}
+                              loading="lazy"
+                              className="w-full h-full object-cover"
                               onError={() => markBroken(entry.query)}
                           />
                         </div>
@@ -414,6 +434,12 @@ export default function AdminImagesPage() {
                   );
                 })}
               </div>
+              {visibleCount < cacheEntries.length && (
+                <div ref={sentinelRef} className="py-6 text-center text-zinc-600 text-sm animate-pulse">
+                  Загрузка ещё… ({visibleCount} / {cacheEntries.length})
+                </div>
+              )}
+              </>
             )}
           </div>
         ) : (

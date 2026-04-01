@@ -23,14 +23,15 @@ if (typeof window === "undefined" && httpProxy) {
  * Returns array of image URLs (large size, ~1280px wide).
  * Returns [] on failure or missing key — caller falls through to next provider.
  */
-export async function searchPixabay(query: string, count: number = 4): Promise<string[]> {
+export async function searchPixabay(query: string, count: number = 4, page: number = 1): Promise<string[]> {
     if (!PIXABAY_API_KEY) return []
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 4000)
 
     try {
-        const url = `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=${Math.min(count, 20)}&safesearch=true`
+        const safePage = Math.min(Math.max(1, page), 100)
+        const url = `https://pixabay.com/api/?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=${Math.min(count, 20)}&safesearch=true&page=${safePage}`
 
         const fetchOptions: any = {
             signal: controller.signal,
