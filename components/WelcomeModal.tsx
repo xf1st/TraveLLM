@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
@@ -42,7 +43,7 @@ function PrimaryButton({ onClick, children }: { onClick: () => void; children: R
   return (
     <button
       onClick={onClick}
-      className="flex h-[50px] w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold text-white transition-all duration-200"
+      className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl text-base font-bold text-white transition-all duration-200 px-2"
       style={{ background: "linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)", boxShadow: "0 4px 24px rgba(99,102,241,0.4)" }}
       onMouseEnter={e => {
         e.currentTarget.style.transform = "translateY(-1px)"
@@ -101,7 +102,10 @@ export function WelcomeModal() {
             exit={{ scale: 0.95, opacity: 0, y: 12 }}
             transition={{ type: "spring", damping: 24, stiffness: 300, mass: 0.8 }}
             onClick={e => e.stopPropagation()}
-            className="relative w-full max-w-[520px] overflow-hidden rounded-[2rem] shadow-md md:shadow-2xl"
+            className={cn(
+              "relative w-full overflow-hidden rounded-[2rem] shadow-md md:shadow-2xl",
+              step === 2 ? "max-w-[min(96vw,720px)]" : "max-w-[min(94vw,560px)]"
+            )}
             style={{
               background: "linear-gradient(160deg, #0f1117 0%, #161b2e 50%, #0f1117 100%)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -248,32 +252,32 @@ export function WelcomeModal() {
               {/* STEP 2 — FEATURES + FREE */}
               {step === 2 && (
                 <motion.div key="s2" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}
-                  className="px-6 pb-7 pt-8">
-                  <div className="mb-4 text-center">
-                    <h2 className="text-xl font-black tracking-tight"
+                  className="px-6 pb-8 pt-8 sm:px-8 sm:pb-9">
+                  <div className="mb-5 text-center">
+                    <h2 className="text-2xl font-black tracking-tight sm:text-[1.65rem]"
                       style={{ background: "linear-gradient(135deg, #fff 30%, #a5b4fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                       {t("whatElse")}
                     </h2>
-                    <p className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    <p className="mt-2 text-sm leading-snug" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {t("allInOne")}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 mb-5">
                     {FEATURE_ICONS.map((Icon, i) => {
                       const fKey = String(i) as "0" | "1" | "2" | "3" | "4" | "5"
                       const color = FEATURE_COLORS[i]
                       return (
                         <motion.div key={i}
                           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                          className="flex flex-col items-center rounded-xl p-3 text-center"
+                          className="flex flex-col items-center rounded-xl p-3.5 text-center sm:p-4"
                           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg"
+                          <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl"
                             style={{ background: `${color}22` }}>
-                            <Icon className="h-4 w-4" style={{ color }} />
+                            <Icon className="h-5 w-5" style={{ color }} />
                           </div>
-                          <div className="text-xs font-bold text-white leading-tight mb-1">{t(`features.${fKey}.title`)}</div>
-                          <div className="text-[11px] leading-snug" style={{ color: "rgba(255,255,255,0.45)" }}>{t(`features.${fKey}.desc`)}</div>
+                          <div className="text-sm font-bold text-white leading-tight mb-1.5">{t(`features.${fKey}.title`)}</div>
+                          <div className="text-sm leading-snug" style={{ color: "rgba(255,255,255,0.45)" }}>{t(`features.${fKey}.desc`)}</div>
                         </motion.div>
                       )
                     })}
@@ -281,17 +285,17 @@ export function WelcomeModal() {
 
                   {/* Free tier callout */}
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                    className="mb-4 rounded-2xl p-4"
+                    className="mb-5 rounded-2xl p-4 sm:p-5"
                     style={{ background: "linear-gradient(135deg, rgba(133,173,255,0.1) 0%, rgba(172,137,255,0.06) 100%)", border: "1px solid rgba(133,173,255,0.22)" }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Gift className="h-4 w-4" style={{ color: "#85adff" }} />
-                      <span className="text-sm font-bold" style={{ color: "#85adff" }}>{t("freeTierTitle")}</span>
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <Gift className="h-5 w-5 flex-shrink-0" style={{ color: "#85adff" }} />
+                      <span className="text-base font-bold" style={{ color: "#85adff" }}>{t("freeTierTitle")}</span>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                       {(["generations", "access", "save", "links"] as const).map(key => (
-                        <div key={key} className="flex items-center gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#85adff" }} />
-                          <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{t(`freeTier.${key}`)}</span>
+                        <div key={key} className="flex items-start gap-2.5">
+                          <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#85adff" }} />
+                          <span className="text-sm leading-snug" style={{ color: "rgba(255,255,255,0.65)" }}>{t(`freeTier.${key}`)}</span>
                         </div>
                       ))}
                     </div>
