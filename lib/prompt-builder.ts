@@ -27,8 +27,8 @@ function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): strin
         return `
 7. TP.MEDIA DEEP LINKS (RU stack — required for partners below; NO bare homepages):
 SCOPE: Apply this section **only** to activities and hotel nights **in Russia (RF)**. For places outside Russia use global partners (§0, §5–§6) — do NOT invent tripster.ru or sputnik8.com paths for foreign cities.
-Wrap the **full target URL** on the partner site in:
-https://tp.media/r?marker=${marker || "YOUR_MARKER"}&p=PROGRAM_ID&u=ENCODEURIComponent(TARGET_HTTPS_URL)&tr_id=${trId}
+Build a **single valid URL string**: start from \`https://tp.media/r?marker=${marker || "YOUR_MARKER"}&p=\` + **numeric program id** from the list below + \`&u=\` + **percent-encoded** target (use real encoding, never the words ENCODEURIComponent or PROGRAM_ID in the output).
+Example shape: \`...&p=1234&u=https%3A%2F%2Ftravel.yandex.ru%2Fhotels%2F...\` — never output literal \`PROGRAM_ID\`, \`ENCODEURIComponent(...)\`, or \`ID_ПРОГРАММЫ\`.
 Use real https targets: search results, city/category pages, hotel search — never only domain root for Sputnik8/Tripster.
 
 Program IDs for this project:
@@ -52,9 +52,9 @@ If a program ID is missing in .env, output the partner deep URL without tp.media
     return `
 7. ГЛУБОКИЕ ССЫЛКИ tp.media (стек travellm.ru — обязательно; не главные страницы партнёров):
 ОБЛАСТЬ: этот пункт — **только** для активностей и ночёвок **в России (РФ)**. Для зарубежных городов — глобальные партнёры (п.0, п.5–п.6); не придумывай tripster.ru / sputnik8.com для Бангкока, Парижа и т.п.
-Оборачивай **полный целевой https** на сайте партнёра (поиск, категория, город) в ссылку вида:
-https://tp.media/r?marker=${marker || "ВАШ_МАРКЕР"}&p=ID_ПРОГРАММЫ&u=ENCODEURIComponent(ЦЕЛЕВОЙ_URL)&tr_id=${trId}
-Параметр u — это encodeURIComponent от готового URL на tripster.ru, sputnik8.com, ostrovok.ru, travel.yandex.ru, kiwitaxi.ru, sutochno.ru и т.д.
+Собери **одну готовую строку URL**: \`https://tp.media/r?marker=...\` + \`&p=\` + **числовой id программы** из списка ниже + \`&u=\` + **уже закодированный** целевой https (посимвольный percent-encoding). **Запрещено** подставлять в JSON буквальный текст \`ID_ПРОГРАММЫ\`, \`ENCODEURIComponent(...)\`, \`PROGRAM_ID\` — только реальные цифры в \`p\` и реальный закодированный URL в \`u\`.
+Пример: \`...&p=1234&u=https%3A%2F%2Ftravel.yandex.ru%2Fhotels%2F...\`
+Параметр \`u\` — это только закодированный готовый URL на tripster.ru, sputnik8.com, ostrovok.ru, travel.yandex.ru, kiwitaxi.ru, sutochno.ru и т.д.
 
 ID программ (p) для этого проекта:
 - Яндекс.Путешествия (отели): ${pid("yandexTravel", "NEXT_PUBLIC_TP_P_YANDEX_TRAVEL")}

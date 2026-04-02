@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1774983314549,
+  "lastScanned": 1775113969591,
   "projectRoot": "D:\\sites\\TraveLLM",
   "techStack": {
     "languages": [
@@ -84,7 +84,7 @@
       "path": "app",
       "purpose": "Application code",
       "fileCount": 9,
-      "lastAccessed": 1774983314483,
+      "lastAccessed": 1775113969511,
       "keyFiles": [
         "globals.css",
         "layout.tsx",
@@ -97,7 +97,7 @@
       "path": "components",
       "purpose": "UI components",
       "fileCount": 47,
-      "lastAccessed": 1774983314484,
+      "lastAccessed": 1775113969512,
       "keyFiles": [
         "Achievements.tsx",
         "app-layout.tsx",
@@ -110,7 +110,7 @@
       "path": "conductor",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774983314499,
+      "lastAccessed": 1775113969531,
       "keyFiles": [
         "profile-redesign-phase4.md"
       ]
@@ -119,7 +119,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 5,
-      "lastAccessed": 1774983314501,
+      "lastAccessed": 1775113969532,
       "keyFiles": [
         "ADMIN_SETUP.md",
         "getting-started.md",
@@ -132,14 +132,14 @@
       "path": "DsitesTraveLLM",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1774983314501,
+      "lastAccessed": 1775113969548,
       "keyFiles": []
     },
     "i18n": {
       "path": "i18n",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774983314502,
+      "lastAccessed": 1775113969550,
       "keyFiles": [
         "request.ts"
       ]
@@ -147,8 +147,8 @@
     "lib": {
       "path": "lib",
       "purpose": "Library code",
-      "fileCount": 55,
-      "lastAccessed": 1774983314502,
+      "fileCount": 56,
+      "lastAccessed": 1775113969551,
       "keyFiles": [
         "admin-auth.ts",
         "admin-stats.ts",
@@ -161,7 +161,7 @@
       "path": "messages",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774983314502,
+      "lastAccessed": 1775113969555,
       "keyFiles": [
         "en.json",
         "ru.json"
@@ -171,7 +171,7 @@
       "path": "Obsidian",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774983314503,
+      "lastAccessed": 1775113969557,
       "keyFiles": [
         "travellm.md"
       ]
@@ -179,21 +179,21 @@
     "public": {
       "path": "public",
       "purpose": "Public files",
-      "fileCount": 33,
-      "lastAccessed": 1774983314504,
+      "fileCount": 34,
+      "lastAccessed": 1775113969558,
       "keyFiles": [
+        "a4b8f2e9d0c7631524ab87ef90d3c152.txt",
         "airplane-in-flight.png",
         "apple-icon.png",
         "auth-bg.jpg",
-        "auth-bg2.png",
-        "batumi-seaside-boulevard-palm-trees.jpg"
+        "auth-bg2.png"
       ]
     },
     "scripts": {
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 9,
-      "lastAccessed": 1774983314504,
+      "lastAccessed": 1775113969559,
       "keyFiles": [
         "check-domain.js",
         "check_bots.js",
@@ -206,7 +206,7 @@
       "path": "styles",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1774983314504,
+      "lastAccessed": 1775113969560,
       "keyFiles": [
         "globals.css"
       ]
@@ -215,14 +215,14 @@
       "path": "supabase",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1774983314505,
+      "lastAccessed": 1775113969562,
       "keyFiles": []
     },
     "TraveLLMux": {
       "path": "TraveLLMux",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1774983314506,
+      "lastAccessed": 1775113969565,
       "keyFiles": [
         "logo.png",
         "logo2.svg"
@@ -232,7 +232,7 @@
       "path": "types",
       "purpose": "Type definitions",
       "fileCount": 2,
-      "lastAccessed": 1774983314506,
+      "lastAccessed": 1775113969570,
       "keyFiles": [
         "database.types.ts",
         "itinerary.ts"
@@ -242,7 +242,7 @@
       "path": "app\\api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1774983314507,
+      "lastAccessed": 1775113969572,
       "keyFiles": [
         "route.ts"
       ]
@@ -251,7 +251,7 @@
       "path": "lib\\api",
       "purpose": "API routes",
       "fileCount": 7,
-      "lastAccessed": 1774983314510,
+      "lastAccessed": 1775113969577,
       "keyFiles": [
         "aerodatabox-client.ts",
         "airport-validator.ts",
@@ -262,7 +262,7 @@
       "path": "supabase\\migrations",
       "purpose": "Database migrations",
       "fileCount": 18,
-      "lastAccessed": 1774983314512,
+      "lastAccessed": 1775113969590,
       "keyFiles": [
         "20250324120000_discovery_reels_unsplash_and_feed.sql",
         "20250324140000_app_settings_admin_columns.sql",
@@ -272,22 +272,64 @@
   },
   "hotPaths": [
     {
+      "path": "",
+      "accessCount": 21,
+      "lastAccessed": 1775114366415,
+      "type": "directory"
+    },
+    {
       "path": "app\\admin\\images\\page.tsx",
-      "accessCount": 12,
-      "lastAccessed": 1775032511210,
+      "accessCount": 13,
+      "lastAccessed": 1775114336772,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\gemini\\route.ts",
+      "accessCount": 6,
+      "lastAccessed": 1775114370311,
       "type": "file"
     },
     {
       "path": "components\\PlaceGallery.tsx",
-      "accessCount": 4,
-      "lastAccessed": 1774985847282,
+      "accessCount": 5,
+      "lastAccessed": 1775114337197,
       "type": "file"
+    },
+    {
+      "path": "lib",
+      "accessCount": 4,
+      "lastAccessed": 1775114371829,
+      "type": "directory"
     },
     {
       "path": "lib\\images.ts",
       "accessCount": 3,
       "lastAccessed": 1774985807658,
       "type": "file"
+    },
+    {
+      "path": ".env.example",
+      "accessCount": 3,
+      "lastAccessed": 1775114306227,
+      "type": "file"
+    },
+    {
+      "path": "lib\\ai-usage-events.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775114343186,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\trip-assistant\\route.ts",
+      "accessCount": 3,
+      "lastAccessed": 1775114345377,
+      "type": "file"
+    },
+    {
+      "path": "app",
+      "accessCount": 3,
+      "lastAccessed": 1775114359007,
+      "type": "directory"
     },
     {
       "path": "lib\\unsplash.ts",
@@ -308,9 +350,225 @@
       "type": "file"
     },
     {
+      "path": "proxy.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775114333531,
+      "type": "file"
+    },
+    {
+      "path": "lib\\rate-limit.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775114341996,
+      "type": "file"
+    },
+    {
+      "path": "lib\\server\\user-access.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775114342456,
+      "type": "file"
+    },
+    {
+      "path": "lib\\server\\trip-for-ai.ts",
+      "accessCount": 2,
+      "lastAccessed": 1775114343041,
+      "type": "file"
+    },
+    {
+      "path": "next.config.mjs",
+      "accessCount": 2,
+      "lastAccessed": 1775114349755,
+      "type": "file"
+    },
+    {
+      "path": "components\\linkify-message.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775114350753,
+      "type": "file"
+    },
+    {
       "path": "app\\api\\gallery\\route.ts",
       "accessCount": 1,
       "lastAccessed": 1774984656972,
+      "type": "file"
+    },
+    {
+      "path": "app\\sitemap.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775041312926,
+      "type": "file"
+    },
+    {
+      "path": "app\\robots.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775041313379,
+      "type": "file"
+    },
+    {
+      "path": "public\\a4b8f2e9d0c7631524ab87ef90d3c152.txt",
+      "accessCount": 1,
+      "lastAccessed": 1775041378191,
+      "type": "file"
+    },
+    {
+      "path": "lib\\indexnow.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775041381463,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\user\\profile\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114316507,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\image\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114316794,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\guide-chat\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114318070,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\enrich-trip\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114318130,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\modify-itinerary\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114318299,
+      "type": "file"
+    },
+    {
+      "path": "app\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775114325688,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\proxy-image\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114326599,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\deepseek\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114327894,
+      "type": "file"
+    },
+    {
+      "path": "lib\\server\\user-profile-patch.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114328024,
+      "type": "file"
+    },
+    {
+      "path": "package.json",
+      "accessCount": 1,
+      "lastAccessed": 1775114328601,
+      "type": "file"
+    },
+    {
+      "path": "lib\\gemini.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114334609,
+      "type": "file"
+    },
+    {
+      "path": "lib\\deepseek.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114334903,
+      "type": "file"
+    },
+    {
+      "path": "components\\ItineraryChatWidget.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775114337832,
+      "type": "file"
+    },
+    {
+      "path": "app\\(main)\\news\\[slug]\\page.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775114340673,
+      "type": "file"
+    },
+    {
+      "path": "i18n\\request.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114343418,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\telegram\\webhook\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114348858,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\auth\\callback\\[provider]\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114349529,
+      "type": "file"
+    },
+    {
+      "path": "app\\layout.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775114354184,
+      "type": "file"
+    },
+    {
+      "path": "lib\\supabase.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114354644,
+      "type": "file"
+    },
+    {
+      "path": "lib\\hooks\\useDebouncedTripItinerarySave.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114355470,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\admin\\edit-user\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114358950,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\admin\\user-role\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114359410,
+      "type": "file"
+    },
+    {
+      "path": "app\\api\\admin\\moderate-user\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114359873,
+      "type": "file"
+    },
+    {
+      "path": "app\\api",
+      "accessCount": 1,
+      "lastAccessed": 1775114361440,
+      "type": "directory"
+    },
+    {
+      "path": "app\\api\\admin",
+      "accessCount": 1,
+      "lastAccessed": 1775114361721,
+      "type": "directory"
+    },
+    {
+      "path": "app\\api\\route.ts",
+      "accessCount": 1,
+      "lastAccessed": 1775114362067,
       "type": "file"
     }
   ],

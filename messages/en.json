@@ -485,6 +485,33 @@
       "unknownCoords": "unknown coordinates · manual order",
       "constructor": "Builder ({count})"
     },
+    "tooltips": {
+      "hub": {
+        "title": "Where from & when",
+        "body": "Set your departure city — we’ll look for flights from there. Pick exact dates: they drive ticket prices and seasonality. Returning to a different city? Toggle “Different city”."
+      },
+      "inspiration": {
+        "title": "Where to",
+        "body": "Add several cities one by one: type a name, tap Add or pick from popular — then type the next (e.g. Tokyo, then Osaka). You can’t enter “Tokyo; Osaka” in one go. Not sure where to go? Tap “Surprise me” for an offbeat pick."
+      },
+      "routeConstructor": {
+        "title": "Route builder",
+        "body": "With 2+ cities you’ll see “Builder”. Drag cities to reorder, assign days per city manually or leave “AI” to distribute days. “Auto-optimize” sorts cities geographically from your departure."
+      },
+      "budget": {
+        "title": "Budget & interests",
+        "body": "Pick a comfort level or a total trip budget. Below, tag what excites you — the AI weaves it into each day."
+      },
+      "highlight": {
+        "title": "Trip highlight",
+        "body": "Describe one special wish: “find the best ramen”, “sunrise on the volcano”, “catch a jazz festival”. The AI slots it as its own activity on the right day."
+      },
+      "team": {
+        "title": "Who travels",
+        "body": "Pick your travel style — the itinerary adapts: solo gets hostels & groups, families get kid-friendly stops & family rooms, couples get romantic evenings."
+      },
+      "finish": "Got it — let’s build the route"
+    },
     "actions": {
       "lucky": "Surprise me",
       "create": "Create itinerary",
@@ -1105,17 +1132,17 @@
     "tip": "Press «Create itinerary» in the sidebar or the header button — it opens the planning form.",
     "startPlanning": "Start planning",
     "steps": {
-      "0": { "step": "01", "title": "Fill the form", "desc": "Enter the country, destination, trip dates, budget and your preferences (beach, culture, food, etc.)." },
-      "1": { "step": "02", "title": "AI builds the itinerary", "desc": "In seconds the AI creates a detailed day-by-day plan with activities, hotels and restaurants." },
-      "2": { "step": "03", "title": "Edit & book", "desc": "Refine the itinerary in AI chat, view on the map, and follow ready links to Aviasales and hotel sites." }
+      "0": { "step": "01", "title": "Fill the form", "desc": "Enter country, cities, dates, budget and preferences (beach, culture, food, etc.)." },
+      "1": { "step": "02", "title": "AI builds the itinerary", "desc": "In seconds the AI builds a day-by-day plan: activities, dining and hotels matched to your stay and overnight stops in each city." },
+      "2": { "step": "03", "title": "Edit & book", "desc": "Refine the plan in AI chat and use ready links to Aviasales, hotel partners and other partner services." }
     },
     "features": {
-      "0": { "title": "AI Generation", "desc": "Itineraries from Gemini & DeepSeek" },
-      "1": { "title": "Maps", "desc": "All route points on the map" },
+      "0": { "title": "AI generation", "desc": "Gemini & DeepSeek — routes and hotels for your cities" },
+      "1": { "title": "Partner services", "desc": "Flights, hotels and tools via trusted partners" },
       "2": { "title": "Mini-chat", "desc": "Edit the plan via AI dialogue" },
       "3": { "title": "Service links", "desc": "Aviasales, Hotels and more" },
       "4": { "title": "Trip history", "desc": "All itineraries saved in profile" },
-      "5": { "title": "Viral Spots", "desc": "TikTok trends & hyped places" }
+      "5": { "title": "Viral Spots", "desc": "Reels-style clips of trending spots & TikTok hype" }
     }
   },
   "flight": {

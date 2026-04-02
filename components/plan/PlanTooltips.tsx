@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useTranslations } from "next-intl"
 import { X, ArrowRight, ChevronLeft, MapPin, Globe, Wallet, Sparkles, Users, Route } from "lucide-react"
 
 /* ── Storage helpers ── single stable key, no userId dependency ── */
@@ -14,64 +15,29 @@ function setSeen() {
   try { localStorage.setItem(SEEN_KEY, "1") } catch {}
 }
 
-/* ── Hint definitions ── */
 const HINTS = [
-  {
-    id: "hub",
-    icon: MapPin,
-    color: "#60a5fa",
-    title: "Откуда летим и когда",
-    body: "Укажи город отправления — AI найдёт перелёты именно оттуда. Выбери точные даты: это важно для цен на авиабилеты и сезонности мест. Если возвращаешься в другой город — включи переключатель «В другой город».",
-  },
-  {
-    id: "inspiration",
-    icon: Globe,
-    color: "#34d399",
-    title: "Куда едем",
-    body: "Можно выбрать несколько направлений — нажми на популярные города или введи вручную через «; » (например: Токио; Киото; Осака). Не знаешь куда? Жми «Повезёт» — AI подберёт нестандартное направление.",
-  },
-  {
-    id: "route-constructor",
-    icon: Route,
-    color: "#34d399",
-    title: "Конструктор маршрута",
-    body: "Добавь 2+ города и появится кнопка «Конструктор». В нём можно перетащить города в нужном порядке, назначить дни для каждого города вручную или оставить «AI» — тогда AI сам распределит дни. Кнопка «Оптимизировать автоматически» упорядочит города по географии от твоего города отправления.",
-  },
-  {
-    id: "budget",
-    icon: Wallet,
-    color: "#fbbf24",
-    title: "Бюджет и интересы",
-    body: "Выбери уровень комфорта или укажи точную сумму на всю поездку. Ниже — отметь активности которые тебя зажигают: AI встроит их в каждый день маршрута.",
-  },
-  {
-    id: "highlight",
-    icon: Sparkles,
-    color: "#c084fc",
-    title: "Изюминка поездки",
-    body: "Опиши одну особую мечту для этой поездки: «найти лучший рамен», «посмотреть рассвет на вулкане», «попасть на джазовый фестиваль». AI вплетёт её в маршрут как отдельную активность в нужный день.",
-  },
-  {
-    id: "team",
-    icon: Users,
-    color: "#f472b6",
-    title: "С кем летим",
-    body: "Выбери тип компании — маршрут будет адаптирован под неё: соло-путешественникам AI предложит хостелы и группы, семьям — детские активности и family-rooms, паре — романтические ужины.",
-  },
-]
+  { id: "hub", icon: MapPin, color: "#60a5fa" },
+  { id: "inspiration", icon: Globe, color: "#34d399" },
+  { id: "routeConstructor", icon: Route, color: "#34d399" },
+  { id: "budget", icon: Wallet, color: "#fbbf24" },
+  { id: "highlight", icon: Sparkles, color: "#c084fc" },
+  { id: "team", icon: Users, color: "#f472b6" },
+] as const
 
 interface Props {
   forceShow?: boolean
 }
 
 export function PlanTooltips({ forceShow }: Props) {
+  const t = useTranslations("plan.tooltips")
+  const tc = useTranslations("common")
   const [visible, setVisible] = useState(false)
   const [step, setStep] = useState(0)
 
   useEffect(() => {
     if (forceShow || !getSeen()) {
-      const t = setTimeout(() => setVisible(true), 900)
-      return () => clearTimeout(t)
+      const timer = setTimeout(() => setVisible(true), 900)
+      return () => clearTimeout(timer)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
@@ -91,6 +57,8 @@ export function PlanTooltips({ forceShow }: Props) {
   const hint = HINTS[step]
   const Icon = hint.icon
   const isLast = step === HINTS.length - 1
+  const title = t(`${hint.id}.title`)
+  const body = t(`${hint.id}.body`)
 
   return (
     <AnimatePresence>
@@ -135,7 +103,7 @@ export function PlanTooltips({ forceShow }: Props) {
                 style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.4)" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.14)"; e.currentTarget.style.color = "#fff" }}
                 onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "rgba(255,255,255,0.4)" }}
-                aria-label="Закрыть подсказки"
+                aria-label={tc("close")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -154,9 +122,9 @@ export function PlanTooltips({ forceShow }: Props) {
                   </span>
                 </div>
 
-                <h3 className="text-base font-black text-white mb-1.5 pr-6">{hint.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  {hint.body}
+                <h3 className="text-base font-black text-white mb-2 pr-6">{title}</h3>
+                <p className="text-[15px] leading-relaxed" style={{ color: "rgba(255,255,255,0.58)" }}>
+                  {body}
                 </p>
 
                 {/* Controls */}
@@ -183,7 +151,7 @@ export function PlanTooltips({ forceShow }: Props) {
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.88" }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1" }}
                   >
-                    {isLast ? "Понятно, создаём маршрут!" : <> Дальше <ArrowRight className="h-3.5 w-3.5" /></>}
+                    {isLast ? t("finish") : <>{tc("next")} <ArrowRight className="h-3.5 w-3.5" /></>}
                   </button>
                 </div>
 
@@ -192,6 +160,7 @@ export function PlanTooltips({ forceShow }: Props) {
                   {HINTS.map((_, i) => (
                     <button
                       key={i}
+                      type="button"
                       onClick={() => setStep(i)}
                       className="h-1 rounded-full transition-all duration-300"
                       style={{

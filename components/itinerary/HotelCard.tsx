@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
+import { unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
 import { useTranslations } from "next-intl"
 
 // Amenity icon mapping
@@ -139,8 +140,10 @@ export function HotelCard({
     // Calculate total price if not provided
     const calculatedTotal = totalPrice || (nights ? pricePerNight * nights : pricePerNight)
 
-    // Build booking URL
-    const buyUrl = bookingUrl || `https://travel.yandex.ru/hotels/?marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""}`
+    // Build booking URL (fix AI placeholders in tp.media / emrld redirects)
+    const buyUrl = bookingUrl
+        ? unwrapTravelpayoutsDeepLink(bookingUrl)
+        : `https://travel.yandex.ru/hotels/?marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""}`
 
     // Detect if we have real price/rating data
     const hasPriceData = pricePerNight > 0

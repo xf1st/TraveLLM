@@ -6,7 +6,7 @@ import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
-  Sparkles, Map, MessageCircle, Plane, ArrowRight, X,
+  Sparkles, Handshake, MessageCircle, Plane, ArrowRight, X,
   Zap, Star, Globe, ChevronRight, Gift, CheckCircle2,
   ClipboardList, Bot, CalendarDays,
 } from "lucide-react"
@@ -14,7 +14,7 @@ import {
 const STEP_ICONS = [ClipboardList, Bot, CalendarDays]
 const STEP_COLORS = ["#60a5fa", "#c084fc", "#34d399"]
 
-const FEATURE_ICONS = [Zap, Map, MessageCircle, Globe, Plane, Star]
+const FEATURE_ICONS = [Zap, Handshake, MessageCircle, Globe, Plane, Star]
 const FEATURE_COLORS = ["#60a5fa", "#34d399", "#c084fc", "#fbbf24", "#f87171", "#a78bfa"]
 
 /* ───────────────────────────────────────────────
@@ -194,11 +194,11 @@ export function WelcomeModal() {
                 <motion.div key="s1" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.22 }}
                   className="px-6 pb-7 pt-8">
                   <div className="mb-5 text-center">
-                    <h2 className="text-xl font-black tracking-tight"
+                    <h2 className="text-2xl font-black tracking-tight sm:text-[1.65rem]"
                       style={{ background: "linear-gradient(135deg, #fff 30%, #a5b4fc 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                       {t("howToCreate")}
                     </h2>
-                    <p className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    <p className="mt-2 text-sm leading-snug" style={{ color: "rgba(255,255,255,0.45)" }}>
                       {t("threeSteps")}
                     </p>
                   </div>
@@ -212,16 +212,16 @@ export function WelcomeModal() {
                           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.09 }}
                           className="flex items-start gap-3 rounded-2xl p-4"
                           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
                             style={{ background: `${color}22` }}>
-                            <Icon style={{ color, width: "18px", height: "18px" }} />
+                            <Icon style={{ color, width: "20px", height: "20px" }} />
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[10px] font-bold tabular-nums" style={{ color }}>{t(`steps.${stepKey}.step`)}</span>
-                              <span className="text-xs font-bold text-white">{t(`steps.${stepKey}.title`)}</span>
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                              <span className="text-xs font-bold tabular-nums" style={{ color }}>{t(`steps.${stepKey}.step`)}</span>
+                              <span className="text-sm font-bold text-white">{t(`steps.${stepKey}.title`)}</span>
                             </div>
-                            <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>{t(`steps.${stepKey}.desc`)}</p>
+                            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>{t(`steps.${stepKey}.desc`)}</p>
                           </div>
                         </motion.div>
                       )
@@ -229,10 +229,10 @@ export function WelcomeModal() {
                   </div>
 
                   {/* Quick tip */}
-                  <div className="mb-5 flex items-center gap-2 rounded-xl p-3"
+                  <div className="mb-5 flex items-start gap-2 rounded-xl p-3.5"
                     style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
-                    <ChevronRight className="h-4 w-4 flex-shrink-0" style={{ color: "#818cf8" }} />
-                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#818cf8" }} />
+                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
                       {t("tip")}
                     </p>
                   </div>
@@ -272,8 +272,8 @@ export function WelcomeModal() {
                             style={{ background: `${color}22` }}>
                             <Icon className="h-4 w-4" style={{ color }} />
                           </div>
-                          <div className="text-[11px] font-bold text-white leading-tight mb-0.5">{t(`features.${fKey}.title`)}</div>
-                          <div className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.4)" }}>{t(`features.${fKey}.desc`)}</div>
+                          <div className="text-xs font-bold text-white leading-tight mb-1">{t(`features.${fKey}.title`)}</div>
+                          <div className="text-[11px] leading-snug" style={{ color: "rgba(255,255,255,0.45)" }}>{t(`features.${fKey}.desc`)}</div>
                         </motion.div>
                       )
                     })}

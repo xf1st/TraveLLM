@@ -51,6 +51,40 @@ export function buildTpMediaDeepLink(
   return `${TP_MEDIA_BASE}?marker=${encodeURIComponent(marker)}&p=${encodeURIComponent(programId)}&u=${u}&tr_id=${encodeURIComponent(trId)}`
 }
 
+/**
+ * Если модель подставила шаблон вместо реального tp.media (p=ID_ПРОГРАММЫ, u=ENCODEURIComponent(...)),
+ * извлекаем целевой https из параметра u, чтобы пользователь всё равно попал на отель/партнёра.
+ * Поддерживаются tp.media, emrld.ltd и другие редиректы Travelpayouts с параметром u.
+ */
+export function unwrapTravelpayoutsDeepLink(url: string): string {
+    if (!url || !url.startsWith("http")) return url
+    try {
+        const parsed = new URL(url)
+        const host = parsed.hostname.replace(/^www\./, "")
+        const looksLikeTpRedirect =
+            host === "tp.media" ||
+            host === "emrld.ltd" ||
+            host.endsWith("travelpayouts.com")
+        if (!looksLikeTpRedirect) return url
+
+        const rawU = parsed.searchParams.get("u")
+        if (!rawU) return url
+
+        let inner = decodeURIComponent(rawU)
+
+        const badEncodeLiteral = /^ENCODEURIComponent\s*\(\s*(https?:\/\/[^)]+)\s*\)\s*$/i.exec(inner)
+        if (badEncodeLiteral) return badEncodeLiteral[1].trim()
+
+        if (inner.startsWith("http")) return inner
+
+        const anyHttp = inner.match(/https?:\/\/[^\s"'<>)]+/)
+        if (anyHttp) return anyHttp[0].replace(/[),;.]+$/, "")
+    } catch {
+        /* keep original */
+    }
+    return url
+}
+
 /** Для подсказок в промпте: какие p заданы в .env */
 export function getTpProgramIdsForPrompt(): Record<TpProgramKey, string> {
   return {

@@ -54,7 +54,7 @@ HOTEL:
   ✅ ПРАВИЛЬНО: "placeName": "Hotel Moskva 4*", "title": "Заселение в Hotel Moskva 4*"
   ❌ НЕПРАВИЛЬНО: "placeName": "Заселение в отель", "title": "Отель"
   mapLink = Google Maps с КОНКРЕТНЫМ названием отеля
-  bookingUrl — Яндекс.Путешествия (глубокий URL с датами); при стеке Travelpayouts оберни в https://tp.media/r?marker=...&p=...&u=encodeURIComponent(...) &tr_id=...
+  bookingUrl — Яндекс.Путешествия (глубокий URL с датами); при Travelpayouts: одна строка tp.media с **числовым** p и **реально закодированным** u (никогда не пиши буквально «ID_ПРОГРАММЫ», «PROGRAM_ID» или «ENCODEURIComponent(...)» — это ломает редирект).
   link — альтернатива Островок: "https://ostrovok.ru/hotel/search/?q=Город+Отель" (тоже через tp.media при известном p).
   Ночёвка в городе РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
   За границей при необходимости: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
