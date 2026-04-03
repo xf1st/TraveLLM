@@ -525,7 +525,8 @@ export function getFlightSearchLink(params: FlightSearchParams): string {
 }
 
 interface HotelSearchParams {
-  destination: string    // Город или название отеля
+  destination: string    // Город или место
+  hotelName?: string     // Конкретное название отеля
   checkIn?: Date | string
   checkOut?: Date | string
   adults?: number
@@ -724,9 +725,13 @@ function buildYandexHotelsUrl(params: {
   checkOut?: Date | string
   adults: number
   marker: string
+  hotelName?: string
 }): string {
-  const { englishName, iata, checkIn, checkOut, adults, marker } = params
+  const { englishName, iata, checkIn, checkOut, adults, marker, hotelName } = params
   const qp = new URLSearchParams()
+  
+  if (hotelName) qp.set("text", `${hotelName} ${englishName}`)
+  
   if (checkIn) qp.set("checkinDate", formatDate(checkIn))
   if (checkOut) qp.set("checkoutDate", formatDate(checkOut))
   qp.set("adults", adults.toString())
@@ -745,34 +750,11 @@ function buildYandexHotelsUrl(params: {
  * CRITICAL: destination должен быть названием ГОРОДА, а не отеля!
  * Формат: https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=...&checkoutDate=...&adults=N&marker=...
  */
-export async function getHotelSearchLink(params: HotelSearchParams): Promise<string> {
-  const {
-    destination,
-    checkIn,
-    checkOut,
-    adults = 2,
-    subId,
-    market: marketParam,
-  } = params
-
-  const market = marketParam ?? "ru"
+export async function getYandexOnlyHotelLink(params: HotelSearchParams): Promise<string> {
+  const { destination, checkIn, checkOut, adults = 2, subId, hotelName } = params
   const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
-
   const cityInfo = await resolveCityInfo(destination)
   const englishName = cityInfo?.nameEn || ""
-
-  const russianHotelDestination =
-    isRussianHotelDestinationIata(cityInfo?.iata) || isRussianHotelDestinationSync(destination)
-
-  const useYandex = market !== "world" || russianHotelDestination
-
-  if (!useYandex) {
-    const ss = encodeURIComponent(englishName || destination.trim())
-    const aid = process.env.NEXT_PUBLIC_BOOKING_AID
-    let url = `https://www.booking.com/search.html?ss=${ss}`
-    if (aid) url += `&aid=${encodeURIComponent(aid)}`
-    return url
-  }
 
   const yandexUrl = buildYandexHotelsUrl({
     englishName,
@@ -781,14 +763,42 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     checkOut,
     adults,
     marker,
+    hotelName,
   })
-  // Drive auto-wraps partner links on the page — skip manual emrld.ltd redirect
+  
   if (isDriveEnabled()) return yandexUrl
   const yPid = getTpProgramId("yandexTravel")
   if (yPid && TRAVELPAYOUTS_MARKER) {
     return buildTpMediaDeepLink(yPid, yandexUrl, { subMarker: subId })
   }
   return yandexUrl
+}
+
+export async function getHotelSearchLink(params: HotelSearchParams): Promise<string> {
+  const { destination, market: marketParam, hotelName } = params
+  const market = marketParam ?? "ru"
+  
+  const cityInfo = await resolveCityInfo(destination)
+  const russianHotelDestination = isRussianHotelDestinationIata(cityInfo?.iata) || isRussianHotelDestinationSync(destination)
+
+  // 1. Для всего мира (Англоязычный интерфейс) -> Booking.com
+  if (market === "world") {
+    const englishName = cityInfo?.nameEn || ""
+    const query = hotelName ? `${hotelName} ${englishName || destination.trim()}` : (englishName || destination.trim())
+    const ss = encodeURIComponent(query)
+    const aid = process.env.NEXT_PUBLIC_BOOKING_AID
+    let url = `https://www.booking.com/search.html?ss=${ss}`
+    if (aid) url += `&aid=${encodeURIComponent(aid)}`
+    return url
+  }
+
+  // 2. Для россиян за границей -> Островок (Hotellook)
+  if (!russianHotelDestination) {
+    return getHotellookLink(params)
+  }
+
+  // 3. Для россиян внутри РФ -> Яндекс.Путешествия
+  return getYandexOnlyHotelLink(params)
 }
 
 /**
@@ -800,7 +810,8 @@ export function getHotellookLink(params: HotelSearchParams): string {
     checkIn,
     checkOut,
     adults = 2,
-    subId
+    subId,
+    hotelName
   } = params
 
   const baseUrl = "https://search.hotellook.com"
@@ -812,7 +823,7 @@ export function getHotellookLink(params: HotelSearchParams): string {
     searchParams.set("marker", marker)
   }
 
-  searchParams.set("destination", destination)
+  searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
   searchParams.set("adults", adults.toString())
 
   if (checkIn) searchParams.set("checkIn", formatDate(checkIn))

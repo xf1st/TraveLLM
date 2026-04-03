@@ -75,7 +75,7 @@ import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
 import { TripWeatherWidget } from "@/components/trip/TripWeatherWidget"
 import { getWeatherForLocation, getWeatherEmoji, WeatherData } from "@/lib/weather"
 import { getCoordinates } from "@/lib/geocoding"
-import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
+import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata, getYandexOnlyHotelLink, isRussianHotelDestinationSync } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
 
 import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
@@ -1424,40 +1424,64 @@ export default function TripDetailPage() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-200/60 dark:border-white/5 flex justify-between items-center">
-                    <span className="px-2 sm:px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[9px] sm:text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
-                      {t('confirmed')}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const rawUrl = sidebarHotel.bookingUrl
-                        if (typeof rawUrl === "string" && /^https?:\/\//i.test(rawUrl)) {
-                          window.open(rawUrl, "_blank")
-                          return
-                        }
-                        const destCity =
-                          (sidebarHotel as { city?: string }).city || destinationName
-                        try {
-                          const url = await getHotelSearchLink({
-                            destination: destCity || "Москва",
-                            checkIn: route.start_date || undefined,
-                            checkOut: route.end_date || undefined,
-                            adults: route.travelers || 2,
-                            market: bookingMarket,
-                          })
-                          window.open(url, "_blank")
-                        } catch {
-                          const m = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
-                          const p = new URLSearchParams()
-                          if (m) p.set("marker", m)
-                          window.open(`https://travel.yandex.ru/hotels/?${p.toString()}`, "_blank")
-                        }
-                      }}
-                      className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:shadow-blue-500/20 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
-                    >
-                      {t('bookNow')}
-                    </button>
+                  <div className="mt-3 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col gap-2 relative">
+                    <div className="flex justify-between items-center">
+                      <span className="px-2 sm:px-3 py-1 bg-green-100/60 dark:bg-green-500/10 text-green-700 dark:text-green-300 text-[9px] sm:text-[10px] font-bold rounded-lg backdrop-blur-sm border border-green-200/50 dark:border-green-500/20 uppercase tracking-wide shadow-sm">
+                        {t('confirmed')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const destCity = (sidebarHotel as { city?: string }).city || destinationName
+                          try {
+                            const url = await getHotelSearchLink({
+                              destination: destCity || "Москва",
+                              hotelName: sidebarHotel.title,
+                              checkIn: route.start_date || undefined,
+                              checkOut: route.end_date || undefined,
+                              adults: route.travelers || 2,
+                              market: bookingMarket,
+                            })
+                            window.open(url, "_blank")
+                          } catch {
+                            const m = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
+                            const p = new URLSearchParams()
+                            if (m) p.set("marker", m)
+                            window.open(`https://travel.yandex.ru/hotels/?${p.toString()}`, "_blank")
+                          }
+                        }}
+                        className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:shadow-blue-500/20 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
+                      >
+                        {t('bookNow')}
+                      </button>
+                    </div>
+
+                    {/* Fallback to Yandex if user is RU but destination is potentially international */}
+                    {bookingMarket === "ru" && !isRussianHotelDestinationSync((sidebarHotel as { city?: string }).city || destinationName) && (
+                      <div className="flex justify-end mt-1">
+                        <button
+                          type="button"
+                          className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-colors underline underline-offset-2"
+                          onClick={async () => {
+                            const destCity = (sidebarHotel as { city?: string }).city || destinationName
+                            try {
+                              const yandexUrl = await getYandexOnlyHotelLink({
+                                destination: destCity || "Москва",
+                                hotelName: sidebarHotel.title,
+                                checkIn: route.start_date || undefined,
+                                checkOut: route.end_date || undefined,
+                                adults: route.travelers || 2,
+                              })
+                              window.open(yandexUrl, "_blank")
+                            } catch {
+                              window.open("https://travel.yandex.ru/hotels/", "_blank")
+                            }
+                          }}
+                        >
+                          Нет мест? Искать на Яндекс.Путешествиях
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
