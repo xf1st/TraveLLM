@@ -7,7 +7,8 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
-import { unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
+import { maybeWrapPartnerAffiliateUrl, unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
+import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
 import { useTranslations } from "next-intl"
 
 // Amenity icon mapping
@@ -123,6 +124,7 @@ export function HotelCard({
 }: HotelCardProps) {
     const t = useTranslations("hotel")
     const tCurr = useTranslations("currency")
+    const bookingMarket = useBookingMarket()
     const locale = tCurr("code") === "RUB" ? "ru" : "en"
     const [currentPhoto, setCurrentPhoto] = useState(0)
 
@@ -140,10 +142,13 @@ export function HotelCard({
     // Calculate total price if not provided
     const calculatedTotal = totalPrice || (nights ? pricePerNight * nights : pricePerNight)
 
-    // Build booking URL (fix AI placeholders in tp.media / emrld redirects)
+    // Build booking URL (unwrap broken templates, then affiliate wrap for RU partners)
     const buyUrl = bookingUrl
-        ? unwrapTravelpayoutsDeepLink(bookingUrl)
-        : `https://travel.yandex.ru/hotels/?marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""}`
+        ? maybeWrapPartnerAffiliateUrl(unwrapTravelpayoutsDeepLink(bookingUrl), { market: bookingMarket })
+        : maybeWrapPartnerAffiliateUrl(
+              `https://travel.yandex.ru/hotels/?marker=${process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""}`,
+              { market: bookingMarket }
+          )
 
     // Detect if we have real price/rating data
     const hasPriceData = pricePerNight > 0

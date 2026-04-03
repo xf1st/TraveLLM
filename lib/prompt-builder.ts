@@ -17,6 +17,7 @@ const TOMESTO_RU_REF_URL = "https://tomesto.ru/?ref_id=2163507"
 
 function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): string {
     if (market !== "ru") return ""
+    const affBase = (process.env.NEXT_PUBLIC_TP_AFFILIATE_REDIRECT_URL || "https://emrld.ltd/re").trim().replace(/\/+$/, "")
     const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
     const p = getTpProgramIdsForPrompt()
     const trId = getTpTrId()
@@ -25,9 +26,9 @@ function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): strin
 
     if (isEn) {
         return `
-7. TP.MEDIA DEEP LINKS (RU stack — required for partners below; NO bare homepages):
+7. AFFILIATE DEEP LINKS — emrld.ltd/re (RU stack — required for partners below; NO bare homepages):
 SCOPE: Apply this section **only** to activities and hotel nights **in Russia (RF)**. For places outside Russia use global partners (§0, §5–§6) — do NOT invent tripster.ru or sputnik8.com paths for foreign cities.
-Build a **single valid URL string**: start from \`https://tp.media/r?marker=${marker || "YOUR_MARKER"}&p=\` + **numeric program id** from the list below + \`&u=\` + **percent-encoded** target (use real encoding, never the words ENCODEURIComponent or PROGRAM_ID in the output).
+Build a **single valid URL string**: start from \`${affBase}?marker=${marker || "YOUR_MARKER"}&p=\` + **numeric program id** from the list below + \`&u=\` + **percent-encoded** target (use real encoding, never the words ENCODEURIComponent or PROGRAM_ID in the output).
 Example shape: \`...&p=1234&u=https%3A%2F%2Ftravel.yandex.ru%2Fhotels%2F...\` — never output literal \`PROGRAM_ID\`, \`ENCODEURIComponent(...)\`, or \`ID_ПРОГРАММЫ\`.
 Use real https targets: search results, city/category pages, hotel search — never only domain root for Sputnik8/Tripster.
 
@@ -39,20 +40,20 @@ Program IDs for this project:
 - Kiwitaxi: ${pid("kiwitaxi", "NEXT_PUBLIC_TP_P_KIWITAXI")}
 - Sutochno: ${pid("sutochno", "NEXT_PUBLIC_TP_P_SUTOCHNO")}
 
-Activity → partner → target URL pattern (then wrap in tp.media with matching p):
+Activity → partner → target URL pattern (then wrap in emrld affiliate redirect with matching p):
 | Excursions / guided tours | Tripster | https://tripster.ru/destinations/{city_slug}/ (latin slug: moscow, kazan, irkutsk…) |
 | Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (e.g. muzei, ekskursii, vodnyie-progulki — pick what fits) |
 | Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to places (not generic / only) |
 | Apartment / daily rent (not hotel room) | Sutochno | City subdomain or search: https://spb.sutochno.ru/ https://sochi.sutochno.ru/ https://www.sutochno.ru/ (Moscow), https://kazan.sutochno.ru/, etc. |
-| Hotels | Yandex + Ostrovok | bookingUrl: tp.media + Yandex Travel hotel URL with dates (§5). link: tp.media + https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
+| Hotels | Yandex + Ostrovok | bookingUrl: emrld wrap + Yandex Travel hotel URL with dates (§5). link: emrld wrap + https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
 
-If a program ID is missing in .env, output the partner deep URL without tp.media (still deep, not homepage).
+If a program ID is missing in .env, output the partner deep URL without the affiliate wrapper (still deep, not homepage).
 `.trim()
     }
     return `
-7. ГЛУБОКИЕ ССЫЛКИ tp.media (стек travellm.ru — обязательно; не главные страницы партнёров):
+7. ГЛУБОКИЕ ССЫЛКИ — редирект emrld.ltd/re (стек travellm.ru — обязательно; не главные страницы партнёров):
 ОБЛАСТЬ: этот пункт — **только** для активностей и ночёвок **в России (РФ)**. Для зарубежных городов — глобальные партнёры (п.0, п.5–п.6); не придумывай tripster.ru / sputnik8.com для Бангкока, Парижа и т.п.
-Собери **одну готовую строку URL**: \`https://tp.media/r?marker=...\` + \`&p=\` + **числовой id программы** из списка ниже + \`&u=\` + **уже закодированный** целевой https (посимвольный percent-encoding). **Запрещено** подставлять в JSON буквальный текст \`ID_ПРОГРАММЫ\`, \`ENCODEURIComponent(...)\`, \`PROGRAM_ID\` — только реальные цифры в \`p\` и реальный закодированный URL в \`u\`.
+Собери **одну готовую строку URL**: \`${affBase}?marker=...\` + \`&p=\` + **числовой id программы** из списка ниже + \`&u=\` + **уже закодированный** целевой https (посимвольный percent-encoding). **Запрещено** подставлять в JSON буквальный текст \`ID_ПРОГРАММЫ\`, \`ENCODEURIComponent(...)\`, \`PROGRAM_ID\` — только реальные цифры в \`p\` и реальный закодированный URL в \`u\`.
 Пример: \`...&p=1234&u=https%3A%2F%2Ftravel.yandex.ru%2Fhotels%2F...\`
 Параметр \`u\` — это только закодированный готовый URL на tripster.ru, sputnik8.com, ostrovok.ru, travel.yandex.ru, kiwitaxi.ru, sutochno.ru и т.д.
 
@@ -64,14 +65,14 @@ ID программ (p) для этого проекта:
 - Kiwitaxi: ${pid("kiwitaxi", "NEXT_PUBLIC_TP_P_KIWITAXI")}
 - Суточно.ру: ${pid("sutochno", "NEXT_PUBLIC_TP_P_SUTOCHNO")}
 
-Маппинг типа активности → партнёр → целевой URL (затем обернуть в tp.media с нужным p):
+Маппинг типа активности → партнёр → целевой URL (затем обернуть в emrld с нужным p):
 | Экскурсии, гиды, туры с местным гидом | Tripster | https://tripster.ru/destinations/{city_slug}/ (латиница: moscow, kazan, vladivostok…) |
 | Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL поиска/заказа на kiwitaxi.ru с пунктами from/to |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, kazan.sutochno.ru, www.sutochno.ru (Москва), ekaterinburg.sutochno.ru и т.п. — не просто корень без города |
-| Отели | Яндекс + Островок | bookingUrl: tp.media + URL Яндекс.Путешествий с датами заезда/выезда (как в п.5). link: tp.media + https://ostrovok.ru/hotel/search/?q=Город+или+НазваниеОтеля — вторая ссылка как альтернатива Островку |
+| Отели | Яндекс + Островок | bookingUrl: обёртка emrld + URL Яндекс.Путешествий с датами заезда/выезда (как в п.5). link: обёртка emrld + https://ostrovok.ru/hotel/search/?q=Город+или+НазваниеОтеля — вторая ссылка как альтернатива Островку |
 
-Запрещено отдавать одну только https://sputnik8.com/ru/ без города и категории. Если p не задан в .env — дай глубокий URL партнёра без tp.media.
+Запрещено отдавать одну только https://sputnik8.com/ru/ без города и категории. Если p не задан в .env — дай глубокий URL партнёра без обёртки.
 `.trim()
 }
 
@@ -212,7 +213,7 @@ function buildRegionalPartnerRoutingBlock(
 0. REGION → PARTNER STACK (Travelpayouts — use the programs you have connected; **per activity geography**):
 Pick \`link\` / \`bookingUrl\` / \`ticketUrl\` by **where that card happens** (city/country of the hotel or place), not by TraveLLM UI locale.
 
-• **Russia (RF)** — hotel night or activity in a Russian city: PRIMARY your **RU-connected** stack — Yandex Travel + Ostrovok (hotels, deep URLs + tp.media §7), Tripster (excursions/guides), Sputnik8 (tickets/categories), Kiwitaxi.ru (airport↔hotel), Sutochno (daily apartments), Aviasales.ru for flight legs when appropriate, Tomesto for restaurants in RF.
+• **Russia (RF)** — hotel night or activity in a Russian city: PRIMARY your **RU-connected** stack — Yandex Travel + Ostrovok (hotels, deep URLs + emrld §7), Tripster (excursions/guides), Sputnik8 (tickets/categories), Kiwitaxi.ru (airport↔hotel), Sutochno (daily apartments), Aviasales.ru for flight legs when appropriate, Tomesto for restaurants in RF.
 
 • **Outside Russia:** Do **not** use Tripster / Sputnik8 / Yandex Travel / Sutochno as the main booking path for that foreign city (coverage is RF-centric). Use the **global connected** stack from §5–§6 — Booking.com / Trip.com (hotels), Klook / Tiqets / WeGoTrip (activities), TripAdvisor or official sites (food), kiwitaxi.com / Intui / Welcome Pickups (transfers), Aviasales domain that matches the segment (§5–§6).
 
@@ -226,7 +227,7 @@ ${russiaFocused ? "Russia-focused itinerary — RU stack is the default unless a
 0. РЕГИОН → СТЕК ПАРТНЁРОВ Travelpayouts (удобно по географии; только подключённые программы):
 Поля \`link\` / \`bookingUrl\` / \`ticketUrl\` выбирай по **месту этой карточки** (город/страна отеля или места), а не по тому, открыт ли TraveLLM как .ru или .world.
 
-• **Россия (РФ)** — ночёвка или активность в российском городе: основной канал **RU-программы TP** — Яндекс.Путешествия + Островок (отели, глубокие ссылки + tp.media п.7), Tripster, Sputnik8, Kiwitaxi.ru, Суточно, Aviasales.ru для перелётов где уместно, ТоМесто для ресторанов в РФ.
+• **Россия (РФ)** — ночёвка или активность в российском городе: основной канал **RU-программы TP** — Яндекс.Путешествия + Островок (отели, глубокие ссылки + emrld п.7), Tripster, Sputnik8, Kiwitaxi.ru, Суточно, Aviasales.ru для перелётов где уместно, ТоМесто для ресторанов в РФ.
 
 • **За рубежом:** не ставь Tripster / Sputnik8 / Яндекс.Путешествия / Суточно **главной** ссылкой на активность в иностранном городе. Используй **глобальный стек из п.5–п.6** — Booking.com / Trip.com, Klook / Tiqets / WeGoTrip, TripAdvisor или официальный сайт, kiwitaxi.com / Intui / Welcome Pickups, домен Aviasales по сегменту.
 
@@ -255,7 +256,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      Russia/CIS: "https://ticket.rzd.ru/" or "https://travel.yandex.ru/trains/"
 
    transport (transfer/taxi) → link:
-     Kiwitaxi deep search URL (from/to airport or hotel), not generic homepage — wrap in tp.media §7 when p known.
+     Kiwitaxi deep search URL (from/to airport or hotel), not generic homepage — wrap in emrld §7 when p known.
 
    hotel → bookingUrl (NOT map) + link:
      bookingUrl: Yandex Travel hotels deep URL with dates (see §7 tp.media wrap with program p for Yandex).
@@ -266,7 +267,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      Also TripAdvisor or official restaurant site where Tomesto is not a fit.
 
    activity → link + ticketUrl:
-     Russian cities: Tripster (excursions/guides), Sputnik8 (museums/boats/water parks — category deep URLs), Sutochno (daily apartments); then Klook/Tiqets/WeGoTrip; official site. All partner links via tp.media §7 when program p is known.
+     Russian cities: Tripster (excursions/guides), Sputnik8 (museums/boats/water parks — category deep URLs), Sutochno (daily apartments); then Klook/Tiqets/WeGoTrip; official site. All partner links via emrld §7 when program p is known.
 
    Adventure activities → same; Russia: skydiving.ru, rafting.ru, rechnoyflot.ru where they are the real channel.
 `.trim()
@@ -315,11 +316,11 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      "https://ticket.rzd.ru/" для РФ; также "https://travel.yandex.ru/trains/" (Яндекс.Путешествия + Островок)
 
    transport (трансфер/такси) → link:
-     Kiwitaxi — глубокий URL маршрута (аэропорт↔отель/адрес), не только главная; tp.media п.7 при известном p.
+     Kiwitaxi — глубокий URL маршрута (аэропорт↔отель/адрес), не только главная; emrld п.7 при известном p.
 
    hotel → bookingUrl (НЕ карта!) + link:
      bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обёртка tp.media — п.7).
-     link: Островок — глубокий поиск https://ostrovok.ru/hotel/search/?q=Город+или+отель (tp.media п.7). По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
+     link: Островок — глубокий поиск https://ostrovok.ru/hotel/search/?q=Город+или+отель (emrld п.7). По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
 
    food → link (и bookingUrl, если важна бронь столика):
      Города РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
@@ -371,7 +372,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
             return `
 6. TRAVELPAYOUTS PARTNER DOMAINS (RU stack — travellm.ru; real https://; NEVER invent path slugs):
 - Flights: Aviasales https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 in \`link\`.
-- Hotels: Yandex Travel in \`bookingUrl\`; Ostrovok search in \`link\` (both deep + tp.media §7). Booking.com only as extra for non-Russian cities abroad.
+- Hotels: Yandex Travel in \`bookingUrl\`; Ostrovok search in \`link\` (both deep + emrld §7). Booking.com only as extra for non-Russian cities abroad.
 - Trains: ticket.rzd.ru, travel.yandex.ru/trains
 - Airport / city transfers: https://kiwitaxi.ru/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
 - Car rental (when hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
@@ -382,7 +383,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
 - Travel insurance (trips abroad): https://ekta.io/
 - Flight disruption claims (where airline/EU-style rules apply, e.g. via EU hubs): https://compensair.com/, https://www.airhelp.com/
 - Restaurants / table booking in Russia: ${TOMESTO_RU_REF_URL} in \`link\` or \`bookingUrl\`; fine dining — Tomesto first (keep ref_id=2163507 on all tomesto.ru links).
-- Excursions / guides (Russia): Tripster; tickets & entertainment: Sputnik8; daily apartments: Sutochno; transfers: Kiwitaxi — all deep URLs + tp.media §7.
+- Excursions / guides (Russia): Tripster; tickets & entertainment: Sputnik8; daily apartments: Sutochno; transfers: Kiwitaxi — all deep URLs + emrld §7.
 - Activities / tours: also Klook, Tiqets, WeGoTrip per §5 — do NOT mention GetYourGuide, Viator, TicketNetwork, NordVPN, or eSIM shops (limited/unavailable for RU audience).
 `.trim()
         }

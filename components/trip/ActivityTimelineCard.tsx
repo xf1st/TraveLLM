@@ -21,7 +21,11 @@ import {
 import { appToast as toast } from "@/components/ui/sonner"
 import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
 import type { BookingMarket } from "@/lib/booking-market"
-import { unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
+import { maybeWrapPartnerAffiliateUrl, unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
+
+function normalizePartnerBookingUrl(url: string, market: BookingMarket) {
+  return maybeWrapPartnerAffiliateUrl(unwrapTravelpayoutsDeepLink(url), { market })
+}
 
 type ColorTheme = "transport" | "food" | "activity" | "free" | "hotel"
 
@@ -730,10 +734,11 @@ export function ActivityTimelineCard({
                     {theme === "hotel" && (
                       <a
                         href={
-                          unwrapTravelpayoutsDeepLink(
+                          normalizePartnerBookingUrl(
                             activity.bookingUrl ||
                               (!isMapUrl(activity.link || "") ? activity.link : undefined) ||
-                              `https://www.booking.com/search.html?ss=${encodeURIComponent([activity.placeName, activity.title].filter(Boolean).join(" "))}`
+                              `https://www.booking.com/search.html?ss=${encodeURIComponent([activity.placeName, activity.title].filter(Boolean).join(" "))}`,
+                            bookingMarket
                           )
                         }
                         target="_blank"
@@ -748,7 +753,7 @@ export function ActivityTimelineCard({
                     {/* Food: reservation link if exists */}
                     {theme === "food" && (activity.bookingUrl || activity.link) && (
                       <a
-                        href={unwrapTravelpayoutsDeepLink(activity.bookingUrl || activity.link || "")}
+                        href={normalizePartnerBookingUrl(activity.bookingUrl || activity.link || "", bookingMarket)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center text-xs font-bold text-white bg-orange-500 hover:bg-orange-400 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors shadow-sm shadow-orange-500/30"

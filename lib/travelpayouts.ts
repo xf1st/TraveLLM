@@ -8,6 +8,7 @@
  */
 
 import type { BookingMarket } from "./booking-market"
+import { buildTpMediaDeepLink, getTpProgramId } from "./tp-media"
 
 function aviasalesOrigin(market?: BookingMarket): string {
   return market === "world" ? "https://www.aviasales.com" : "https://www.aviasales.ru"
@@ -773,7 +774,7 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     return url
   }
 
-  return buildYandexHotelsUrl({
+  const yandexUrl = buildYandexHotelsUrl({
     englishName,
     iata: cityInfo?.iata,
     checkIn,
@@ -781,6 +782,11 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     adults,
     marker,
   })
+  const yPid = getTpProgramId("yandexTravel")
+  if (yPid && TRAVELPAYOUTS_MARKER) {
+    return buildTpMediaDeepLink(yPid, yandexUrl, { subMarker: subId })
+  }
+  return yandexUrl
 }
 
 /**

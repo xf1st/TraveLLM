@@ -1,11 +1,18 @@
 /**
- * Travelpayouts tp.media — обёртка глубоких ссылок на партнёров.
- * Формат: https://tp.media/r?marker=...&p=PROGRAM_ID&u=ENCODED_TARGET&tr_id=...
+ * Travelpayouts — обёртка глубоких ссылок на партнёров (редирект с marker / p / u / tr_id).
+ * По умолчанию: emrld.ltd/re (как в кабинете). Переопределение: NEXT_PUBLIC_TP_AFFILIATE_REDIRECT_URL.
  *
- * ID программ `p` смотри в кабинете Travelpayouts → программа → инструменты / ссылки.
+ * ID программ `p` — в кабинете Travelpayouts → программа → инструменты / ссылки.
  */
 
-const TP_MEDIA_BASE = "https://tp.media/r"
+import type { BookingMarket } from "./booking-market"
+
+function getAffiliateRedirectBase(): string {
+  const raw = (process.env.NEXT_PUBLIC_TP_AFFILIATE_REDIRECT_URL || "https://emrld.ltd/re").trim()
+  return raw.replace(/\/+$/, "")
+}
+
+const TP_MEDIA_BASE = getAffiliateRedirectBase()
 
 const MARKER = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
 
@@ -35,7 +42,7 @@ export function getTpTrId(): string {
 }
 
 /**
- * Оборачивает целевой URL партнёра в tp.media (если заданы маркер и p).
+ * Оборачивает целевой URL партнёра в affiliate-редирект (если заданы маркер и p).
  * Иначе возвращает targetUrl без изменений.
  */
 export function buildTpMediaDeepLink(
@@ -83,6 +90,48 @@ export function unwrapTravelpayoutsDeepLink(url: string): string {
         /* keep original */
     }
     return url
+}
+
+const PARTNER_HOST_TO_PROGRAM: Array<{ test: (h: string) => boolean; key: TpProgramKey }> = [
+  { test: (h) => h === "travel.yandex.ru" || h.endsWith(".travel.yandex.ru"), key: "yandexTravel" },
+  { test: (h) => h.endsWith("ostrovok.ru"), key: "ostrovok" },
+  { test: (h) => h.endsWith("sutochno.ru"), key: "sutochno" },
+  { test: (h) => h.endsWith("tripster.ru") || h === "experience.tripster.ru", key: "tripster" },
+  { test: (h) => h.includes("sputnik8.com"), key: "sputnik8" },
+  { test: (h) => h.endsWith("kiwitaxi.ru"), key: "kiwitaxi" },
+]
+
+/**
+ * Если в JSON пришёл «голый» URL партнёра TP (без редиректа), оборачиваем в emrld.ltd/re
+ * для RU-стека; для market=world — только для travel.yandex.ru (остальные не трогаем).
+ */
+export function maybeWrapPartnerAffiliateUrl(
+  url: string,
+  options?: { subMarker?: string; market?: BookingMarket }
+): string {
+  if (!url?.startsWith("http")) return url
+  const market = options?.market ?? "ru"
+  try {
+    const parsed = new URL(url)
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase()
+    if (host === "emrld.ltd" || host === "tp.media" || host.endsWith("travelpayouts.com")) {
+      return url
+    }
+    let key: TpProgramKey | undefined
+    for (const row of PARTNER_HOST_TO_PROGRAM) {
+      if (row.test(host)) {
+        key = row.key
+        break
+      }
+    }
+    if (!key) return url
+    if (market === "world" && key !== "yandexTravel") return url
+    const pid = getTpProgramId(key)
+    if (!pid || !MARKER) return url
+    return buildTpMediaDeepLink(pid, url, { subMarker: options?.subMarker })
+  } catch {
+    return url
+  }
 }
 
 /** Для подсказок в промпте: какие p заданы в .env */
