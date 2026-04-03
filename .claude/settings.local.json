@@ -64,7 +64,8 @@
       "mcp__supabase__get_advisors",
       "mcp__supabase__execute_sql",
       "mcp__supabase__list_projects",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(C:\\\\Users\\\\myszfx\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.0.7\\\\scripts\\\\start-server.sh:*)"
     ]
   }
 }

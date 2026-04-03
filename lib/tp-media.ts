@@ -132,16 +132,35 @@ const PARTNER_HOST_TO_PROGRAM: Array<{ test: (h: string) => boolean; key: TpProg
 ]
 
 /**
- * Если в JSON пришёл «голый» URL партнёра TP (без редиректа), оборачиваем в emrld.ltd/re
- * для RU-стека; для market=world — только для travel.yandex.ru (остальные не трогаем).
+ * Returns true when Travelpayouts Drive script is configured.
+ * Drive auto-wraps partner links on the page — manual emrld.ltd wrapping
+ * would cause a double-redirect and broken links.
+ */
+export function isDriveEnabled(): boolean {
+  return !!process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL?.trim()
+}
+
+/**
+ * Sanitize partner URL + optionally wrap in emrld.ltd/re.
+ *
+ * When Drive is enabled → only sanitize (fix LLM mistakes), return plain partner URL.
+ * When Drive is NOT enabled → sanitize + wrap in affiliate redirect.
  */
 export function maybeWrapPartnerAffiliateUrl(
   url: string,
   options?: { subMarker?: string; market?: BookingMarket }
 ): string {
   if (!url?.startsWith("http")) return url
-  // Fix known LLM mistakes in partner URLs before wrapping
+
+  // Always unwrap broken LLM emrld redirects first
+  url = unwrapTravelpayoutsDeepLink(url)
+  // Fix known LLM mistakes (wrong path segments, underscores)
   url = sanitizeYandexTravelUrl(url)
+
+  // Drive handles affiliate wrapping automatically — return clean URL
+  if (isDriveEnabled()) return url
+
+  // No Drive — manual affiliate wrap via emrld.ltd/re
   const market = options?.market ?? "ru"
   try {
     const parsed = new URL(url)

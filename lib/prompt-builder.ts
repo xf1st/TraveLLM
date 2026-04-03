@@ -10,13 +10,53 @@ import { type ValidationResult } from "./real-time-validation"
 import { GROUNDING_DATA_2026 } from "./grounding"
 import { normalizeTravelMode, type TravelMode } from "./travel-mode"
 import type { BookingMarket } from "./booking-market"
-import { getTpProgramIdsForPrompt, getTpTrId } from "./tp-media"
+import { getTpProgramIdsForPrompt, getTpTrId, isDriveEnabled } from "./tp-media"
 
 /** ТоМесто — бронь столиков в РФ. Все ссылки на tomesto.ru с ref_id=2163507. */
 const TOMESTO_RU_REF_URL = "https://tomesto.ru/?ref_id=2163507"
 
 function buildTpMediaDeepLinksBlock(isEn: boolean, market: BookingMarket): string {
     if (market !== "ru") return ""
+
+    const driveActive = isDriveEnabled()
+
+    // ── Drive is ON: LLM outputs plain partner URLs; Drive auto-wraps on page ──
+    if (driveActive) {
+        if (isEn) {
+            return `
+7. PARTNER DEEP LINKS (RU stack — output PLAIN partner URLs; affiliate tracking is handled automatically):
+SCOPE: Apply **only** for activities and hotel nights **in Russia (RF)**. Outside Russia → global partners (§0, §5–§6).
+Output the real partner URL as-is — do NOT wrap in emrld.ltd or tp.media. The page handles affiliate tracking automatically via Travelpayouts Drive.
+
+Activity → partner → target URL pattern:
+| Excursions / guided tours | Tripster | https://tripster.ru/destinations/{city_slug}/ (latin slug: moscow, kazan, irkutsk…) |
+| Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (muzei, ekskursii, vodnyie-progulki — pick what fits) |
+| Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to (not homepage) |
+| Apartment / daily rent (not hotel room) | Sutochno | City subdomain: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Moscow), kazan.sutochno.ru |
+| Hotels | Yandex + Ostrovok | bookingUrl: plain Yandex Travel hotel deep URL. link: https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
+Yandex Travel hotel page format: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — use **hyphens** (NOT underscores). NO extra \`/hotel/\` segment. WRONG: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. CORRECT: \`.../hotels/tokyo/the-knot-tokyo/\`. For city-level search: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
+
+Do NOT output emrld.ltd, tp.media or any redirect wrappers — just plain partner domain URLs.
+`.trim()
+        }
+        return `
+7. ГЛУБОКИЕ ССЫЛКИ НА ПАРТНЁРОВ (стек РФ — выводи ОБЫЧНЫЕ URL партнёров; трекинг добавляется автоматически):
+ОБЛАСТЬ: **только** для активностей и ночёвок **в России (РФ)**. За рубежом — глобальные партнёры (п.0, п.5–п.6).
+Выводи обычный URL партнёра как есть — НЕ оборачивай в emrld.ltd или tp.media. Партнёрский трекинг добавляется автоматически через Travelpayouts Drive на странице.
+
+Маппинг типа активности → партнёр → целевой URL:
+| Экскурсии, гиды, туры с местным гидом | Tripster | https://tripster.ru/destinations/{city_slug}/ (латиница: moscow, kazan, vladivostok…) |
+| Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
+| Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL маршрута на kiwitaxi.ru (не только главная) |
+| Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Москва), kazan.sutochno.ru |
+| Отели | Яндекс + Островок | bookingUrl: обычный URL Яндекс.Путешествий с датами. link: https://ostrovok.ru/hotel/search/?q=Город+или+отель |
+Формат страницы отеля Яндекс.Путешествий: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — **дефисы** (НЕ подчёркивания). БЕЗ лишнего сегмента \`/hotel/\`. НЕПРАВИЛЬНО: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. ПРАВИЛЬНО: \`.../hotels/tokyo/the-knot-tokyo/\`. Для поиска по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
+
+НЕ выводи emrld.ltd, tp.media или любые обёртки-редиректы — только прямые URL партнёрских доменов.
+`.trim()
+    }
+
+    // ── Drive is OFF: LLM must wrap URLs in emrld.ltd/re manually ──
     const affBase = (process.env.NEXT_PUBLIC_TP_AFFILIATE_REDIRECT_URL || "https://emrld.ltd/re").trim().replace(/\/+$/, "")
     const marker = process.env.NEXT_PUBLIC_TRAVELPAYOUTS_MARKER || ""
     const p = getTpProgramIdsForPrompt()

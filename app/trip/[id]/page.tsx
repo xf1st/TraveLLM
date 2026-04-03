@@ -253,6 +253,17 @@ export default function TripDetailPage() {
   }, [route?.itinerary])
 
   const currencySymbol = locale === "en" ? "$" : "₽"
+
+  // Add currency symbol to raw AI-generated budget values (e.g. "1200" → "$1200")
+  const formatBudgetValue = (val: string | number | undefined | null): string | null => {
+    if (!val && val !== 0) return null
+    const s = String(val).trim()
+    if (!s || s === "—") return s
+    const hasCurrency = /[$₽€£¥]/.test(s)
+    if (hasCurrency) return s
+    return locale === "en" ? `$${s}` : `${s} ₽`
+  }
+
   const displayBudget = calculatedTotal !== null
     ? `${hasUnknownCosts ? "≈ " : ""}${currencySymbol}${calculatedTotal.toLocaleString(locale === "en" ? "en-US" : "ru-RU")}`
     : route?.totalBudget
@@ -1135,7 +1146,7 @@ export default function TripDetailPage() {
                       className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-[11px] font-bold text-violet-200 shadow-sm backdrop-blur-md hover:bg-violet-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
                     >
                       <Star className={cn("shrink-0 w-3.5 h-3.5", tripFeedback ? "fill-violet-300 text-violet-300" : "")} />
-                      <span className="whitespace-nowrap">{tripFeedback ? `${tripFeedback.rating}/5` : "Оценить"}</span>
+                      <span className="whitespace-nowrap">{tripFeedback ? `${tripFeedback.rating}/5` : t("rateTrip")}</span>
                     </button>
                   )}
                 </div>
@@ -1539,35 +1550,35 @@ export default function TripDetailPage() {
                 <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.accommodation')}</div>
                   <div>
-                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgAccommodation || "—"}</div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{formatBudgetValue(route.budgetAnalysis?.avgAccommodation) || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.accommodationPer')}</div>
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.food')}</div>
                   <div>
-                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgFood || "—"}</div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{formatBudgetValue(route.budgetAnalysis?.avgFood) || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.foodPer')}</div>
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.transport')}</div>
                   <div>
-                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgTransport || "—"}</div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{formatBudgetValue(route.budgetAnalysis?.avgTransport) || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.transportPer')}</div>
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border flex flex-col justify-between min-h-[80px]">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.activities')}</div>
                   <div>
-                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgActivities || "—"}</div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{formatBudgetValue(route.budgetAnalysis?.avgActivities) || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.activitiesPer')}</div>
                   </div>
                 </div>
                 <div className="p-3 sm:p-4 rounded-2xl bg-muted/50 border border-border col-span-2 flex flex-col justify-between">
                   <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 break-words">{t('budget_modal.misc')}</div>
                   <div>
-                    <div className="text-lg sm:text-xl font-bold break-words">{route.budgetAnalysis?.avgMisc || "—"}</div>
+                    <div className="text-lg sm:text-xl font-bold break-words">{formatBudgetValue(route.budgetAnalysis?.avgMisc) || "—"}</div>
                     <div className="text-[10px] text-muted-foreground mt-1">{t('budget_modal.miscPer')}</div>
                   </div>
                 </div>

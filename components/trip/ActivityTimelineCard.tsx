@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { PlaceGallery } from "@/components/PlaceGallery"
 import { cn } from "@/lib/utils"
 import {
@@ -431,6 +431,13 @@ export function ActivityTimelineCard({
 }: ActivityTimelineCardProps) {
   const galleryVariant = (dayNumber * 31 + activityIndex) % 30
   const t = useTranslations('activity')
+  const locale = useLocale()
+  const formatCost = (val: string | undefined | null) => {
+    if (!val) return val
+    const s = val.trim()
+    if (!s || /[$₽€£¥]/.test(s)) return s
+    return locale === "en" ? `$${s}` : `${s} ₽`
+  }
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isInlineOpen, setIsInlineOpen] = useState(false)
   const [inlinePrompt, setInlinePrompt] = useState("")
@@ -604,7 +611,7 @@ export function ActivityTimelineCard({
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {activity.cost && (
                 <span className="whitespace-nowrap text-[10px] sm:text-xs font-bold text-slate-700 dark:text-white bg-white/40 dark:bg-white/10 px-2 py-1 rounded-lg border border-white/40 dark:border-white/10 shadow-sm">
-                  {activity.cost}
+                  {formatCost(activity.cost)}
                 </span>
               )}
 
@@ -942,7 +949,7 @@ export function ActivityTimelineCard({
             {activity.cost && (
               <div>
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-1">{t('details.cost')}</p>
-                <p className="font-semibold">{activity.cost}</p>
+                <p className="font-semibold">{formatCost(activity.cost)}</p>
               </div>
             )}
 

@@ -8,7 +8,7 @@
  */
 
 import type { BookingMarket } from "./booking-market"
-import { buildTpMediaDeepLink, getTpProgramId } from "./tp-media"
+import { buildTpMediaDeepLink, getTpProgramId, isDriveEnabled } from "./tp-media"
 
 function aviasalesOrigin(market?: BookingMarket): string {
   return market === "world" ? "https://www.aviasales.com" : "https://www.aviasales.ru"
@@ -782,6 +782,8 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     adults,
     marker,
   })
+  // Drive auto-wraps partner links on the page — skip manual emrld.ltd redirect
+  if (isDriveEnabled()) return yandexUrl
   const yPid = getTpProgramId("yandexTravel")
   if (yPid && TRAVELPAYOUTS_MARKER) {
     return buildTpMediaDeepLink(yPid, yandexUrl, { subMarker: subId })

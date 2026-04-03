@@ -21,6 +21,14 @@ interface TripStatsPanelProps {
 export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
   const t = useTranslations("stats")
   const locale = useLocale()
+  const formatBudgetValue = (val: string | number | undefined | null): string | null => {
+    if (!val && val !== 0) return null
+    const s = String(val).trim()
+    if (!s || s === "—") return s
+    if (/[$₽€£¥]/.test(s)) return s
+    return locale === "en" ? `$${s}` : `${s} ₽`
+  }
+
 
   const ACTIVITY_TYPES: { key: string; label: string; color: string; icon: any }[] = [
     { key: "activity", label: t("activityType"), color: "#60a5fa", icon: Compass },
@@ -275,9 +283,9 @@ export function TripStatsPanel({ route, tripId }: TripStatsPanelProps) {
           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">{t("tripBudget")}</div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             {[
-              { label: t("accommodation"), value: route.budgetAnalysis.avgAccommodation, sub: t("perNight") },
-              { label: t("food"), value: route.budgetAnalysis.avgFood, sub: t("perDay") },
-              { label: t("transport"), value: route.budgetAnalysis.avgTransport, sub: t("total") },
+              { label: t("accommodation"), value: formatBudgetValue(route.budgetAnalysis.avgAccommodation), sub: t("perNight") },
+              { label: t("food"), value: formatBudgetValue(route.budgetAnalysis.avgFood), sub: t("perDay") },
+              { label: t("transport"), value: formatBudgetValue(route.budgetAnalysis.avgTransport), sub: t("total") },
               { label: t("totalBudget"), value: route.budgetAnalysis.totalEstimate || (totalCost > 0 ? `~${locale === "en" ? "$" : ""}${Math.round(totalCost).toLocaleString(locale === "en" ? "en-US" : "ru-RU")}${locale !== "en" ? " ₽" : ""}` : null), sub: t("estimate") },
             ].map(item => item.value && (
               <div key={item.label} className="min-w-0 rounded-2xl border border-border bg-muted/50 p-3 sm:p-4">

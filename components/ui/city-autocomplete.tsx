@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 
 interface CityAutocompleteProps {
     value: string
@@ -34,53 +34,56 @@ interface CityAutocompleteProps {
 // Curated list: popular destinations that Open-Meteo misses or ranks poorly.
 // Entries are matched case-insensitively against the user's query (ru + en).
 // ---------------------------------------------------------------------------
-const CURATED: { aliases: string[]; label: string; value: string }[] = [
+const CURATED: { aliases: string[]; ru: string; en: string }[] = [
     // Indonesia
-    { aliases: ["бали", "bali"], label: "Бали, Индонезия", value: "Бали, Индонезия" },
-    { aliases: ["джакарта", "jakarta"], label: "Джакарта, Индонезия", value: "Джакарта, Индонезия" },
-    { aliases: ["ломбок", "lombok"], label: "Ломбок, Индонезия", value: "Ломбок, Индонезия" },
+    { aliases: ["бали", "bali"], ru: "Бали, Индонезия", en: "Bali, Indonesia" },
+    { aliases: ["джакарта", "jakarta"], ru: "Джакарта, Индонезия", en: "Jakarta, Indonesia" },
+    { aliases: ["ломбок", "lombok"], ru: "Ломбок, Индонезия", en: "Lombok, Indonesia" },
     // Thailand islands
-    { aliases: ["пхукет", "phuket"], label: "Пхукет, Таиланд", value: "Пхукет, Таиланд" },
-    { aliases: ["самуи", "samui", "ko samui"], label: "Ко-Самуи, Таиланд", value: "Ко-Самуи, Таиланд" },
-    { aliases: ["паттайя", "pattaya"], label: "Паттайя, Таиланд", value: "Паттайя, Таиланд" },
-    { aliases: ["краби", "krabi"], label: "Краби, Таиланд", value: "Краби, Таиланд" },
+    { aliases: ["пхукет", "phuket"], ru: "Пхукет, Таиланд", en: "Phuket, Thailand" },
+    { aliases: ["самуи", "samui", "ko samui"], ru: "Ко-Самуи, Таиланд", en: "Ko Samui, Thailand" },
+    { aliases: ["паттайя", "pattaya"], ru: "Паттайя, Таиланд", en: "Pattaya, Thailand" },
+    { aliases: ["краби", "krabi"], ru: "Краби, Таиланд", en: "Krabi, Thailand" },
     // Maldives / islands
-    { aliases: ["мальдив", "maldiv", "maldive"], label: "Мальдивы", value: "Мальдивы" },
-    { aliases: ["маврикий", "mauritius"], label: "Маврикий", value: "Маврикий" },
-    { aliases: ["сейшел", "seychell", "seychel"], label: "Сейшелы", value: "Сейшелы" },
-    { aliases: ["занзибар", "zanzibar"], label: "Занзибар, Танзания", value: "Занзибар, Танзания" },
+    { aliases: ["мальдив", "maldiv", "maldive"], ru: "Мальдивы", en: "Maldives" },
+    { aliases: ["маврикий", "mauritius"], ru: "Маврикий", en: "Mauritius" },
+    { aliases: ["сейшел", "seychell", "seychel"], ru: "Сейшелы", en: "Seychelles" },
+    { aliases: ["занзибар", "zanzibar"], ru: "Занзибар, Танзания", en: "Zanzibar, Tanzania" },
     // Turkey
-    { aliases: ["каппадок", "cappadoc"], label: "Каппадокия, Турция", value: "Каппадокия, Турция" },
-    { aliases: ["бодрум", "bodrum"], label: "Бодрум, Турция", value: "Бодрум, Турция" },
-    { aliases: ["аланья", "alanya"], label: "Аланья, Турция", value: "Аланья, Турция" },
-    { aliases: ["анталья", "antalya"], label: "Анталья, Турция", value: "Анталья, Турция" },
+    { aliases: ["каппадок", "cappadoc"], ru: "Каппадокия, Турция", en: "Cappadocia, Turkey" },
+    { aliases: ["бодрум", "bodrum"], ru: "Бодрум, Турция", en: "Bodrum, Turkey" },
+    { aliases: ["аланья", "alanya"], ru: "Аланья, Турция", en: "Alanya, Turkey" },
+    { aliases: ["анталья", "antalya"], ru: "Анталья, Турция", en: "Antalya, Turkey" },
     // CIS
-    { aliases: ["алмат", "almaty"], label: "Алматы, Казахстан", value: "Алматы, Казахстан" },
-    { aliases: ["самарканд", "samarkand"], label: "Самарканд, Узбекистан", value: "Самарканд, Узбекистан" },
-    { aliases: ["бухар", "bukhara"], label: "Бухара, Узбекистан", value: "Бухара, Узбекистан" },
+    { aliases: ["алмат", "almaty"], ru: "Алматы, Казахстан", en: "Almaty, Kazakhstan" },
+    { aliases: ["самарканд", "samarkand"], ru: "Самарканд, Узбекистан", en: "Samarkand, Uzbekistan" },
+    { aliases: ["бухар", "bukhara"], ru: "Бухара, Узбекистан", en: "Bukhara, Uzbekistan" },
     // Russia highlights
-    { aliases: ["байкал", "baikal", "lake baikal"], label: "Байкал, Россия", value: "Байкал, Россия" },
-    { aliases: ["суздал", "suzdal"], label: "Суздаль, Россия", value: "Суздаль, Россия" },
-    { aliases: ["карелия", "karelia"], label: "Карелия, Россия", value: "Карелия, Россия" },
-    { aliases: ["алтай", "altai", "altay"], label: "Алтай, Россия", value: "Алтай, Россия" },
-    { aliases: ["камчатк", "kamchatk"], label: "Камчатка, Россия", value: "Камчатка, Россия" },
+    { aliases: ["байкал", "baikal", "lake baikal"], ru: "Байкал, Россия", en: "Lake Baikal, Russia" },
+    { aliases: ["суздал", "suzdal"], ru: "Суздаль, Россия", en: "Suzdal, Russia" },
+    { aliases: ["карелия", "karelia"], ru: "Карелия, Россия", en: "Karelia, Russia" },
+    { aliases: ["алтай", "altai", "altay"], ru: "Алтай, Россия", en: "Altai, Russia" },
+    { aliases: ["камчатк", "kamchatk"], ru: "Камчатка, Россия", en: "Kamchatka, Russia" },
     // Others
-    { aliases: ["гоа", "goa"], label: "Гоа, Индия", value: "Гоа, Индия" },
-    { aliases: ["дубровник", "dubrovnik"], label: "Дубровник, Хорватия", value: "Дубровник, Хорватия" },
-    { aliases: ["сантор", "santor"], label: "Санторини, Греция", value: "Санторини, Греция" },
-    { aliases: ["миконос", "mykonos"], label: "Миконос, Греция", value: "Миконос, Греция" },
-    { aliases: ["сингапур", "singapore"], label: "Сингапур", value: "Сингапур" },
-    { aliases: ["катманд", "kathmand"], label: "Катманду, Непал", value: "Катманду, Непал" },
-    { aliases: ["марракеш", "marrakesh", "marrakech"], label: "Марракеш, Марокко", value: "Марракеш, Марокко" },
-    { aliases: ["рейкьявик", "reykjavik"], label: "Рейкьявик, Исландия", value: "Рейкьявик, Исландия" },
-    { aliases: ["пражск", "prague", "прага", "praha"], label: "Прага, Чехия", value: "Прага, Чехия" },
+    { aliases: ["гоа", "goa"], ru: "Гоа, Индия", en: "Goa, India" },
+    { aliases: ["дубровник", "dubrovnik"], ru: "Дубровник, Хорватия", en: "Dubrovnik, Croatia" },
+    { aliases: ["сантор", "santor"], ru: "Санторини, Греция", en: "Santorini, Greece" },
+    { aliases: ["миконос", "mykonos"], ru: "Миконос, Греция", en: "Mykonos, Greece" },
+    { aliases: ["сингапур", "singapore"], ru: "Сингапур", en: "Singapore" },
+    { aliases: ["катманд", "kathmand"], ru: "Катманду, Непал", en: "Kathmandu, Nepal" },
+    { aliases: ["марракеш", "marrakesh", "marrakech"], ru: "Марракеш, Марокко", en: "Marrakech, Morocco" },
+    { aliases: ["рейкьявик", "reykjavik"], ru: "Рейкьявик, Исландия", en: "Reykjavik, Iceland" },
+    { aliases: ["пражск", "prague", "прага", "praha"], ru: "Прага, Чехия", en: "Prague, Czech Republic" },
 ]
 
-function getCuratedMatches(query: string): { label: string; value: string }[] {
+function getCuratedMatches(query: string, locale: string): { label: string; value: string }[] {
     const q = query.toLowerCase().trim()
     if (q.length < 2) return []
     return CURATED.filter(c => c.aliases.some(a => a.startsWith(q) || q.startsWith(a)))
-        .map(c => ({ label: c.label, value: c.value }))
+        .map(c => {
+            const label = locale === "en" ? c.en : c.ru
+            return { label, value: label }
+        })
 }
 
 export function CityAutocomplete({
@@ -92,6 +95,7 @@ export function CityAutocomplete({
     multiselect = false
 }: CityAutocompleteProps) {
     const t = useTranslations("citySearch")
+    const locale = useLocale()
     const [open, setOpen] = React.useState(false)
     const [inputValue, setInputValue] = React.useState("")
     const [apiOptions, setApiOptions] = React.useState<{ label: string; value: string }[]>([])
@@ -106,7 +110,7 @@ export function CityAutocomplete({
 
     // Merge curated + API results (curated on top, dedup)
     const options = React.useMemo(() => {
-        const curated = getCuratedMatches(inputValue)
+        const curated = getCuratedMatches(inputValue, locale)
         const curatedValues = new Set(curated.map(c => c.value))
         const apiDeduped = apiOptions.filter(o => !curatedValues.has(o.value))
         return [...curated, ...apiDeduped]
@@ -139,7 +143,7 @@ export function CityAutocomplete({
             setLoading(true)
             try {
                 const res = await fetch(
-                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputValue)}&count=10&language=ru&format=json`
+                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputValue)}&count=10&language=${locale}&format=json`
                 )
                 const data = await res.json()
                 const results: any[] = data.results || []
