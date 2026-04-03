@@ -548,10 +548,14 @@ export default function TripDetailPage() {
     if (!Array.isArray(route.itinerary)) return null
     for (let d = activeDay; d >= 1; d--) {
       const day = route.itinerary.find((dd: any) => dd.day === d)
-      const hotelAct = day?.activities?.find((a: any) =>
-        a.type === "hotel" ||
-        /заселение|отель|hotel|check.?in/i.test(`${a.title || ""} ${a.desc || ""}`)
-      )
+      const hotelAct = day?.activities?.find((a: any) => {
+        if (a.type === "hotel") return true
+        // If LLM failed to provide type, try to infer from title, but strictly exclude other known types
+        if (!a.type || a.type === "activity") {
+          return /заселение|отель|hotel|check.?in/i.test(a.title || "")
+        }
+        return false
+      })
       if (hotelAct) return hotelAct
     }
     return null
