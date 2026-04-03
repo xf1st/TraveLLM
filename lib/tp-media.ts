@@ -92,6 +92,36 @@ export function unwrapTravelpayoutsDeepLink(url: string): string {
     return url
 }
 
+/**
+ * Fix common LLM mistakes in Yandex Travel hotel URLs:
+ * 1. /hotels/{city}/hotel/{slug}/ → /hotels/{city}/{slug}/
+ * 2. underscores in slug → hyphens
+ */
+export function sanitizeYandexTravelUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase()
+    if (host !== "travel.yandex.ru") return url
+
+    // Remove spurious /hotel/ segment: /hotels/{city}/hotel/{slug} → /hotels/{city}/{slug}
+    parsed.pathname = parsed.pathname.replace(
+      /^(\/hotels\/[^/]+)\/hotel\//,
+      "$1/"
+    )
+
+    // Replace underscores with hyphens in hotel slug (second segment after /hotels/{city}/)
+    const parts = parsed.pathname.split("/").filter(Boolean)
+    if (parts.length >= 3 && parts[0] === "hotels") {
+      parts[2] = parts[2].replace(/_/g, "-")
+      parsed.pathname = "/" + parts.join("/") + "/"
+    }
+
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 const PARTNER_HOST_TO_PROGRAM: Array<{ test: (h: string) => boolean; key: TpProgramKey }> = [
   { test: (h) => h === "travel.yandex.ru" || h.endsWith(".travel.yandex.ru"), key: "yandexTravel" },
   { test: (h) => h.endsWith("ostrovok.ru"), key: "ostrovok" },
@@ -110,6 +140,8 @@ export function maybeWrapPartnerAffiliateUrl(
   options?: { subMarker?: string; market?: BookingMarket }
 ): string {
   if (!url?.startsWith("http")) return url
+  // Fix known LLM mistakes in partner URLs before wrapping
+  url = sanitizeYandexTravelUrl(url)
   const market = options?.market ?? "ru"
   try {
     const parsed = new URL(url)

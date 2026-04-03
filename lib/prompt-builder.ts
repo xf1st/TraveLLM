@@ -46,6 +46,7 @@ Activity → partner → target URL pattern (then wrap in emrld affiliate redire
 | Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to places (not generic / only) |
 | Apartment / daily rent (not hotel room) | Sutochno | City subdomain or search: https://spb.sutochno.ru/ https://sochi.sutochno.ru/ https://www.sutochno.ru/ (Moscow), https://kazan.sutochno.ru/, etc. |
 | Hotels | Yandex + Ostrovok | bookingUrl: emrld wrap + Yandex Travel hotel URL with dates (§5). link: emrld wrap + https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
+Yandex Travel hotel page format: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — use **hyphens** (NOT underscores). NO extra \`/hotel/\` segment. WRONG: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. CORRECT: \`.../hotels/tokyo/the-knot-tokyo/\`. For city-level search: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
 
 If a program ID is missing in .env, output the partner deep URL without the affiliate wrapper (still deep, not homepage).
 `.trim()
@@ -71,6 +72,7 @@ ID программ (p) для этого проекта:
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL поиска/заказа на kiwitaxi.ru с пунктами from/to |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, kazan.sutochno.ru, www.sutochno.ru (Москва), ekaterinburg.sutochno.ru и т.п. — не просто корень без города |
 | Отели | Яндекс + Островок | bookingUrl: обёртка emrld + URL Яндекс.Путешествий с датами заезда/выезда (как в п.5). link: обёртка emrld + https://ostrovok.ru/hotel/search/?q=Город+или+НазваниеОтеля — вторая ссылка как альтернатива Островку |
+Формат страницы отеля Яндекс.Путешествий: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — **дефисы** (НЕ подчёркивания). БЕЗ лишнего сегмента \`/hotel/\`. НЕПРАВИЛЬНО: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. ПРАВИЛЬНО: \`.../hotels/tokyo/the-knot-tokyo/\`. Для поиска по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
 
 Запрещено отдавать одну только https://sputnik8.com/ru/ без города и категории. Если p не задан в .env — дай глубокий URL партнёра без обёртки.
 `.trim()

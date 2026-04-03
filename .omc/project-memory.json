@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1775113969591,
+  "lastScanned": 1775223240266,
   "projectRoot": "D:\\sites\\TraveLLM",
   "techStack": {
     "languages": [
@@ -84,7 +84,7 @@
       "path": "app",
       "purpose": "Application code",
       "fileCount": 9,
-      "lastAccessed": 1775113969511,
+      "lastAccessed": 1775223240170,
       "keyFiles": [
         "globals.css",
         "layout.tsx",
@@ -97,7 +97,7 @@
       "path": "components",
       "purpose": "UI components",
       "fileCount": 47,
-      "lastAccessed": 1775113969512,
+      "lastAccessed": 1775223240171,
       "keyFiles": [
         "Achievements.tsx",
         "app-layout.tsx",
@@ -110,7 +110,7 @@
       "path": "conductor",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1775113969531,
+      "lastAccessed": 1775223240194,
       "keyFiles": [
         "profile-redesign-phase4.md"
       ]
@@ -119,7 +119,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 5,
-      "lastAccessed": 1775113969532,
+      "lastAccessed": 1775223240201,
       "keyFiles": [
         "ADMIN_SETUP.md",
         "getting-started.md",
@@ -132,14 +132,14 @@
       "path": "DsitesTraveLLM",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1775113969548,
+      "lastAccessed": 1775223240205,
       "keyFiles": []
     },
     "i18n": {
       "path": "i18n",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1775113969550,
+      "lastAccessed": 1775223240205,
       "keyFiles": [
         "request.ts"
       ]
@@ -148,7 +148,7 @@
       "path": "lib",
       "purpose": "Library code",
       "fileCount": 56,
-      "lastAccessed": 1775113969551,
+      "lastAccessed": 1775223240206,
       "keyFiles": [
         "admin-auth.ts",
         "admin-stats.ts",
@@ -161,7 +161,7 @@
       "path": "messages",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1775113969555,
+      "lastAccessed": 1775223240207,
       "keyFiles": [
         "en.json",
         "ru.json"
@@ -171,7 +171,7 @@
       "path": "Obsidian",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1775113969557,
+      "lastAccessed": 1775223240208,
       "keyFiles": [
         "travellm.md"
       ]
@@ -180,7 +180,7 @@
       "path": "public",
       "purpose": "Public files",
       "fileCount": 34,
-      "lastAccessed": 1775113969558,
+      "lastAccessed": 1775223240210,
       "keyFiles": [
         "a4b8f2e9d0c7631524ab87ef90d3c152.txt",
         "airplane-in-flight.png",
@@ -193,7 +193,7 @@
       "path": "scripts",
       "purpose": "Build/utility scripts",
       "fileCount": 9,
-      "lastAccessed": 1775113969559,
+      "lastAccessed": 1775223240224,
       "keyFiles": [
         "check-domain.js",
         "check_bots.js",
@@ -206,7 +206,7 @@
       "path": "styles",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1775113969560,
+      "lastAccessed": 1775223240225,
       "keyFiles": [
         "globals.css"
       ]
@@ -215,14 +215,14 @@
       "path": "supabase",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1775113969562,
+      "lastAccessed": 1775223240225,
       "keyFiles": []
     },
     "TraveLLMux": {
       "path": "TraveLLMux",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1775113969565,
+      "lastAccessed": 1775223240226,
       "keyFiles": [
         "logo.png",
         "logo2.svg"
@@ -232,7 +232,7 @@
       "path": "types",
       "purpose": "Type definitions",
       "fileCount": 2,
-      "lastAccessed": 1775113969570,
+      "lastAccessed": 1775223240227,
       "keyFiles": [
         "database.types.ts",
         "itinerary.ts"
@@ -242,7 +242,7 @@
       "path": "app\\api",
       "purpose": "API routes",
       "fileCount": 1,
-      "lastAccessed": 1775113969572,
+      "lastAccessed": 1775223240228,
       "keyFiles": [
         "route.ts"
       ]
@@ -251,7 +251,7 @@
       "path": "lib\\api",
       "purpose": "API routes",
       "fileCount": 7,
-      "lastAccessed": 1775113969577,
+      "lastAccessed": 1775223240231,
       "keyFiles": [
         "aerodatabox-client.ts",
         "airport-validator.ts",
@@ -262,7 +262,7 @@
       "path": "supabase\\migrations",
       "purpose": "Database migrations",
       "fileCount": 18,
-      "lastAccessed": 1775113969590,
+      "lastAccessed": 1775223240245,
       "keyFiles": [
         "20250324120000_discovery_reels_unsplash_and_feed.sql",
         "20250324140000_app_settings_admin_columns.sql",
