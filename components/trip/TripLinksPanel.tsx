@@ -552,9 +552,9 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
       if (m) p.set("marker", m)
       return `https://travel.yandex.ru/hotels/?${p.toString()}`
     }
-    const hotelFallbackUrl = (title: string) => {
-      if (bookingMarket === "world" && !isRussianHotelDestinationSync(title)) {
-        return `https://www.booking.com/search.html?ss=${encodeURIComponent(title)}`
+    const hotelFallbackUrl = (placeName: string) => {
+      if (bookingMarket === "world" && placeName && !isRussianHotelDestinationSync(placeName)) {
+        return `https://www.booking.com/search.html?ss=${encodeURIComponent(placeName)}`
       }
       return yandexHotelsFallback()
     }
@@ -585,9 +585,9 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           : "activity"
         const imageQuery: string | undefined = act.imageQuery || undefined
 
-        // Hotels with no link: Yandex Travel (RU stack / Russian cities) or Booking.com (world, non-RU)
+        // Hotels with no link: use placeName (hotel name) for the fallback query, not the activity title
         if (actType === "hotel" && finalUrls.length === 0) {
-          finalUrls.push(hotelFallbackUrl(actTitle))
+          finalUrls.push(hotelFallbackUrl(act.placeName || ""))
         }
 
         for (const url of finalUrls) {

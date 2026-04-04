@@ -151,13 +151,20 @@ Return valid JSON matching this schema exactly:
                 const enrichedAct = enrichedDay.activities?.[aIdx]
                 if (!enrichedAct) return act
 
+                const rawBookingLink: unknown = act.bookingLink || enrichedAct.booking_link
+                const safeBookingLink =
+                    typeof rawBookingLink === "string" &&
+                    (rawBookingLink.startsWith("https://") || rawBookingLink.startsWith("http://"))
+                        ? rawBookingLink
+                        : act.bookingLink // keep original if AI returned garbage
+
                 return {
                     ...act,
                     coordinates: enrichedAct.coordinates,
                     visual_query: enrichedAct.visual_query,
                     // Only update if missing in original
-                    price: act.price || enrichedAct.price, 
-                    bookingLink: act.bookingLink || enrichedAct.booking_link
+                    price: act.price || enrichedAct.price,
+                    bookingLink: safeBookingLink,
                 }
             }) || []
 

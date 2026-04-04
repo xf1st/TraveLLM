@@ -78,7 +78,7 @@ ACTIVITY (музей, достопримечательность):
   Tiqets / WeGoTrip — поиск по городу и активности на их сайтах
 
 Прыжок с парашютом (Россия):
-  link = "https://skydiving.ru/"
+  link = "https://tripster.ru/destinations/moscow/" (или slug нужного города) — поиск прыжков с парашютом на Tripster
 
 Параглайдинг / парапланеризм:
   Klook: "https://www.klook.com/ru/search/?q=paragliding+{city}"
