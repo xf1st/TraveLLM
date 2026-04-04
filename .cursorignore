@@ -1,4 +1,30 @@
-public/*.mp4
-*.mp4
-vidforland.mp4
-public/vidforland.mp4
+ # Зависимости и сборка
+    2 node_modules/
+    3 .next/
+    4 build/
+    5 dist/
+    6 .vercel/
+    7 .turbo/
+    8
+    9 # Метаданные Git и инструментов
+   10 .git/
+   11 .cursor/
+   12 .gemini/
+   13 .claude/
+   14 .agent/
+   15
+   16 # Переменные окружения
+   17 .env*
+   18
+   19 # Тяжелые статические файлы (уже есть в .gitignore, но добавим сюда для надежности)
+   20 public/*.mp4
+   21 public/*.jpg
+   22 public/*.png
+   23 public/*.webp
+   24 public/*.svg
+   25 !public/logo-main.svg  # Оставим логотип, если AI нужно его видеть
+   26
+   27 # Временные файлы AI-инструментов
+   28 *.tmp.tsx
+   29 *.tmp.ts
+   30 .tmp_head_trip_page.tsx
