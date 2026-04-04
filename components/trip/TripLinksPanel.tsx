@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl"
 import { normalizeTravelMode, type TravelMode } from "@/lib/travel-mode"
 import { AffiliateNotice } from "@/components/partners/AffiliateNotice"
 import { isRussianHotelDestinationSync } from "@/lib/travelpayouts"
+import { unwrapTravelpayoutsDeepLink } from "@/lib/tp-media"
 import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
 import type { BookingMarket } from "@/lib/booking-market"
 
@@ -91,27 +92,30 @@ function isMapUrl(url: string) {
 }
 
 function parseService(url: string): string {
-  if (/aviasales/i.test(url))        return "Aviasales"
-  if (/skyscanner/i.test(url))       return "Skyscanner"
-  if (/booking\.com/i.test(url))     return "Booking.com"
-  if (/tp\.media\/r\?/i.test(url))       return "Travelpayouts"
-  if (/travel\.yandex\.ru\/hotels/i.test(url)) return "Yandex Travel"
-  if (/ostrovok/i.test(url))         return "Ostrovok"
-  if (/airbnb/i.test(url))           return "Airbnb"
-  if (/hotels\.com/i.test(url))      return "Hotels.com"
-  if (/tripadvisor/i.test(url))      return "TripAdvisor"
-  if (/tripster\.ru/i.test(url))     return "Tripster"
-  if (/sputnik8\.com/i.test(url))    return "Sputnik8"
-  if (/sutochno\.ru/i.test(url))     return "Суточно.ру"
-  if (/tomesto\.ru/i.test(url))      return "ТоМесто"
-  if (/getyourguide/i.test(url))     return "GetYourGuide"
-  if (/tiqets\.com/i.test(url))      return "Tiqets"
-  if (/wegotrip\.com/i.test(url))    return "WeGoTrip"
-  if (/klook/i.test(url))            return "Klook"
-  if (/viator/i.test(url))           return "Viator"
-  if (/trip\.com/i.test(url))        return "Trip.com"
-  if (/omio\.com/i.test(url))        return "Omio"
-  try { return new URL(url).hostname.replace("www.", "") } catch { return "Link" }
+  // Unwrap affiliate redirects (emrld.ltd, tp.media) before detecting the brand
+  const resolved = unwrapTravelpayoutsDeepLink(url)
+  const u = resolved || url
+  if (/aviasales/i.test(u))                    return "Aviasales"
+  if (/skyscanner/i.test(u))                   return "Skyscanner"
+  if (/booking\.com/i.test(u))                 return "Booking.com"
+  if (/travel\.yandex\.ru\/hotels/i.test(u))   return "Yandex Travel"
+  if (/ostrovok/i.test(u))                     return "Ostrovok"
+  if (/airbnb/i.test(u))                       return "Airbnb"
+  if (/hotels\.com/i.test(u))                  return "Hotels.com"
+  if (/tripadvisor/i.test(u))                  return "TripAdvisor"
+  if (/tripster\.ru/i.test(u))                 return "Tripster"
+  if (/sputnik8\.com/i.test(u))                return "Sputnik8"
+  if (/sutochno\.ru/i.test(u))                 return "Суточно.ру"
+  if (/tomesto\.ru/i.test(u))                  return "ТоМесто"
+  if (/getyourguide/i.test(u))                 return "GetYourGuide"
+  if (/tiqets\.com/i.test(u))                  return "Tiqets"
+  if (/wegotrip\.com/i.test(u))                return "WeGoTrip"
+  if (/klook/i.test(u))                        return "Klook"
+  if (/viator/i.test(u))                       return "Viator"
+  if (/trip\.com/i.test(u))                    return "Trip.com"
+  if (/omio\.com/i.test(u))                    return "Omio"
+  // Fallback: show the actual partner hostname (unwrapped), not the redirect host
+  try { return new URL(u).hostname.replace("www.", "") } catch { return "Link" }
 }
 
 function getTransportIcon(text: string) {

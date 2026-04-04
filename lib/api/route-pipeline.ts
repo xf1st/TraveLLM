@@ -111,22 +111,28 @@ export function enrichTransportLinks(
 
                     const origIata = currentIata || fromIataFromTitle
 
-                    let date = startDate
-                    if (startDate && i > 0) {
-                        const d = new Date(startDate)
-                        d.setDate(d.getDate() + i)
-                        date = d.toISOString().split('T')[0]
-                    }
+                    // Skip link enrichment if we can't resolve both IATA codes —
+                    // a partial URL (e.g. aviasales.ru/search/1506 1) is worse than no link.
+                    if (!origIata || !toIata) {
+                        console.warn(`[enrichTransportLinks] Cannot resolve IATA for "${originalTitle}" (from=${origIata || "?"} to=${toIata || "?"}), skipping link override`)
+                    } else {
+                        let date = startDate
+                        if (startDate && i > 0) {
+                            const d = new Date(startDate)
+                            d.setDate(d.getDate() + i)
+                            date = d.toISOString().split('T')[0]
+                        }
 
-                    act.link = getFlightSearchLink({
-                        originIata: origIata,
-                        origin: currentCity,
-                        destination: toCity,
-                        destinationIata: toIata,
-                        departDate: date,
-                        subId: `flight_day_${i+1}`,
-                        market,
-                    })
+                        act.link = getFlightSearchLink({
+                            originIata: origIata,
+                            origin: currentCity,
+                            destination: toCity,
+                            destinationIata: toIata,
+                            departDate: date,
+                            subId: `flight_day_${i+1}`,
+                            market,
+                        })
+                    }
 
                     if (toIata) currentIata = toIata
                     if (toCity) currentCity = toCity
