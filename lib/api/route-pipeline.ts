@@ -353,3 +353,39 @@ export async function enrichViralSpotsWithWebSearch(routeData: any) {
 
   return routeData
 }
+
+/** URL fields that can appear on an activity object. */
+const ACTIVITY_URL_FIELDS = ["link", "mapLink", "bookingUrl", "ticketUrl", "bookingLink"] as const
+
+/**
+ * After jsonrepair the model may have produced malformed or placeholder URLs
+ * (e.g. "ENCODEURIComponent(...)", "ID_ПРОГРАММЫ", relative paths, empty strings).
+ * This function walks the itinerary and nulls out any URL field that is not a
+ * valid absolute http/https URL, so broken values never reach the client or DB.
+ */
+export function sanitizeActivityUrls(routeData: any): any {
+  if (!Array.isArray(routeData?.itinerary)) return routeData
+
+  for (const day of routeData.itinerary) {
+    if (!Array.isArray(day.activities)) continue
+    for (const act of day.activities) {
+      for (const field of ACTIVITY_URL_FIELDS) {
+        const val = act[field]
+        if (val === undefined || val === null) continue
+        if (typeof val !== "string" || !/^https?:\/\/.{4,}/.test(val.trim())) {
+          console.warn(`[sanitizeActivityUrls] Dropping invalid ${field}: ${String(val).slice(0, 80)}`)
+          act[field] = undefined
+        }
+      }
+    }
+    // Also sanitise logistics.bookingLink
+    if (day.logistics?.bookingLink !== undefined) {
+      const bl = day.logistics.bookingLink
+      if (typeof bl !== "string" || !/^https?:\/\/.{4,}/.test(bl.trim())) {
+        day.logistics.bookingLink = undefined
+      }
+    }
+  }
+
+  return routeData
+}

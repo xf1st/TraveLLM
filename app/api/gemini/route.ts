@@ -15,13 +15,14 @@ import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
-import { 
-    enrichTransportLinks, 
-    sanitizeClosedAirportLogistics, 
-    normalizeActivityTypes, 
+import {
+    enrichTransportLinks,
+    sanitizeClosedAirportLogistics,
+    normalizeActivityTypes,
     collectRealTimeSearchContext,
     removeSameCityFlights,
-    enrichViralSpotsWithWebSearch
+    enrichViralSpotsWithWebSearch,
+    sanitizeActivityUrls,
 } from "@/lib/api/route-pipeline"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { validateAirports } from "@/lib/api/airport-validator"
@@ -414,6 +415,7 @@ export async function POST(req: Request) {
                     }
                     
                     // Post-processing
+                    routeData = sanitizeActivityUrls(routeData);
                     await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
                     routeData = await enrichViralSpotsWithWebSearch(routeData);
                     routeData = normalizeActivityTypes(routeData);
