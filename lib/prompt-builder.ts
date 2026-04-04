@@ -30,10 +30,11 @@ Activity → partner → target URL pattern:
 | Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (muzei, ekskursii, vodnyie-progulki — pick what fits) |
 | Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to (not homepage) |
 | Apartment / daily rent (not hotel room) | Sutochno | City subdomain: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Moscow), kazan.sutochno.ru |
-| Hotels | Yandex + Ostrovok | bookingUrl: plain Yandex Travel hotel deep URL. link: https://ostrovok.ru/hotel/search/?q={CityOrHotelName} |
-Yandex Travel hotel page format: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — use **hyphens** (NOT underscores). NO extra \`/hotel/\` segment. WRONG: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. CORRECT: \`.../hotels/tokyo/the-knot-tokyo/\`. For city-level search: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
+| Hotels | Yandex + Ostrovok | bookingUrl: specific Yandex Travel hotel page URL with dates. link: specific Ostrovok hotel page URL with dates. |
+Yandex Travel hotel page format: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — use **hyphens** (NOT underscores). NO extra \`/hotel/\` segment.
+Ostrovok hotel page format: \`https://ostrovok.ru/hotel/search/?q={hotel-slug}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\` (or specific mid URL if known).
 
-Do NOT output emrld.ltd, tp.media or any redirect wrappers — just plain partner domain URLs.
+Do NOT output search-only URLs if the hotel name is known — always aim for the specific hotel page.
 `.trim()
     }
     return `
@@ -46,10 +47,11 @@ Do NOT output emrld.ltd, tp.media or any redirect wrappers — just plain partne
 | Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL маршрута на kiwitaxi.ru (не только главная) |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Москва), kazan.sutochno.ru |
-| Отели | Яндекс + Островок | bookingUrl: обычный URL Яндекс.Путешествий с датами. link: https://ostrovok.ru/hotel/search/?q=Город+или+отель |
-Формат страницы отеля Яндекс.Путешествий: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/\` — **дефисы** (НЕ подчёркивания). БЕЗ лишнего сегмента \`/hotel/\`. НЕПРАВИЛЬНО: \`.../hotels/tokyo/hotel/the_knot_tokyo/\`. ПРАВИЛЬНО: \`.../hotels/tokyo/the-knot-tokyo/\`. Для поиска по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`.
+| Отели | Яндекс + Островок | bookingUrl: конкретная страница отеля на Яндекс.Путешествиях с датами. link: конкретная страница отеля на Островке с датами. |
+Формат страницы отеля Яндекс.Путешествий: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — **дефисы** (НЕ подчёркивания). БЕЗ лишнего сегмента \`/hotel/\`.
+Формат страницы отеля Островок: \`https://ostrovok.ru/hotel/search/?q={hotel-slug}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\` (или прямой URL отеля если известен).
 
-НЕ выводи emrld.ltd, tp.media или любые обёртки-редиректы — только прямые URL партнёрских доменов.
+НЕ выводи ссылки на общий ПОИСК, если название отеля известно — старайся давать ссылку на страницу конкретного отеля.
 `.trim()
 }
 

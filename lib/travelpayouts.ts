@@ -425,15 +425,32 @@ export function countryToCity(name: string): string {
 }
 
 /**
- * Форматирование даты для URL (YYYY-MM-DD)
+ * Форматирование даты для URL
  */
-function formatDate(date: Date | string): string {
+function formatDate(date: Date | string, format: "YYYY-MM-DD" | "DD.MM.YYYY" = "YYYY-MM-DD"): string {
+  let d: Date
   if (typeof date === "string") {
     // Если уже в формате YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date
-    date = new Date(date)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      if (format === "YYYY-MM-DD") return date
+      const [y, m, day] = date.split("-")
+      return `${day}.${m}.${y}`
+    }
+    d = new Date(date)
+  } else {
+    d = date
   }
-  return date.toISOString().split("T")[0]
+  
+  if (isNaN(d.getTime())) return ""
+
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+
+  if (format === "DD.MM.YYYY") {
+    return `${day}.${month}.${year}`
+  }
+  return `${year}-${month}-${day}`
 }
 
 interface FlightSearchParams {
@@ -802,7 +819,7 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
 }
 
 /**
- * Альтернативная ссылка на Hotellook (международный)
+ * Альтернативная ссылка на Островок / Hotellook
  */
 export function getHotellookLink(params: HotelSearchParams): string {
   const {
@@ -811,10 +828,13 @@ export function getHotellookLink(params: HotelSearchParams): string {
     checkOut,
     adults = 2,
     subId,
-    hotelName
+    hotelName,
+    market = "ru"
   } = params
 
-  const baseUrl = "https://search.hotellook.com"
+  const isRu = market === "ru"
+  // For RU market use Ostrovok directly if it's for search fallback
+  const baseUrl = isRu ? "https://ostrovok.ru/hotel/search/" : "https://search.hotellook.com"
 
   const searchParams = new URLSearchParams()
 
@@ -823,11 +843,19 @@ export function getHotellookLink(params: HotelSearchParams): string {
     searchParams.set("marker", marker)
   }
 
-  searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
-  searchParams.set("adults", adults.toString())
-
-  if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
-  if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
+  if (isRu) {
+    // Ostrovok search format: ?q={hotelName}+{destination}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N
+    const q = hotelName ? `${hotelName} ${destination}` : destination
+    searchParams.set("q", q)
+    if (checkIn) searchParams.set("checkin", formatDate(checkIn, "DD.MM.YYYY"))
+    if (checkOut) searchParams.set("checkout", formatDate(checkOut, "DD.MM.YYYY"))
+    searchParams.set("guests", adults.toString())
+  } else {
+    searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
+    searchParams.set("adults", adults.toString())
+    if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
+    if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
+  }
 
   return `${baseUrl}?${searchParams.toString()}`
 }

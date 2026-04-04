@@ -122,6 +122,27 @@ export function sanitizeYandexTravelUrl(url: string): string {
   }
 }
 
+/**
+ * Fix common LLM mistakes in Ostrovok hotel URLs:
+ * 1. Replace underscores with hyphens in slug
+ * 2. Ensure it doesn't end with a stray quote or semicolon
+ */
+export function sanitizeOstrovokUrl(url: string): string {
+  try {
+    let u = url.trim().replace(/['";]+$/, "")
+    const parsed = new URL(u)
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase()
+    if (host !== "ostrovok.ru") return url
+
+    // Replace underscores with hyphens in the entire path for Ostrovok
+    parsed.pathname = parsed.pathname.replace(/_/g, "-")
+    
+    return parsed.toString()
+  } catch {
+    return url
+  }
+}
+
 const PARTNER_HOST_TO_PROGRAM: Array<{ test: (h: string) => boolean; key: TpProgramKey }> = [
   { test: (h) => h === "travel.yandex.ru" || h.endsWith(".travel.yandex.ru"), key: "yandexTravel" },
   { test: (h) => h.endsWith("ostrovok.ru"), key: "ostrovok" },
@@ -156,6 +177,7 @@ export function maybeWrapPartnerAffiliateUrl(
   url = unwrapTravelpayoutsDeepLink(url)
   // Fix known LLM mistakes (wrong path segments, underscores)
   url = sanitizeYandexTravelUrl(url)
+  url = sanitizeOstrovokUrl(url)
 
   // Drive handles affiliate wrapping automatically — return clean URL
   if (isDriveEnabled()) return url

@@ -570,16 +570,11 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
       for (const act of day.activities ?? []) {
         const rawUrls: string[] = []
 
-        // Collect non-map URLs from all fields; mapLink is included only if it's NOT actually a map URL
+        // Collect non-map URLs from all fields
         if (act.link       && typeof act.link       === "string" && act.link.startsWith("http")       && !isMapUrl(act.link))       rawUrls.push(act.link)
         if (act.mapLink    && typeof act.mapLink    === "string" && act.mapLink.startsWith("http")    && !isMapUrl(act.mapLink))    rawUrls.push(act.mapLink)
         if (act.bookingUrl && typeof act.bookingUrl === "string" && act.bookingUrl.startsWith("http") && !isMapUrl(act.bookingUrl)) rawUrls.push(act.bookingUrl)
         if (act.ticketUrl  && typeof act.ticketUrl  === "string" && act.ticketUrl.startsWith("http")  && !isMapUrl(act.ticketUrl))  rawUrls.push(act.ticketUrl)
-
-        // Deduplicate & remove generic google.com search URLs when real service URLs exist
-        const dedupedUrls = [...new Set(rawUrls)]
-        const hasNonGoogle = dedupedUrls.some(u => !/google\.com/i.test(u))
-        const finalUrls = hasNonGoogle ? dedupedUrls.filter(u => !/google\.com/i.test(u)) : dedupedUrls
 
         const actTitle: string = act.placeName || act.title || "Активность"
         const rawType: string  = act.type || "activity"
@@ -589,9 +584,29 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
           : "activity"
         const imageQuery: string | undefined = act.imageQuery || undefined
 
-        // Hotels with no link: use placeName (hotel name) for the fallback query, not the activity title
-        if (actType === "hotel" && finalUrls.length === 0) {
-          finalUrls.push(hotelFallbackUrl(act.placeName || ""))
+        let finalUrls: string[] = []
+
+        if (actType === "hotel") {
+          // For hotels, deduplicate and pick one best link per service (Yandex / Ostrovok / Booking)
+          const deduped = [...new Set(rawUrls)]
+          const yandex = deduped.find(u => /travel\.yandex\.ru/i.test(u))
+          const ostrovok = deduped.find(u => /ostrovok\.ru/i.test(u))
+          const booking = deduped.find(u => /booking\.com/i.test(u))
+
+          if (yandex) finalUrls.push(yandex)
+          if (ostrovok) finalUrls.push(ostrovok)
+          // Only show Booking if no Russian service is available
+          if (!yandex && !ostrovok && booking) finalUrls.push(booking)
+
+          // If still no link, use fallback
+          if (finalUrls.length === 0) {
+            finalUrls.push(hotelFallbackUrl(act.placeName || ""))
+          }
+        } else {
+          // Deduplicate & remove generic google.com search URLs when real service URLs exist
+          const dedupedUrls = [...new Set(rawUrls)]
+          const hasNonGoogle = dedupedUrls.some(u => !/google\.com/i.test(u))
+          finalUrls = hasNonGoogle ? dedupedUrls.filter(u => !/google\.com/i.test(u)) : dedupedUrls
         }
 
         for (const url of finalUrls) {

@@ -77,6 +77,7 @@ import { getWeatherForLocation, getWeatherEmoji, WeatherData } from "@/lib/weath
 import { getCoordinates } from "@/lib/geocoding"
 import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata, getYandexOnlyHotelLink, isRussianHotelDestinationSync } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
+import { maybeWrapPartnerAffiliateUrl } from "@/lib/tp-media"
 
 import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
 import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
@@ -1432,6 +1433,13 @@ export default function TripDetailPage() {
                       <button
                         type="button"
                         onClick={async () => {
+                          // Priority: 1. bookingUrl from AI, 2. link from AI, 3. Generated search link
+                          const directUrl = sidebarHotel.bookingUrl || sidebarHotel.link
+                          if (directUrl && directUrl.startsWith("http") && !directUrl.includes("google.com/maps")) {
+                            window.open(maybeWrapPartnerAffiliateUrl(directUrl, { market: bookingMarket }), "_blank")
+                            return
+                          }
+
                           const destCity = (sidebarHotel as { city?: string }).city || destinationName
                           try {
                             const url = await getHotelSearchLink({
@@ -1463,6 +1471,12 @@ export default function TripDetailPage() {
                           type="button"
                           className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-colors underline underline-offset-2"
                           onClick={async () => {
+                            // Similar priority for "fallback" Yandex link
+                            if (sidebarHotel.bookingUrl?.includes("travel.yandex.ru")) {
+                               window.open(maybeWrapPartnerAffiliateUrl(sidebarHotel.bookingUrl, { market: bookingMarket }), "_blank")
+                               return
+                            }
+
                             const destCity = (sidebarHotel as { city?: string }).city || destinationName
                             try {
                               const yandexUrl = await getYandexOnlyHotelLink({
