@@ -111,22 +111,28 @@ export function enrichTransportLinks(
 
                     const origIata = currentIata || fromIataFromTitle
 
-                    let date = startDate
-                    if (startDate && i > 0) {
-                        const d = new Date(startDate)
-                        d.setDate(d.getDate() + i)
-                        date = d.toISOString().split('T')[0]
-                    }
+                    // Skip link enrichment if we can't resolve both IATA codes —
+                    // a partial URL (e.g. aviasales.ru/search/1506 1) is worse than no link.
+                    if (!origIata || !toIata) {
+                        console.warn(`[enrichTransportLinks] Cannot resolve IATA for "${originalTitle}" (from=${origIata || "?"} to=${toIata || "?"}), skipping link override`)
+                    } else {
+                        let date = startDate
+                        if (startDate && i > 0) {
+                            const d = new Date(startDate)
+                            d.setDate(d.getDate() + i)
+                            date = d.toISOString().split('T')[0]
+                        }
 
-                    act.link = getFlightSearchLink({
-                        originIata: origIata,
-                        origin: currentCity,
-                        destination: toCity,
-                        destinationIata: toIata,
-                        departDate: date,
-                        subId: `flight_day_${i+1}`,
-                        market,
-                    })
+                        act.link = getFlightSearchLink({
+                            originIata: origIata,
+                            origin: currentCity,
+                            destination: toCity,
+                            destinationIata: toIata,
+                            departDate: date,
+                            subId: `flight_day_${i+1}`,
+                            market,
+                        })
+                    }
 
                     if (toIata) currentIata = toIata
                     if (toCity) currentCity = toCity
@@ -349,6 +355,42 @@ export async function enrichViralSpotsWithWebSearch(routeData: any) {
     routeData.viralSpots = await Promise.all(searchPromises)
   } catch (e) {
     console.error("[Pipeline] Failed to enrich viral spots:", e)
+  }
+
+  return routeData
+}
+
+/** URL fields that can appear on an activity object. */
+const ACTIVITY_URL_FIELDS = ["link", "mapLink", "bookingUrl", "ticketUrl", "bookingLink"] as const
+
+/**
+ * After jsonrepair the model may have produced malformed or placeholder URLs
+ * (e.g. "ENCODEURIComponent(...)", "ID_ПРОГРАММЫ", relative paths, empty strings).
+ * This function walks the itinerary and nulls out any URL field that is not a
+ * valid absolute http/https URL, so broken values never reach the client or DB.
+ */
+export function sanitizeActivityUrls(routeData: any): any {
+  if (!Array.isArray(routeData?.itinerary)) return routeData
+
+  for (const day of routeData.itinerary) {
+    if (!Array.isArray(day.activities)) continue
+    for (const act of day.activities) {
+      for (const field of ACTIVITY_URL_FIELDS) {
+        const val = act[field]
+        if (val === undefined || val === null) continue
+        if (typeof val !== "string" || !/^https?:\/\/.{4,}/.test(val.trim())) {
+          console.warn(`[sanitizeActivityUrls] Dropping invalid ${field}: ${String(val).slice(0, 80)}`)
+          act[field] = undefined
+        }
+      }
+    }
+    // Also sanitise logistics.bookingLink
+    if (day.logistics?.bookingLink !== undefined) {
+      const bl = day.logistics.bookingLink
+      if (typeof bl !== "string" || !/^https?:\/\/.{4,}/.test(bl.trim())) {
+        day.logistics.bookingLink = undefined
+      }
+    }
   }
 
   return routeData

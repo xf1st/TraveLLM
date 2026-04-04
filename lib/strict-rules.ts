@@ -54,8 +54,8 @@ HOTEL:
   ✅ ПРАВИЛЬНО: "placeName": "Hotel Moskva 4*", "title": "Заселение в Hotel Moskva 4*"
   ❌ НЕПРАВИЛЬНО: "placeName": "Заселение в отель", "title": "Отель"
   mapLink = Google Maps с КОНКРЕТНЫМ названием отеля
-  bookingUrl — Яндекс.Путешествия (глубокий URL с датами); при Travelpayouts: одна строка tp.media с **числовым** p и **реально закодированным** u (никогда не пиши буквально «ID_ПРОГРАММЫ», «PROGRAM_ID» или «ENCODEURIComponent(...)» — это ломает редирект).
-  link — альтернатива Островок: "https://ostrovok.ru/hotel/search/?q=Город+Отель" (тоже через tp.media при известном p).
+  bookingUrl — Яндекс.Путешествия (глубокий URL с датами — обычный прямой URL, без обёрток).
+  link — альтернатива Островок: "https://ostrovok.ru/hotel/search/?q=Город+Отель".
   Ночёвка в городе РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
   За границей при необходимости: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
 
@@ -66,7 +66,7 @@ FOOD (ресторан):
 
 ACTIVITY (музей, достопримечательность):
   mapLink = Google Maps места
-  link = география места в РФ → Tripster / Sputnik8 (глубокие URL) + tp.media; за рубежом → Klook / Tiqets / WeGoTrip или официальный сайт (не подставляй tripster/sputnik8 для иностранных городов)
+  link = география места в РФ → Tripster / Sputnik8 (глубокие URL, без обёрток); за рубежом → Klook / Tiqets / WeGoTrip или официальный сайт (не подставляй tripster/sputnik8 для иностранных городов)
   ticketUrl = покупка билетов (тот же партнёр или официальный сайт)
 
 === ПРИКЛЮЧЕНЧЕСКИЕ АКТИВНОСТИ — РЕАЛЬНЫЕ САЙТЫ ===
@@ -78,7 +78,7 @@ ACTIVITY (музей, достопримечательность):
   Tiqets / WeGoTrip — поиск по городу и активности на их сайтах
 
 Прыжок с парашютом (Россия):
-  link = "https://skydiving.ru/"
+  link = "https://tripster.ru/destinations/moscow/" (или slug нужного города) — поиск прыжков с парашютом на Tripster
 
 Параглайдинг / парапланеризм:
   Klook: "https://www.klook.com/ru/search/?q=paragliding+{city}"

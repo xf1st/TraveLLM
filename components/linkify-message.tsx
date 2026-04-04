@@ -27,6 +27,12 @@ export function LinkifyMessage({
     }
     const raw = m[1]
     const href = trimUrlTrailingPunctuation(raw)
+    // Safety: only allow http/https (regex already guarantees this, but be explicit)
+    if (!/^https?:\/\//i.test(href)) {
+      parts.push(raw)
+      last = m.index + raw.length
+      continue
+    }
     parts.push(
       <a
         key={k++}
