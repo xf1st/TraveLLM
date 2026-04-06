@@ -129,6 +129,8 @@
 @theme inline {
   --font-sans: var(--font-sans, "Rubik", system-ui, sans-serif);
   --font-mono: var(--font-mono, "JetBrains Mono", monospace);
+  --font-headline: var(--font-space-grotesk, "Space Grotesk", sans-serif);
+  --font-body: var(--font-plus-jakarta-sans, "Plus Jakarta Sans", sans-serif);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -177,6 +179,20 @@
   --color-surface-highest: var(--surface-highest);
   --color-outline: var(--outline);
   --color-outline-variant: var(--outline-variant);
+
+  /* Mobile Landing Tokens */
+  --color-surface-container-lowest: #0b0e14;
+  --color-surface-container-low: #191c22;
+  --color-surface-container: #1d2026;
+  --color-surface-container-high: #272a31;
+  --color-surface-container-highest: #32353c;
+  --color-on-surface: #e1e2eb;
+  --color-on-surface-variant: #c2c6d6;
+  --color-mobile-primary: #adc6ff;
+  --color-primary-container: #4d8eff;
+  --color-mobile-secondary: #ddb7ff;
+  --color-on-secondary-container: #d6a9ff;
+  --color-mobile-tertiary: #c0c1ff;
 }
 
 @layer base {

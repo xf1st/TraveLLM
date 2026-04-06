@@ -1072,7 +1072,7 @@ export default function PlanPage() {
                   type="button"
                   onClick={() => setBudget(b.id)}
                   className={cn(
-                    "w-full flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-3 rounded-xl border text-sm transition-all duration-200 text-left touch-manipulation min-w-0",
+                    "w-full flex flex-row items-center justify-between gap-1.5 px-3 sm:px-4 py-3 rounded-xl border text-sm transition-all duration-200 text-left touch-manipulation min-w-0",
                     budget === b.id
                       ? `border-${b.color}-500/60 bg-${b.color}-500/8 ring-1 ring-${b.color}-500/20`
                       : "border-border bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10"
@@ -1082,7 +1082,7 @@ export default function PlanPage() {
                     <div className={cn("w-2.5 h-2.5 rounded-full shrink-0 transition-all", budget === b.id ? `bg-${b.color}-500` : "bg-muted-foreground/30")} />
                     <span className="font-bold truncate">{b.label}</span>
                   </div>
-                  <span className="text-[10px] sm:text-xs text-muted-foreground sm:text-right sm:shrink-0">{b.sub}</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground text-right shrink-0">{b.sub}</span>
                 </button>
               ))}
 

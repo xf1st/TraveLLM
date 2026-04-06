@@ -11,7 +11,8 @@
       "ctaSignIn": "Get started — it's free",
       "stat1Label": "itineraries built",
       "stat2Label": "countries covered",
-      "stat3Label": "hours saved"
+      "stat3Label": "hours saved",
+      "getStarted": "Get started free"
     },
     "howItWorks": {
       "badge": "How it works",

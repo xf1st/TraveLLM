@@ -2,7 +2,7 @@ import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import type { Metadata, Viewport } from "next"
-import { Rubik, JetBrains_Mono } from "next/font/google"
+import { Rubik, JetBrains_Mono, Space_Grotesk, Plus_Jakarta_Sans } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { GuardsWrapper } from "@/components/admin/guards-wrapper"
@@ -30,6 +30,18 @@ const rubik = Rubik({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin", "cyrillic"],
   variable: "--font-mono",
+  display: "swap",
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+})
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta-sans",
   display: "swap",
 })
 
@@ -121,7 +133,7 @@ export default async function RootLayout({
         {/* material-symbols loaded locally via npm */}
       </head>
       <body
-        className={`${rubik.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-dvh bg-background overflow-x-hidden`}
+        className={`${rubik.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${plusJakartaSans.variable} font-sans antialiased min-h-dvh bg-background overflow-x-hidden`}
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages} locale={locale}>

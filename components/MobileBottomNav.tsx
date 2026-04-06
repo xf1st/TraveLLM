@@ -37,8 +37,8 @@ export function MobileBottomNav() {
     },
   ]
 
-  // Hide on auth/landing pages
-  if (pathname === "/auth" || pathname === "/landing" || pathname === "/") return null
+  // Hide on auth page only
+  if (pathname === "/auth" || pathname === "/landing") return null
 
   return (
     <div
