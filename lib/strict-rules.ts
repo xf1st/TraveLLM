@@ -54,8 +54,9 @@ HOTEL:
   ✅ ПРАВИЛЬНО: "placeName": "Hotel Moskva 4*", "title": "Заселение в Hotel Moskva 4*"
   ❌ НЕПРАВИЛЬНО: "placeName": "Заселение в отель", "title": "Отель"
   mapLink = Google Maps с КОНКРЕТНЫМ названием отеля
-  bookingUrl — Яндекс.Путешествия (глубокий URL с датами — обычный прямой URL, без обёрток).
-  link — альтернатива Островок: "https://ostrovok.ru/hotel/search/?q=Город+Отель".
+  КРИТИЧЕСКИ ВАЖНО: используй ТОЛЬКО реально существующие отели (известные сети, местные бренды с конкретным названием). ЗАПРЕЩЕНО придумывать "Отель [Город]", "Гостиница [Город]" — таких нет.
+  bookingUrl — Яндекс.Путешествия: если отель реальный и известный — конкретная страница: "https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N". Если нет уверенности в slug — поиск по городу: "https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N".
+  link — Островок поиск по названию отеля: "https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N".
   Ночёвка в городе РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
   За границей при необходимости: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"
 

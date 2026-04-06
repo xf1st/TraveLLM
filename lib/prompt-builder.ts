@@ -30,11 +30,12 @@ Activity → partner → target URL pattern:
 | Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (muzei, ekskursii, vodnyie-progulki — pick what fits) |
 | Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to (not homepage) |
 | Apartment / daily rent (not hotel room) | Sutochno | City subdomain: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Moscow), kazan.sutochno.ru |
-| Hotels | Yandex + Ostrovok | bookingUrl: specific Yandex Travel hotel page URL with dates. link: specific Ostrovok hotel page URL with dates. |
-Yandex Travel hotel page format: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — use **hyphens** (NOT underscores). NO extra \`/hotel/\` segment.
-Ostrovok hotel page format: \`https://ostrovok.ru/hotel/search/?q={hotel-slug}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\` (or specific mid URL if known).
-
-Do NOT output search-only URLs if the hotel name is known — always aim for the specific hotel page.
+| Hotels | Yandex + Ostrovok | bookingUrl: Yandex Travel hotel page URL with dates. link: Ostrovok search URL with hotel name. |
+CRITICAL — hotel names must be REAL existing hotels (chains, known local brands — e.g. "Ibis Irkutsk", "Marriott Irkutsk", "Angara Hotel"). NEVER invent generic names like "Hotel [City]", "Гостиница [City]", "Отель [City]" — these do not exist.
+Yandex Travel URL rules:
+  • Known real hotel → specific page: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — hyphens only, no underscores, no extra /hotel/ segment.
+  • Uncertain / generic name → city search fallback: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\`
 `.trim()
     }
     return `
@@ -47,11 +48,12 @@ Do NOT output search-only URLs if the hotel name is known — always aim for the
 | Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL маршрута на kiwitaxi.ru (не только главная) |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Москва), kazan.sutochno.ru |
-| Отели | Яндекс + Островок | bookingUrl: конкретная страница отеля на Яндекс.Путешествиях с датами. link: конкретная страница отеля на Островке с датами. |
-Формат страницы отеля Яндекс.Путешествий: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — **дефисы** (НЕ подчёркивания). БЕЗ лишнего сегмента \`/hotel/\`.
-Формат страницы отеля Островок: \`https://ostrovok.ru/hotel/search/?q={hotel-slug}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\` (или прямой URL отеля если известен).
-
-НЕ выводи ссылки на общий ПОИСК, если название отеля известно — старайся давать ссылку на страницу конкретного отеля.
+| Отели | Яндекс + Островок | bookingUrl: страница отеля на Яндекс.Путешествиях с датами. link: поиск по названию отеля на Островке с датами. |
+КРИТИЧЕСКИ ВАЖНО — названия отелей должны быть РЕАЛЬНО СУЩЕСТВУЮЩИМИ (сети, известные местные бренды — например "Ibis Irkutsk", "Marriott Irkutsk", "Отель Ангара"). НИКОГДА не придумывай общие названия вроде "Отель [Город]", "Гостиница [Город]" — таких отелей не существует.
+Правила URL Яндекс.Путешествий:
+  • Известный реальный отель → конкретная страница: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — только дефисы, без подчёркиваний, без лишнего сегмента /hotel/.
+  • Неизвестный / общий — поиск по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N\`
 `.trim()
 }
 
