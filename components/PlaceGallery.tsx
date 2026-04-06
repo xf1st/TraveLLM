@@ -54,8 +54,34 @@ function detectProvider(url: string): { label: string; color: string } {
     return { label: "local", color: "bg-slate-500" }
 }
 
-// Module-level client cache: survives re-renders and component remounts within a session
-const galleryClientCache = new Map<string, string[]>()
+const LS_GALLERY_KEY = "trip-gallery-cache-v1"
+const LS_GALLERY_MAX = 300 // max entries to avoid unbounded growth
+
+function lsGalleryLoad(): Map<string, string[]> {
+    try {
+        const raw = localStorage.getItem(LS_GALLERY_KEY)
+        if (!raw) return new Map()
+        const obj = JSON.parse(raw) as Record<string, string[]>
+        return new Map(Object.entries(obj))
+    } catch {
+        return new Map()
+    }
+}
+
+function lsGallerySave(cache: Map<string, string[]>) {
+    try {
+        // Keep only the most recent LS_GALLERY_MAX entries
+        const entries = Array.from(cache.entries())
+        const trimmed = entries.slice(-LS_GALLERY_MAX)
+        localStorage.setItem(LS_GALLERY_KEY, JSON.stringify(Object.fromEntries(trimmed)))
+    } catch {
+        // Storage full — ignore
+    }
+}
+
+// Module-level client cache: survives re-renders and component remounts within a session.
+// Initialized from localStorage so cache persists across page reloads.
+const galleryClientCache: Map<string, string[]> = typeof window !== "undefined" ? lsGalleryLoad() : new Map()
 
 /**
  * Trip-wide URL deduplication set.
@@ -128,6 +154,7 @@ export function PlaceGallery({ query, count = 4, variant = 0, showProviderBadge 
                 if (finalImages.length > 0) {
                     for (const url of finalImages) tripUsedUrls.add(url)
                     galleryClientCache.set(key, finalImages)
+                    lsGallerySave(galleryClientCache)
                     setImages(finalImages)
                 }
             } catch (e) {

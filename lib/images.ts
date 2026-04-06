@@ -281,23 +281,6 @@ export async function getDestinationImage(query: string): Promise<string> {
     const cached = imageCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.url
 
-    // --- Persistency Check ---
-    if (supabase) {
-        try {
-            const { data } = await supabase
-                .from("image_cache")
-                .select("image_url")
-                .eq("query", cacheKey)
-                .maybeSingle()
-            if (data?.image_url) {
-                imageCache.set(cacheKey, { url: data.image_url, timestamp: Date.now() })
-                return data.image_url
-            }
-        } catch (e) {
-            console.error("[Image Cache] selective fetch failed:", e)
-        }
-    }
-
     // Auto-translate if Russian
     const translatedQuery = await translateToEnglish(query);
 
@@ -378,21 +361,9 @@ export async function getDestinationImage(query: string): Promise<string> {
         result = getStaticFallback(query) // Use original query for fallback check as it has RU keys
     }
 
-    // --- Persistency Save ---
-    if (supabase && result) {
-        // If it's an external URL, try to cache it in our storage
-        if (result.startsWith("http") && !result.includes(supabaseUrl)) {
-            const storageUrl = await uploadToStorage(result, "hero");
-            if (storageUrl) result = storageUrl;
-        }
-
-        supabase.from("image_cache")
-            .upsert({ query: cacheKey, image_url: result, updated_at: new Date().toISOString() }, { onConflict: "query" })
-            .then(({ error }) => error && console.error("[Image Cache] save error:", error))
-    }
-
-    imageCache.set(cacheKey, { url: result, timestamp: Date.now() })
-    return result
+    const finalResult = result ?? getStaticFallback(query)
+    imageCache.set(cacheKey, { url: finalResult, timestamp: Date.now() })
+    return finalResult
 }
 
 /**
@@ -423,23 +394,6 @@ export async function getGalleryImages(
     if (!excluded) {
         const cached = galleryCache.get(cacheKey)
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.urls
-    }
-
-    // --- Persistency Check (only if no exclusions) ---
-    if (!excluded && supabase) {
-        try {
-            const { data } = await supabase
-                .from("image_cache")
-                .select("gallery_urls")
-                .eq("query", cacheKey)
-                .maybeSingle()
-            if (data?.gallery_urls && Array.isArray(data.gallery_urls)) {
-                galleryCache.set(cacheKey, { urls: data.gallery_urls, timestamp: Date.now() })
-                return data.gallery_urls
-            }
-        } catch (e) {
-            console.error("[Image Cache] gallery fetch failed:", e)
-        }
     }
 
     try {
@@ -500,32 +454,6 @@ export async function getGalleryImages(
         // 4. Truly last resort: return empty — PlaceGallery hides itself gracefully
         //    (don't show a random Tbilisi photo for unrelated activities)
         // finalUrls stays [] — caller sees empty array, gallery won't render
-
-        // --- Persistency Save ---
-        if (supabase && finalUrls.length > 0) {
-            // Upload images to our storage to bypass blocks
-            const storedUrls = await Promise.all(
-                finalUrls.map(async (u) => {
-                    if (u.startsWith("http") && !u.includes(supabaseUrl)) {
-                        try {
-                            return await uploadToStorage(u, "gallery") || u;
-                        } catch (e) {
-                            console.error("[getGalleryImages] upload failed for", u, e);
-                            return u;
-                        }
-                    }
-                    return u;
-                })
-            );
-
-            supabase.from("image_cache")
-                .upsert({ query: cacheKey, gallery_urls: storedUrls, updated_at: new Date().toISOString() }, { onConflict: "query" })
-                .then(({ error }) => error && console.error("[Image Cache] gallery save error:", error))
-            
-            // Return stored URLs for the caller
-            galleryCache.set(cacheKey, { urls: storedUrls, timestamp: Date.now() })
-            return storedUrls
-        }
 
         galleryCache.set(cacheKey, { urls: finalUrls, timestamp: Date.now() })
         return finalUrls

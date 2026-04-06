@@ -297,7 +297,24 @@ const RU_NATURE_KEYWORDS: [RegExp, string][] = [
 ]
 
 // Russian type/place prefixes to strip from the start
-const RU_PLACE_PREFIX = /^(ресторан|отель|кафе|кафе-ресторан|музей|храм|рынок|ночной рынок|парк|пляж|остров|деревня|площадь|ужин в|обед в|завтрак в|посещение|посещение секретного|экскурсия|прогулка по|прогулка)\s+/gi
+const RU_PLACE_PREFIX = /^(ресторан|отель|кафе|кафе-ресторан|музей|храм|рынок|ночной рынок|парк|пляж|остров|деревня|площадь|ужин в|ужин и|обед в|обед и|завтрак в|завтрак и|посещение|посещение секретного|экскурсия|прогулка по|прогулка)\s+/gi
+
+// Generic food action phrases — no real restaurant name, just a description of the meal
+const GENERIC_FOOD_PHRASE = /^(ужин|обед|завтрак|полдник|перекус|кофе|чай|дегустация|знакомство с|первый ужин|первый обед|первый завтрак|вечерний|утренний|сибирская кухн|местная кухн|традиционная кухн|local cuisine|dinner|lunch|breakfast|brunch)/i
+
+function extractCuisineQuery(text: string, dest: string): string {
+    const t = text.toLowerCase()
+    if (/сибирск|пельмен|омуль|строганин|байкальск/i.test(t)) return `siberian russian traditional food restaurant ${dest}`
+    if (/грузинск|хинкали|хачапури|georgian/i.test(t)) return `georgian cuisine restaurant interior ${dest}`
+    if (/итальян|паста|пицца|italian/i.test(t)) return `italian restaurant pasta interior ${dest}`
+    if (/японск|суши|sushi|ramen|рамен/i.test(t)) return `japanese sushi restaurant interior ${dest}`
+    if (/морепродукт|seafood|рыб|fish/i.test(t)) return `seafood fish restaurant fresh interior ${dest}`
+    if (/крафт.*пиво|craft.*beer|пивн|brewery/i.test(t)) return `craft beer bar pub interior warm ${dest}`
+    if (/кофейн|кофе|coffee|cafe|кафе/i.test(t)) return `cozy cafe coffee morning interior ${dest}`
+    if (/стейк|мясн|bbq|барбекю|steak/i.test(t)) return `steakhouse grill meat restaurant interior ${dest}`
+    if (/азиатск|тайск|thai|vietnamese|вьетнам/i.test(t)) return `asian restaurant interior cozy ${dest}`
+    return `restaurant interior cozy dining warm lighting ${dest}`
+}
 
 // Returns true if the string is predominantly Latin (English) characters
 function isEnglishQuery(q: string): boolean {
@@ -372,7 +389,14 @@ function buildGalleryQuery(activity: Activity, destination: string): string {
   const rawName = (activity.placeName || activity.title || "").replace(RU_PLACE_PREFIX, "").trim()
 
   if (type === "hotel") return `hotel ${rawName || 'elegant interior'} ${destEn}`
-  if (type === "food") return `restaurant ${rawName || 'cozy dining food'} ${destEn}`
+  if (type === "food") {
+    // If placeName is a real specific restaurant name — use it directly
+    if (rawName && rawName.length > 3 && !GENERIC_FOOD_PHRASE.test(rawName)) {
+      return `restaurant ${rawName} ${destEn}`
+    }
+    // Otherwise extract cuisine keywords from the full activity text
+    return extractCuisineQuery(fullText, destEn)
+  }
 
   // For specific branded/fictional venue names (e.g. "The Chronos Keyhole"):
   // searching by name returns 0 photos — use category keywords + destination instead
@@ -737,13 +761,12 @@ export function ActivityTimelineCard({
                       </button>
                     )}
 
-                    {/* Hotel: booking button — prefer direct URL, fallback to Booking.com search */}
+                    {/* Hotel: primary booking button (bookingUrl → Yandex / Booking fallback) */}
                     {theme === "hotel" && (
                       <a
                         href={
                           normalizePartnerBookingUrl(
                             activity.bookingUrl ||
-                              (!isMapUrl(activity.link || "") ? activity.link : undefined) ||
                               `https://www.booking.com/search.html?ss=${encodeURIComponent([activity.placeName, activity.title].filter(Boolean).join(" "))}`,
                             bookingMarket
                           )
@@ -754,6 +777,21 @@ export function ActivityTimelineCard({
                       >
                         <span className="material-symbols-outlined text-sm mr-1.5">hotel</span>
                         {t('buttons.book')}
+                      </a>
+                    )}
+
+                    {/* Hotel: secondary link (Ostrovok / Booking / etc.) when present and different from bookingUrl */}
+                    {theme === "hotel" && activity.link && !isMapUrl(activity.link) && activity.link !== activity.bookingUrl && (
+                      <a
+                        href={normalizePartnerBookingUrl(activity.link, bookingMarket)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-xs font-semibold text-blue-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 sm:px-3 py-1.5 rounded-full transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1.5">search</span>
+                        {activity.link.includes("ostrovok") ? "Островок" :
+                         activity.link.includes("booking.com") ? "Booking" :
+                         activity.link.includes("sutochno") ? "Суточно" : t('buttons.also')}
                       </a>
                     )}
 

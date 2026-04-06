@@ -24,6 +24,7 @@ import {
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
 } from "@/lib/api/route-pipeline"
+import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { buildEnrichedPrompt } from "@/lib/prompt-builder"
 import { normalizeTravelMode } from "@/lib/travel-mode"
@@ -198,7 +199,8 @@ export async function POST(req: Request) {
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
-            
+            routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
+
             routeData.tokenUsage = getSessionUsage();
             await recordAiUsageEvent({ userId, source: "route-generation", provider: "deepseek", usage: routeData.tokenUsage });
 
@@ -221,6 +223,7 @@ export async function POST(req: Request) {
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
+            routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             return NextResponse.json(routeData);
         }

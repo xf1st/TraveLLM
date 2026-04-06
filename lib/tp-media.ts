@@ -93,9 +93,30 @@ export function unwrapTravelpayoutsDeepLink(url: string): string {
 }
 
 /**
+ * Known wrong city slugs the LLM tends to generate → correct Yandex Travel city slug.
+ * Yandex Travel uses English transliteration, not Russian (`saint-petersburg` not `sankt-peterburg`).
+ */
+const YANDEX_CITY_SLUG_FIX: Record<string, string> = {
+  "sankt-peterburg": "saint-petersburg",
+  "sankth-peterburg": "saint-petersburg",
+  "sankt-petersburg": "saint-petersburg",
+  "st-petersburg": "saint-petersburg",
+  "st-peterburg": "saint-petersburg",
+  "spb": "saint-petersburg",
+  "moskva": "moscow",
+  "nizhny-novgorod": "nizhniy-novgorod",
+  "nizhni-novgorod": "nizhniy-novgorod",
+  "vladivostok-city": "vladivostok",
+  "novosibirsk-city": "novosibirsk",
+  "yekaterinburg": "ekaterinburg",
+  "ekaterinburg-city": "ekaterinburg",
+}
+
+/**
  * Fix common LLM mistakes in Yandex Travel hotel URLs:
  * 1. /hotels/{city}/hotel/{slug}/ → /hotels/{city}/{slug}/
  * 2. underscores in slug → hyphens
+ * 3. wrong city slug (e.g. sankt-peterburg → saint-petersburg)
  */
 export function sanitizeYandexTravelUrl(url: string): string {
   try {
@@ -109,10 +130,17 @@ export function sanitizeYandexTravelUrl(url: string): string {
       "$1/"
     )
 
-    // Replace underscores with hyphens in hotel slug (second segment after /hotels/{city}/)
     const parts = parsed.pathname.split("/").filter(Boolean)
-    if (parts.length >= 3 && parts[0] === "hotels") {
-      parts[2] = parts[2].replace(/_/g, "-")
+    if (parts.length >= 2 && parts[0] === "hotels") {
+      // Normalize city slug (part[1])
+      const cityRaw = parts[1].replace(/_/g, "-").toLowerCase()
+      parts[1] = YANDEX_CITY_SLUG_FIX[cityRaw] ?? cityRaw
+
+      // Replace underscores with hyphens in hotel slug (parts[2] if present)
+      if (parts.length >= 3) {
+        parts[2] = parts[2].replace(/_/g, "-")
+      }
+
       parsed.pathname = "/" + parts.join("/") + "/"
     }
 
@@ -179,8 +207,15 @@ export function maybeWrapPartnerAffiliateUrl(
   url = sanitizeYandexTravelUrl(url)
   url = sanitizeOstrovokUrl(url)
 
-  // Drive handles affiliate wrapping automatically — return clean URL
-  if (isDriveEnabled()) return url
+  // Drive handles affiliate wrapping automatically — return clean URL.
+  // EXCEPTION: Ostrovok /hotel/search/ URLs — Drive appends params that
+  // the search endpoint doesn't accept (→ 404). Wrap these via emrld.ltd
+  // so Drive sees an already-affiliate URL and leaves it alone.
+  if (isDriveEnabled()) {
+    const isOstrovokSearch = /ostrovok\.ru\/hotel\/search/i.test(url)
+    if (!isOstrovokSearch) return url
+    // Fall through to manual emrld.ltd wrap for ostrovok search URLs
+  }
 
   // No Drive — manual affiliate wrap via emrld.ltd/re
   const market = options?.market ?? "ru"

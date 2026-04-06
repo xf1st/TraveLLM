@@ -24,6 +24,7 @@ import {
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
 } from "@/lib/api/route-pipeline"
+import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
 import { validateAirports } from "@/lib/api/airport-validator"
 import { buildEnrichedPrompt, buildMetadataPrompt, buildDayChunkPrompt } from "@/lib/prompt-builder"
@@ -421,6 +422,7 @@ export async function POST(req: Request) {
                     routeData = normalizeActivityTypes(routeData);
                     routeData = removeSameCityFlights(routeData);
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
+                    routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
                     if (reelRecord && Array.isArray(routeData.itinerary)) {
                         if (!itineraryContainsAnchor(routeData.itinerary, reelRecord)) {

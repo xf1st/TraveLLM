@@ -35,6 +35,7 @@ CRITICAL — hotel names must be REAL existing hotels (chains, known local brand
 Yandex Travel URL rules:
   • Known real hotel → specific page: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — hyphens only, no underscores, no extra /hotel/ segment.
   • Uncertain / generic name → city search fallback: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+  • IMPORTANT city slugs (use exactly as shown): Moscow=\`moscow\`, Saint Petersburg=\`saint-petersburg\`, Novosibirsk=\`novosibirsk\`, Yekaterinburg=\`ekaterinburg\`, Kazan=\`kazan\`, Sochi=\`sochi\`, Vladivostok=\`vladivostok\`, Irkutsk=\`irkutsk\`, Krasnodar=\`krasnodar\`, Nizhny Novgorod=\`nizhniy-novgorod\`. NEVER use "sankt-peterburg", "moskva", or Russian transliterations.
 Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\`
 `.trim()
     }
@@ -53,6 +54,7 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
 Правила URL Яндекс.Путешествий:
   • Известный реальный отель → конкретная страница: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — только дефисы, без подчёркиваний, без лишнего сегмента /hotel/.
   • Неизвестный / общий — поиск по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+  • ВАЖНО — слаги городов (использовать точно): Москва=\`moscow\`, Санкт-Петербург=\`saint-petersburg\`, Новосибирск=\`novosibirsk\`, Екатеринбург=\`ekaterinburg\`, Казань=\`kazan\`, Сочи=\`sochi\`, Владивосток=\`vladivostok\`, Иркутск=\`irkutsk\`, Краснодар=\`krasnodar\`, Нижний Новгород=\`nizhniy-novgorod\`. НИКОГДА не использовать "sankt-peterburg", "moskva" или русскую транслитерацию.
 Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N\`
 `.trim()
 }
@@ -270,7 +272,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (NOT map):
      Russian cities: Yandex Travel (Travelpayouts): "https://travel.yandex.ru/hotels/{city-slug}/?..." — required; do NOT use Booking.com as primary for Russia.
-     Other countries: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}"; Trip.com as alternative.
+     Other countries: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — search URL ONLY. NEVER generate /hotel/{country}/{slug}.html — AI cannot know the real slug and it will 404.
 
    food → link:
      TripAdvisor or official site.
@@ -802,6 +804,14 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Link fields: mapLink (place map), link (booking/site), bookingUrl (hotel/food only), ticketUrl (paid activities only)
   activity "cost": realistic USD for the destination — do NOT paste large local-currency integers (e.g. IDR/VND) as if they were dollars.
+
+VENUE NAMING RULES — strictly required:
+  placeName = always the proper name of the venue/place. NEVER an action or description.
+  hotel:  ✓ "Ibis Irkutsk Center 3*"   ✗ "Hotel Irkutsk" (doesn't exist)  ✗ "Hotel in the city center"
+  food:   ✓ "Café Baikal"  ✓ "Restaurant Buryatia"   ✗ "Dinner at a restaurant"  ✗ "Local cuisine"
+  title = action + venue name: "Dinner at Restaurant Buryatia", "Check-in at Ibis Irkutsk 3*"
+  Use real hotels that exist in that city (Ibis, Marriott, Hilton, Novotel, Azimut, Best Western, Cosmos, local known brands).
+  imageQuery = short English phrase for stock photo search, specific to the venue/activity (e.g. "siberian pelmeni restaurant interior", "Baikal lake shore", "Ibis hotel lobby")
 `.trim() : `
 ФОРМАТ ОТВЕТА:
 Верни строго JSON объект со следующими полями:
@@ -816,6 +826,14 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Поля ссылок: mapLink (карта места), link (бронирование/сайт), bookingUrl (только hotel/food), ticketUrl (только платные activities)
   ЦЕНЫ cost: только реалистичные суммы в ₽; для зарубежных направлений пересчитай с местной валюты — не подставляй крупные числа IDR/VND как «рубли».
+
+ПРАВИЛА ИМЁН ЗАВЕДЕНИЙ — строго обязательно:
+  placeName = всегда собственное имя заведения/места. НИКОГДА не действие и не описание.
+  hotel:  ✓ "Ibis Irkutsk Центр 3*"   ✗ "Отель Иркутск" (не существует)  ✗ "Отель в центре города"
+  food:   ✓ "Кафе Байкал"  ✓ "Ресторан Бурятия"  ✗ "Ужин в ресторане"  ✗ "Местная кухня"
+  title = действие + название: "Ужин в ресторане Бурятия", "Заселение в Ibis Irkutsk Центр 3*"
+  Используй реальные отели в этом городе (Ibis, Marriott, Hilton, Novotel, Azimut, Best Western, Cosmos, Амакс, крупные региональные бренды).
+  imageQuery = короткая фраза на английском для поиска фото на стоках, конкретная для этого заведения/активности (например: "siberian pelmeni restaurant interior", "Baikal lake shore", "Ibis hotel lobby")
 `.trim())
 
     const userPrompt = userParts.join("\n\n")
