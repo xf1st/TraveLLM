@@ -93,9 +93,23 @@ export function unwrapTravelpayoutsDeepLink(url: string): string {
 }
 
 /**
+ * Yandex hotel page URLs like /hotels/{city}/{hotelSlug}/ only work when hotelSlug matches
+ * their catalog. LLMs often guess slugs (e.g. otelj-irkutsk) → 404. City listing + `text`
+ * matches how we build links in travelpayouts `buildYandexHotelsUrl`.
+ */
+function yandexHotelSlugShouldBecomeTextQuery(hotelSegment: string): boolean {
+  const s = hotelSegment.replace(/_/g, "-").trim()
+  if (!s) return false
+  // Purely numeric path segment — likely an internal id; keep deep link
+  if (/^\d+$/.test(s)) return false
+  return true
+}
+
+/**
  * Fix common LLM mistakes in Yandex Travel hotel URLs:
  * 1. /hotels/{city}/hotel/{slug}/ → /hotels/{city}/{slug}/
  * 2. underscores in slug → hyphens
+ * 3. /hotels/{city}/{guessed-slug}/ → /hotels/{city}/?text=… (avoids 404 on bogus slugs)
  */
 export function sanitizeYandexTravelUrl(url: string): string {
   try {
@@ -109,10 +123,34 @@ export function sanitizeYandexTravelUrl(url: string): string {
       "$1/"
     )
 
-    // Replace underscores with hyphens in hotel slug (second segment after /hotels/{city}/)
     const parts = parsed.pathname.split("/").filter(Boolean)
-    if (parts.length >= 3 && parts[0] === "hotels") {
-      parts[2] = parts[2].replace(/_/g, "-")
+    if (parts[0] !== "hotels") return parsed.toString()
+
+    if (parts.length === 2) {
+      parts[1] = parts[1].replace(/_/g, "-")
+      parsed.pathname = "/" + parts.join("/") + "/"
+      return parsed.toString()
+    }
+
+    if (parts.length >= 3) {
+      parts[1] = parts[1].replace(/_/g, "-")
+      for (let i = 2; i < parts.length; i++) {
+        parts[i] = parts[i]!.replace(/_/g, "-")
+      }
+
+      // /hotels/{city}/{maybe-bogus-slug}/ → city search + text (matches buildYandexHotelsUrl)
+      if (parts.length === 3) {
+        const hotelSlug = parts[2]!
+        if (yandexHotelSlugShouldBecomeTextQuery(hotelSlug)) {
+          const textFromSlug = hotelSlug.replace(/-/g, " ").replace(/\s+/g, " ").trim()
+          if (textFromSlug && !parsed.searchParams.get("text")) {
+            parsed.searchParams.set("text", textFromSlug)
+          }
+          parsed.pathname = `/hotels/${parts[1]}/`
+          return parsed.toString()
+        }
+      }
+
       parsed.pathname = "/" + parts.join("/") + "/"
     }
 
