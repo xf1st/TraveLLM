@@ -13,13 +13,17 @@ import { useState } from "react"
 // Убираем дерганность: более плавные параметры появления
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.1, ease: "easeOut" } }),
+  show: (i = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay: i * 0.1, ease: "easeOut" as const },
+  }),
 }
 
 // Плавная анимация наведения
 const hoverScale = {
   scale: 1.01,
-  transition: { type: "tween", ease: "easeOut", duration: 0.2 }
+  transition: { type: "tween" as const, ease: "easeOut" as const, duration: 0.2 },
 }
 
 export default function NewLandingPage() {
@@ -276,7 +280,7 @@ export default function NewLandingPage() {
                 <motion.img 
                   initial={{ y: 50, opacity: 0 }} 
                   whileInView={{ y: 0, opacity: 1 }} 
-                  transition={{ duration: 1.2, ease: "easeOut" }}
+                  transition={{ duration: 1.2, ease: "easeOut" as const }}
                   viewport={{ once: true }}
                   src="/phone_reels_ads.png" 
                   alt="Reels with activities" 
