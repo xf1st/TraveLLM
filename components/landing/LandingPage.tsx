@@ -71,7 +71,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false)
   return (
     <div 
-      className="bg-slate-900/60 rounded-2xl p-6 sm:p-8 text-left border border-white/5 hover:border-blue-500/30 transition-all cursor-pointer group shadow-sm"
+      className="bg-card rounded-2xl p-6 sm:p-8 text-left border border-border/50 hover:border-blue-500/30 transition-all cursor-pointer group shadow-sm"
       onClick={() => setOpen(!open)}
     >
       <div className="flex justify-between items-center gap-4">
@@ -83,7 +83,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       <motion.div 
         initial={false}
         animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0, marginTop: open ? 16 : 0 }}
-        className="overflow-hidden text-slate-400 leading-relaxed text-sm sm:text-base font-medium"
+        className="overflow-hidden text-muted-foreground leading-relaxed text-sm sm:text-base font-medium"
       >
         {answer}
       </motion.div>
@@ -120,7 +120,7 @@ export default function LandingPage() {
 
   return (
     <>
-      <div className="hidden md:flex min-h-screen flex-col overflow-x-hidden bg-[#0B1120] text-slate-50 selection:bg-blue-500/30 font-sans">
+      <div className="hidden md:flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground selection:bg-blue-500/30 font-sans">
         <Header />
 
       {/* ═══════════════════════════════════════════════
@@ -229,14 +229,14 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           ПАРТНЕРЫ
       ═══════════════════════════════════════════════ */}
-        <section className="py-24 md:py-32 px-4 md:px-8 border-t border-white/5">
+        <section className="py-24 md:py-32 px-4 md:px-8 border-t border-border/50">
           <div className="max-w-7xl mx-auto space-y-12 md:space-y-16">
-            <motion.div 
+            <motion.div
                variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
                className="flex flex-col justify-center items-center gap-6 text-center"
             >
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-50">Наши надежные партнеры</h2>
-              <p className="text-lg md:text-xl text-slate-400 max-w-2xl">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground">Наши надежные партнеры</h2>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
                 Мы сотрудничаем с лучшими сервисами, чтобы ваш маршрут был максимально комфортным и выгодным.
               </p>
             </motion.div>
@@ -255,13 +255,13 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           КАК ЭТО РАБОТАЕТ — 3 шага
       ═══════════════════════════════════════════════ */}
-        <section className="py-24 md:py-40 px-4 md:px-8 bg-[#0B0F1A]">
+        <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/30">
           <div className="max-w-7xl mx-auto space-y-24 md:space-y-40">
             <div className="text-center space-y-6">
-              <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-50">
+              <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground">
                 Всё очень просто!
               </motion.h2>
-              <motion.p variants={fadeUp} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }} className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto">
+              <motion.p variants={fadeUp} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                 Мы заботимся о деталях, чтобы ты мог просто наслаждаться моментом.
               </motion.p>
               
@@ -271,8 +271,8 @@ export default function LandingPage() {
                     <MessageSquare className="w-14 h-14 text-blue-500" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-white">Расскажи о мечте</h3>
-                    <p className="text-slate-400 leading-relaxed px-4">Напиши нам в свободной форме, куда хочешь и что тебе нравится. Мы всё поймем!</p>
+                    <h3 className="text-2xl font-bold text-foreground">Расскажи о мечте</h3>
+                    <p className="text-muted-foreground leading-relaxed px-4">Напиши нам в свободной форме, куда хочешь и что тебе нравится. Мы всё поймем!</p>
                   </div>
                 </motion.div>
                 <motion.div variants={fadeUp} initial="hidden" whileInView="show" custom={2} viewport={{ once: true }} className="space-y-8 flex flex-col items-center">
@@ -280,17 +280,17 @@ export default function LandingPage() {
                     <Wand2 className="w-14 h-14 text-indigo-500" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-white">Немного магии AI</h3>
-                    <p className="text-slate-400 leading-relaxed px-4">Наш умный помощник прочешет тысячи отзывов и цен, чтобы найти для тебя бриллианты.</p>
+                    <h3 className="text-2xl font-bold text-foreground">Немного магии AI</h3>
+                    <p className="text-muted-foreground leading-relaxed px-4">Наш умный помощник прочешет тысячи отзывов и цен, чтобы найти для тебя бриллианты.</p>
                   </div>
                 </motion.div>
                 <motion.div variants={fadeUp} initial="hidden" whileInView="show" custom={3} viewport={{ once: true }} className="space-y-8 flex flex-col items-center">
                   <div className="w-36 h-36 bg-slate-500/10 flex items-center justify-center hover:scale-105 transition-transform" style={{ borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" }}>
-                    <Ticket className="w-14 h-14 text-slate-300" />
+                    <Ticket className="w-14 h-14 text-muted-foreground" />
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-2xl font-bold text-white">Готово к вылету</h3>
-                    <p className="text-slate-400 leading-relaxed px-4">Получи план с таймингами, картами и билетами. Осталось только собрать чемодан!</p>
+                    <h3 className="text-2xl font-bold text-foreground">Готово к вылету</h3>
+                    <p className="text-muted-foreground leading-relaxed px-4">Получи план с таймингами, картами и билетами. Осталось только собрать чемодан!</p>
                   </div>
                 </motion.div>
               </div>
@@ -301,21 +301,21 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           ИНТЕРАКТИВНЫЕ REELS АКТИВНОСТЕЙ
       ═══════════════════════════════════════════════ */}
-      <section className="py-24 md:py-40 px-4 md:px-8 bg-gradient-to-b from-[#0B0F1A] via-[#10172A] to-[#0B0F1A] overflow-visible overflow-x-clip relative">
+      <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/20 overflow-visible overflow-x-clip relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-blue-500/10 blur-[150px] pointer-events-none rounded-full" />
         
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-16 md:gap-24 relative z-10">
           <div className="w-full md:w-1/2 space-y-10">
             <motion.h2 
                variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-               className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-50 leading-tight"
+               className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight"
             >
               Выбирай активности<br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">как в Reels</span>
             </motion.h2>
-            <motion.p 
+            <motion.p
                variants={fadeUp} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }}
-               className="text-xl text-slate-400 leading-relaxed"
+               className="text-xl text-muted-foreground leading-relaxed"
             >
               Свайпай карточки влево и вправо. Нравится — забирай в маршрут. Мы автоматически подстроим тайминги, билеты и логистику под твои предпочтения.
             </motion.p>
@@ -325,8 +325,8 @@ export default function LandingPage() {
                 { icon: <Wallet className="w-6 h-6 text-emerald-400"/>, text: "Умный контроль бюджета" },
                 { icon: <Car className="w-6 h-6 text-blue-400"/>, text: "Логистика без крюков и ожиданий" }
               ].map((item, i) => (
-                <li key={i} className="flex items-center gap-4 text-lg text-slate-300 font-medium">
-                  <div className="w-12 h-12 rounded-xl bg-slate-800/50 flex items-center justify-center border border-white/5">
+                <li key={i} className="flex items-center gap-4 text-lg text-foreground/80 font-medium">
+                  <div className="w-12 h-12 rounded-xl bg-card flex items-center justify-center border border-border">
                     {item.icon}
                   </div>
                   {item.text}
@@ -335,7 +335,7 @@ export default function LandingPage() {
             </motion.ul>
             <motion.div variants={fadeUp} initial="hidden" whileInView="show" custom={3} viewport={{ once: true }} className="pt-4">
               <Link href="/plan">
-                <Button size="lg" className="h-16 px-10 rounded-xl text-lg font-bold bg-white text-[#0B1120] hover:bg-slate-200 hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                <Button size="lg" className="h-16 px-10 rounded-xl text-lg font-bold bg-blue-500 text-white hover:bg-blue-600 hover:scale-[1.03] transition-all shadow-[0_0_30px_rgba(59,130,246,0.3)]">
                   Собрать свой маршрут
                 </Button>
               </Link>
@@ -412,15 +412,15 @@ export default function LandingPage() {
           <div className="-mx-1 overflow-x-auto overscroll-x-contain pb-1 sm:mx-0 sm:overflow-visible sm:pb-0">
           <motion.div
             variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="min-w-[min(100%,300px)] sm:min-w-0 rounded-3xl border border-white/10 overflow-hidden bg-card/30 backdrop-blur-md md:backdrop-blur-xl"
+            className="min-w-[min(100%,300px)] sm:min-w-0 rounded-3xl border border-border overflow-hidden bg-card/50 backdrop-blur-md md:backdrop-blur-xl"
           >
             {/* Table header */}
-            <div className="grid grid-cols-3 border-b border-white/10">
+            <div className="grid grid-cols-3 border-b border-border">
               <div className="p-2.5 sm:p-5 text-[10px] sm:text-sm font-bold text-muted-foreground leading-tight">{t("comparison.colFeature")}</div>
-              <div className="p-2.5 sm:p-5 text-center text-[10px] sm:text-sm font-bold text-muted-foreground border-l border-white/10 leading-tight">
+              <div className="p-2.5 sm:p-5 text-center text-[10px] sm:text-sm font-bold text-muted-foreground border-l border-border leading-tight">
                 {t("comparison.colOthers")}
               </div>
-              <div className="p-2.5 sm:p-5 text-center border-l border-white/10 bg-blue-500/10">
+              <div className="p-2.5 sm:p-5 text-center border-l border-border bg-blue-500/10">
                 <span className="text-[10px] sm:text-sm font-black text-blue-500 leading-tight">{t("comparison.colUs")}</span>
               </div>
             </div>
@@ -439,10 +439,10 @@ export default function LandingPage() {
             ].map((row, i) => (
               <div
                 key={row.featKey}
-                className={cn("grid grid-cols-3 border-b border-white/5 last:border-b-0 hover:bg-white/2 transition-colors", i % 2 === 0 ? "" : "bg-white/1")}
+                className={cn("grid grid-cols-3 border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors", i % 2 === 0 ? "" : "bg-muted/10")}
               >
                 <div className="p-2 sm:p-4 text-[11px] sm:text-sm font-medium leading-snug break-words min-w-0">{t(`comparison.${row.featKey}`)}</div>
-                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-white/10">
+                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-border/50">
                   {row.them === true ? (
                     <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 shrink-0" />
                   ) : row.them === "partly" ? (
@@ -451,7 +451,7 @@ export default function LandingPage() {
                     <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400/60 shrink-0" />
                   )}
                 </div>
-                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-white/10 bg-blue-500/10">
+                <div className="p-2 sm:p-4 flex items-center justify-center border-l border-border/50 bg-blue-500/10">
                   <Check className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 font-bold shrink-0" />
                 </div>
               </div>
@@ -488,7 +488,7 @@ export default function LandingPage() {
             {/* Big feature — span 2 cols */}
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={0}
-              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-primary/15 to-violet-500/10 p-5 sm:p-8 relative overflow-hidden group hover:border-primary/30 transition-colors"
+              className="sm:col-span-2 rounded-3xl border border-border bg-gradient-to-br from-primary/15 to-violet-500/10 p-5 sm:p-8 relative overflow-hidden group hover:border-primary/30 transition-colors"
             >
               <div className="absolute -bottom-8 -right-8 w-48 h-48 rounded-full bg-primary/15 blur-3xl pointer-events-none group-hover:bg-primary/25 transition-colors hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-5">
@@ -507,7 +507,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={1}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-sky-500/10 to-cyan-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-sky-500/30 transition-colors group"
+              className="rounded-3xl border border-border bg-gradient-to-br from-sky-500/10 to-cyan-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-sky-500/30 transition-colors group"
             >
               <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-sky-500/10 blur-2xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mb-4">
@@ -521,7 +521,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={2}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-orange-500/30 transition-colors"
+              className="rounded-3xl border border-border bg-gradient-to-br from-orange-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-orange-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center mb-4">
                 <CloudSun className="w-6 h-6 text-orange-400" />
@@ -534,7 +534,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={3}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-emerald-500/10 to-green-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-emerald-500/30 transition-colors"
+              className="rounded-3xl border border-border bg-gradient-to-br from-emerald-500/10 to-green-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-emerald-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mb-4">
                 <MessageSquare className="w-6 h-6 text-emerald-400" />
@@ -547,7 +547,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={4}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 to-pink-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-rose-500/30 transition-colors"
+              className="rounded-3xl border border-border bg-gradient-to-br from-rose-500/10 to-pink-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-rose-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center mb-4">
                 <Wallet className="w-6 h-6 text-rose-400" />
@@ -561,7 +561,7 @@ export default function LandingPage() {
             {/* Big feature — span 2 cols */}
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={5}
-              className="sm:col-span-2 rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-5 sm:p-8 relative overflow-hidden hover:border-indigo-500/30 transition-colors group"
+              className="sm:col-span-2 rounded-3xl border border-border bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-5 sm:p-8 relative overflow-hidden hover:border-indigo-500/30 transition-colors group"
             >
               <div className="absolute -bottom-6 -left-6 w-40 h-40 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center mb-5">
@@ -575,7 +575,7 @@ export default function LandingPage() {
 
             <motion.div
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={6}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-yellow-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-yellow-500/30 transition-colors"
+              className="rounded-3xl border border-border bg-gradient-to-br from-yellow-500/10 to-amber-500/5 p-5 sm:p-7 relative overflow-hidden hover:border-yellow-500/30 transition-colors"
             >
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mb-4">
                 <Bot className="w-6 h-6 text-yellow-400" />
@@ -737,7 +737,7 @@ export default function LandingPage() {
           <div className="text-center space-y-6">
             <motion.h2 
               variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
-              className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-50 tracking-tight"
+              className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-foreground tracking-tight"
             >
               Твои вопросы — <span className="text-blue-500">наши ответы</span>
             </motion.h2>
@@ -774,14 +774,14 @@ export default function LandingPage() {
             <span className="text-sm text-muted-foreground ml-2 font-medium">{t("cta.stars")}</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight mb-4 sm:mb-6 leading-tight text-white">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight mb-4 sm:mb-6 leading-tight text-foreground">
             {t("cta.title")}{" "}
             <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
               {t("cta.titleAccent")}
             </span>
           </h2>
-          <p className="text-base sm:text-xl text-slate-400 mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed">
+          <p className="text-base sm:text-xl text-muted-foreground mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed">
             {t("cta.subtitle")}
           </p>
 
@@ -797,7 +797,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-8 sm:mt-10 text-xs sm:text-sm text-slate-400 px-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-8 sm:mt-10 text-xs sm:text-sm text-muted-foreground px-2">
             {(["check1", "check2", "check3"] as const).map(key => (
               <div key={key} className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-emerald-400" />
@@ -827,14 +827,14 @@ function PartnerCard({ title, desc, icon, hoverColor, iconColor, delay }: { titl
     <motion.div 
        variants={fadeUp} initial="hidden" whileInView="show" custom={delay} viewport={{ once: true }}
        whileHover={{ scale: 1.01 }}
-       className={`group relative bg-[#1E293B] rounded-xl p-8 overflow-hidden border border-white/5 ${hoverColor} transition-all duration-300 h-64 flex flex-col justify-end cursor-pointer shadow-sm`}
+       className={`group relative bg-card rounded-xl p-8 overflow-hidden border border-border ${hoverColor} transition-all duration-300 h-64 flex flex-col justify-end cursor-pointer shadow-sm`}
     >
       <div className={`absolute top-4 right-4 ${iconColor} opacity-10 transition-opacity duration-300 group-hover:opacity-20`}>
         {icon}
       </div>
       <div className="relative z-10 pointer-events-none">
-        <h4 className="text-2xl font-bold mb-2 text-white">{title}</h4>
-        <p className="text-slate-400 leading-relaxed font-medium">{desc}</p>
+        <h4 className="text-2xl font-bold mb-2 text-foreground">{title}</h4>
+        <p className="text-muted-foreground leading-relaxed font-medium">{desc}</p>
       </div>
     </motion.div>
   )

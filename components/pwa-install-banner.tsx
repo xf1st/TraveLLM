@@ -175,7 +175,7 @@ export function PwaInstallBanner() {
         "lg:left-auto lg:right-6 lg:bottom-6 lg:max-w-sm lg:w-full",
       )}
     >
-      <div className="trip-glass rounded-2xl px-3.5 py-3 shadow-xl">
+      <div className="trip-glass backdrop-blur-2xl rounded-2xl px-3.5 py-3 shadow-xl">
         <div className="flex gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
             {mode === "ios" ? <Share2 className="h-5 w-5" /> : <Download className="h-5 w-5" />}

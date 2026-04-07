@@ -804,6 +804,8 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Link fields: mapLink (place map), link (booking/site), bookingUrl (hotel/food only), ticketUrl (paid activities only)
   activity "cost": realistic USD for the destination — do NOT paste large local-currency integers (e.g. IDR/VND) as if they were dollars.
+⚠️ DAY COUNT (CRITICAL): itinerary array MUST contain EXACTLY ${durationDays} day objects (day 1 through day ${durationDays}). Skipping or merging days is FORBIDDEN. Count every day including travel and arrival days.
+⚠️ TRANSPORT REALITY: NEVER suggest bus or train between cities separated by open sea (e.g. Malaysia→Vietnam, island crossings). Those routes require a flight or ferry only.
 
 VENUE NAMING RULES — strictly required:
   placeName = always the proper name of the venue/place. NEVER an action or description.
@@ -826,6 +828,8 @@ VENUE NAMING RULES — strictly required:
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Поля ссылок: mapLink (карта места), link (бронирование/сайт), bookingUrl (только hotel/food), ticketUrl (только платные activities)
   ЦЕНЫ cost: только реалистичные суммы в ₽; для зарубежных направлений пересчитай с местной валюты — не подставляй крупные числа IDR/VND как «рубли».
+⚠️ КОЛЬИЧЕСТВО ДНЕЙ (КРИТИЧНО): массив itinerary ОБЯЗАН содержать РОВНО ${durationDays} объектов дней (день 1 по день ${durationDays}). ЗАПРЕЩЕНО пропускать или объединять дни. Считай каждый день, включая дни перелётов и прибытия.
+⚠️ РЕАЛЬНОСТЬ ТРАНСПОРТА: НИКОГДА не предлагай автобус или поезд между городами, разделёнными открытым морем (например, Малайзия→Вьетнам, перегоны через проливы). Только перелёт или паром.
 
 ПРАВИЛА ИМЁН ЗАВЕДЕНИЙ — строго обязательно:
   placeName = всегда собственное имя заведения/места. НИКОГДА не действие и не описание.

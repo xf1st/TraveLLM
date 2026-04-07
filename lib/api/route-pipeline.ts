@@ -163,16 +163,21 @@ export async function sanitizeClosedAirportLogistics(
         const day = itinerary[i]
         const lg = day?.logistics
         
-        if (lg && lg.mode && (lg.mode.toLowerCase().includes('самол') || lg.mode.toLowerCase().includes('рейс') || lg.mode.toLowerCase().includes('flight'))) {
+        const lgMode = lg?.mode?.toLowerCase() ?? ""
+        const isFlightLogistics = lgMode.includes('самол') || lgMode.includes('рейс') || lgMode.includes('flight')
+        const isGroundLogistics = lgMode.includes('автобус') || lgMode.includes('bus') || lgMode.includes('поезд') || lgMode.includes('train')
+
+        if (lg && lg.mode && (isFlightLogistics || isGroundLogistics)) {
             const fromCity = lg.from || currentCity
             const toCity = lg.to || day.title || "Пункт назначения"
 
             try {
                 const decision = await determineOptimalTransport(fromCity, toCity, startDate);
 
-                if (decision.mode === 'train' || decision.mode === 'bus') {
+                if (isFlightLogistics && (decision.mode === 'train' || decision.mode === 'bus')) {
+                    // Flight → replace with ground transport
                     console.log(`[Pipeline] Replacing flight with ${decision.mode}: ${fromCity} -> ${toCity}`);
-                    
+
                     let transportLink =
                         market === "world" ? "https://www.trip.com/trains/" : "https://travel.yandex.ru/trains/"
                     try {
@@ -196,6 +201,38 @@ export async function sanitizeClosedAirportLogistics(
                             if (act.type === 'transport') {
                                 act.title = act.title.replace(/Перелёт|Рейс|Вылет/ig, day.logistics.mode)
                                 act.desc = `Наземный переезд из ${fromCity} в ${toCity}. ${decision.reason}`
+                            }
+                        })
+                    }
+                } else if (isGroundLogistics && decision.mode === 'flight') {
+                    // Bus/train suggested but ground route not feasible — replace with flight
+                    console.log(`[Pipeline] Ground transport impossible ${fromCity} -> ${toCity} (likely sea crossing), replacing with flight`);
+
+                    let flightLink: string
+                    try {
+                        const { getFlightSearchLink, getIataCode } = await import('@/lib/travelpayouts')
+                        const origIata = getIataCode(fromCity) || ""
+                        const destIata = getIataCode(toCity) || ""
+                        flightLink = origIata && destIata
+                            ? getFlightSearchLink({ originIata: origIata, origin: fromCity, destination: toCity, destinationIata: destIata, subId: `fix_ground_${i}`, market })
+                            : market === "world" ? "https://www.aviasales.com/" : "https://www.aviasales.ru/"
+                    } catch {
+                        flightLink = market === "world" ? "https://www.aviasales.com/" : "https://www.aviasales.ru/"
+                    }
+
+                    day.logistics.mode = 'Перелёт'
+                    day.logistics.bookingLink = flightLink
+                    day.logistics.note = `Наземный маршрут невозможен (морское препятствие). ${decision.reason}`
+
+                    if (Array.isArray(day.activities)) {
+                        day.activities.forEach((act: any) => {
+                            if (act.type === 'transport') {
+                                act.type = 'flight'
+                                act.title = act.title
+                                    .replace(/Автобус|Ночной автобус|Поезд/ig, 'Перелёт')
+                                    .replace(/bus|train/ig, 'Flight')
+                                act.desc = `Наземный маршрут из ${fromCity} в ${toCity} невозможен. Рекомендуется перелёт с пересадкой.`
+                                act.link = flightLink
                             }
                         })
                     }

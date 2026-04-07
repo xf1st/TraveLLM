@@ -50,7 +50,7 @@ export function MobileLanding() {
   ]
 
   return (
-    <div className="bg-[#0B1120] text-slate-50 min-h-screen pb-32 overflow-x-hidden selection:bg-blue-500/30">
+    <div className="bg-background text-foreground min-h-screen pb-32 overflow-x-hidden selection:bg-blue-500/30">
       {/* Header */}
       <Header />
 
@@ -98,7 +98,7 @@ export function MobileLanding() {
       <main className="space-y-20 pt-14">
         {/* Partners */}
         <section className="px-6">
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-8">
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-8">
             {t("mobile.partnersTitle")}
           </p>
           <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-6 opacity-30 grayscale">
@@ -111,11 +111,11 @@ export function MobileLanding() {
 
         {/* Reels Style Section */}
         <section className="px-6 overflow-hidden">
-          <h2 className="text-3xl font-extrabold mb-10 leading-tight text-white">
+          <h2 className="text-3xl font-extrabold mb-10 leading-tight text-foreground">
             {t("mobile.activitiesTitle")}
           </h2>
 
-          <div className="relative rounded-[32px] overflow-visible bg-slate-900/60 p-8 border border-white/10 shadow-lg h-72">
+          <div className="relative rounded-[32px] overflow-visible bg-card p-8 border border-border shadow-lg h-72">
             <div className="relative z-10 space-y-4 max-w-[58%] top-1/2 -translate-y-1/2 absolute left-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-sky-400" />
@@ -123,7 +123,7 @@ export function MobileLanding() {
                   Канайма, Венесуэла
                 </span>
               </div>
-              <p className="font-bold text-lg leading-snug text-white">
+              <p className="font-bold text-lg leading-snug text-foreground">
                 Полёт на параплане над плато Тебуи: Над облаками Венесуэльской Гайаны
               </p>
             </div>
@@ -140,43 +140,43 @@ export function MobileLanding() {
 
         {/* Bento AI Features */}
         <section className="px-6">
-          <h2 className="text-3xl font-extrabold mb-10 text-white">{t("mobile.featuresTitle")}</h2>
+          <h2 className="text-3xl font-extrabold mb-10 text-foreground">{t("mobile.featuresTitle")}</h2>
           <div className="grid grid-cols-2 gap-4">
             {/* Instant Routes card — inspired by the design */}
-            <div className="bg-slate-900/80 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-square group active:bg-slate-800 transition-colors relative overflow-hidden">
+            <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors relative overflow-hidden">
               <span className="material-symbols-outlined text-blue-400 text-3xl mb-2">speed</span>
               <div>
-                <h3 className="text-sm font-bold leading-tight text-white">Маршруты за минуту</h3>
-                <p className="text-[11px] text-slate-400 mt-1 leading-tight">От идеи до плана — без вкладок</p>
+                <h3 className="text-sm font-bold leading-tight text-foreground">Маршруты за минуту</h3>
+                <p className="text-[11px] text-muted-foreground mt-1 leading-tight">От идеи до плана — без вкладок</p>
               </div>
               {/* Watermark */}
-              <span className="material-symbols-outlined absolute -bottom-3 -right-3 text-[80px] text-white/5 select-none pointer-events-none">timer</span>
+              <span className="material-symbols-outlined absolute -bottom-3 -right-3 text-[80px] text-foreground/5 select-none pointer-events-none">timer</span>
             </div>
 
-            <div className="bg-slate-900/80 rounded-3xl p-6 border border-white/10 flex flex-col justify-between aspect-square group active:bg-slate-800 transition-colors">
+            <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors">
               <span className="material-symbols-outlined text-sky-400 text-3xl mb-4">cloud</span>
-              <h3 className="text-sm font-bold leading-tight text-white">Погода по дням</h3>
+              <h3 className="text-sm font-bold leading-tight text-foreground">Погода по дням</h3>
             </div>
 
-            <div className="col-span-2 bg-slate-900/80 rounded-3xl p-6 flex items-center justify-between border border-white/10 active:bg-slate-800 transition-colors">
+            <div className="col-span-2 bg-card rounded-3xl p-6 flex items-center justify-between border border-border active:bg-muted transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-500/15 rounded-full flex items-center justify-center">
                   <span className="material-symbols-outlined text-blue-400">forum</span>
                 </div>
-                <h3 className="text-sm font-bold text-white">AI-чат для правок</h3>
+                <h3 className="text-sm font-bold text-foreground">AI-чат для правок</h3>
               </div>
-              <span className="material-symbols-outlined text-slate-600">arrow_forward_ios</span>
+              <span className="material-symbols-outlined text-muted-foreground">arrow_forward_ios</span>
             </div>
           </div>
         </section>
 
         {/* Why Us — Comparison */}
         <section className="px-6">
-          <div className="bg-slate-900/60 rounded-[32px] p-8 border border-white/10 shadow-md relative overflow-hidden">
+          <div className="bg-card rounded-[32px] p-8 border border-border shadow-md relative overflow-hidden">
             <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20" />
-            <h2 className="text-3xl font-extrabold mb-8 text-white">{t("mobile.comparisonTitle")}</h2>
+            <h2 className="text-3xl font-extrabold mb-8 text-foreground">{t("mobile.comparisonTitle")}</h2>
             <div className="space-y-5">
-              <div className="grid grid-cols-3 text-[10px] uppercase tracking-[0.15em] text-slate-500 pb-4 border-b border-white/10">
+              <div className="grid grid-cols-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground pb-4 border-b border-border">
                 <div>Функция</div>
                 <div className="text-center text-blue-400 font-bold">TraveLLM</div>
                 <div className="text-center">Другие</div>
@@ -192,14 +192,14 @@ export function MobileLanding() {
                 { label: "Совместный доступ", app: "check_circle", other: "remove_circle", icon: true },
               ].map((row, i) => (
                 <div key={i} className="grid grid-cols-3 items-center py-0.5">
-                  <div className="text-sm font-medium text-slate-300">{row.label}</div>
+                  <div className="text-sm font-medium text-foreground/80">{row.label}</div>
                   <div className="flex justify-center">
                     <span className="material-symbols-outlined text-blue-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                       {row.app}
                     </span>
                   </div>
                   <div className="flex justify-center">
-                    <span className="material-symbols-outlined text-slate-600 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    <span className="material-symbols-outlined text-muted-foreground text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                       {row.other}
                     </span>
                   </div>
@@ -212,7 +212,7 @@ export function MobileLanding() {
         {/* Journal Section */}
         <section className="px-6">
           <div className="flex justify-between items-end mb-8">
-            <h2 className="text-3xl font-extrabold text-white">{t("mobile.journalTitle")}</h2>
+            <h2 className="text-3xl font-extrabold text-foreground">{t("mobile.journalTitle")}</h2>
             <Link href="/news" className="text-blue-400 text-xs font-bold uppercase tracking-widest flex items-center gap-1">
               {t("mobile.allArticles")}
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -220,7 +220,7 @@ export function MobileLanding() {
           </div>
 
           <div className="space-y-6">
-            <div className="group relative bg-slate-900/60 rounded-[32px] overflow-hidden aspect-[4/3] border border-white/10 shadow-lg active:scale-[0.99] transition-transform">
+            <div className="group relative bg-card rounded-[32px] overflow-hidden aspect-[4/3] border border-border shadow-lg active:scale-[0.99] transition-transform">
               <img
                 alt="Maldives"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -231,13 +231,13 @@ export function MobileLanding() {
                 <span className="px-3 py-1 bg-blue-500 text-white text-[10px] font-bold uppercase rounded-full mb-3 inline-block">
                   Тренды 2025
                 </span>
-                <h3 className="text-2xl font-bold text-white leading-tight">
+                <h3 className="text-2xl font-bold text-white leading-tight drop-shadow-md">
                   Топ-10 направлений для удалённой работы
                 </h3>
               </div>
             </div>
 
-            <div className="flex gap-5 bg-slate-900/60 p-5 rounded-[28px] border border-white/10 shadow-sm active:bg-slate-800 transition-colors">
+            <div className="flex gap-5 bg-card p-5 rounded-[28px] border border-border shadow-sm active:bg-muted transition-colors">
               <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0">
                 <img
                   alt="AI Travel"
@@ -246,10 +246,10 @@ export function MobileLanding() {
                 />
               </div>
               <div className="flex flex-col justify-center flex-1">
-                <h4 className="font-bold text-sm mb-1 leading-tight line-clamp-2 text-white">
+                <h4 className="font-bold text-sm mb-1 leading-tight line-clamp-2 text-foreground">
                   Как ИИ меняет индустрию планирования путешествий
                 </h4>
-                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">5 минут чтения</p>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">5 минут чтения</p>
               </div>
             </div>
           </div>
@@ -257,7 +257,7 @@ export function MobileLanding() {
 
         {/* FAQ */}
         <section className="px-6">
-          <h2 className="text-3xl font-extrabold mb-10 text-center text-white">{t("mobile.faqTitle")}</h2>
+          <h2 className="text-3xl font-extrabold mb-10 text-center text-foreground">{t("mobile.faqTitle")}</h2>
           <div className="space-y-4">
             {faqData.map((item, idx) => (
               <FAQItem
@@ -309,17 +309,17 @@ function FAQItem({
     <div
       className={`rounded-3xl transition-all duration-300 overflow-hidden cursor-pointer ${
         isOpen
-          ? "bg-slate-800 border border-blue-500/30 shadow-md"
-          : "bg-slate-900/60 border border-white/10"
+          ? "bg-card border border-blue-500/30 shadow-md"
+          : "bg-muted/40 border border-border"
       }`}
       onClick={onClick}
     >
       <div className="p-6 flex justify-between items-center">
-        <span className="font-bold text-sm pr-6 leading-tight flex-1 text-white">{question}</span>
+        <span className="font-bold text-sm pr-6 leading-tight flex-1 text-foreground">{question}</span>
         <motion.span
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
-          className={`material-symbols-outlined transition-colors ${isOpen ? "text-blue-400" : "text-slate-500"}`}
+          className={`material-symbols-outlined transition-colors ${isOpen ? "text-blue-400" : "text-muted-foreground"}`}
         >
           add
         </motion.span>
@@ -333,7 +333,7 @@ function FAQItem({
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="px-6 pb-6 pt-0">
-              <p className="text-sm text-slate-400 leading-relaxed">{answer}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{answer}</p>
             </div>
           </motion.div>
         )}

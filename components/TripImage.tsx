@@ -102,7 +102,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
         if (loadingTimeoutRef.current) {
             clearTimeout(loadingTimeoutRef.current)
         }
-        
+
         // 1. Попытка проксировать ТЕКУЩУЮ картинку
         if (!isProxied && currentSrc && !currentSrc.startsWith("/") && currentSrc !== DEFAULT_TRAVEL_IMAGE) {
             setIsProxied(true)
@@ -112,14 +112,29 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             return
         }
 
-        // 2. Если прокси не помог, ищем НОВУЮ картинку
-        if (retryCount < 2) {
+        // 2. Прокси не помог — пробуем оригинальный URL напрямую (PlaceGallery-style fallback).
+        //    Работает когда CDN доступен напрямую (Wikimedia, Unsplash CDN в РФ).
+        if (isProxied && currentSrc && currentSrc.includes("/api/proxy-image")) {
+            try {
+                const original = decodeURIComponent(currentSrc.split("?url=")[1] ?? "")
+                if (original && original !== DEFAULT_TRAVEL_IMAGE) {
+                    setIsProxied(false)
+                    setCurrentSrc(original)
+                    setError(false)
+                    setIsLoading(true)
+                    return
+                }
+            } catch {}
+        }
+
+        // 3. Ищем НОВУЮ картинку (не более 1 раза)
+        if (retryCount < 1) {
             setRetryCount((v) => v + 1)
             fetchNewImage()
             return
         }
 
-        // 3. Сдаемся, показываем дефолтную заглушку
+        // 4. Сдаемся, показываем дефолтную заглушку
         setCurrentSrc(DEFAULT_TRAVEL_IMAGE)
         setError(true)
         setIsLoading(false)

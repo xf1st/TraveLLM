@@ -33,6 +33,9 @@ import {
   BarChart2,
   ExternalLink,
   Menu,
+  Trash2,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 const MeshGradient = dynamic(
@@ -153,6 +156,7 @@ export default function TripDetailPage() {
   const params = useParams()
   const router = useRouter()
   const t = useTranslations('trip')
+  const tc = useTranslations('common')
   const locale = useLocale()
   const bookingMarket = useBookingMarket()
 
@@ -191,6 +195,8 @@ export default function TripDetailPage() {
   const [isGeneratingExtra, setIsGeneratingExtra] = useState(false)
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false)
   const [tripFeedback, setTripFeedback] = useState<TripFeedbackRecord | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [tripWeather, setTripWeather] = useState<WeatherData[]>([])
   const dayRefs = useRef<Record<number, HTMLButtonElement | null>>({})
 
@@ -793,6 +799,28 @@ export default function TripDetailPage() {
     }
   }
 
+  const handleDeleteTrip = async () => {
+    if (!route?.id || !isOwner) return
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('id', route.id)
+      if (error) {
+        toast.error(t('deleteError'))
+        return
+      }
+      toast.success(t('deleteSuccess'))
+      router.push('/trips')
+    } catch {
+      toast.error(t('deleteError'))
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+    }
+  }
+
   const handleGenerateExtraActivity = async (dayNumber: number) => {
     setIsGeneratingExtra(true)
     try {
@@ -868,6 +896,48 @@ export default function TripDetailPage() {
   // ============== RENDER ==============
   return (
     <div className="min-h-screen trip-bg relative">
+      {/* ── Delete Confirm Dialog ── */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isDeleting && setShowDeleteDialog(false)} />
+          <div className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-6 shadow-2xl animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 duration-300">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/15 border border-red-500/20">
+                <AlertTriangle className="h-6 w-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-foreground">{t("deleteConfirmTitle")}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{tc("noUndo") || "This action cannot be undone"}</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              {t("deleteConfirmBody", { title: route.title })}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(false)}
+                disabled={isDeleting}
+                className="flex-1 h-11 rounded-2xl border border-white/15 bg-white/5 text-sm font-semibold text-muted-foreground hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {tc("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteTrip}
+                disabled={isDeleting}
+                className="flex-1 h-11 rounded-2xl bg-red-500 text-sm font-bold text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> {t("deleting")}</>
+                ) : (
+                  <><Trash2 className="h-4 w-4" /> {tc("delete")}</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <AppSidebar />
       <TripTooltips userId={user?.id} />
       {isOwner && (
@@ -1041,6 +1111,16 @@ export default function TripDetailPage() {
                       )}
                     />
                   </button>
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteDialog(true)}
+                      title="Удалить маршрут"
+                      className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 backdrop-blur-md transition-all hover:bg-red-500/25 hover:border-red-500/50 sm:h-10 sm:w-10"
+                    >
+                      <Trash2 className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

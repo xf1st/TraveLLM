@@ -408,7 +408,19 @@ export async function POST(req: Request) {
                     resetDeepSeekSessionUsage();
 
                     let routeData = await generateParallel();
-                    
+
+                    // Validate day count — AI sometimes skips days
+                    if (Array.isArray(routeData.itinerary)) {
+                        const got = routeData.itinerary.length
+                        if (got !== durationDays) {
+                            console.warn(`[DayCount] Expected ${durationDays} days, got ${got}`)
+                            // Re-number days sequentially in case AI duplicated/skipped numbers
+                            routeData.itinerary = routeData.itinerary
+                                .sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0))
+                                .map((d: any, i: number) => ({ ...d, day: i + 1 }))
+                        }
+                    }
+
                     // Fallback title if missing
                     if (!routeData.title || routeData.title === "Название маршрута" || routeData.title === "Новый маршрут") {
                         const dest = destinations[0] || "новым местам";
