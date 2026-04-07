@@ -78,7 +78,7 @@ HOTEL:
   Для российских городов: ищи отели, которые реально есть в этом городе (Ibis есть в Москве, СПб, Казани, Екатеринбурге, Иркутске; Marriott — в крупных городах; Azimut — по всей России).
   mapLink = Google Maps с конкретным названием
   bookingUrl — Яндекс.Путешествия: известный отель → конкретный URL со slug. Не уверен в slug → поиск по городу: "https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N"
-  link — Островок поиск: "https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N"
+  link — Островок поиск (НЕ используй путь /hotel/search/ — он даёт 404): "https://ostrovok.ru/?destination={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=N"
   Ночёвка в РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
   За границей: bookingUrl = "https://www.booking.com/search.html?ss={HotelName}%2C+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — ТОЛЬКО поиск. ЗАПРЕЩЕНО генерировать /hotel/{country}/{slug}.html — AI не знает реальный slug и он будет 404.
 

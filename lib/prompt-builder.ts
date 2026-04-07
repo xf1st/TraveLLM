@@ -36,7 +36,7 @@ Yandex Travel URL rules:
   • Known real hotel → specific page: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — hyphens only, no underscores, no extra /hotel/ segment.
   • Uncertain / generic name → city search fallback: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • IMPORTANT city slugs (use exactly as shown): Moscow=\`moscow\`, Saint Petersburg=\`saint-petersburg\`, Novosibirsk=\`novosibirsk\`, Yekaterinburg=\`ekaterinburg\`, Kazan=\`kazan\`, Sochi=\`sochi\`, Vladivostok=\`vladivostok\`, Irkutsk=\`irkutsk\`, Krasnodar=\`krasnodar\`, Nizhny Novgorod=\`nizhniy-novgorod\`. NEVER use "sankt-peterburg", "moskva", or Russian transliterations.
-Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\`
+Ostrovok (homepage search — NEVER use path /hotel/search/, it 404s): \`https://ostrovok.ru/?destination={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=N\`
 `.trim()
     }
     return `
@@ -55,7 +55,7 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
   • Известный реальный отель → конкретная страница: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — только дефисы, без подчёркиваний, без лишнего сегмента /hotel/.
   • Неизвестный / общий — поиск по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • ВАЖНО — слаги городов (использовать точно): Москва=\`moscow\`, Санкт-Петербург=\`saint-petersburg\`, Новосибирск=\`novosibirsk\`, Екатеринбург=\`ekaterinburg\`, Казань=\`kazan\`, Сочи=\`sochi\`, Владивосток=\`vladivostok\`, Иркутск=\`irkutsk\`, Краснодар=\`krasnodar\`, Нижний Новгород=\`nizhniy-novgorod\`. НИКОГДА не использовать "sankt-peterburg", "moskva" или русскую транслитерацию.
-Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N\`
+Островок (поиск с главной — НИКОГДА не используй путь /hotel/search/, он отдаёт 404): \`https://ostrovok.ru/?destination={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=N\`
 `.trim()
 }
 
@@ -243,7 +243,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (NOT map) + link:
      bookingUrl: Yandex Travel hotels deep URL with dates (plain URL, affiliate tracking is added automatically).
-     link: Ostrovok hotel search deep URL https://ostrovok.ru/hotel/search/?q={CityOrHotel}. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
+     link: Ostrovok homepage search (NOT /hotel/search/ — 404): https://ostrovok.ru/?destination={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=N. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
 
    food → link (and bookingUrl when table booking matters):
      Russian cities: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
@@ -303,7 +303,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (НЕ карта!) + link:
      bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обычный URL, партнёрский трекинг добавляется автоматически).
-     link: Островок — глубокий поиск https://ostrovok.ru/hotel/search/?q=Город+или+отель. По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
+     link: Островок — поиск с главной (НЕ /hotel/search/ — 404): https://ostrovok.ru/?destination=Название+Город&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&adults=N. По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
 
    food → link (и bookingUrl, если важна бронь столика):
      Города РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.

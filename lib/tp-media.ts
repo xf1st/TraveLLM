@@ -150,10 +150,44 @@ export function sanitizeYandexTravelUrl(url: string): string {
   }
 }
 
+function ostrovokDdMmYyyyToIso(s: string): string {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(s)
+  if (!m) return s
+  return `${m[3]}-${m[2]}-${m[1]}`
+}
+
+/**
+ * `/hotel/search/` on ostrovok.ru returns 404 — rewrite to homepage deep link.
+ * (Same shape as `buildOstrovokRuHomeSearchUrl` in travelpayouts; kept here to avoid import cycle.)
+ */
+function rewriteOstrovokRuToHomeSearch(parsed: URL): string {
+  const q = parsed.searchParams.get("q")?.trim()
+  const destParam = parsed.searchParams.get("destination")?.trim()
+  const destination = (destParam || (q ? decodeURIComponent(q.replace(/\+/g, " ")) : "")).trim()
+  if (!destination) return parsed.toString()
+
+  const sp = new URLSearchParams()
+  sp.set("destination", destination)
+  let ci = parsed.searchParams.get("checkin") || undefined
+  let co = parsed.searchParams.get("checkout") || undefined
+  if (ci && /^\d{2}\.\d{2}\.\d{4}$/.test(ci)) ci = ostrovokDdMmYyyyToIso(ci)
+  if (co && /^\d{2}\.\d{2}\.\d{4}$/.test(co)) co = ostrovokDdMmYyyyToIso(co)
+  if (ci) sp.set("checkin", ci)
+  if (co) sp.set("checkout", co)
+  const guestsRaw = parsed.searchParams.get("guests") || parsed.searchParams.get("adults")
+  const adults = guestsRaw ? Math.min(30, Math.max(1, parseInt(guestsRaw, 10) || 2)) : 2
+  sp.set("adults", String(adults))
+  const markerFromUrl = parsed.searchParams.get("marker")
+  if (markerFromUrl) sp.set("marker", markerFromUrl)
+  else if (MARKER) sp.set("marker", MARKER)
+  return `https://ostrovok.ru/?${sp.toString()}`
+}
+
 /**
  * Fix common LLM mistakes in Ostrovok hotel URLs:
  * 1. Replace underscores with hyphens in slug
- * 2. Ensure it doesn't end with a stray quote or semicolon
+ * 2. Legacy `/hotel/search/` → working `/?destination=…&checkin=…`
+ * 3. Homepage with `q=` but no `destination` → normalize
  */
 export function sanitizeOstrovokUrl(url: string): string {
   try {
@@ -164,7 +198,15 @@ export function sanitizeOstrovokUrl(url: string): string {
 
     // Replace underscores with hyphens in the entire path for Ostrovok
     parsed.pathname = parsed.pathname.replace(/_/g, "-")
-    
+
+    const path = parsed.pathname.replace(/\/$/, "") || "/"
+    if (path === "/hotel/search" || path.startsWith("/hotel/search/")) {
+      return rewriteOstrovokRuToHomeSearch(parsed)
+    }
+    if (path === "/" && parsed.searchParams.get("q")?.trim() && !parsed.searchParams.get("destination")?.trim()) {
+      return rewriteOstrovokRuToHomeSearch(parsed)
+    }
+
     return parsed.toString()
   } catch {
     return url
@@ -208,13 +250,12 @@ export function maybeWrapPartnerAffiliateUrl(
   url = sanitizeOstrovokUrl(url)
 
   // Drive handles affiliate wrapping automatically — return clean URL.
-  // EXCEPTION: Ostrovok /hotel/search/ URLs — Drive appends params that
-  // the search endpoint doesn't accept (→ 404). Wrap these via emrld.ltd
-  // so Drive sees an already-affiliate URL and leaves it alone.
+  // EXCEPTION: legacy Ostrovok /hotel/search/ URLs — Drive could break them;
+  // URLs should be normalized to ostrovok.ru/?… first (see sanitizeOstrovokUrl).
   if (isDriveEnabled()) {
-    const isOstrovokSearch = /ostrovok\.ru\/hotel\/search/i.test(url)
-    if (!isOstrovokSearch) return url
-    // Fall through to manual emrld.ltd wrap for ostrovok search URLs
+    const isOstrovokLegacySearch = /ostrovok\.ru\/hotel\/search/i.test(url)
+    if (!isOstrovokLegacySearch) return url
+    // Fall through to manual emrld.ltd wrap for rare legacy URLs
   }
 
   // No Drive — manual affiliate wrap via emrld.ltd/re

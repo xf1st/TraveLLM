@@ -7,7 +7,7 @@
 
 import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
 import type { BookingMarket } from "@/lib/booking-market"
-import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
+import { getFlightSearchLink, getHotellookLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
 
@@ -138,6 +138,69 @@ export function enrichTransportLinks(
                     if (toCity) currentCity = toCity
                 }
             }
+        }
+    }
+
+    return routeData
+}
+
+/**
+ * Rebuilds Ostrovok `hotel.link` to the working homepage deep link.
+ * Legacy `/hotel/search/` URLs 404 on ostrovok.ru; model output may still use them.
+ */
+export async function enrichHotelOstrovokLinks(
+    routeData: any,
+    options: {
+        startDate?: string
+        endDate?: string
+        adults?: number
+        mainDestination: string
+        market?: BookingMarket
+    }
+): Promise<any> {
+    const { startDate, endDate, adults = 2, mainDestination, market = "ru" } = options
+    if (market !== "ru" || !startDate || !Array.isArray(routeData?.itinerary)) return routeData
+
+    let checkIn: Date | undefined
+    let checkOut: Date | undefined
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(startDate))) {
+        checkIn = new Date(`${startDate}T12:00:00`)
+    }
+    if (endDate && /^\d{4}-\d{2}-\d{2}$/.test(String(endDate))) {
+        checkOut = new Date(`${endDate}T12:00:00`)
+    }
+    if (checkIn && !checkOut) {
+        checkOut = new Date(checkIn)
+        checkOut.setDate(checkOut.getDate() + 1)
+    }
+    if (!checkIn) return routeData
+
+    let cityCursor = mainDestination
+    for (const day of routeData.itinerary) {
+        const cityHint =
+            (typeof day?.endCity === "string" && day.endCity.trim()) ||
+            (typeof day?.logistics?.to === "string" && day.logistics.to.trim()) ||
+            cityCursor
+
+        if (Array.isArray(day?.activities)) {
+            for (const act of day.activities) {
+                if (act?.type !== "hotel") continue
+                if (typeof act?.link !== "string" || !/ostrovok\.ru/i.test(act.link)) continue
+
+                act.link = getHotellookLink({
+                    destination: cityHint,
+                    hotelName: typeof act.placeName === "string" ? act.placeName : undefined,
+                    checkIn,
+                    checkOut,
+                    adults,
+                    market: "ru",
+                })
+            }
+        }
+
+        if (typeof day?.endCity === "string" && day.endCity.trim()) cityCursor = day.endCity.trim()
+        else if (typeof day?.logistics?.to === "string" && day.logistics.to.trim()) {
+            cityCursor = day.logistics.to.trim()
         }
     }
 

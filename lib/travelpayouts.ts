@@ -819,6 +819,107 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
 }
 
 /**
+ * Ostrovok.ru: path `/hotel/search/` returns 404 (verified 2026). Use the homepage
+ * search deep link: `/?destination=…&checkin=YYYY-MM-DD&checkout=…&adults=N`.
+ */
+export function buildOstrovokRuHomeSearchUrl(params: {
+  destination: string
+  checkIn?: Date | string
+  checkOut?: Date | string
+  adults?: number
+  subId?: string
+}): string {
+  const { destination, checkIn, checkOut, adults = 2, subId } = params
+  const searchParams = new URLSearchParams()
+  searchParams.set("destination", destination.trim())
+  if (checkIn) searchParams.set("checkin", formatDate(checkIn))
+  if (checkOut) searchParams.set("checkout", formatDate(checkOut))
+  searchParams.set("adults", String(adults))
+  if (TRAVELPAYOUTS_MARKER) {
+    const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
+    searchParams.set("marker", marker)
+  }
+  return `https://ostrovok.ru/?${searchParams.toString()}`
+}
+
+/**
+ * Rewrite legacy/broken Ostrovok URLs (e.g. `/hotel/search/`) to the working homepage format.
+ */
+export function normalizeOstrovokRuUrl(
+  url: string,
+  context?: { placeName?: string; cityHint?: string }
+): string {
+  try {
+    let u = url.trim().replace(/['";]+$/, "")
+    const parsed = new URL(u)
+    const host = parsed.hostname.replace(/^www\./, "").toLowerCase()
+    if (host !== "ostrovok.ru") return url
+
+    const path = parsed.pathname.replace(/\/$/, "") || "/"
+    const isLegacySearch = path === "/hotel/search" || path.startsWith("/hotel/search/")
+    const isHome = path === "/"
+    const pathSeg = path.split("/").filter(Boolean)
+    const isHotelDetail =
+      pathSeg[0] === "hotel" &&
+      pathSeg[1] !== "search" &&
+      pathSeg.length >= 3
+
+    if (!isLegacySearch && !isHotelDetail && isHome && parsed.searchParams.get("destination")?.trim()) {
+      return u
+    }
+
+    const q = parsed.searchParams.get("q")?.trim()
+    let destFromPath = ""
+    if (isHotelDetail && pathSeg[2]) {
+      const cityPart = pathSeg[2].replace(/-/g, " ")
+      destFromPath = [context?.placeName?.trim(), cityPart].filter(Boolean).join(" ").trim()
+    }
+    const destFromQ = q
+      ? decodeURIComponent(q.replace(/\+/g, " "))
+      : [context?.placeName, context?.cityHint].filter(Boolean).join(" ").trim()
+
+    const destination =
+      parsed.searchParams.get("destination")?.trim() ||
+      destFromPath ||
+      destFromQ ||
+      context?.cityHint?.trim() ||
+      context?.placeName?.trim() ||
+      ""
+    if (!destination) return u
+
+    let checkIn = parsed.searchParams.get("checkin") || undefined
+    let checkOut = parsed.searchParams.get("checkout") || undefined
+    const ddmm = /^(\d{2})\.(\d{2})\.(\d{4})$/
+    if (checkIn && ddmm.test(checkIn)) {
+      const [, d, m, y] = checkIn.match(ddmm)!
+      checkIn = `${y}-${m}-${d}`
+    }
+    if (checkOut && ddmm.test(checkOut)) {
+      const [, d, m, y] = checkOut.match(ddmm)!
+      checkOut = `${y}-${m}-${d}`
+    }
+
+    const guestsRaw = parsed.searchParams.get("guests") || parsed.searchParams.get("adults")
+    const adults = guestsRaw ? Math.min(30, Math.max(1, parseInt(guestsRaw, 10) || 2)) : 2
+
+    const rebuilt = buildOstrovokRuHomeSearchUrl({
+      destination,
+      checkIn,
+      checkOut,
+      adults,
+    })
+    const out = new URL(rebuilt)
+    const markerParam = parsed.searchParams.get("marker")
+    if (markerParam && !out.searchParams.has("marker")) {
+      out.searchParams.set("marker", markerParam)
+    }
+    return out.toString()
+  } catch {
+    return url
+  }
+}
+
+/**
  * Альтернативная ссылка на Островок / Hotellook
  */
 export function getHotellookLink(params: HotelSearchParams): string {
@@ -833,31 +934,23 @@ export function getHotellookLink(params: HotelSearchParams): string {
   } = params
 
   const isRu = market === "ru"
-  // For RU market use Ostrovok directly if it's for search fallback
-  const baseUrl = isRu ? "https://ostrovok.ru/hotel/search/" : "https://search.hotellook.com"
+
+  if (isRu) {
+    const destLabel = hotelName ? `${hotelName} ${destination}`.trim() : destination.trim()
+    return buildOstrovokRuHomeSearchUrl({ destination: destLabel, checkIn, checkOut, adults, subId })
+  }
 
   const searchParams = new URLSearchParams()
-
   if (TRAVELPAYOUTS_MARKER) {
     const marker = subId ? `${TRAVELPAYOUTS_MARKER}.${subId}` : TRAVELPAYOUTS_MARKER
     searchParams.set("marker", marker)
   }
+  searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
+  searchParams.set("adults", adults.toString())
+  if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
+  if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
 
-  if (isRu) {
-    // Ostrovok search format: ?q={hotelName}+{destination}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N
-    const q = hotelName ? `${hotelName} ${destination}` : destination
-    searchParams.set("q", q)
-    if (checkIn) searchParams.set("checkin", formatDate(checkIn, "DD.MM.YYYY"))
-    if (checkOut) searchParams.set("checkout", formatDate(checkOut, "DD.MM.YYYY"))
-    searchParams.set("guests", adults.toString())
-  } else {
-    searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
-    searchParams.set("adults", adults.toString())
-    if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
-    if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
-  }
-
-  return `${baseUrl}?${searchParams.toString()}`
+  return `https://search.hotellook.com?${searchParams.toString()}`
 }
 
 interface TrainSearchParams {

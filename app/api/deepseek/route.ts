@@ -22,6 +22,7 @@ import {
     collectRealTimeSearchContext,
     removeSameCityFlights,
     enrichViralSpotsWithWebSearch,
+    enrichHotelOstrovokLinks,
     sanitizeActivityUrls,
 } from "@/lib/api/route-pipeline"
 import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
@@ -195,6 +196,13 @@ export async function POST(req: Request) {
             // Post-processing
             routeData = sanitizeActivityUrls(routeData);
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
+            await enrichHotelOstrovokLinks(routeData, {
+                startDate,
+                endDate,
+                adults: travelersCount,
+                mainDestination: destinations[0] || "",
+                market: bookingMarket,
+            })
             routeData = await enrichViralSpotsWithWebSearch(routeData);
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
@@ -220,6 +228,13 @@ export async function POST(req: Request) {
             }
             routeData = sanitizeActivityUrls(routeData);
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
+            await enrichHotelOstrovokLinks(routeData, {
+                startDate,
+                endDate,
+                adults: travelersCount,
+                mainDestination: destinations[0] || "",
+                market: bookingMarket,
+            })
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);

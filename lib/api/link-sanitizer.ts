@@ -12,7 +12,7 @@
  *
  * NOT checked (always-valid search/formula URLs):
  *   Aviasales (/search/{ORG}{DATE}{DEST})  — formula-generated, always valid
- *   Ostrovok /hotel/search/?q=…            — search URL, always valid
+ *   Ostrovok `/?destination=…&checkin=…`   — homepage deep link ( `/hotel/search/` 404s )
  *   Booking.com /search.html?ss=…          — search URL, always valid
  *   Sutochno city subdomains               — always valid
  *   Tripster / Sputnik8 city pages         — always valid
@@ -22,6 +22,7 @@
  */
 
 import { sanitizeYandexTravelUrl } from "@/lib/tp-media"
+import { normalizeOstrovokRuUrl } from "@/lib/travelpayouts"
 
 const TIMEOUT_MS = 4_000
 
@@ -70,7 +71,16 @@ function yandexCityFallback(url: string): string {
 
 // ── Ostrovok ─────────────────────────────────────────────────────────────────
 // specific hotel: /hotel/{country}/{city}/{mid…}/   ← real hotel page, can 404
-// search:         /hotel/search/?q=…               ← always works
+// legacy search:  /hotel/search/                    ← HTTP 404 (rewrite to /?destination=…)
+
+function isOstrovokBrokenSearchPath(url: string): boolean {
+    try {
+        const u = new URL(url)
+        if (!u.hostname.includes("ostrovok.ru")) return false
+        const path = u.pathname.replace(/\/$/, "") || "/"
+        return path === "/hotel/search" || path.startsWith("/hotel/search/")
+    } catch { return false }
+}
 
 function isOstrovokHotelPage(url: string): boolean {
     try {
@@ -83,22 +93,15 @@ function isOstrovokHotelPage(url: string): boolean {
     } catch { return false }
 }
 
-function ostrovokSearchFallback(url: string, act: any): string {
-    try {
-        const u = new URL(url)
-        const seg = u.pathname.replace(/^\/|\/$/g, "").split("/")
-        // seg[2] is city slug (e.g. "irkutsk")
-        const citySlug = seg[2] || ""
-        const placeName = act?.placeName || ""
-        const q = [placeName, citySlug].filter(Boolean).join(" ")
-        const f = new URL("https://ostrovok.ru/hotel/search/")
-        if (q) f.searchParams.set("q", q)
-        for (const k of ["checkin", "checkout", "guests"]) {
-            const v = u.searchParams.get(k)
-            if (v) f.searchParams.set(k, v)
-        }
-        return f.toString()
-    } catch { return url }
+function ostrovokSearchFallback(url: string, act: any, day?: any): string {
+    const cityHint =
+        (typeof day?.endCity === "string" && day.endCity.trim()) ||
+        (typeof day?.logistics?.to === "string" && day.logistics.to.trim()) ||
+        undefined
+    return normalizeOstrovokRuUrl(url, {
+        placeName: typeof act?.placeName === "string" ? act.placeName : undefined,
+        cityHint,
+    })
 }
 
 // ── Booking.com ───────────────────────────────────────────────────────────────
@@ -189,11 +192,20 @@ function collectCandidates(itinerary: any[]): Candidate[] {
                 }
             }
 
-            // link — Ostrovok specific page (probe), or Booking.com specific page (always replace)
+            // link — Ostrovok specific page (probe), legacy /hotel/search/ (always rewrite), or Booking.com
             if (typeof act.link === "string") {
                 const url = act.link.trim()
-                if (isOstrovokHotelPage(url)) {
-                    out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: ostrovokSearchFallback(url, act) })
+                if (isOstrovokBrokenSearchPath(url)) {
+                    out.push({
+                        dayIdx: di,
+                        actIdx: ai,
+                        field: "link",
+                        url,
+                        fallback: ostrovokSearchFallback(url, act, day),
+                        alwaysReplace: true,
+                    })
+                } else if (isOstrovokHotelPage(url)) {
+                    out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: ostrovokSearchFallback(url, act, day) })
                 } else if (isBookingHotelPage(url)) {
                     out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: bookingSearchFallback(url, act), alwaysReplace: true })
                 }
