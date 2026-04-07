@@ -1,5 +1,28 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+// ─── Global API rate limit ────────────────────────────────────────────────────
+const GLOBAL_API_LIMIT = 30      // requests
+const GLOBAL_API_WINDOW = 60_000 // per minute
+
+/** Routes exempt from the global rate limit (public callbacks, webhooks). */
+const API_RATE_LIMIT_SKIP = [
+  '/api/admin',
+  '/api/auth/',
+  '/api/telegram/webhook',
+  '/api/image',
+  '/api/proxy-image',
+]
+
+function getRequestIp(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  )
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Locale detection ─────────────────────────────────────────────────────────
 const CIS_LANGS = new Set(['ru', 'uk', 'be', 'kk', 'uz', 'ky', 'tg', 'az', 'hy', 'ka', 'tk'])
@@ -58,16 +81,52 @@ export async function proxy(request: NextRequest) {
     if (isFullyPublic) return NextResponse.next()
   }
 
-  // API, Next.js internals, Vercel: no auth/maintenance redirects (avoids loops & wasted Supabase calls)
-  if (!isAdminSubdomain) {
-    if (
-      pathname.startsWith('/api') ||
-      pathname.startsWith('/_next') ||
-      pathname.startsWith('/_vercel') ||
-      pathname === '/404'
-    ) {
-      return NextResponse.next()
+  // Next.js internals — always pass through
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/_vercel') ||
+    pathname === '/404'
+  ) {
+    return NextResponse.next()
+  }
+
+  // API routes — apply global rate limit, then pass through
+  if (!isAdminSubdomain && pathname.startsWith('/api')) {
+    const isSkipped = API_RATE_LIMIT_SKIP.some(p => pathname.startsWith(p))
+
+    if (!isSkipped) {
+      // Read session from cookie — no network call, just cookie parsing
+      const tempSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } },
+      )
+      const { data: { session } } = await tempSupabase.auth.getSession()
+
+      // Rate limit by user ID (from session cookie) or IP for unauthenticated
+      // Admin subdomain is already excluded above via !isAdminSubdomain
+      const rlKey = session?.user?.id
+        ? `user:${session.user.id}`
+        : `ip:${getRequestIp(request)}`
+
+      const rl = checkRateLimit(rlKey, 'global-api', GLOBAL_API_LIMIT, GLOBAL_API_WINDOW)
+      if (!rl.allowed) {
+        const retryAfter = Math.ceil((rl.resetAt - Date.now()) / 1000)
+        return new NextResponse(
+          JSON.stringify({ error: 'Слишком много запросов. Подождите немного.', code: 'RATE_LIMIT' }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': String(retryAfter),
+              'X-RateLimit-Remaining': '0',
+            },
+          },
+        )
+      }
     }
+
+    return NextResponse.next()
   }
 
   let response = NextResponse.next({

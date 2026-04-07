@@ -220,7 +220,7 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 - **Middleware**: Next.js 16 использует `proxy.ts` (не `middleware.ts`) — оба файла одновременно не могут существовать.
 - **Telegram webhooks** (`/api/telegram/webhook`, `webhook-pr`): секреты сравниваются через `timingSafeEqual` (длина буферов выравнивается).
 - **`/api/image`**: лимит по IP (`checkIpRateLimit`, ключ `api-destination-image`, 60/окно — как у proxy-image) против злоупотреблений.
-- **Deployment**: `output: 'standalone'` в `next.config.mjs` для Docker/Coolify (Timeweb Cloud).
+- **Deployment**: `output: 'standalone'` в `next.config.mjs` для Docker на Timeweb Cloud.
 - **TypeScript errors**: `ignoreBuildErrors: true` в `next.config.mjs` — ошибки TS не блокируют билд.
 - **Admin**: Защита через subdomain `admin.*` в `proxy.ts` + проверка роли `admin`/`super_admin` в Supabase.
 - **OAuth**: `redirectUri` и `siteUrl` в auth-роутах берутся из `new URL(request.url).origin` — работает на обоих доменах без env-переменных.

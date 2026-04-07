@@ -407,17 +407,11 @@ function ResultsContent() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    if (isFav) {
-      await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("trip_id", tripId);
-    } else {
-      await supabase
-        .from("favorites")
-        .insert({ user_id: user.id, trip_id: tripId });
-    }
+    await fetch("/api/favorites/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tripId }),
+    })
   };
 
   // Combine Local + DB for My Routes
