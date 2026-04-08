@@ -17,6 +17,8 @@ import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-val
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import {
     enrichTransportLinks,
+    enrichFlightCosts,
+    enrichHotelCosts,
     sanitizeClosedAirportLogistics,
     normalizeActivityTypes,
     collectRealTimeSearchContext,
@@ -357,29 +359,45 @@ export async function POST(req: Request) {
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: chunkPrompt }]
-            const raw = await geminiInference(messages, { maxTokens: 8192, temperature: aiTemperature });
-            const clean = (raw.match(/\[[\s\S]*\]/)?.[0] ?? raw)
-                .replace(/```json\s*/g, '').replace(/```\s*/g, '')
-            try {
-                return JSON.parse(clean)
-            } catch {
-                console.warn(`[Gemini-Chunk] JSON malformed, attempting repair…`)
-                return JSON.parse(jsonrepair(clean))
+
+            const tryParse = async (attempt: number): Promise<ItineraryDay[]> => {
+                const raw = await geminiInference(messages, { maxTokens: 16000, temperature: attempt === 1 ? aiTemperature : Math.min(aiTemperature + 0.1, 1.0) });
+                const clean = (raw.match(/\[[\s\S]*\]/)?.[0] ?? raw)
+                    .replace(/```json\s*/g, '').replace(/```\s*/g, '')
+                try {
+                    return JSON.parse(clean)
+                } catch {
+                    try {
+                        console.warn(`[Gemini-Chunk ${startDay}-${endDay}] JSON malformed, attempting repair… (attempt ${attempt})`)
+                        return JSON.parse(jsonrepair(clean))
+                    } catch (repairErr) {
+                        if (attempt < 2) {
+                            console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Repair failed, retrying…`)
+                            return tryParse(attempt + 1)
+                        }
+                        throw repairErr
+                    }
+                }
             }
+
+            return tryParse(1)
         }
 
         async function generateParallel(): Promise<RouteData> {
-            const USE_SEQUENTIAL_CHUNKS = durationDays > 17;
+            // Single-shot for ≤14 days: ~930 tokens/day × 14 = ~13K, fits in 16K limit
+            // Longer trips chunk into 4-day segments to stay within output limits
+            const USE_SEQUENTIAL_CHUNKS = durationDays > 14;
             if (!USE_SEQUENTIAL_CHUNKS) {
                 const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
-                const raw = await geminiInference(messages, { maxTokens: 8192, temperature: aiTemperature });
+                const raw = await geminiInference(messages, { maxTokens: 16000, temperature: aiTemperature });
                 return parseJsonResponse(raw, "Gemini");
             }
 
             const metadata = await generateMetadata();
             const tripPlan = metadata.tripPlan || [];
             const chunks = [];
-            for (let i = 1; i <= durationDays; i += 14) chunks.push({ start: i, end: Math.min(i + 13, durationDays) });
+            // 7-day chunks: ~6500 tokens each, safely within 16K token limit
+            for (let i = 1; i <= durationDays; i += 7) chunks.push({ start: i, end: Math.min(i + 6, durationDays) });
 
             let previousContext = { lastCity: effectiveDepartureCity, visitedPlaces: [] as string[] };
             const allDays: ItineraryDay[] = [];
@@ -409,14 +427,14 @@ export async function POST(req: Request) {
 
                     let routeData = await generateParallel();
 
-                    // Validate day count — AI sometimes skips days
+                    // Validate day count — AI sometimes skips or adds extra days
                     if (Array.isArray(routeData.itinerary)) {
                         const got = routeData.itinerary.length
                         if (got !== durationDays) {
                             console.warn(`[DayCount] Expected ${durationDays} days, got ${got}`)
-                            // Re-number days sequentially in case AI duplicated/skipped numbers
                             routeData.itinerary = routeData.itinerary
                                 .sort((a: any, b: any) => (a.day ?? 0) - (b.day ?? 0))
+                                .slice(0, durationDays) // trim extra days AI may have added
                                 .map((d: any, i: number) => ({ ...d, day: i + 1 }))
                         }
                     }
@@ -434,6 +452,8 @@ export async function POST(req: Request) {
                     routeData = normalizeActivityTypes(routeData);
                     routeData = removeSameCityFlights(routeData);
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
+                    routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
+                    routeData = await enrichHotelCosts(routeData, startDate);
                     routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
                     if (reelRecord && Array.isArray(routeData.itinerary)) {

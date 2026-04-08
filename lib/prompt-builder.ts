@@ -36,7 +36,9 @@ Yandex Travel URL rules:
   • Known real hotel → specific page: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — hyphens only, no underscores, no extra /hotel/ segment.
   • Uncertain / generic name → city search fallback: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • IMPORTANT city slugs (use exactly as shown): Moscow=\`moscow\`, Saint Petersburg=\`saint-petersburg\`, Novosibirsk=\`novosibirsk\`, Yekaterinburg=\`ekaterinburg\`, Kazan=\`kazan\`, Sochi=\`sochi\`, Vladivostok=\`vladivostok\`, Irkutsk=\`irkutsk\`, Krasnodar=\`krasnodar\`, Nizhny Novgorod=\`nizhniy-novgorod\`. NEVER use "sankt-peterburg", "moskva", or Russian transliterations.
-Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N\`
+Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotels/search/?q={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
+  Example: https://ostrovok.ru/hotels/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
+⚠️ Yandex Travel is for Russian cities ONLY — NEVER use it for foreign destinations. Use Booking.com for abroad.
 `.trim()
     }
     return `
@@ -45,7 +47,7 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
 Выводи обычный URL партнёра как есть — НЕ оборачивай в emrld.ltd, tp.media или любой другой редирект. Партнёрский трекинг добавляется приложением автоматически при отображении.
 
 Маппинг типа активности → партнёр → целевой URL:
-| Экскурсии, гиды, туры с местным гидом | Tripster | https://tripster.ru/destinations/{city_slug}/ (латиница: moscow, kazan, vladivostok…) |
+| Экскурсии, гиды, туры с местным гидом | Tripster | https://tripster.ru/{city_slug}/ (латиница: moscow, kazan, vladivostok…) — ТОЛЬКО для городов РФ |
 | Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL маршрута на kiwitaxi.ru (не только главная) |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Москва), kazan.sutochno.ru |
@@ -55,7 +57,9 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
   • Известный реальный отель → конкретная страница: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — только дефисы, без подчёркиваний, без лишнего сегмента /hotel/.
   • Неизвестный / общий — поиск по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • ВАЖНО — слаги городов (использовать точно): Москва=\`moscow\`, Санкт-Петербург=\`saint-petersburg\`, Новосибирск=\`novosibirsk\`, Екатеринбург=\`ekaterinburg\`, Казань=\`kazan\`, Сочи=\`sochi\`, Владивосток=\`vladivostok\`, Иркутск=\`irkutsk\`, Краснодар=\`krasnodar\`, Нижний Новгород=\`nizhniy-novgorod\`. НИКОГДА не использовать "sankt-peterburg", "moskva" или русскую транслитерацию.
-Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=ДД.ММ.ГГГГ&checkout=ДД.ММ.ГГГГ&guests=N\`
+Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotels/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
+  Пример: https://ostrovok.ru/hotels/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
+⚠️ Яндекс.Путешествия — ТОЛЬКО для городов России. Для зарубежных отелей — Booking.com, НЕ Яндекс.
 `.trim()
 }
 
@@ -243,7 +247,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (NOT map) + link:
      bookingUrl: Yandex Travel hotels deep URL with dates (plain URL, affiliate tracking is added automatically).
-     link: Ostrovok hotel search deep URL https://ostrovok.ru/hotel/search/?q={CityOrHotel}. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
+     link: Ostrovok hotel search deep URL https://ostrovok.ru/hotels/search/?q={CityOrHotel}. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
 
    food → link (and bookingUrl when table booking matters):
      Russian cities: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
@@ -303,7 +307,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (НЕ карта!) + link:
      bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обычный URL, партнёрский трекинг добавляется автоматически).
-     link: Островок — глубокий поиск https://ostrovok.ru/hotel/search/?q=Город+или+отель. По РФ всегда обе ссылки; за рубежом — см. п.5 для мира.
+     link: Островок — https://ostrovok.ru/hotels/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N. По РФ всегда обе ссылки; за рубежом — bookingUrl=Booking.com, link=Ostrovok. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
 
    food → link (и bookingUrl, если важна бронь столика):
      Города РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
@@ -806,6 +810,7 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
   activity "cost": realistic USD for the destination — do NOT paste large local-currency integers (e.g. IDR/VND) as if they were dollars.
 ⚠️ DAY COUNT (CRITICAL): itinerary array MUST contain EXACTLY ${durationDays} day objects (day 1 through day ${durationDays}). Skipping or merging days is FORBIDDEN. Count every day including travel and arrival days.
 ⚠️ TRANSPORT REALITY: NEVER suggest bus or train between cities separated by open sea (e.g. Malaysia→Vietnam, island crossings). Those routes require a flight or ferry only.
+⚠️ PACING: For trips up to 10 days, limit to MAX 2 countries (or 1 continent). Crossing 3+ countries in under 10 days leaves no real time to explore — collapse destinations or focus on a region. Exception: only if user explicitly listed 3+ countries.
 
 VENUE NAMING RULES — strictly required:
   placeName = always the proper name of the venue/place. NEVER an action or description.
@@ -830,6 +835,7 @@ VENUE NAMING RULES — strictly required:
   ЦЕНЫ cost: только реалистичные суммы в ₽; для зарубежных направлений пересчитай с местной валюты — не подставляй крупные числа IDR/VND как «рубли».
 ⚠️ КОЛЬИЧЕСТВО ДНЕЙ (КРИТИЧНО): массив itinerary ОБЯЗАН содержать РОВНО ${durationDays} объектов дней (день 1 по день ${durationDays}). ЗАПРЕЩЕНО пропускать или объединять дни. Считай каждый день, включая дни перелётов и прибытия.
 ⚠️ РЕАЛЬНОСТЬ ТРАНСПОРТА: НИКОГДА не предлагай автобус или поезд между городами, разделёнными открытым морем (например, Малайзия→Вьетнам, перегоны через проливы). Только перелёт или паром.
+⚠️ ТЕМП ПУТЕШЕСТВИЯ: При поездке до 10 дней — максимум 2 страны (или 1 континент). 3+ страны за 10 дней не оставляют времени на нормальный отдых — сократи направления или сфокусируйся на регионе. Исключение: только если пользователь явно указал 3+ стран.
 
 ПРАВИЛА ИМЁН ЗАВЕДЕНИЙ — строго обязательно:
   placeName = всегда собственное имя заведения/места. НИКОГДА не действие и не описание.

@@ -25,6 +25,8 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
     const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const abortControllerRef = useRef<AbortController | null>(null)
     const isMounted = useRef(true)
+    // Предотвращает бесконечный цикл: proxy fail → original fail → proxy fail → ...
+    const hasTriedProxyRef = useRef(false)
 
     // Очистка при размонтировании
     useEffect(() => {
@@ -103,8 +105,9 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             clearTimeout(loadingTimeoutRef.current)
         }
 
-        // 1. Попытка проксировать ТЕКУЩУЮ картинку
-        if (!isProxied && currentSrc && !currentSrc.startsWith("/") && currentSrc !== DEFAULT_TRAVEL_IMAGE) {
+        // 1. Попытка проксировать ТЕКУЩУЮ картинку (только один раз — предотвращает петлю)
+        if (!isProxied && !hasTriedProxyRef.current && currentSrc && !currentSrc.startsWith("/") && currentSrc !== DEFAULT_TRAVEL_IMAGE) {
+            hasTriedProxyRef.current = true
             setIsProxied(true)
             setCurrentSrc(`/api/proxy-image?url=${encodeURIComponent(currentSrc)}`)
             setError(false)
@@ -112,7 +115,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             return
         }
 
-        // 2. Прокси не помог — пробуем оригинальный URL напрямую (PlaceGallery-style fallback).
+        // 2. Прокси не помог — пробуем оригинальный URL напрямую.
         //    Работает когда CDN доступен напрямую (Wikimedia, Unsplash CDN в РФ).
         if (isProxied && currentSrc && currentSrc.includes("/api/proxy-image")) {
             try {
@@ -148,11 +151,13 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
         
         const isInvalid = !raw || (!isHttp && !isLocal) || isProbablyBlockedImage(src)
 
+        hasTriedProxyRef.current = false
         if (isInvalid) {
             fetchNewImage()
         } else {
             let finalSrc = src
             if (needsProxyImage(src) && !src?.startsWith("/")) {
+                hasTriedProxyRef.current = true
                 finalSrc = `/api/proxy-image?url=${encodeURIComponent(src!)}`
                 setIsProxied(true)
             } else {

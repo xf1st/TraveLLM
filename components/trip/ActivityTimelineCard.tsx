@@ -219,6 +219,44 @@ const RU_TO_EN_DESTINATIONS: Record<string, string> = {
   "россия": "Russia", "москва": "Moscow", "санкт-петербург": "Saint Petersburg", "питер": "Saint Petersburg",
   "греция": "Greece", "афины": "Athens", "мальдивы": "Maldives", "египет": "Egypt",
   "португалия": "Portugal", "лиссабон": "Lisbon", "чехия": "Czech Republic", "прага": "Prague",
+  // CIS & Caucasus
+  "грузия": "Tbilisi Georgia country", "тбилиси": "Tbilisi Georgia", "батуми": "Batumi Georgia",
+  "кутаиси": "Kutaisi Georgia", "сигнахи": "Sighnaghi Georgia wine region", "мцхета": "Mtskheta Georgia ancient",
+  "казбеги": "Kazbegi Georgia mountains", "местиа": "Mestia Svaneti Georgia",
+  "армения": "Armenia", "ереван": "Yerevan Armenia", "гюмри": "Gyumri Armenia", "дилижан": "Dilijan Armenia",
+  "азербайджан": "Azerbaijan", "баку": "Baku Azerbaijan", "гянджа": "Ganja Azerbaijan",
+  "узбекистан": "Uzbekistan", "самарканд": "Samarkand Uzbekistan", "бухара": "Bukhara Uzbekistan",
+  "ташкент": "Tashkent Uzbekistan", "хива": "Khiva Uzbekistan",
+  "казахстан": "Kazakhstan", "алматы": "Almaty Kazakhstan", "астана": "Astana Kazakhstan",
+  "кыргызстан": "Kyrgyzstan", "бишкек": "Bishkek Kyrgyzstan", "иссык-куль": "Issyk-Kul lake Kyrgyzstan",
+  "таджикистан": "Tajikistan", "душанбе": "Dushanbe Tajikistan",
+  "беларусь": "Belarus", "белоруссия": "Belarus", "минск": "Minsk Belarus",
+  "украина": "Ukraine", "киев": "Kyiv Ukraine", "львов": "Lviv Ukraine", "одесса": "Odesa Ukraine",
+  // Europe
+  "германия": "Germany", "берлин": "Berlin Germany", "мюнхен": "Munich Germany",
+  "австрия": "Austria", "вена": "Vienna Austria", "зальцбург": "Salzburg Austria",
+  "швейцария": "Switzerland", "цюрих": "Zurich Switzerland", "женева": "Geneva Switzerland",
+  "нидерланды": "Netherlands", "амстердам": "Amsterdam Netherlands",
+  "бельгия": "Belgium", "брюссель": "Brussels Belgium",
+  "польша": "Poland", "варшава": "Warsaw Poland", "краков": "Krakow Poland",
+  "венгрия": "Hungary", "будапешт": "Budapest Hungary",
+  "румыния": "Romania", "бухарест": "Bucharest Romania",
+  "хорватия": "Croatia", "дубровник": "Dubrovnik Croatia", "сплит": "Split Croatia",
+  "черногория": "Montenegro", "котор": "Kotor Montenegro", "будва": "Budva Montenegro",
+  "сербия": "Serbia", "белград": "Belgrade Serbia",
+  "финляндия": "Finland", "хельсинки": "Helsinki Finland",
+  "швеция": "Sweden", "стокгольм": "Stockholm Sweden",
+  "норвегия": "Norway", "осло": "Oslo Norway",
+  "дания": "Denmark", "копенгаген": "Copenhagen Denmark",
+  // Asia & Middle East
+  "китай": "China", "пекин": "Beijing China", "шанхай": "Shanghai China",
+  "корея": "South Korea", "сеул": "Seoul South Korea", "пусан": "Busan South Korea",
+  "малайзия": "Malaysia", "куала-лумпур": "Kuala Lumpur Malaysia",
+  "сингапур": "Singapore",
+  "израиль": "Israel", "тель-авив": "Tel Aviv Israel", "иерусалим": "Jerusalem Israel",
+  "иордания": "Jordan", "петра": "Petra Jordan",
+  "марокко": "Morocco", "марракеш": "Marrakech Morocco", "фес": "Fes Morocco",
+  "мексика": "Mexico", "мехико": "Mexico City", "канкун": "Cancun Mexico",
   // Russian cities
   "казань": "Kazan Russia", "екатеринбург": "Yekaterinburg Russia", "новосибирск": "Novosibirsk Russia",
   "сочи": "Sochi Russia", "владивосток": "Vladivostok Russia", "иркутск": "Irkutsk Russia",
@@ -294,6 +332,17 @@ const RU_NATURE_KEYWORDS: [RegExp, string][] = [
   [/нижегород.*кремл/i, "Nizhny Novgorod Kremlin Russia riverside"],
   [/беломорск|белое море/i, "White Sea Russia nature landscape"],
   [/ладог|онег/i, "Karelia Russia lake scenic nature"],
+  // Georgia (country) landmarks
+  [/абанотубани|серн.*бан|sulfur bath/i, "Abanotubani sulfur baths Tbilisi Georgia"],
+  [/нарикала|narikala/i, "Narikala fortress Tbilisi Georgia historic"],
+  [/мтацминда|funicular/i, "Mtatsminda park Tbilisi Georgia panorama"],
+  [/сакартвело|старый.*тбилис/i, "old town Tbilisi Georgia colorful balconies"],
+  [/казбег|гергети|kazbegi|gergeti/i, "Gergeti Trinity Church Kazbegi mountain Georgia"],
+  [/хачапури/i, "khachapuri Georgian bread cheese food"],
+  [/хинкали/i, "khinkali Georgian dumplings food"],
+  [/кахети|алазанская|винн.*груз/i, "Kakheti wine region Georgia vineyard"],
+  // Caucasus generic
+  [/кавказ.*горы|caucasus mountain/i, "Caucasus mountain scenic dramatic Georgia"],
 ]
 
 // Russian type/place prefixes to strip from the start
@@ -366,13 +415,21 @@ function isMapUrl(url: string): boolean {
 }
 
 function buildGalleryQuery(activity: Activity, destination: string): string {
-  // Only use AI-generated imageQuery if it's actually in English
-  if (activity.imageQuery && isEnglishQuery(activity.imageQuery)) return activity.imageQuery
-
-  // Try to get English destination
+  // Try to get English destination first (needed for disambiguation below)
   const destLower = destination.toLowerCase()
   const destEn = Object.entries(RU_TO_EN_DESTINATIONS)
     .find(([ru]) => destLower.includes(ru))?.[1] || destination
+
+  // Use AI-generated imageQuery if it's in English, but ensure destination context
+  if (activity.imageQuery && isEnglishQuery(activity.imageQuery)) {
+    const q = activity.imageQuery
+    // If the query already mentions the primary city/country word → use as-is
+    const destFirstWord = destEn.split(" ")[0].toLowerCase()
+    if (destFirstWord.length > 2 && q.toLowerCase().includes(destFirstWord)) return q
+    // Append destEn to prevent ambiguous queries (e.g. "Georgia" → Atlanta)
+    if (isEnglishQuery(destEn)) return `${q} ${destEn}`
+    return q
+  }
 
   // Use title + placeName + desc for keyword detection
   const fullText = `${activity.title || ""} ${activity.placeName || ""} ${activity.desc || ""}`.toLowerCase()
@@ -459,7 +516,11 @@ export function ActivityTimelineCard({
   const formatCost = (val: string | undefined | null) => {
     if (!val) return val
     const s = val.trim()
-    if (!s || /[$₽€£¥]/.test(s)) return s
+    if (!s) return s
+    // Already has a currency symbol — return as-is
+    if (/[$₽€£¥]/.test(s)) return s
+    // Non-numeric string (e.g. text fallback) — return without adding ₽
+    if (!/\d/.test(s)) return s
     return locale === "en" ? `$${s}` : `${s} ₽`
   }
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)

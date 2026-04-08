@@ -126,7 +126,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           HERO
       ═══════════════════════════════════════════════ */}
-      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-3 sm:px-4 pt-24 pb-20 sm:pt-20 sm:pb-16 overflow-hidden bg-black">
+      <section className="relative min-h-[100svh] flex flex-col items-center justify-center px-3 sm:px-4 pt-24 pb-20 sm:pt-20 sm:pb-16 overflow-hidden">
 
         {/* Video Background Layer */}
         <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-950">
@@ -174,7 +174,7 @@ export default function LandingPage() {
 
           <motion.p
             variants={fadeUp} initial="hidden" animate="show" custom={3}
-            className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mb-8 sm:mb-10 leading-relaxed drop-shadow-md px-1"
+            className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mb-8 sm:mb-10 leading-relaxed drop-shadow-md px-1 font-body"
           >
             {t("hero.subtitle")}
           </motion.p>
@@ -235,8 +235,8 @@ export default function LandingPage() {
                variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}
                className="flex flex-col justify-center items-center gap-6 text-center"
             >
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground">Наши надежные партнеры</h2>
-              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground font-headline">Наши надежные партнеры</h2>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-2xl font-body">
                 Мы сотрудничаем с лучшими сервисами, чтобы ваш маршрут был максимально комфортным и выгодным.
               </p>
             </motion.div>
@@ -255,13 +255,13 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           КАК ЭТО РАБОТАЕТ — 3 шага
       ═══════════════════════════════════════════════ */}
-        <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/30">
+        <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/10 backdrop-blur-[2px]">
           <div className="max-w-7xl mx-auto space-y-24 md:space-y-40">
             <div className="text-center space-y-6">
-              <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground">
+              <motion.h2 variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground font-headline">
                 Всё очень просто!
               </motion.h2>
-              <motion.p variants={fadeUp} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              <motion.p variants={fadeUp} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }} className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-body">
                 Мы заботимся о деталях, чтобы ты мог просто наслаждаться моментом.
               </motion.p>
               

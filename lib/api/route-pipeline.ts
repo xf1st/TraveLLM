@@ -8,6 +8,7 @@
 import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
 import type { BookingMarket } from "@/lib/booking-market"
 import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
+import type { RealFlight } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
 
@@ -138,6 +139,195 @@ export function enrichTransportLinks(
                     if (toCity) currentCity = toCity
                 }
             }
+        }
+    }
+
+    return routeData
+}
+
+/**
+ * Enriches flight activities with real prices from TravelPayouts.
+ * Runs after enrichTransportLinks. Non-blocking — individual errors are swallowed.
+ * Updates act.cost only when a real price is found (overrides AI estimate).
+ */
+export async function enrichFlightCosts(
+    routeData: any,
+    origin: string,
+    startDate?: string,
+    timeoutMs = 3000
+): Promise<any> {
+    if (!Array.isArray(routeData?.itinerary)) return routeData
+
+    // Bail out early if TravelPayouts token is not configured
+    const { hasApiToken, searchFlightsForDates, parseCityIata, getIataCode } = await import('@/lib/travelpayouts')
+    if (!hasApiToken()) return routeData
+
+    const originParsed = parseCityIata(origin)
+    let currentIata = originParsed.iata || getIataCode(origin) || ""
+    const days = routeData.itinerary
+
+    for (let i = 0; i < days.length; i++) {
+        const day = days[i]
+        if (!Array.isArray(day.activities)) continue
+
+        const logistics = day.logistics
+        let dayToIata = ""
+        if (logistics?.to) {
+            const toP = parseCityIata(logistics.to)
+            dayToIata = toP.iata || getIataCode(logistics.to) || ""
+        }
+
+        for (const act of day.activities) {
+            if (act.type !== 'transport' && act.type !== 'flight') continue
+            if (!/перелёт|перелет|рейс|вылет|самолет|flight/i.test((act.title || "").toLowerCase())) continue
+
+            const fromIata = currentIata
+            const toIata = dayToIata
+
+            if (!fromIata || !toIata || fromIata === toIata) continue
+
+            try {
+                // Compute actual departure date for this day
+                let departDate = startDate || ""
+                if (startDate) {
+                    const d = new Date(startDate)
+                    d.setDate(d.getDate() + i)
+                    departDate = d.toISOString().slice(0, 10) // YYYY-MM-DD
+                }
+
+                if (!departDate) continue
+
+                const timeoutPromise = new Promise<RealFlight[]>((resolve) => setTimeout(() => resolve([]), timeoutMs))
+                const flights = await Promise.race([
+                    searchFlightsForDates(fromIata, toIata, departDate, undefined, 1, 1),
+                    timeoutPromise,
+                ])
+
+                if (flights.length > 0 && flights[0].price > 0) {
+                    act.cost = `от ${flights[0].price.toLocaleString("ru-RU")} ₽`
+                    act.priceSource = "travelpayouts"
+                }
+            } catch {
+                // Non-blocking: individual failure doesn't break the pipeline
+            }
+        }
+
+        if (dayToIata) currentIata = dayToIata
+    }
+
+    return routeData
+}
+
+/**
+ * Enriches hotel/accommodation activities with real prices from Hotellook.
+ * Detects city stays from itinerary structure, calls searchHotelsForCity.
+ * Non-blocking — individual errors are swallowed.
+ */
+export async function enrichHotelCosts(
+    routeData: any,
+    startDate?: string,
+    timeoutMs = 4000
+): Promise<any> {
+    if (!Array.isArray(routeData?.itinerary) || !startDate) return routeData
+
+    const { hasApiToken, searchHotelsForCity } = await import('@/lib/travelpayouts')
+    if (!hasApiToken()) return routeData
+
+    const days = routeData.itinerary
+
+    // Build city stay segments by scanning hotel activities per day
+    // Each day can have at most one hotel activity — use its placeName/city as the stay city
+    interface CityStay { city: string; dayStart: number; dayEnd: number }
+    const stays: CityStay[] = []
+
+    // Extract city from hotel activity: prefer placeName city part, fallback to day title arrow destination
+    function extractCityFromDay(day: any): string {
+        if (!Array.isArray(day.activities)) return ""
+        for (const act of day.activities) {
+            if (!/hotel|hostel|apartment|accommodation/i.test(act.type || "")) continue
+            // placeName like "The Kingsbury Colombo" → last word often is city
+            // Better: look for city name in placeName by stripping hotel name
+            if (act.placeName) {
+                // Try to get city from act.placeName last word(s)
+                const parts = act.placeName.trim().split(/\s+/)
+                if (parts.length >= 1) return parts[parts.length - 1]
+            }
+        }
+        // Fallback: parse day title "День N: CityA → CityB" → take destination city
+        if (day.title) {
+            const arrowMatch = day.title.match(/[→\-–]\s*([^.,(]+)/)
+            if (arrowMatch) return arrowMatch[1].trim().split(/[.,\s]/)[0]
+            // No arrow: take text after colon
+            const colonMatch = day.title.match(/:\s*([A-ZА-Я][^\d→\-–]+)/)
+            if (colonMatch) return colonMatch[1].trim().split(/[.,→\-–]/)[0].trim()
+        }
+        return ""
+    }
+
+    // Group consecutive days in the same city
+    let prevCity = ""
+    let segStart = 0
+    for (let i = 0; i < days.length; i++) {
+        const city = extractCityFromDay(days[i])
+        if (!city) continue
+        if (city !== prevCity) {
+            if (prevCity && i > segStart) {
+                stays.push({ city: prevCity, dayStart: segStart, dayEnd: i })
+            }
+            prevCity = city
+            segStart = i
+        }
+    }
+    if (prevCity) stays.push({ city: prevCity, dayStart: segStart, dayEnd: days.length })
+
+    for (const stay of stays) {
+        if (!stay.city || stay.dayEnd <= stay.dayStart) continue
+        const nights = stay.dayEnd - stay.dayStart
+        if (nights < 1) continue
+
+        const checkIn = (() => {
+            const d = new Date(startDate)
+            d.setDate(d.getDate() + stay.dayStart)
+            return d.toISOString().slice(0, 10)
+        })()
+        const checkOut = (() => {
+            const d = new Date(startDate)
+            d.setDate(d.getDate() + stay.dayEnd)
+            return d.toISOString().slice(0, 10)
+        })()
+
+        try {
+            const timeoutPromise = new Promise<never[]>((resolve) => setTimeout(() => resolve([]), timeoutMs))
+            const hotels = await Promise.race([
+                searchHotelsForCity(stay.city, checkIn, checkOut, 1, 3),
+                timeoutPromise,
+            ])
+
+            if (!hotels.length) continue
+
+            // Pick the cheapest hotel
+            const cheapest = hotels.reduce((min: any, h: any) =>
+                (h.pricePerNight || h.totalPrice) < (min.pricePerNight || min.totalPrice) ? h : min
+            )
+            const pricePerNight: number = cheapest.pricePerNight || (cheapest.totalPrice ? Math.round(cheapest.totalPrice / nights) : 0)
+            if (pricePerNight <= 0) continue
+
+            // Apply price to all accommodation activities in this stay range
+            for (let i = stay.dayStart; i < stay.dayEnd; i++) {
+                const day = days[i]
+                if (!Array.isArray(day.activities)) continue
+                for (const act of day.activities) {
+                    if (!/accommodation|hotel|hostel|apartment|жильё|жилье|отель|хостел|апартамент/i.test(
+                        `${act.type || ""} ${act.title || ""}`
+                    )) continue
+                    // Only update if no real-price source already set
+                    if (act.priceSource === "travelpayouts") continue
+                    act.cost = `от ${pricePerNight.toLocaleString("ru-RU")} ₽/ночь`
+                    act.priceSource = "hotellook"
+                }
+            }
+        } catch {
+            // Non-blocking
         }
     }
 
@@ -313,9 +503,7 @@ export function normalizeActivityTypes(routeData: any) {
         }
       }
 
-      if (act.type === "transport" && (!act.cost || act.cost === "0 ₽" || act.cost === "0₽")) {
-        act.cost = "Цену уточнять"
-      }
+      // Don't override cost — AI must always provide a real price estimate
 
       newActivities.push(act)
     }

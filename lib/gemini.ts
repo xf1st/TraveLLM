@@ -109,17 +109,16 @@ async function runGeminiInference(
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
-    const { maxTokens = 8192, temperature = 0.6, tripDays = 5 } = options;
+    const { maxTokens = 16000, temperature = 0.6, tripDays = 5 } = options;
 
     const model = GEMINI_FLASH;
-    const cappedMaxTokens = Math.min(maxTokens, 8192);
 
-    console.log(`Gemini (OR): ${model} | ${tripDays}d trip | max ${cappedMaxTokens} tokens`);
+    console.log(`Gemini (OR): ${model} | ${tripDays}d trip | max ${maxTokens} tokens`);
 
     const bodyPayload: any = {
         model,
         messages,
-        max_tokens: cappedMaxTokens,
+        max_tokens: maxTokens,
         temperature,
     };
 

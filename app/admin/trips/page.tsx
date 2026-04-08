@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { MapPin, Search, ExternalLink, Calendar, Sparkles, Bot } from "lucide-react"
+import { MapPin, Search, ExternalLink, Calendar, Sparkles, Bot, Download } from "lucide-react"
 import Link from "next/link"
 import { appToast as toast } from "@/components/ui/sonner"
 
@@ -102,6 +102,16 @@ const getCountriesText = (trip: Trip) => {
 
   if (typeof countries === "string" && countries.trim()) return countries
   return trip.destination || "-"
+}
+
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function AdminTripsPage() {
@@ -213,6 +223,16 @@ export default function AdminTripsPage() {
                 <Button variant={filterStatus === "completed" ? "default" : "outline"} onClick={() => setFilterStatus("completed")} size="sm">
                   Завершено
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadJson(filteredTrips, `trips-export-${new Date().toISOString().slice(0, 10)}.json`)}
+                  disabled={filteredTrips.length === 0}
+                  title="Экспорт в JSON"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  JSON ({filteredTrips.length})
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -234,7 +254,7 @@ export default function AdminTripsPage() {
                     <TableHead>Токены</TableHead>
                     <TableHead>Стоимость</TableHead>
                     <TableHead>Создан</TableHead>
-                    <TableHead className="text-right">Открыть</TableHead>
+                    <TableHead className="text-right">Действия</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -303,11 +323,22 @@ export default function AdminTripsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Link href={`/trip/${trip.id}`} target="_blank">
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <ExternalLink className="h-4 w-4" />
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                title="Скачать JSON"
+                                onClick={() => downloadJson(trip, `trip-${trip.id.slice(0, 8)}.json`)}
+                              >
+                                <Download className="h-4 w-4" />
                               </Button>
-                            </Link>
+                              <Link href={`/trip/${trip.id}`} target="_blank">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </Link>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )

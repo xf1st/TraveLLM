@@ -17,6 +17,8 @@ import { validateRouteRequest } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import {
     enrichTransportLinks,
+    enrichFlightCosts,
+    enrichHotelCosts,
     sanitizeClosedAirportLogistics,
     normalizeActivityTypes,
     collectRealTimeSearchContext,
@@ -199,6 +201,8 @@ export async function POST(req: Request) {
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
+            routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
+            routeData = await enrichHotelCosts(routeData, startDate);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             routeData.tokenUsage = getSessionUsage();
@@ -223,6 +227,8 @@ export async function POST(req: Request) {
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
+            routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
+            routeData = await enrichHotelCosts(routeData, startDate);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             return NextResponse.json(routeData);

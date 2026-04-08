@@ -1962,7 +1962,7 @@ async function lookupHotellookLocationId(city: string): Promise<number | null> {
  * Step 1: Lookup city → locationId (handles Russian names)
  * Step 2: Fetch hotels from Cache API by locationId
  */
-async function searchHotelsForCity(
+export async function searchHotelsForCity(
   city: string,
   checkIn: string,
   checkOut: string,

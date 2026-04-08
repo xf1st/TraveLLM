@@ -83,10 +83,12 @@ export async function POST(req: Request) {
     const tripRecord = {
       user_id: userId,
       title: (routeData.title as string) || "Маршрут",
-      destination:
-        (routeData.countries as { name?: string }[])?.[0]?.name ||
-        (requestPayload.customDestination as string) ||
-        "Неизвестно",
+      destination: (() => {
+        const names = (routeData.countries as { name?: string }[] | undefined)
+          ?.map(c => c.name).filter(Boolean) as string[] | undefined
+        if (names && names.length > 1) return names.join(", ")
+        return names?.[0] || (requestPayload.customDestination as string) || "Неизвестно"
+      })(),
       description: (routeData.description as string) || "",
       itinerary: routeData.itinerary || [],
       total_cost: routeData.totalBudget || "",
