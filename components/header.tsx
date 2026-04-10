@@ -165,6 +165,8 @@ export function Header({ floating = false }: HeaderProps) {
 
   const navLinks = [
     { href: "/trips", label: t("routes") },
+    { href: "/reels", label: t("reels") },
+    ...(isAdmin ? [{ href: "/admin", label: t("adminPanel") }] : []),
     { href: "/plan", label: t("plan") },
   ]
 

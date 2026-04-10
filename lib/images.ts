@@ -301,16 +301,16 @@ export async function getDestinationImage(query: string): Promise<string> {
         unsplashUrls = await searchUnsplash(translatedQuery, 1)
     }
 
-    // 1.4 Fallback to just the first 2 words if it's a long tagged query
-    if (unsplashUrls.length === 0 && wordCount > 2) {
-        const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
-        unsplashUrls = await searchUnsplash(simpleQuery, 1)
-    }
-
-    // 1.6 Last ditch effort for Unsplash: try the last 2 words (often contains city/location)
+    // 1.4 Fallback to the last 2-3 words (often contains city/location since we append it)
     if (unsplashUrls.length === 0 && wordCount > 2) {
         const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
         unsplashUrls = await searchUnsplash(lastWords, 1)
+    }
+
+    // 1.6 Last ditch effort for Unsplash: try the first 2 words if it's a long tagged query
+    if (unsplashUrls.length === 0 && wordCount > 2) {
+        const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
+        unsplashUrls = await searchUnsplash(simpleQuery, 1)
     }
 
     if (unsplashUrls.length > 0) {
@@ -322,13 +322,13 @@ export async function getDestinationImage(query: string): Promise<string> {
         let pexelsUrls = await searchPexels(translatedQuery, 1)
         
         if (pexelsUrls.length === 0 && wordCount > 2) {
-            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
-            pexelsUrls = await searchPexels(simpleQuery, 1)
+            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
+            pexelsUrls = await searchPexels(lastWords, 1)
         }
 
         if (pexelsUrls.length === 0 && wordCount > 2) {
-            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
-            pexelsUrls = await searchPexels(lastWords, 1)
+            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
+            pexelsUrls = await searchPexels(simpleQuery, 1)
         }
 
         if (pexelsUrls.length > 0) {
@@ -340,6 +340,11 @@ export async function getDestinationImage(query: string): Promise<string> {
     if (!result) {
         let pixabayUrls = await searchPixabay(translatedQuery, 1)
         
+        if (pixabayUrls.length === 0 && wordCount > 2) {
+            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
+            pixabayUrls = await searchPixabay(lastWords, 1)
+        }
+
         if (pixabayUrls.length === 0 && wordCount > 2) {
             const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
             pixabayUrls = await searchPixabay(simpleQuery, 1)

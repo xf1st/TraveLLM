@@ -61,6 +61,7 @@ export function MobileLanding() {
           muted
           loop
           playsInline
+          poster="/vidforland_1_frame.png"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/vidforland.mp4" type="video/mp4" />

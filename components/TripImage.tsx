@@ -55,7 +55,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
             const cacheKey = `${query}-${alt}`
             
             // Читаем актуальный кэш прямо перед использованием (защита от Race Condition)
-            const cachedData = localStorage.getItem('trip-image-cache')
+            const cachedData = localStorage.getItem('trip-image-cache-v2')
             const parsedCache = cachedData ? JSON.parse(cachedData) : {}
 
             if (parsedCache[cacheKey] && !isProbablyBlockedImage(parsedCache[cacheKey])) {
@@ -83,10 +83,10 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
                     setIsProxied(true)
                 } else {
                     // Пишем в кэш только успешные прямые URL, запрашивая свежий стейт
-                    const freshCacheData = localStorage.getItem('trip-image-cache')
+                    const freshCacheData = localStorage.getItem('trip-image-cache-v2')
                     const freshCache = freshCacheData ? JSON.parse(freshCacheData) : {}
                     freshCache[cacheKey] = data.url
-                    localStorage.setItem('trip-image-cache', JSON.stringify(freshCache))
+                    localStorage.setItem('trip-image-cache-v2', JSON.stringify(freshCache))
                 }
                 setCurrentSrc(finalUrl)
             } else {

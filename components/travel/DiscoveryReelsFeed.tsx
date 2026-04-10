@@ -10,12 +10,11 @@ import {
   MapPin,
   Volume2,
   VolumeX,
-  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { reelImageDirectUrl, reelImageProxyUrl } from "@/lib/reel-image-url"
+import { TripImage } from "@/components/TripImage"
 
 export type ReelCardDTO = {
   id: string
@@ -48,19 +47,18 @@ function ReelSlide({
 }) {
   const t = useTranslations("reels")
   const [imgIdx, setImgIdx] = useState(0)
-  const [imgBroken, setImgBroken] = useState(false)
-  const [imgMode, setImgMode] = useState<"direct" | "proxy">("direct")
   const [soundOn, setSoundOn] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const urls = asImageUrls(reel.images)
-  const rawUrl = urls[imgIdx] ? reelImageDirectUrl(urls[imgIdx]) : ""
-  const proxyUrl = urls[imgIdx] ? reelImageProxyUrl(urls[imgIdx]) : ""
-  const displaySrc = imgMode === "direct" ? rawUrl : proxyUrl
+  const loc = [reel.city, reel.country].filter(Boolean).join(", ")
 
   useEffect(() => {
-    setImgBroken(false)
-    setImgMode("direct")
-  }, [imgIdx, reel.id])
+    setImgIdx(0)
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ left: 0 })
+    }
+  }, [reel.id])
 
   useEffect(() => {
     if (!isActive) {
@@ -105,11 +103,11 @@ function ReelSlide({
     return () => stopAudio()
   }, [])
 
-  const loc = [reel.city, reel.country].filter(Boolean).join(", ")
-
-  const bumpImage = (delta: number) => {
-    if (urls.length <= 1) return
-    setImgIdx((i) => (i + delta + urls.length) % urls.length)
+  const handleDotClick = (i: number) => {
+    setImgIdx(i)
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ left: scrollRef.current.clientWidth * i, behavior: "smooth" })
+    }
   }
 
   const slideStyle =
@@ -119,66 +117,61 @@ function ReelSlide({
 
   return (
     <div className="w-full shrink-0 snap-start snap-always relative overflow-hidden bg-neutral-950" style={slideStyle}>
-      {/* Background */}
-      <div className="absolute inset-0 bg-neutral-900">
-        {displaySrc && !imgBroken ? (
-          // eslint-disable-next-line @next/next/no-img-element -- external URLs + proxy; avoids Next/Image remote issues
-          <img
-            src={displaySrc}
-            alt=""
-            className="h-full w-full object-cover scale-[1.02]"
-            loading={isActive ? "eager" : "lazy"}
-            decoding="async"
-            referrerPolicy={imgMode === "proxy" ? "no-referrer" : undefined}
-            onError={() => {
-              if (imgMode === "direct" && proxyUrl && proxyUrl !== rawUrl) {
-                setImgMode("proxy")
-              } else {
-                setImgBroken(true)
-              }
-            }}
-          />
-        ) : null}
-        {(imgBroken || urls.length === 0) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-violet-950/90 via-neutral-950 to-sky-950/80">
-            <MapPin className="h-20 w-20 text-white/25" />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/35">{t("noImage")}</span>
+      {/* Background with Horizontal Scroll */}
+      <div 
+        ref={scrollRef}
+        className="absolute inset-0 bg-neutral-900 flex overflow-x-auto snap-x snap-mandatory no-scrollbar touch-pan-x"
+        onScroll={(e) => {
+          const w = e.currentTarget.clientWidth
+          if (w > 0) setImgIdx(Math.round(e.currentTarget.scrollLeft / w))
+        }}
+      >
+        {urls.length > 0 ? (
+          urls.map((url, i) => {
+            const modifiers = ["", "scenic", "travel", "photography", "landscape"]
+            const uniqueQuery = `${reel.title} ${loc} ${modifiers[i] || ""}`.trim()
+            return (
+              <div key={i} className="w-full shrink-0 snap-center h-full relative">
+                <TripImage
+                  src={url}
+                  alt={reel.title}
+                  className="absolute inset-0 w-full h-full"
+                  imgClassName="h-full w-full object-cover scale-[1.02]"
+                  query={uniqueQuery}
+                  priority={isActive && i === 0}
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
+              </div>
+            )
+          })
+        ) : (
+          <div className="w-full shrink-0 snap-center h-full relative">
+            <TripImage
+              src={undefined as any}
+              alt={reel.title}
+              className="absolute inset-0 w-full h-full"
+              imgClassName="h-full w-full object-cover scale-[1.02]"
+              query={`${reel.title} ${loc}`}
+              priority={isActive}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
       </div>
 
-      {/* Horizontal photo zones (don’t steal vertical scroll) */}
+      {/* Horizontal photo dots */}
       {urls.length > 1 && (
-        <>
-          <button
-            type="button"
-            aria-label={t("prevImage")}
-            className="absolute bottom-32 left-0 top-0 z-20 w-[18%] max-w-[120px] cursor-w-resize opacity-25 focus:opacity-100 focus:outline-none sm:opacity-0 sm:hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation()
-              bumpImage(-1)
-            }}
-          />
-          <button
-            type="button"
-            aria-label={t("nextImage")}
-            className="absolute bottom-32 right-0 top-0 z-20 w-[18%] max-w-[120px] cursor-e-resize opacity-25 focus:opacity-100 focus:outline-none sm:opacity-0 sm:hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation()
-              bumpImage(1)
-            }}
-          />
-          <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-            {urls.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`${i + 1}`}
-                onClick={() => setImgIdx(i)}
-                className="touch-manipulation rounded-full p-2 sm:p-1"
-              >
+        <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-none">
+          {urls.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`${i + 1}`}
+              onClick={() => handleDotClick(i)}
+              className="touch-manipulation rounded-full p-2 sm:p-1 pointer-events-auto"
+            >
                 <span
                   className={cn(
                     "mx-auto block h-1 rounded-full transition-all duration-300",
@@ -187,8 +180,7 @@ function ReelSlide({
                 />
               </button>
             ))}
-          </div>
-        </>
+        </div>
       )}
 
       {/* Right rail — TikTok-style */}
@@ -214,16 +206,6 @@ function ReelSlide({
             </span>
           </button>
         )}
-        <Link
-          href={`/plan/from-reel/${reel.id}`}
-          title={t("inspireTitle")}
-          className="flex flex-col items-center gap-1 opacity-80 touch-manipulation transition-transform active:scale-90 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-2xl"
-        >
-          <div className="h-11 w-11 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-amber-300" />
-          </div>
-          <span className="text-[9px] font-bold text-white/60 uppercase">{t("inspire")}</span>
-        </Link>
       </div>
 
       {/* Bottom copy + CTA */}
