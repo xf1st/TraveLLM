@@ -102,8 +102,8 @@ export type MonthlyLimitCheckResult = {
 export async function checkMonthlyChatAiLimit(userId: string): Promise<MonthlyLimitCheckResult> {
   const client = getServiceRoleClient();
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const resetAt = nextMonth.toISOString();
 
   if (!client) {
@@ -207,8 +207,8 @@ export function monthlyGenerationBackendUnavailableResponse() {
 export async function checkMonthlyGenerationLimit(userId: string): Promise<MonthlyLimitCheckResult> {
   const client = getServiceRoleClient();
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+  const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const resetAt = nextMonth.toISOString();
 
   if (!client) {

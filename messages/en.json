@@ -232,7 +232,11 @@
     "inspireTitle": "Build a trip with this activity (same as the button below)",
     "reelBadge": "Reel",
     "catalogHint": "Curated cards from our catalog — swipe up and down",
-    "swipeHint": "Swipe up"
+    "swipeHint": "Swipe up",
+    "share": "Share",
+    "modeDiscover": "Discover",
+    "modeLiked": "Liked",
+    "likedEmpty": "You haven't liked any reels yet"
   },
   "fromReel": {
     "title": "Trip from reel",
