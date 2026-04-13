@@ -210,6 +210,8 @@
   html {
     scrollbar-gutter: stable;
     @apply overflow-x-hidden scroll-smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
   }
 
   body {
@@ -268,8 +270,8 @@
 
   /* Atomize Premium Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
@@ -277,7 +279,13 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-foreground/10 rounded-full hover:bg-foreground/20 transition-colors;
+    background: color-mix(in oklch, var(--primary), transparent 60%);
+    @apply rounded-full border-[3px] border-solid border-transparent bg-clip-padding transition-all duration-300;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+    @apply border-[2px];
   }
 
   /* Atomize Typography Scale - Premium Editorial Look */
@@ -419,6 +427,11 @@
   }
 
   /* Custom Scrollbar Utilities */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -429,7 +442,8 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40;
+    background: color-mix(in oklch, var(--primary), transparent 50%);
+    @apply rounded-full border-[1.5px] border-solid border-transparent bg-clip-padding hover:bg-primary transition-colors;
   }
 
   .no-scrollbar::-webkit-scrollbar {
