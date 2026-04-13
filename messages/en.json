@@ -274,7 +274,7 @@
     "validation": {
       "departure": "Enter departure city",
       "dates": "Select dates",
-      "minDays": "At least 2 days",
+      "minDays": "At least 1 day",
       "maxDays": "At most 30 days",
       "minBudget": "Minimum budget 10,000",
       "anchor": "The trip must be at least {day} days long to fit the reel activity"
@@ -451,7 +451,7 @@
     "validation": {
       "departureRequired": "Enter departure city",
       "datesRequired": "Select travel dates",
-      "minDays": "Minimum trip duration — 2 days",
+      "minDays": "Minimum trip duration — 1 day",
       "maxDays": "Maximum trip duration — 30 days",
       "destinationRequired": "Enter destination",
       "companionsRequired": "Select travel companions",

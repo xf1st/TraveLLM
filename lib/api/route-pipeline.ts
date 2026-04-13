@@ -240,26 +240,34 @@ export async function enrichHotelCosts(
     interface CityStay { city: string; dayStart: number; dayEnd: number }
     const stays: CityStay[] = []
 
-    // Extract city from hotel activity: prefer placeName city part, fallback to day title arrow destination
+    // Junk city names AI sometimes generates
+    const JUNK_CITY_RE = /^(день|day\s*\d|ryokan|hostel|hotel|отель|inn|guesthouse|\d+$)/i
+
+    // Extract city: prefer day.city (always present in our schema), fallback to heuristics
     function extractCityFromDay(day: any): string {
+        // Primary: day.city — always set by AI in our schema
+        if (day.city && !JUNK_CITY_RE.test(day.city.trim())) {
+            // day.city might be "Хаконэ / Токио" — take last part as destination
+            const parts = day.city.split(/[\/,]/).map((s: string) => s.trim()).filter(Boolean)
+            return parts[parts.length - 1] || ""
+        }
         if (!Array.isArray(day.activities)) return ""
         for (const act of day.activities) {
             if (!/hotel|hostel|apartment|accommodation/i.test(act.type || "")) continue
-            // placeName like "The Kingsbury Colombo" → last word often is city
-            // Better: look for city name in placeName by stripping hotel name
-            if (act.placeName) {
-                // Try to get city from act.placeName last word(s)
-                const parts = act.placeName.trim().split(/\s+/)
-                if (parts.length >= 1) return parts[parts.length - 1]
+            // Last-resort: mapLink city param
+            if (act.mapLink) {
+                const match = act.mapLink.match(/query=([^&+]+)/)
+                if (match) {
+                    const decoded = decodeURIComponent(match[1]).split("+").join(" ")
+                    const candidate = decoded.replace(/hotel|inn|hostel|resort/gi, "").trim().split(/\s+/).slice(-1)[0]
+                    if (candidate && !JUNK_CITY_RE.test(candidate)) return candidate
+                }
             }
         }
-        // Fallback: parse day title "День N: CityA → CityB" → take destination city
+        // Fallback: parse day title "... → CityB" destination
         if (day.title) {
             const arrowMatch = day.title.match(/[→\-–]\s*([^.,(]+)/)
             if (arrowMatch) return arrowMatch[1].trim().split(/[.,\s]/)[0]
-            // No arrow: take text after colon
-            const colonMatch = day.title.match(/:\s*([A-ZА-Я][^\d→\-–]+)/)
-            if (colonMatch) return colonMatch[1].trim().split(/[.,→\-–]/)[0].trim()
         }
         return ""
     }
@@ -493,14 +501,27 @@ export function normalizeActivityTypes(routeData: any) {
         act.type = "hotel"
       }
 
+      const TRANSPORT_RE = /перелёт|перелет|рейс|аэропорт|вылет|прибытие|трансфер|поезд|автобус|такси|переезд|трасса|дорога|м-4|билет|синкансэн|shinkansen|паром|ferry|flight|train|transfer/i
+      const HOTEL_RE    = /заселение|отель|hotel|check.?in|гостиница|хостел|заезд|номер|выселение|check.?out/i
+      const FOOD_RE     = /ресторан|кафе|завтрак|обед|ужин|бар|еда|кухня|дегустация|стейк|суши|пицца|кофе|бистро|таверна|изакая|рамен|restaurant|cafe|breakfast|lunch|dinner|food|tasting/i
+
       if (!act.type || act.type === "activity") {
-        if (/перелёт|перелет|рейс|аэропорт|вылет|прибытие|трансфер|поезд|автобус|такси|переезд|трасса|дорога|м-4|билет/.test(text)) {
+        if (TRANSPORT_RE.test(text)) {
           act.type = "transport"
-        } else if (/заселение|отель|hotel|check.?in|гостиница|хостел|заезд|номер/.test(text)) {
+        } else if (HOTEL_RE.test(text)) {
           act.type = "hotel"
-        } else if (/ресторан|кафе|завтрак|обед|ужин|бар|еда|кухня|дегустация|стейк|суши|пицца|кофе/.test(text)) {
+        } else if (FOOD_RE.test(text)) {
           act.type = "food"
         }
+      }
+
+      // BUG-04: reverse correction — AI sometimes marks museum/sight visits as "transport" or "food"
+      // e.g. "Посещение Галереи Уффици" → type=transport, "Прогулка по кварталу" → type=food
+      if (act.type === "transport" && !TRANSPORT_RE.test(text)) {
+        act.type = "activity"
+      }
+      if (act.type === "food" && !FOOD_RE.test(text)) {
+        act.type = "activity"
       }
 
       // Don't override cost — AI must always provide a real price estimate
@@ -511,6 +532,44 @@ export function normalizeActivityTypes(routeData: any) {
   }
 
   return sanitizeMislabeledForeignCosts(routeData)
+}
+
+/**
+ * BUG-06: Recalculate dayTotal from sum of activity costs.
+ * AI sometimes miscalculates dayTotal (e.g. double-counting hotel) or fills it with text.
+ * Only override if we can parse at least one numeric cost from activities.
+ */
+export function recalculateDayTotals(routeData: any): any {
+    if (!Array.isArray(routeData?.itinerary)) return routeData
+
+    for (const day of routeData.itinerary) {
+        if (!Array.isArray(day.activities)) continue
+
+        // Parse cost strings like "≈12 000 ₽", "5 500 ₽", "$120", "12000"
+        const parseCost = (s: string | undefined): number => {
+            if (!s) return 0
+            const digits = s.replace(/[^\d]/g, '')
+            return digits ? parseInt(digits, 10) : 0
+        }
+
+        let sum = 0
+        let hasAnyCost = false
+        for (const act of day.activities) {
+            const c = parseCost(act.cost)
+            if (c > 0) { sum += c; hasAnyCost = true }
+        }
+
+        if (!hasAnyCost) continue // no parseable costs → leave AI value alone
+
+        // Also check if existing dayTotal is already a pure money string — if so and sum is 0, leave it
+        const existingDayTotal: string = day.dayTotal || ""
+        const existingIsText = existingDayTotal && !/^\s*[≈~]?\s*\d/.test(existingDayTotal)
+        // Always overwrite when we have a computable sum, whether existing value is text or money
+        const formatted = `≈${sum.toLocaleString('ru-RU')} ₽`
+        day.dayTotal = formatted
+    }
+
+    return routeData
 }
 
 /**
@@ -594,12 +653,30 @@ const ACTIVITY_URL_FIELDS = ["link", "mapLink", "bookingUrl", "ticketUrl", "book
  * This function walks the itinerary and nulls out any URL field that is not a
  * valid absolute http/https URL, so broken values never reach the client or DB.
  */
+// BUG-10: tomesto.ru is only for Russian restaurants — strip it for foreign destinations
+const RUSSIA_HINT_RE = /россия|russia|москва|moscow|петербург|petersburg|сочи|sochi|казань|kazan|екатеринбург|ekaterinburg|новосибирск|novosibirsk|irkutsk|иркутск|krasnodar|краснодар|vladivostok|владивосток|нижний новгород|nizhniy.novgorod|золотое кольцо|yaroslavl|ярославль|suzdal|суздаль|vladimir|владимир/i
+
+function isTometoSafeCity(city?: string): boolean {
+    if (!city) return false
+    return RUSSIA_HINT_RE.test(city)
+}
+
 export function sanitizeActivityUrls(routeData: any): any {
   if (!Array.isArray(routeData?.itinerary)) return routeData
 
   for (const day of routeData.itinerary) {
     if (!Array.isArray(day.activities)) continue
+    const dayCity: string | undefined = day.city
     for (const act of day.activities) {
+      // BUG-10: remove tomesto.ru links for food activities outside Russia
+      if (act.type === "food" && !isTometoSafeCity(dayCity)) {
+        for (const field of ["link", "bookingUrl"] as const) {
+          if (typeof act[field] === "string" && act[field].includes("tomesto.ru")) {
+            console.warn(`[sanitizeActivityUrls] Removing tomesto.ru link for non-Russian food in ${dayCity}: ${act[field]}`)
+            act[field] = undefined
+          }
+        }
+      }
       for (const field of ACTIVITY_URL_FIELDS) {
         const val = act[field]
         if (val === undefined || val === null) continue

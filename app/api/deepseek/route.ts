@@ -25,6 +25,7 @@ import {
     removeSameCityFlights,
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
+    recalculateDayTotals,
 } from "@/lib/api/route-pipeline"
 import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
@@ -114,9 +115,8 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        const budgetDesc = userLocale === 'en'
-            ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
-            : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`;
+        // budgetDesc computed after validation (BUG-07 fix)
+        let budgetDesc = ""
         let dynamicContextStr = ""
         let adjustedBudget = budgetCap
         let warningsStr = ""
@@ -140,6 +140,19 @@ export async function POST(req: Request) {
                 })
                 dynamicContextStr = formatDynamicContextForPrompt(dynamicContext)
             } catch (e) { console.error("[Validation Error]", e) }
+        }
+
+        // BUG-07: compute budgetDesc using adjustedBudget if validation raised it
+        {
+            const effectiveBudgetForPrompt = adjustedBudget > budgetCap ? adjustedBudget : budgetCap
+            const originalNote = adjustedBudget > budgetCap
+                ? (userLocale === 'en'
+                    ? ` (your original $${Math.round(budgetCap / 90).toLocaleString('en-US')} was adjusted — too low for this destination)`
+                    : ` (ваш исходный бюджет ${budgetCap.toLocaleString('ru-RU')} ₽ был скорректирован — слишком низкий для данного направления)`)
+                : ""
+            budgetDesc = userLocale === 'en'
+                ? `Budget: $${Math.round(effectiveBudgetForPrompt / 90).toLocaleString('en-US')} for ${durationDays} days${originalNote}`
+                : `Бюджет: ${effectiveBudgetForPrompt.toLocaleString('ru-RU')} ₽ на ${durationDays} дней${originalNote}`
         }
 
         if (destinations.length > 0) {
@@ -203,10 +216,21 @@ export async function POST(req: Request) {
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
             routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
             routeData = await enrichHotelCosts(routeData, startDate);
+            routeData = recalculateDayTotals(routeData); // BUG-06
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             routeData.tokenUsage = getSessionUsage();
             await recordAiUsageEvent({ userId, source: "route-generation", provider: "deepseek", usage: routeData.tokenUsage });
+
+            // Fetch cover image (BUG-03: was imported but never called)
+            if (!routeData.coverImage) {
+                try {
+                    const imageQuery = destinations[0] || safeHighlight || "travel";
+                    routeData.coverImage = await getDestinationImage(imageQuery);
+                } catch (imgErr) {
+                    console.warn("[CoverImage] Failed to fetch cover image:", imgErr);
+                }
+            }
 
             return NextResponse.json(routeData);
         } catch (e: any) {
@@ -229,6 +253,7 @@ export async function POST(req: Request) {
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
             routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
             routeData = await enrichHotelCosts(routeData, startDate);
+            routeData = recalculateDayTotals(routeData); // BUG-06
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             return NextResponse.json(routeData);

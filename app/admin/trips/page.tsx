@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table"
 import { MapPin, Search, ExternalLink, Calendar, Sparkles, Bot, Download } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { appToast as toast } from "@/components/ui/sonner"
 
 type TokenUsage = {
@@ -272,11 +273,11 @@ export default function AdminTripsPage() {
                       return (
                         <TableRow key={trip.id}>
                           <TableCell className="font-medium">
-                            <div className="flex items-center gap-2 min-w-0 max-w-[220px]">
+                            <div className="flex items-center gap-2 min-w-0 max-w-[400px]">
                               {trip.cover_image && (
                                 <img src={trip.cover_image} alt="" className="h-8 w-12 rounded object-cover shrink-0 opacity-80" />
                               )}
-                              <span className="truncate">{trip.title || "Без названия"}</span>
+                              <span className="truncate" title={trip.title}>{trip.title || "Без названия"}</span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -291,21 +292,33 @@ export default function AdminTripsPage() {
                           <TableCell className="text-center tabular-nums">{getDaysCount(trip)}</TableCell>
                           <TableCell>
                             <Badge
-                              variant={status === "active" ? "default" : status === "completed" ? "secondary" : "outline"}
-                              className="text-[10px]"
+                              variant={status === "active" ? "default" : (status === "completed" ? "secondary" : "outline")}
+                              className={cn(
+                                "text-[10px] whitespace-nowrap",
+                                status === "planning" && "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                              )}
                             >
-                              {status === "active" ? "Активен" : status === "completed" ? "Завершён" : "Черновик"}
+                              {status === "active" ? "Активен" : 
+                               status === "completed" ? "Завершён" : 
+                               status === "planning" ? "В процессе" : "Черновик"}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {typeof tokenUsage?.totalTokens === "number" ? (
-                              <div className="flex items-center gap-1.5 text-sm tabular-nums" title={tokenUsage.model || ""}>
-                                <span>{tokenUsage.totalTokens.toLocaleString("ru-RU")}</span>
-                                {tokenUsage.model?.toLowerCase().includes("gemini") ? (
-                                  <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                                ) : tokenUsage.model?.toLowerCase().includes("deepseek") ? (
-                                  <Bot className="h-3.5 w-3.5 text-indigo-500" />
-                                ) : null}
+                              <div className="flex flex-col gap-0.5 text-sm tabular-nums" title={tokenUsage.model || ""}>
+                                <div className="flex items-center gap-1.5">
+                                  <span>{tokenUsage.totalTokens.toLocaleString("ru-RU")}</span>
+                                  {tokenUsage.model?.toLowerCase().includes("gemini") ? (
+                                    <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                                  ) : tokenUsage.model?.toLowerCase().includes("deepseek") ? (
+                                    <Bot className="h-3.5 w-3.5 text-indigo-500" />
+                                  ) : null}
+                                </div>
+                                {tokenUsage.model && (
+                                  <span className="text-[10px] text-muted-foreground uppercase opacity-70">
+                                    {tokenUsage.model.replace("gemini-", "G-").replace("deepseek-", "DS-")}
+                                  </span>
+                                )}
                               </div>
                             ) : (
                               <span className="text-muted-foreground">-</span>

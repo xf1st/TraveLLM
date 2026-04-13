@@ -25,6 +25,7 @@ import {
     removeSameCityFlights,
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
+    recalculateDayTotals,
 } from "@/lib/api/route-pipeline"
 import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
@@ -173,9 +174,8 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        const budgetDesc = userLocale === 'en'
-            ? `Budget: $${Math.round(budgetCap / 90).toLocaleString('en-US')} for ${durationDays} days`
-            : `Бюджет: ${budgetCap.toLocaleString('ru-RU')} ₽ на ${durationDays} дней`
+        // budgetDesc is computed after validation so adjustedBudget is used when budget is too low (BUG-07)
+        let budgetDesc = ""
 
         if (reelRecord) {
             if (destinations.length === 0) {
@@ -235,6 +235,19 @@ export async function POST(req: Request) {
             } catch (e) {
                 console.error("[Validation Error]", e)
             }
+        }
+
+        // BUG-07: use adjustedBudget when validation raised it (e.g. 15 000 ₽ for Tokyo is unrealistic)
+        {
+            const effectiveBudgetForPrompt = adjustedBudget > budgetCap ? adjustedBudget : budgetCap
+            const originalNote = adjustedBudget > budgetCap
+                ? (userLocale === 'en'
+                    ? ` (your original $${Math.round(budgetCap / 90).toLocaleString('en-US')} was adjusted — too low for this destination)`
+                    : ` (ваш исходный бюджет ${budgetCap.toLocaleString('ru-RU')} ₽ был скорректирован — слишком низкий для данного направления)`)
+                : ""
+            budgetDesc = userLocale === 'en'
+                ? `Budget: $${Math.round(effectiveBudgetForPrompt / 90).toLocaleString('en-US')} for ${durationDays} days${originalNote}`
+                : `Бюджет: ${effectiveBudgetForPrompt.toLocaleString('ru-RU')} ₽ на ${durationDays} дней${originalNote}`
         }
 
         // Live check for first destination (flight-oriented; skip when user chose train/car as primary mode)
@@ -355,6 +368,7 @@ export async function POST(req: Request) {
                 locale: userLocale,
                 travelMode,
                 reelAnchorPrompt: chunkReelPrompt,
+                tripStartDate: startDate, // BUG-12: pass real date so AI uses actual checkin/checkout dates
                 planForChunk: (tripPlan || []).filter((s: any) => s.startDay <= endDay && s.endDay >= startDay)
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })
@@ -383,6 +397,36 @@ export async function POST(req: Request) {
             return tryParse(1)
         }
 
+        /**
+         * Извлекает последний известный город из завершённого чанка.
+         * Порядок приоритетов:
+         *  1. lastDay.city — AI почти всегда заполняет это поле ("Хаконэ / Токио" → берём последний)
+         *  2. endCity / logistics.to — поля которые AI иногда добавляет
+         *  3. Город из hotel-активности дня (placeName)
+         *  4. Fallback на destination — НЕ на город отправления (иначе следующий чанк генерирует вылет из Москвы)
+         */
+        function extractLastCityFromChunk(lastDay: ItineraryDay | undefined, destination: string): string {
+            if (!lastDay) return destination;
+
+            // 1. Поле city ("Хаконэ / Токио" → берём правую часть как более позднюю)
+            const cityField = (lastDay as any).city;
+            if (cityField && typeof cityField === "string" && cityField.trim()) {
+                const parts = cityField.split(/[\/,]/).map((s: string) => s.trim()).filter(Boolean);
+                return parts[parts.length - 1] || destination;
+            }
+
+            // 2. Явные поля переезда
+            if ((lastDay as any).endCity) return (lastDay as any).endCity;
+            if ((lastDay as any).logistics?.to) return (lastDay as any).logistics.to;
+
+            // 3. Город из hotel-активности (название вида "Hotel Granvia Kyoto" не годится, пропускаем)
+            const hotelActivity = lastDay.activities?.find((a: any) => a.type === "hotel") as any;
+            if (hotelActivity?.city) return hotelActivity.city as string;
+
+            // 4. Fallback — destination (НЕ departure city)
+            return destination;
+        }
+
         async function generateParallel(): Promise<RouteData> {
             // Single-shot for ≤14 days: ~930 tokens/day × 14 = ~13K, fits in 16K limit
             // Longer trips chunk into 4-day segments to stay within output limits
@@ -399,16 +443,42 @@ export async function POST(req: Request) {
             // 7-day chunks: ~6500 tokens each, safely within 16K token limit
             for (let i = 1; i <= durationDays; i += 7) chunks.push({ start: i, end: Math.min(i + 6, durationDays) });
 
-            let previousContext = { lastCity: effectiveDepartureCity, visitedPlaces: [] as string[] };
+            let previousContext = {
+                lastCity: effectiveDepartureCity,
+                visitedPlaces: [] as string[],
+                visitedCities: [] as string[],
+                highlightFulfilled: false
+            };
             const allDays: ItineraryDay[] = [];
 
             for (const chunk of chunks) {
-                const chunkDays = await generateDayChunk(chunk.start, chunk.end, destinations[0] || "Destination", previousContext, tripPlan);
+                let chunkDays = await generateDayChunk(chunk.start, chunk.end, destinations[0] || "Destination", previousContext, tripPlan);
+                
+                const expectedLength = chunk.end - chunk.start + 1;
+                if (chunkDays.length > expectedLength) {
+                    console.warn(`[Pipeline] Chunk ${chunk.start}-${chunk.end} over-generated ${chunkDays.length} days, slicing to ${expectedLength}`);
+                    chunkDays = chunkDays.slice(0, expectedLength);
+                }
+                // Enforce proper day numbering unconditionally so chunks never overlap
+                chunkDays = chunkDays.map((d: any, idx: number) => ({ ...d, day: chunk.start + idx }));
+
                 allDays.push(...chunkDays);
                 const lastDay = chunkDays[chunkDays.length - 1];
+                const chunkStr = JSON.stringify(chunkDays);
+                
+                const newCities = chunkDays.map((d: any) => extractLastCityFromChunk(d, destinations[0] || effectiveDepartureCity));
+                const allVisitedCities = Array.from(new Set([...previousContext.visitedCities, ...newCities].filter(Boolean)));
+                
+                let isHighlightFulfilled = previousContext.highlightFulfilled || chunkStr.includes('✨') || chunkStr.includes('ПРИОРИТЕТ');
+                if (safeHighlight && chunkStr.toLowerCase().includes(safeHighlight.split(' ')[0].toLowerCase())) {
+                    isHighlightFulfilled = true;
+                }
+
                 previousContext = {
-                    lastCity: lastDay?.endCity || lastDay?.logistics?.to || effectiveDepartureCity,
-                    visitedPlaces: [...previousContext.visitedPlaces, ...chunkDays.flatMap(d => d.activities.map(a => a.placeName))]
+                    lastCity: extractLastCityFromChunk(lastDay, destinations[0] || effectiveDepartureCity),
+                    visitedPlaces: [...previousContext.visitedPlaces, ...chunkDays.flatMap((d: any) => d.activities?.map((a: any) => a.placeName || a.title) || [])],
+                    visitedCities: allVisitedCities,
+                    highlightFulfilled: isHighlightFulfilled
                 };
             }
 
@@ -454,6 +524,7 @@ export async function POST(req: Request) {
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
                     routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
                     routeData = await enrichHotelCosts(routeData, startDate);
+                    routeData = recalculateDayTotals(routeData); // BUG-06
                     routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
                     if (reelRecord && Array.isArray(routeData.itinerary)) {
@@ -467,6 +538,16 @@ export async function POST(req: Request) {
                     
                     routeData.tokenUsage = getGeminiSessionUsage();
                     await recordAiUsageEvent({ userId, source: "route-generation", provider: "gemini", usage: routeData.tokenUsage });
+
+                    // Fetch cover image for the trip (was imported but never called — BUG-03)
+                    if (!routeData.coverImage) {
+                        try {
+                            const imageQuery = destinations[0] || safeHighlight || "travel";
+                            routeData.coverImage = await getDestinationImage(imageQuery);
+                        } catch (imgErr) {
+                            console.warn("[CoverImage] Failed to fetch cover image:", imgErr);
+                        }
+                    }
 
                     sendEvent({ type: 'result', data: routeData })
                 } catch (e: any) {

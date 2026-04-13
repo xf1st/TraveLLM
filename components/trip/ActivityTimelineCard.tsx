@@ -758,6 +758,17 @@ export function ActivityTimelineCard({
                 {theme === "transport" ? (
                   (() => {
                     const tt = transportText
+                    // Prioritize flight-related keywords to avoid misclassifying flights as trains (Bug-14)
+                    if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(tt)) {
+                      return (
+                        <a href={buildFlightLink(activity, bookingMarket)} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
+                          <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
+                          {t('buttons.findFlights')}
+                        </a>
+                      )
+                    }
+
                     if (/поезд|сапсан|ласточка|жд|ржд|аэроэкспресс|train/.test(tt)) {
                       return (
                         <a href="https://www.tutu.ru/poezda/" target="_blank" rel="noopener noreferrer"
@@ -794,16 +805,6 @@ export function ActivityTimelineCard({
                             </button>
                           )}
                         </>
-                      )
-                    }
-                    // Only show flight button if flight-related keywords are found
-                    if (/перелёт|перелет|рейс|вылет|авиа|самол|flight|plane/.test(tt)) {
-                      return (
-                        <a href={buildFlightLink(activity, bookingMarket)} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center text-xs text-white font-semibold bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 px-3 py-1.5 rounded-full transition-colors shadow-sm">
-                          <span className="material-symbols-outlined text-sm mr-1.5">flight</span>
-                          {t('buttons.findFlights')}
-                        </a>
                       )
                     }
                     return null

@@ -259,7 +259,7 @@ export default function PlanFromReelPage() {
     if (!date?.from || !date?.to) {
       errors.push(t("validation.dates"))
     } else {
-      if (tripDays < 2) errors.push(t("validation.minDays"))
+      if (tripDays < 1) errors.push(t("validation.minDays"))
       if (tripDays > 30) errors.push(t("validation.maxDays"))
     }
     if (reel && tripDays > 0 && tripDays < reel.anchor_day) {

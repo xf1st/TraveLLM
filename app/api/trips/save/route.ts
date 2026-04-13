@@ -109,6 +109,7 @@ export async function POST(req: Request) {
       end_date: requestPayload.endDate || null,
       departure_city: departureCity,
       travel_mode: travelMode,
+      status: "active",
     }
 
     const { data: insertedTrip, error } = await client

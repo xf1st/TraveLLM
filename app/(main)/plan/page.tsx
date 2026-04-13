@@ -208,7 +208,7 @@ export default function PlanPage() {
       errors.push(t('validation.datesRequired'))
     } else {
       const days = Math.ceil((date.to.getTime() - date.from.getTime()) / 86400000) + 1
-      if (days < 2) errors.push(t('validation.minDays'))
+      if (days < 1) errors.push(t('validation.minDays'))
       if (days > 30) errors.push(t('validation.maxDays'))
     }
     if (!customDestination.trim()) errors.push(t('validation.destinationRequired'))

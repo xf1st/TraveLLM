@@ -2134,15 +2134,28 @@ export async function groupHotelStays(
     })
   }
 
+  // Junk patterns that indicate AI failed to set city correctly
+  const JUNK_CITY_RE = /^(день|day\s*\d|ryokan|hostel|hotel|отель|inn|guesthouse|\d+$)/i
+
   for (let i = 0; i < itinerary.length; i++) {
     const day = itinerary[i]
     const logistics = day?.logistics
 
-    // Extract city candidates (prefer logistics.to for travel days)
+    // Extract city candidates. Priority:
+    // 1. logistics.to (explicit travel destination)
+    // 2. day.endCity
+    // 3. logistics.from
+    // 4. day.city — always available in our AI schema (main fix for 404 errors)
     let rawCity = ""
     if (logistics?.to) rawCity = logistics.to
     if (!rawCity && day?.endCity) rawCity = day.endCity
     if (!rawCity && logistics?.from) rawCity = logistics.from
+    if (!rawCity && day?.city) rawCity = day.city
+
+    // Skip junk city names (e.g. "день:", "Ryokan") that cause 404 errors in hotel search
+    if (rawCity && JUNK_CITY_RE.test(rawCity.trim())) {
+      rawCity = ""
+    }
 
     const dayKey = rawCity ? normalizeCityKey(rawCity) : currentCityKey
     const dayName = rawCity ? parseCityIata(rawCity).city || rawCity : currentCityName

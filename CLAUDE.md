@@ -226,3 +226,11 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 - **OAuth**: `redirectUri` и `siteUrl` в auth-роутах берутся из `new URL(request.url).origin` — работает на обоих доменах без env-переменных.
 - **Header (mobile)**: статичная (`sticky top-0`), без бургер-меню — навигация через bottom nav.
 - **Tailwind v4**: `@import "tailwindcss"` + `@theme inline` в globals.css; `@apply` требует `@reference "tailwindcss"`.
+
+## Versioning Rules
+
+We update the site version dynamically in `components/app-sidebar.tsx` and `components/header.tsx` with each commit if logical changes occurred. Next changes depend on the severity of the update:
+- Minor tweaks / bug fixes: +0.0.0xb (e.g. 2.0.701b)
+- Small features or multiple bugs resolved: +0.0.xb (e.g. 2.0.8b)
+- Major feature implementation: +0.x.0b (e.g. 2.1.0b) 
+- Massive structural overhaul: +x.0.0b (e.g. 3.0.0b)

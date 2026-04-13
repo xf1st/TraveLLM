@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { TripImage } from "@/components/TripImage"
+import { ReelDealsStrip, ReelDealsCard } from "@/components/travel/ReelDealsWidget"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -472,12 +473,17 @@ function ReelSlide({ reel, isActive, slideHeight, onLikeChange }: {
             </div>
             <span className="text-xs font-bold text-white drop-shadow-md">{copied ? "Ok!" : t("share")}</span>
           </button>
-          <button className="flex flex-col items-center gap-1 touch-manipulation">
+          <a
+            href={`https://www.google.com/maps/search/${encodeURIComponent(loc)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 touch-manipulation"
+          >
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/20 backdrop-blur-md border border-white/10">
               <Map className="h-6 w-6 text-white" />
             </div>
             <span className="text-[10px] font-bold text-white drop-shadow-md uppercase tracking-wide">Map</span>
-          </button>
+          </a>
           {reel.music_url && (
             <button type="button" onClick={toggleSound} className="mt-2 flex touch-manipulation flex-col items-center gap-1">
               <div className={cn("flex h-12 w-12 items-center justify-center rounded-full border transition-transform active:scale-90",
@@ -514,6 +520,7 @@ function ReelSlide({ reel, isActive, slideHeight, onLikeChange }: {
               {t("anchorDay", { day: reel.anchor_day })}
             </p>
           </motion.div>
+          <ReelDealsStrip reelId={reel.id} isActive={isActive} />
           <Button asChild size="lg"
             className="h-14 w-full touch-manipulation rounded-full border-0 bg-primary text-base font-bold text-primary-foreground shadow-xl shadow-primary/25 hover:bg-primary/90"
           >
@@ -552,10 +559,16 @@ function ReelSlide({ reel, isActive, slideHeight, onLikeChange }: {
             <p className="text-white/60 text-sm font-medium leading-relaxed">{t("anchorDay", { day: reel.anchor_day })}</p>
           </div>
           <div className="h-px w-full bg-white/10" />
-          <Button variant="secondary" className="w-full bg-white/10 hover:bg-white/20 text-white border-0 justify-start gap-3 h-12 rounded-xl">
-            <Map className="h-5 w-5 text-sky-400" />
-            <span className="font-bold">Посмотреть на карте</span>
-          </Button>
+          <a
+            href={`https://www.google.com/maps/search/${encodeURIComponent(loc)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 h-12 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors px-4"
+          >
+            <Map className="h-5 w-5 text-sky-400 shrink-0" />
+            <span className="font-bold text-sm">Посмотреть на карте</span>
+          </a>
+          <ReelDealsCard reelId={reel.id} isActive={isActive} />
           <div className="h-px w-full bg-white/10" />
           <DesktopComments reelId={reel.id} commentsCount={commentsCount} isActive={isActive} />
         </div>

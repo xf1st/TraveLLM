@@ -250,7 +250,8 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      link: Ostrovok hotel search deep URL https://ostrovok.ru/hotels/search/?q={CityOrHotel}. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
 
    food → link (and bookingUrl when table booking matters):
-     Russian cities: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
+     Russian cities ONLY: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
+     ⛔ OUTSIDE Russia: NEVER use tomesto.ru. Use TripAdvisor, TheFork, official restaurant site, or Google Maps link instead.
      Also TripAdvisor or official restaurant site where Tomesto is not a fit.
 
    activity → link + ticketUrl:
@@ -310,7 +311,8 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      link: Островок — https://ostrovok.ru/hotels/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N. По РФ всегда обе ссылки; за рубежом — bookingUrl=Booking.com, link=Ostrovok. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
 
    food → link (и bookingUrl, если важна бронь столика):
-     Города РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
+     ТОЛЬКО для городов РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
+     ⛔ ЗА ПРЕДЕЛАМИ России: НИКОГДА не использовать tomesto.ru. Вместо этого — TripAdvisor, TheFork, официальный сайт ресторана или Google Maps.
      Дополнительно TripAdvisor или официальный сайт, если заведения нет на ТоМесто.
 
    activity (музей/экскурсия) → link + ticketUrl:
@@ -369,7 +371,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
 - Luggage storage: https://www.radicalstorage.com/
 - Travel insurance (trips abroad): https://ekta.io/
 - Flight disruption claims (where airline/EU-style rules apply, e.g. via EU hubs): https://compensair.com/, https://www.airhelp.com/
-- Restaurants / table booking in Russia: ${TOMESTO_RU_REF_URL} in \`link\` or \`bookingUrl\`; fine dining — Tomesto first (keep ref_id=2163507 on all tomesto.ru links).
+- Restaurants / table booking in Russia ONLY: ${TOMESTO_RU_REF_URL} in \`link\` or \`bookingUrl\`; fine dining — Tomesto first (keep ref_id=2163507 on all tomesto.ru links). ⛔ NEVER use tomesto.ru for restaurants outside Russia — use TripAdvisor, TheFork, or official site instead.
 - Excursions / guides (Russia): Tripster; tickets & entertainment: Sputnik8; daily apartments: Sutochno; transfers: Kiwitaxi — all plain deep URLs (affiliate tracking is added automatically).
 - Activities / tours: also Klook, Tiqets, WeGoTrip per §5 — do NOT mention GetYourGuide, Viator, TicketNetwork, NordVPN, or eSIM shops (limited/unavailable for RU audience).
 `.trim()
@@ -407,7 +409,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
 - Камера хранения: https://www.radicalstorage.com/
 - Страховка (поездки за границу): https://ekta.io/
 - Компенсация за сбой рейса (где действуют правила авиакомпании/EU и т.п.): https://compensair.com/, https://www.airhelp.com/
-- Рестораны, бронь столиков в РФ: в \`link\` или \`bookingUrl\` — ${TOMESTO_RU_REF_URL}; люкс — в первую очередь ТоМесто, затем официальный сайт (ref_id=2163507 на всех ссылках tomesto.ru).
+- Рестораны, бронь столиков — ТОЛЬКО для РФ: в \`link\` или \`bookingUrl\` — ${TOMESTO_RU_REF_URL}; люкс — в первую очередь ТоМесто, затем официальный сайт (ref_id=2163507 на всех ссылках tomesto.ru). ⛔ За пределами России tomesto.ru НЕ использовать — TripAdvisor, TheFork или официальный сайт.
 - Экскурсии Tripster, билеты Sputnik8, посуточно Суточно, трансфер Kiwitaxi — глубокие ссылки (партнёрский трекинг добавляется автоматически).
 - Также Klook, Tiqets, WeGoTrip из п.5. НЕ упоминай GetYourGuide, Viator, TicketNetwork, NordVPN и магазины eSIM.
 `.trim()
@@ -761,6 +763,37 @@ MANDATORY RULES:
 ${airportValidationContext ? `- АЭРОПОРТЫ: ${airportValidationContext}` : ''}
 `.trim())
 
+    // BUG-09, BUG-11, BUG-13, BUG-15 — routing quality rules
+    userParts.push(isEn ? `
+ROUTING QUALITY RULES (CRITICAL):
+
+BUG-11 — Day 1 arrival flight:
+Always include the outbound flight (or train) from ${departureCity} as the FIRST activity on Day 1. Every itinerary must start with a departure activity so the traveler knows how to get there. If the traveler already arrived (return trip scenario), still include a note about arrival/check-in on Day 1.
+
+BUG-09 — Multi-destination: NO zigzag routing:
+Plan destinations in ONE logical geographic arc. The final point of the trip MUST be the most convenient hub for the return flight home (to ${departureCity}). FORBIDDEN: returning to an already-visited city just to fly home. Example: if traveling Italy→France→Spain, end in Barcelona or Madrid (best Iberian hub), NOT Barclona→Lyon→Paris→Barcelona again. Always draw the trip as A→B→C→home, not A→B→C→B→A.
+
+BUG-13 — Japan / high-speed rail preference:
+For Japan: PREFER shinkansen (Shinkansen bullet train) over domestic flights for distances under 700 km. Osaka→Hiroshima (350 km) = Shinkansen ~90 min ~¥9 000; Osaka→Tokyo (500 km) = Nozomi 2h 30min ~¥14 000. Use domestic flights only when shinkansen is clearly longer (e.g. mainland→Hokkaido, Kyushu deep south).
+
+BUG-15 — Realistic flight prices:
+Use realistic 2026 market prices. From Russia to popular destinations: Tbilisi ≈ 12 000–18 000 ₽, Istanbul ≈ 15 000–22 000 ₽, Dubai ≈ 25 000–40 000 ₽, Tokyo ≈ 40 000–65 000 ₽, Bangkok ≈ 30 000–50 000 ₽. Do NOT inflate prices by 30–50% above market. Regional Russian routes (Kazan→Tbilisi) have indirect flights with reasonable layovers — price accordingly.
+`.trim() : `
+ПРАВИЛА КАЧЕСТВА МАРШРУТА (КРИТИЧНО):
+
+BUG-11 — Перелёт в день 1:
+ВСЕГДА включай вылет из ${departureCity} как ПЕРВУЮ активность в день 1. Каждый маршрут должен начинаться с активности «Перелёт/Поезд [город отправления] → [назначение]» — чтобы путешественник знал, как добраться. Если возможна только стыковка — укажи её.
+
+BUG-09 — Мультидестинация: НЕТ зигзагам:
+Планируй города в ОДНУ логичную географическую дугу. Финальная точка маршрута ДОЛЖНА быть наиболее удобным хабом для обратного рейса домой (в ${departureCity}). ЗАПРЕЩЕНО: возвращаться в уже посещённый город только чтобы улететь. Пример: Италия→Франция→Испания — заканчивай в Барселоне или Мадриде (лучший хаб Иберии), НЕ делай Барселона→Лион→Париж→Барселона снова. Маршрут = A→B→C→домой, а не A→B→C→B→A.
+
+BUG-13 — Япония / скоростные поезда:
+В Японии: ПРЕДПОЧИТАЙ синкансэн (скоростной поезд) внутренним рейсам на расстояниях до 700 км. Осака→Хиросима (350 км) = синкансэн ~90 мин ~9 000 ₽; Осака→Токио (500 км) = Нодзоми 2ч 30мин ~14 000 ₽. Внутренние авиарейсы только если синкансэн явно длиннее (например, материк→Хоккайдо).
+
+BUG-15 — Реалистичные цены на перелёты:
+Используй реальные рыночные цены 2026. Из России в популярные направления: Тбилиси ≈ 12 000–18 000 ₽, Стамбул ≈ 15 000–22 000 ₽, Дубай ≈ 25 000–40 000 ₽, Токио ≈ 40 000–65 000 ₽, Бангкок ≈ 30 000–50 000 ₽. НЕ завышай цены на 30–50% выше рынка. Региональные маршруты РФ (Казань→Тбилиси) — с пересадкой, цена адекватная рынку.
+`.trim())
+
     // 6. СПЕЦИАЛЬНОЕ ПОЖЕЛАНИЕ
     if (safeHighlight) {
         userParts.push(`
@@ -804,7 +837,10 @@ Return strictly a JSON object with these fields (ALL TEXT IN ENGLISH, costs in U
 - countries: [{ name, visaRequired, visaType }]
 - tags: string[]
 - viralSpots: [{ name, desc, mapLink }]
-- itinerary: [{ day, title, dayTotal, tips, activities: [...] }] — day "tips": practical notes follow TRAVELER TIPS POLICY when mentioning documents, money, safety, language on the ground
+- itinerary: [{ day, city, title, dayTotal, tips, activities: [...] }]
+  ⚠️ city: REQUIRED field — name of the city or region for the day (e.g. "Kyoto", "Tbilisi", "Barcelona"). Never leave empty.
+  ⚠️ dayTotal: ALWAYS a monetary sum like "≈12 000 ₽" or "≈$140". NEVER write distance, travel time, or description — money only. Even for road-trip days with long drives, sum up all daily expenses (fuel + food + hotel + activities).
+  day "tips": practical notes follow TRAVELER TIPS POLICY when mentioning documents, money, safety, language on the ground
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Link fields: mapLink (place map), link (booking/site), bookingUrl (hotel/food only), ticketUrl (paid activities only)
   activity "cost": realistic USD for the destination — do NOT paste large local-currency integers (e.g. IDR/VND) as if they were dollars.
@@ -829,7 +865,10 @@ VENUE NAMING RULES — strictly required:
 - countries: [{ name, visaRequired, visaType }]
 - tags: string[]
 - viralSpots: [{ name, desc, mapLink }]
-- itinerary: [{ day, title, dayTotal, tips, activities: [...] }] — поле tips у дня: практические советы по ПОЛИТИКЕ СОВЕТОВ, если речь о документах, деньгах, безопасности, языке на месте
+- itinerary: [{ day, city, title, dayTotal, tips, activities: [...] }]
+  ⚠️ city: ОБЯЗАТЕЛЬНОЕ поле — название города или региона где проходит день (например "Киото", "Тбилиси", "Сергиев Посад"). Никогда не оставляй пустым.
+  ⚠️ dayTotal: ВСЕГДА сумма в рублях вида "≈12 000 ₽". НИКОГДА не пиши расстояние, время в пути или описание — только деньги. Даже для авто-дней с переездами — считай общие траты дня (бензин + еда + отель + активности).
+  поле tips у дня: практические советы по ПОЛИТИКЕ СОВЕТОВ, если речь о документах, деньгах, безопасности, языке на месте
   activities: [{ time, type, title, placeName, desc, cost, imageQuery, mapLink, link, bookingUrl, ticketUrl }]
   Поля ссылок: mapLink (карта места), link (бронирование/сайт), bookingUrl (только hotel/food), ticketUrl (только платные activities)
   ЦЕНЫ cost: только реалистичные суммы в ₽; для зарубежных направлений пересчитай с местной валюты — не подставляй крупные числа IDR/VND как «рубли».
@@ -990,6 +1029,8 @@ export function buildDayChunkPrompt(params: {
     isCountryChange?: boolean;
     travelMode?: TravelMode;
     reelAnchorPrompt?: string;
+    /** Trip start date (YYYY-MM-DD) — used so AI can generate real checkin/checkout dates in hotel links (BUG-12) */
+    tripStartDate?: string;
 }): string {
     const {
         startDay,
@@ -1009,7 +1050,22 @@ export function buildDayChunkPrompt(params: {
         isCountryChange,
         travelMode: travelModeRaw,
         reelAnchorPrompt,
+        tripStartDate,
     } = params
+
+    // BUG-12: compute actual calendar dates for this chunk so AI uses real dates in hotel links
+    let chunkDateHint = ""
+    if (tripStartDate) {
+        try {
+            const base = new Date(tripStartDate)
+            const chunkStart = new Date(base)
+            chunkStart.setDate(base.getDate() + startDay - 1)
+            const chunkEnd = new Date(base)
+            chunkEnd.setDate(base.getDate() + endDay - 1)
+            const fmt = (d: Date) => d.toISOString().slice(0, 10)
+            chunkDateHint = `- Даты этого блока: ${fmt(chunkStart)} (день ${startDay}) — ${fmt(chunkEnd)} (день ${endDay}). Используй эти даты при генерации ссылок на отели (checkin/checkout).`
+        } catch { /* ignore */ }
+    }
 
     const travelMode = normalizeTravelMode(travelModeRaw)
     const isEn = locale === 'en'
@@ -1041,7 +1097,7 @@ export function buildDayChunkPrompt(params: {
             : ""
 
     return `
-Сгенерируй ДНИ ${startDay}-${endDay} из ${durationDays}-дневного маршрута.
+Сгенерируй ДНИ ${startDay}-${endDay} (СТРОГО ${endDay - startDay + 1} дней) из ${durationDays}-дневного маршрута.
 
 КОНТЕКСТ:
 - Направление: ${destination}
@@ -1052,22 +1108,31 @@ ${roadTripChunkHint ? `- ${roadTripChunkHint}\n` : ""}
 - Стиль (legacy ids): ${travelStyle.join(', ')}
 - Темп: ${preferences?.pace || 'moderate'}
 - Бюджет: ${budgetDesc}
+${chunkDateHint ? `${chunkDateHint}` : ''}
 ${warningsStr ? `⚠️ АКТУАЛЬНЫЕ ПРЕДУПРЕЖДЕНИЯ: ${warningsStr}` : ''}
-${safeHighlight ? `- ОСОБОЕ ПОЖЕЛАНИЕ: "${safeHighlight}"` : ''}
+${safeHighlight && !previousContext?.highlightFulfilled ? `- ОСОБОЕ ПОЖЕЛАНИЕ: "${safeHighlight}"` : ''}
 ${vibeChunk ? `\n${vibeChunk}\n` : ''}
 ${reelAnchorPrompt?.trim() ? `\n${reelAnchorPrompt.trim()}\n` : ""}
 
 ${planForChunk ? `⚠️ ПЛАН (СЛЕДУЙ ЕМУ): ${planForChunk}` : ""}
+${previousContext?.visitedCities?.length ? `⚠️ УЖЕ ПОСЕЩЕННЫЕ ГОРОДА: ${previousContext.visitedCities.join(', ')}. ЗАПРЕЩЕНО возвращаться в них, если план этого не требует (избегай зигзагов!).` : ""}
 
 КРИТИЧНО:
-${isFirstChunk ? `- Начинай в ${departureCity}.` : `- Начинай в ${startLocation}.`}
-${isLastChunk ? `- В конце дня ${endDay} вернись в ${departureCity}.` : ""}
-${isCountryChange ? `🚨 СМЕНА СТРАНЫ: Начинай день ${startDay} с transport (перелёт/поезд).` : ''}
+${isFirstChunk
+    ? `- Начинай в ${departureCity}.`
+    : `- Путешественник УЖЕ НАХОДИТСЯ в ${startLocation} — это продолжение поездки, НЕ новый маршрут. НЕ генерируй перелёт из ${departureCity} в начале этих дней. Первая активность должна начинаться в ${startLocation} или с переезда ИЗ ${startLocation} в следующий пункт.`
+}
+${isLastChunk ? (isEn ? `- On day ${endDay}, wrap up the trip with a departure flight home (to ${departureCity}). Depart from the final city explicitly listed in the plan (e.g. if the route ends in Osaka, depart from Osaka) — do NOT travel across the country back to the starting city just for the flight.` : `- В конце дня ${endDay} — ВЫЛЕТ ДОМОЙ (в ${departureCity}). Вылет должен быть из последнего города, в котором находится путешественник по плану на эти дни. НЕ возвращайся через всю страну в город старта ради вылета.`) : ""}
+${isCountryChange ? `🚨 СМЕНА СТРАНЫ: Начинай день ${startDay} с transport (перелёт/поезд) из ${startLocation}.` : ''}
 
 ${formatTravelerTipsPolicy(isEn, preferences)}
 ${isEn ? "Each day \"tips\" field: follow the policy above for practical advice (not UI language)." : "Поле tips у каждого дня: практические советы — по политике выше (не под язык интерфейса)."}
 
-Ответ — JSON массив дней.
+ФОРМАТ КАЖДОГО ДНЯ: { day, city, title, dayTotal, tips, activities }
+- city: название города/региона где проходит день — ОБЯЗАТЕЛЬНО, не оставлять пустым.
+- dayTotal: итоговая сумма дня в формате "≈X ₽" — ТОЛЬКО деньги, никаких расстояний или описаний.
+
+Ответ — JSON массив из ровно ${endDay - startDay + 1} элементов.
 `.trim()
 }
 

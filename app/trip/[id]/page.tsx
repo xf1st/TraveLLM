@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from "next-intl"
 import Link from "next/link"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Header } from "@/components/header"
+import { MobileBottomNav } from "@/components/MobileBottomNav"
 import { appToast as toast } from "@/components/ui/sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1889,6 +1890,7 @@ export default function TripDetailPage() {
           </button>
         )}
 
+        <MobileBottomNav />
       </div>
     </div>
   )
