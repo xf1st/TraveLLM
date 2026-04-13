@@ -892,6 +892,7 @@ export default function PlanPage() {
                         "w-full min-w-0 flex items-center h-12 px-3 sm:px-4 rounded-xl text-sm border transition-all touch-manipulation",
                         "bg-blue-50/50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/20",
                         "hover:bg-white dark:hover:bg-blue-500/10 hover:border-blue-300 dark:hover:border-blue-500/40",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
                         !date && "text-muted-foreground"
                       )}
                     >

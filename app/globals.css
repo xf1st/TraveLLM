@@ -207,14 +207,8 @@
     font-family: inherit;
   }
 
-  /* 
-     ANTI-JUMP SYSTEM:
-     Ensures vertical scrollbar space is ALWAYS reserved.
-     Prevents content shifting when modals (Radix/Shadcn) open.
-  */
   html {
-    scrollbar-gutter: stable !important;
-    overflow-y: scroll; /* Force the track to be visible always */
+    scrollbar-gutter: stable;
     @apply overflow-x-hidden scroll-smooth;
   }
 
@@ -225,26 +219,14 @@
     transition:
       color 0.3s ease,
       background-color 0.3s ease;
-    scrollbar-gutter: stable !important;
   }
 
-  /* 
-     Radix UI Scroll Lock Override:
-     When a modal opens, Radix adds 'data-scroll-locked' to body
-     and injects an inline 'padding-right' style. 
-     We force it to 0 because scrollbar-gutter handles the space.
-  */
-  body[data-scroll-locked],
-  [data-radix-scroll-lock],
-  [data-state="open"] {
-    padding-right: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* Ensure fixed/sticky elements don't shift either */
-  .fixed, .sticky {
-    padding-right: 0 !important;
-    margin-right: 0 !important;
+  /* Bypass scroll lock for search only as requested, preventing the 'black strip' */
+  body[data-search-open], 
+  html[data-search-open] {
+    overflow: auto !important;
+    padding-right: 0px !important;
+    margin-right: 0px !important;
   }
 
   /* Smooth Theme Transition for all major elements */

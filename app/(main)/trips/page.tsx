@@ -396,10 +396,10 @@ function TripCard({
 
           {/* ── Desktop card ── */}
           <div className={cn(
-            "hidden sm:block relative overflow-hidden rounded-[2rem] h-full min-h-[260px] border shadow-md md:shadow-xl hover:-translate-y-1 transition-all duration-300 hover:shadow-md md:shadow-2xl",
+            "hidden sm:block relative overflow-hidden rounded-[2rem] h-full min-h-[260px] border shadow-md md:shadow-xl hover:-translate-y-1.5 transition-all duration-500 hover:shadow-2xl",
             selectMode && isSelected
               ? "border-red-500/60 ring-2 ring-red-500/30 hover:border-red-500/70"
-              : "border-white/10 hover:border-white/20"
+              : "border-white/10 hover:border-white/30"
           )}>
             <TripImage
               src={trip.image}
@@ -737,13 +737,12 @@ function TripsContent() {
         />
       )}
 
-      <AppLayout title={t("title")} description={t("description")} className="trip-bg">
+      <AppLayout className="trip-bg">
         <div className="relative z-10 mx-auto min-w-0 max-w-7xl space-y-6 sm:space-y-8">
 
           {/* ─── Header ─── */}
           <div className="flex flex-col justify-between gap-4 pt-2 sm:flex-row sm:items-end">
             <div className="min-w-0">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:text-xs">{t("collectionLabel")}</p>
               <h1 className="text-2xl font-black leading-none text-foreground sm:text-3xl md:text-4xl">
                 {t("title")}
               </h1>

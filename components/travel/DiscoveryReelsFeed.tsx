@@ -837,15 +837,30 @@ export function DiscoveryReelsFeed({ className }: { className?: string }) {
         className="flex-1 min-h-0 basis-0 overflow-y-auto overflow-x-hidden snap-y snap-mandatory no-scrollbar touch-pan-y overscroll-y-contain"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {reels.map((r, i) => (
-          <ReelSlide
-            key={r.id}
-            reel={r}
-            isActive={i === currentIndex}
-            slideHeight={slideHeight}
-            onLikeChange={handleLikeChange}
-          />
-        ))}
+        {reels.map((r, i) => {
+          const isNear = Math.abs(i - currentIndex) <= 2;
+          if (!isNear && slideHeight > 0) {
+            return (
+              <div
+                key={r.id}
+                className="w-full shrink-0 snap-start snap-always bg-neutral-950 flex items-center justify-center border-b border-white/5"
+                style={{ height: slideHeight, minHeight: slideHeight }}
+              >
+                {/* Lightweight placeholder to preserve scroll layout */}
+                <div className="h-8 w-8 rounded-full border-2 border-white/10 border-t-primary/50 animate-spin" />
+              </div>
+            );
+          }
+          return (
+            <ReelSlide
+              key={r.id}
+              reel={r}
+              isActive={i === currentIndex}
+              slideHeight={slideHeight}
+              onLikeChange={handleLikeChange}
+            />
+          );
+        })}
       </div>
 
     </div>

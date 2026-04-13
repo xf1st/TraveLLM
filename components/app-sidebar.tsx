@@ -143,16 +143,7 @@ export function AppSidebar() {
         if (data) setRecentTrips(data)
     }
 
-    useEffect(() => {
-        const handleSearchKey = (e: KeyboardEvent) => {
-            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setSearchOpen((prev) => !prev)
-            }
-        }
-        document.addEventListener("keydown", handleSearchKey)
-        return () => document.removeEventListener("keydown", handleSearchKey)
-    }, [])
+
 
     const handleLogout = async () => {
         try {
@@ -243,7 +234,7 @@ export function AppSidebar() {
                 {/* Search Button */}
                 <button
                     onClick={() => setSearchOpen(true)}
-                    title={isCollapsed ? `${t("search")} (⌘K)` : undefined}
+                    title={isCollapsed ? t("search") : undefined}
                     className={cn(
                         "flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 w-full text-muted-foreground hover:bg-accent hover:text-foreground mb-1",
                         isCollapsed ? "justify-center px-2 py-3" : "px-4 py-2.5"
@@ -251,12 +242,7 @@ export function AppSidebar() {
                 >
                     <Search className="h-5 w-5 shrink-0" />
                     {!isCollapsed && (
-                        <>
                             <span className="flex-1 text-left">{t("search")}</span>
-                            <kbd className="flex h-5 select-none items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground/70">
-                                ⌘K
-                            </kbd>
-                        </>
                     )}
                 </button>
 

@@ -54,6 +54,15 @@ export function GlobalSearch({
     loading: false,
   })
 
+  // Set search-open attribute on body for CSS to handle scroll lock bypass
+  useEffect(() => {
+    if (open) {
+      document.body.setAttribute("data-search-open", "true")
+    } else {
+      document.body.removeAttribute("data-search-open")
+    }
+  }, [open])
+
   // Reset on close
   useEffect(() => {
     if (!open) {
@@ -162,23 +171,29 @@ export function GlobalSearch({
     state.people.length > 0
 
   return (
-    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+    <RadixDialog.Root modal={false} open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        {/* Backdrop */}
-        <RadixDialog.Overlay className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
+        {/* Backdrop (Custom to ensure blur when modal={false}) */}
+        <div 
+          onClick={() => onOpenChange(false)}
+          className={cn(
+            "fixed inset-0 z-[200] bg-black/40 dark:bg-black/60 backdrop-blur-xl transition-all duration-300 ease-out",
+            open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          )}
+        />
 
         {/* Panel */}
         <RadixDialog.Content
           aria-describedby={undefined}
           className={cn(
-            "fixed z-[201] w-full outline-none duration-200",
+            "fixed z-[201] w-full outline-none duration-300 ease-out",
             /* Mobile: bottom sheet — thumb reach, keyboard-friendly top margin */
             "inset-x-0 bottom-0 top-[min(12dvh,5rem)] max-h-[min(88dvh,100%)] rounded-t-[1.25rem] px-3 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-0",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom-8 data-[state=open]:slide-in-from-bottom-8",
             /* md+: centered palette */
             "md:inset-x-auto md:bottom-auto md:left-1/2 md:top-[12%] md:max-h-none md:w-full md:max-w-xl md:-translate-x-1/2 md:rounded-none md:bg-transparent md:p-0 md:px-4 md:pb-0 md:pt-0",
-            "md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=open]:slide-in-from-bottom-0",
-            "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
+            "md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=open]:slide-in-from-top-4",
+            "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-[0.98]",
           )}
         >
           <RadixDialog.Title className="sr-only">{ts("triggerLabel")}</RadixDialog.Title>
@@ -293,14 +308,9 @@ export function GlobalSearch({
             </Command.List>
 
             {/* ── Footer ── */}
-            <div className="flex shrink-0 items-center justify-between border-t border-black/5 bg-muted/20 px-4 py-2 dark:border-white/8 max-md:py-2.5">
-              <div className="hidden items-center gap-3 text-[10px] text-muted-foreground/50 sm:flex">
-                <KbdGroup keys={["↑", "↓"]} label={ts("navigate")} />
-                <KbdGroup keys={["↵"]} label={ts("open")} />
-                <KbdGroup keys={["Esc"]} label={ts("close")} />
-              </div>
-              <span className="text-[10px] font-mono tracking-tight text-muted-foreground/30 max-sm:flex-1 max-sm:text-center sm:text-left">
-                {ts("shortcutSearch")}
+            <div className="flex shrink-0 items-center justify-center border-t border-black/5 bg-muted/20 px-4 py-2 dark:border-white/8 max-md:py-2.5">
+              <span className="text-[10px] font-mono tracking-tight text-muted-foreground/30 text-center">
+                TraveLLM AI Global Discovery
               </span>
             </div>
           </Command>
@@ -323,14 +333,6 @@ export function SearchTriggerDesktop({ onClick }: { onClick: () => void }) {
       <span className="text-xs text-muted-foreground/70 group-hover:text-muted-foreground transition-colors hidden lg:block whitespace-nowrap">
         {ts("triggerPlaceholder")}
       </span>
-      <div className="hidden lg:flex items-center gap-0.5 ml-1">
-        <kbd className="inline-flex items-center rounded border border-border/50 bg-background/60 px-1 py-px font-mono text-[9px] text-muted-foreground/60">
-          ⌘
-        </kbd>
-        <kbd className="inline-flex items-center rounded border border-border/50 bg-background/60 px-1 py-px font-mono text-[9px] text-muted-foreground/60">
-          K
-        </kbd>
-      </div>
     </button>
   )
 }
@@ -363,21 +365,7 @@ function Divider() {
   return <div className="h-px bg-border/30 mx-2 my-1.5" />
 }
 
-function KbdGroup({ keys, label }: { keys: string[]; label: string }) {
-  return (
-    <span className="flex items-center gap-1">
-      {keys.map((k) => (
-        <kbd
-          key={k}
-          className="inline-flex items-center rounded border border-border/40 bg-background/50 px-1 py-px font-mono text-[9px] text-muted-foreground/60"
-        >
-          {k}
-        </kbd>
-      ))}
-      <span>{label}</span>
-    </span>
-  )
-}
+
 
 function TripItem({
   trip,

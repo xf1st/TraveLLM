@@ -1,0 +1,6 @@
+Contact: mailto:sergeifreddy@gmail.com
+Expires: 2027-04-13T00:00:00.000Z
+Preferred-Languages: ru, en
+Canonical: https://travellm.ru/.well-known/security.txt
+Policy: https://travellm.ru/security
+Acknowledgments: https://travellm.ru/security#hall-of-fame

@@ -91,15 +91,6 @@ export function Header({ floating = false }: HeaderProps) {
     }
     window.addEventListener('profile_updated', handleProfileUpdate)
 
-    // Global Ctrl+K / Cmd+K search shortcut
-    const handleSearchKey = (e: KeyboardEvent) => {
-      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        setSearchOpen((prev) => !prev)
-      }
-    }
-    document.addEventListener("keydown", handleSearchKey)
-
     // Debounced scroll handler for better mobile performance
     let scrollTimer: NodeJS.Timeout
     const handleScroll = () => {
@@ -114,7 +105,6 @@ export function Header({ floating = false }: HeaderProps) {
       clearTimeout(scrollTimer)
       window.removeEventListener("scroll", handleScroll)
       window.removeEventListener('profile_updated', handleProfileUpdate)
-      document.removeEventListener("keydown", handleSearchKey)
     }
   }, [user])
 
@@ -297,9 +287,16 @@ export function Header({ floating = false }: HeaderProps) {
   // Ensure hydration match for main menu (prevents ID mismatches on SSR)
   if (!isMounted) {
     return (
-      <div className="sticky top-0 z-50 w-full opacity-0 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 md:pt-[calc(1rem+env(safe-area-inset-top,0px))]">
-        <header className="mx-auto max-w-5xl flex h-12 items-center justify-between px-5 rounded-2xl bg-card/95 border border-border/50 shadow-md md:shadow-2xl">
-          {/* Skeleton or empty header to prefer layout shift over hydration error */}
+      <div className={cn(
+        "z-50 w-full sticky top-0 px-2 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]",
+        "md:px-3 md:pb-3 md:pt-[calc(0.75rem+env(safe-area-inset-top,0px))] lg:px-4 lg:pb-4 lg:pt-[calc(1rem+env(safe-area-inset-top,0px))]"
+      )}>
+        <header className="mx-auto max-w-5xl flex h-12 min-w-0 items-center justify-between px-2.5 sm:px-5 rounded-2xl trip-glass shadow-md">
+          <Link href="/" className="flex min-w-0 items-center gap-1.5 sm:gap-2 shrink-0">
+            <Logo size={24} />
+            <span className="text-sm font-semibold tracking-tight text-foreground max-[380px]:hidden">TraveLLM</span>
+          </Link>
+          <div className="h-8 w-24 rounded-lg bg-muted/20 animate-pulse" />
         </header>
       </div>
     )

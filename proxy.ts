@@ -6,6 +6,20 @@ import { checkRateLimit } from '@/lib/rate-limit'
 const GLOBAL_API_LIMIT = 30      // requests
 const GLOBAL_API_WINDOW = 60_000 // per minute
 
+// ─── LLM-specific rate limit (tighter — protects AI budget) ──────────────────
+const LLM_API_LIMIT  = 6         // 6 requests
+const LLM_API_WINDOW = 60_000    // per minute
+
+/** AI/LLM endpoints that need a tighter per-user limit. */
+const LLM_PATHS = [
+  '/api/gemini',
+  '/api/deepseek',
+  '/api/trip-assistant',
+  '/api/guide-chat',
+  '/api/modify-itinerary',
+  '/api/enrich-trip',
+]
+
 /** Routes exempt from the global rate limit (public callbacks, webhooks). */
 const API_RATE_LIMIT_SKIP = [
   '/api/admin',
@@ -14,6 +28,15 @@ const API_RATE_LIMIT_SKIP = [
   '/api/image',
   '/api/proxy-image',
 ]
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = new Set([
+  'https://travellm.ru',
+  'https://travellm.world',
+  'https://admin.travellm.ru',
+  'https://admin.travellm.world',
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3000'] : []),
+])
 
 function getRequestIp(request: NextRequest): string {
   return (
@@ -53,6 +76,14 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || ''
   const isAdminSubdomain = host.startsWith('admin.')
 
+  // ─── CVE-2025-29927 mitigation ────────────────────────────────────────────
+  // Block external requests that carry the internal Next.js middleware-bypass
+  // header. Attackers can use it to skip auth/rate-limit middleware entirely.
+  if (request.headers.has('x-middleware-subrequest')) {
+    return new NextResponse(null, { status: 403 })
+  }
+  // ──────────────────────────────────────────────────────────────────────────
+
   // ─── DEV MODE (opt-in): skip Supabase auth in proxy for faster local dev ───
   // By default development uses the same proxy checks as production.
   // Set TRAVELLM_DEV_SKIP_PROXY_AUTH=1 in .env.local to restore the old fast path.
@@ -90,7 +121,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // API routes — apply global rate limit, then pass through
+  // API routes — rate limits + CORS, then pass through
   if (!isAdminSubdomain && pathname.startsWith('/api')) {
     const isSkipped = API_RATE_LIMIT_SKIP.some(p => pathname.startsWith(p))
 
@@ -104,11 +135,11 @@ export async function proxy(request: NextRequest) {
       const { data: { session } } = await tempSupabase.auth.getSession()
 
       // Rate limit by user ID (from session cookie) or IP for unauthenticated
-      // Admin subdomain is already excluded above via !isAdminSubdomain
       const rlKey = session?.user?.id
         ? `user:${session.user.id}`
         : `ip:${getRequestIp(request)}`
 
+      // 1. Global rate limit (30 req/min for all API)
       const rl = checkRateLimit(rlKey, 'global-api', GLOBAL_API_LIMIT, GLOBAL_API_WINDOW)
       if (!rl.allowed) {
         const retryAfter = Math.ceil((rl.resetAt - Date.now()) / 1000)
@@ -124,9 +155,49 @@ export async function proxy(request: NextRequest) {
           },
         )
       }
+
+      // 2. LLM-specific rate limit (6 req/min) — prevents AI budget drain
+      if (LLM_PATHS.some(p => pathname.startsWith(p))) {
+        const llmRl = checkRateLimit(rlKey, 'llm-api', LLM_API_LIMIT, LLM_API_WINDOW)
+        if (!llmRl.allowed) {
+          const retryAfter = Math.ceil((llmRl.resetAt - Date.now()) / 1000)
+          return new NextResponse(
+            JSON.stringify({ error: 'Превышен лимит запросов к AI. Подождите немного.', code: 'LLM_RATE_LIMIT' }),
+            {
+              status: 429,
+              headers: {
+                'Content-Type': 'application/json',
+                'Retry-After': String(retryAfter),
+                'X-RateLimit-Remaining': '0',
+              },
+            },
+          )
+        }
+      }
     }
 
-    return NextResponse.next()
+    // CORS — restrict to known app origins only
+    const origin = request.headers.get('origin') ?? ''
+    const corsOrigin = ALLOWED_ORIGINS.has(origin) ? origin : null
+
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 204,
+        headers: {
+          ...(corsOrigin ? { 'Access-Control-Allow-Origin': corsOrigin, 'Vary': 'Origin' } : {}),
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400',
+        },
+      })
+    }
+
+    const apiResponse = NextResponse.next()
+    if (corsOrigin) {
+      apiResponse.headers.set('Access-Control-Allow-Origin', corsOrigin)
+      apiResponse.headers.set('Vary', 'Origin')
+    }
+    return apiResponse
   }
 
   let response = NextResponse.next({

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MapPin } from "lucide-react"
 import { DEFAULT_TRAVEL_IMAGE, buildImageQuery, isProbablyBlockedImage, needsProxyImage } from "@/lib/image-utils"
+import { cn } from "@/lib/utils"
 
 interface TripImageProps {
     src?: string
@@ -205,12 +206,21 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
     }
 
     return (
-        <div className={`relative overflow-hidden bg-muted ${className}`}>
-            {isLoading && <Skeleton className="absolute inset-0 z-10 w-full h-full" />}
+        <div className={cn("relative overflow-hidden bg-muted", className)}>
+            {isLoading && (
+                <div className="absolute inset-0 z-10 w-full h-full">
+                    <Skeleton className="w-full h-full" />
+                </div>
+            )}
             <img
                 src={currentSrc}
                 alt={alt}
-                className={`w-full h-full object-cover transition-opacity duration-500 will-change-transform ${isLoading ? 'opacity-0 scale-105' : 'opacity-100 scale-100'} ${error ? 'opacity-0' : 'opacity-100'} ${imgClassName}`}
+                className={cn(
+                    "w-full h-full object-cover transition-all duration-700 ease-in-out will-change-transform",
+                    isLoading ? "opacity-0 scale-105 blur-sm" : "opacity-100 scale-100 blur-0",
+                    error ? "opacity-0" : "opacity-100",
+                    imgClassName
+                )}
                 onLoad={() => {
                     if (isMounted.current) {
                         setIsLoading(false)
@@ -219,6 +229,7 @@ export function TripImage({ src, alt, className, imgClassName = "", query, prior
                 }}
                 onError={handleError}
                 loading={priority ? "eager" : "lazy"}
+                decoding={priority ? "sync" : "async"}
             />
         </div>
     )
