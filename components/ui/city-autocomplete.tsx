@@ -143,7 +143,7 @@ export function CityAutocomplete({
             setLoading(true)
             try {
                 const res = await fetch(
-                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(inputValue)}&count=10&language=${locale}&format=json`
+                    `/api/geocode/cities?name=${encodeURIComponent(inputValue)}&count=10&language=${locale}`
                 )
                 const data = await res.json()
                 const results: any[] = data.results || []
@@ -171,8 +171,8 @@ export function CityAutocomplete({
                 }, [])
 
                 setApiOptions(opts)
-            } catch {
-                console.error("Failed to search cities")
+            } catch (err) {
+                console.error("Failed to search cities", err)
             } finally {
                 setLoading(false)
             }
