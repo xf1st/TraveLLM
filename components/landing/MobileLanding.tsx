@@ -7,6 +7,18 @@ import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { MobileBottomNav } from "@/components/MobileBottomNav"
+import {
+  ChevronRight,
+  Zap,
+  Timer,
+  Cloud,
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  MinusCircle,
+  ArrowRight,
+  Plus,
+} from "lucide-react"
 
 // --- Animation Variants ---
 const fadeUp: Variants = {
@@ -89,7 +101,7 @@ export function MobileLanding() {
                 className="w-full py-4 bg-blue-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-xl shadow-blue-500/30"
               >
                 {t("hero.getStarted")}
-                <span className="material-symbols-outlined">chevron_right</span>
+                <ChevronRight className="w-5 h-5" />
               </Link>
             </motion.div>
           </motion.div>
@@ -145,28 +157,28 @@ export function MobileLanding() {
           <div className="grid grid-cols-2 gap-4">
             {/* Instant Routes card — inspired by the design */}
             <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors relative overflow-hidden">
-              <span className="material-symbols-outlined text-blue-400 text-3xl mb-2">speed</span>
+              <Zap className="text-blue-400 w-8 h-8 mb-2" />
               <div>
                 <h3 className="text-sm font-bold leading-tight text-foreground">Маршруты за минуту</h3>
                 <p className="text-[11px] text-muted-foreground mt-1 leading-tight">От идеи до плана — без вкладок</p>
               </div>
               {/* Watermark */}
-              <span className="material-symbols-outlined absolute -bottom-3 -right-3 text-[80px] text-foreground/5 select-none pointer-events-none">timer</span>
+              <Timer className="absolute -bottom-3 -right-3 w-20 h-20 text-foreground/5 select-none pointer-events-none" />
             </div>
 
             <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors">
-              <span className="material-symbols-outlined text-sky-400 text-3xl mb-4">cloud</span>
+              <Cloud className="text-sky-400 w-8 h-8 mb-4" />
               <h3 className="text-sm font-bold leading-tight text-foreground">Погода по дням</h3>
             </div>
 
             <div className="col-span-2 bg-card rounded-3xl p-6 flex items-center justify-between border border-border active:bg-muted transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-500/15 rounded-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-blue-400">forum</span>
+                  <MessageSquare className="text-blue-400 w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-bold text-foreground">AI-чат для правок</h3>
               </div>
-              <span className="material-symbols-outlined text-muted-foreground">arrow_forward_ios</span>
+              <ChevronRight className="text-muted-foreground w-5 h-5" />
             </div>
           </div>
         </section>
@@ -184,25 +196,24 @@ export function MobileLanding() {
               </div>
 
               {[
-                { label: "Маршрут за 60с", app: "check_circle", other: "cancel", icon: true },
-                { label: "AI-чат правок", app: "check_circle", other: "cancel", icon: true },
-                { label: "Авиабилеты", app: "check_circle", other: "remove_circle", icon: true },
-                { label: "Трекер бюджета", app: "check_circle", other: "cancel", icon: true },
-                { label: "Офлайн доступ", app: "check_circle", other: "cancel", icon: true },
-                { label: "Погода в плане", app: "check_circle", other: "cancel", icon: true },
-                { label: "Совместный доступ", app: "check_circle", other: "remove_circle", icon: true },
+                { label: "Маршрут за 60с", partial: false },
+                { label: "AI-чат правок", partial: false },
+                { label: "Авиабилеты", partial: true },
+                { label: "Трекер бюджета", partial: false },
+                { label: "Офлайн доступ", partial: false },
+                { label: "Погода в плане", partial: false },
+                { label: "Совместный доступ", partial: true },
               ].map((row, i) => (
                 <div key={i} className="grid grid-cols-3 items-center py-0.5">
                   <div className="text-sm font-medium text-foreground/80">{row.label}</div>
                   <div className="flex justify-center">
-                    <span className="material-symbols-outlined text-blue-400 text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                      {row.app}
-                    </span>
+                    <CheckCircle2 className="text-blue-400 w-5 h-5" />
                   </div>
                   <div className="flex justify-center">
-                    <span className="material-symbols-outlined text-muted-foreground text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                      {row.other}
-                    </span>
+                    {row.partial
+                      ? <MinusCircle className="text-muted-foreground w-5 h-5" />
+                      : <XCircle className="text-muted-foreground w-5 h-5" />
+                    }
                   </div>
                 </div>
               ))}
@@ -216,7 +227,7 @@ export function MobileLanding() {
             <h2 className="text-3xl font-extrabold text-foreground">{t("mobile.journalTitle")}</h2>
             <Link href="/news" className="text-blue-400 text-xs font-bold uppercase tracking-widest flex items-center gap-1">
               {t("mobile.allArticles")}
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
@@ -317,13 +328,13 @@ function FAQItem({
     >
       <div className="p-6 flex justify-between items-center">
         <span className="font-bold text-sm pr-6 leading-tight flex-1 text-foreground">{question}</span>
-        <motion.span
+        <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
-          className={`material-symbols-outlined transition-colors ${isOpen ? "text-blue-400" : "text-muted-foreground"}`}
+          className={`transition-colors flex-shrink-0 ${isOpen ? "text-blue-400" : "text-muted-foreground"}`}
         >
-          add
-        </motion.span>
+          <Plus className="w-5 h-5" />
+        </motion.div>
       </div>
       <AnimatePresence>
         {isOpen && (

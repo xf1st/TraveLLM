@@ -44,6 +44,10 @@ import {
   Plus,
   Minus,
   AlertTriangle,
+  User,
+  Heart,
+  Users,
+  UsersRound,
 } from "lucide-react"
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -1118,11 +1122,11 @@ export default function PlanPage() {
                 {[
                   { id: "culture",   label: t('interests.culture'),   icon: Compass,     color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
                   { id: "nature",    label: t('interests.nature'),    icon: Mountain,    color: "#10b981", glow: "rgba(16,185,129,0.25)" },
-                  { id: "food",      label: t('interests.food'),      icon: Utensils,    color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "food",      label: t('interests.food'),      icon: Utensils,    color: "#f97316", glow: "rgba(249,115,22,0.25)" },
                   { id: "relax",     label: t('interests.relax'),     icon: Bed,         color: "#6366f1", glow: "rgba(99,102,241,0.25)" },
-                  { id: "adventure", label: t('interests.adventure'), icon: Map,         color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "adventure", label: t('interests.adventure'), icon: Map,         color: "#06b6d4", glow: "rgba(6,182,212,0.25)"  },
                   { id: "shopping",  label: t('interests.shopping'),  icon: ShoppingBag, color: "#ec4899", glow: "rgba(236,72,153,0.25)" },
-                  { id: "photo",     label: t('interests.photo'),     icon: Camera,      color: "#f59e0b", glow: "rgba(245,158,11,0.25)" },
+                  { id: "photo",     label: t('interests.photo'),     icon: Camera,      color: "#e879f9", glow: "rgba(232,121,249,0.25)" },
                   { id: "luxury",    label: t('interests.luxury'),    icon: Gem,         color: "#a855f7", glow: "rgba(168,85,247,0.25)" },
                   { id: "events",    label: t('interests.events'),    icon: Sparkles,    color: "#f43f5e", glow: "rgba(244,63,94,0.25)"  },
                   { id: "nightlife", label: t('interests.nightlife'), icon: Palette,     color: "#8b5cf6", glow: "rgba(139,92,246,0.25)" },
@@ -1260,10 +1264,10 @@ export default function PlanPage() {
                 {/* Companions */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 bg-white/5 backdrop-blur-md p-3 sm:p-5 rounded-2xl border border-white/10 mb-4">
                   {[
-                    { id: "solo",    label: t('companions.solo'),    icon: "👤" },
-                    { id: "couple",  label: t('companions.couple'),  icon: "💑" },
-                    { id: "family",  label: t('companions.family'),  icon: "👨‍👩‍👧‍👦" },
-                    { id: "friends", label: t('companions.friends'), icon: "👥" },
+                    { id: "solo",    label: t('companions.solo'),    Icon: User },
+                    { id: "couple",  label: t('companions.couple'),  Icon: Heart },
+                    { id: "family",  label: t('companions.family'),  Icon: Users },
+                    { id: "friends", label: t('companions.friends'), Icon: UsersRound },
                   ].map(c => (
                     <div
                       key={c.id}
@@ -1279,10 +1283,10 @@ export default function PlanPage() {
                       )}
                     >
                       <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center text-2xl transition-all",
+                        "w-12 h-12 rounded-full flex items-center justify-center transition-all",
                         companions === c.id ? "bg-blue-500 shadow-lg shadow-blue-500/40 scale-110" : "bg-white/10"
                       )}>
-                        {c.icon}
+                        <c.Icon className="w-6 h-6 text-white" />
                       </div>
                       <span className={cn("text-[10px] font-bold uppercase tracking-wider", companions === c.id ? "text-blue-400" : "text-white/60")}>
                         {c.label}

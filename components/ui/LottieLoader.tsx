@@ -1,82 +1,144 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import dynamic from "next/dynamic"
-import { Loader2 } from "lucide-react"
-
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false })
-
 export type AnimationType = "plane" | "suitcase" | "default"
 
-// Fallback high-quality public URLs
-const ANIMATION_URLS: Record<AnimationType, string> = {
-    plane: "https://assets2.lottiefiles.com/packages/lf20_x62chJ.json",
-    suitcase: "https://assets1.lottiefiles.com/packages/lf20_sFtbjW.json",
-    default: "https://assets3.lottiefiles.com/packages/lf20_rwq6ciql.json"
-}
-
-// In-memory cache for animation data
-const animationCache = new Map<string, any>()
-
 interface LottieLoaderProps {
-    type?: AnimationType
-    className?: string
-    loop?: boolean
+  type?: AnimationType
+  className?: string
+  loop?: boolean
 }
 
-export function LottieLoader({ type = "default", className, loop = true }: LottieLoaderProps) {
-    const [animationData, setAnimationData] = useState<any>(null)
-    const [error, setError] = useState(false)
+export function LottieLoader({ className }: LottieLoaderProps) {
+  return (
+    <div className={`flex items-center justify-center ${className ?? ""}`}>
+      <svg
+        className="pl"
+        viewBox="0 0 160 160"
+        width="160"
+        height="160"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="plGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#000" />
+            <stop offset="100%" stopColor="#fff" />
+          </linearGradient>
+          <mask id="plMask1">
+            <rect x="0" y="0" width="160" height="160" fill="url(#plGrad)" />
+          </mask>
+          <mask id="plMask2">
+            <rect x="28" y="28" width="104" height="104" fill="url(#plGrad)" />
+          </mask>
+        </defs>
 
-    useEffect(() => {
-        let isMounted = true
-        const targetUrl = ANIMATION_URLS[type]
+        {/* Ring — bottom layer */}
+        <g>
+          <g className="pl__ring-rotate">
+            <circle
+              className="pl__ring-stroke"
+              cx="80" cy="80" r="72"
+              fill="none"
+              stroke="hsl(223,90%,55%)"
+              strokeWidth="16"
+              strokeDasharray="452.39 452.39"
+              strokeDashoffset="452"
+              strokeLinecap="round"
+              transform="rotate(-45,80,80)"
+            />
+          </g>
+        </g>
 
-        // Check cache first
-        if (animationCache.has(targetUrl)) {
-            if (isMounted) {
-                setAnimationData(animationCache.get(targetUrl))
-            }
-            return
-        }
+        {/* Ring — masked (gradient overlay) */}
+        <g mask="url(#plMask1)">
+          <g className="pl__ring-rotate">
+            <circle
+              className="pl__ring-stroke"
+              cx="80" cy="80" r="72"
+              fill="none"
+              stroke="hsl(193,90%,55%)"
+              strokeWidth="16"
+              strokeDasharray="452.39 452.39"
+              strokeDashoffset="452"
+              strokeLinecap="round"
+              transform="rotate(-45,80,80)"
+            />
+          </g>
+        </g>
 
-        fetch(targetUrl)
-            .then(res => {
-                if (!res.ok) throw new Error("Failed to load animation")
-                return res.json()
-            })
-            .then(data => {
-                if (isMounted) {
-                    animationCache.set(targetUrl, data)
-                    setAnimationData(data)
-                }
-            })
-            .catch(() => {
-                if (isMounted) setError(true)
-            })
+        {/* Ticks — bottom layer */}
+        <g>
+          <g
+            strokeWidth="4"
+            strokeDasharray="12 12"
+            strokeDashoffset="12"
+            strokeLinecap="round"
+            transform="translate(80,80)"
+          >
+            {([-135, -90, -45, 0, 45, 90, 135, 180] as const).map((deg) => (
+              <polyline
+                key={deg}
+                className="pl__tick"
+                stroke="hsl(223,10%,90%)"
+                points="0,2 0,14"
+                transform={`rotate(${deg},0,0) translate(0,40)`}
+              />
+            ))}
+          </g>
+        </g>
 
-        return () => { isMounted = false }
-    }, [type])
+        {/* Ticks — masked */}
+        <g mask="url(#plMask1)">
+          <g
+            strokeWidth="4"
+            strokeDasharray="12 12"
+            strokeDashoffset="12"
+            strokeLinecap="round"
+            transform="translate(80,80)"
+          >
+            {([-135, -90, -45, 0, 45, 90, 135, 180] as const).map((deg) => (
+              <polyline
+                key={deg}
+                className="pl__tick"
+                stroke="hsl(223,90%,80%)"
+                points="0,2 0,14"
+                transform={`rotate(${deg},0,0) translate(0,40)`}
+              />
+            ))}
+          </g>
+        </g>
 
-    if (error) {
-        return (
-            <div className={`flex items-center justify-center text-muted-foreground ${className}`}>
-                <Loader2 className="animate-spin h-8 w-8" />
-            </div>
-        )
-    }
+        {/* Arrows — bottom layer */}
+        <g>
+          <g transform="translate(64,28)">
+            <g className="pl__arrows" transform="rotate(45,16,52)">
+              <path
+                fill="hsl(3,90%,55%)"
+                d="M17.998,1.506l13.892,43.594c.455,1.426-.56,2.899-1.998,2.899H2.108c-1.437,0-2.452-1.473-1.998-2.899L14.002,1.506c.64-2.008,3.356-2.008,3.996,0Z"
+              />
+              <path
+                fill="hsl(223,10%,90%)"
+                d="M14.009,102.499L.109,58.889c-.453-1.421,.559-2.889,1.991-2.889H29.899c1.433,0,2.444,1.468,1.991,2.889l-13.899,43.61c-.638,2.001-3.345,2.001-3.983,0Z"
+              />
+            </g>
+          </g>
+        </g>
 
-    if (!animationData) {
-        return (
-            <div className={`flex items-center justify-center text-muted-foreground ${className}`}>
-                <Loader2 className="animate-spin h-6 w-6 opacity-50" />
-            </div>
-        )
-    }
-
-    return (
-        <div className={className}>
-            <Lottie animationData={animationData} loop={loop} />
-        </div>
-    )
+        {/* Arrows — masked */}
+        <g mask="url(#plMask2)">
+          <g transform="translate(64,28)">
+            <g className="pl__arrows" transform="rotate(45,16,52)">
+              <path
+                fill="hsl(333,90%,55%)"
+                d="M17.998,1.506l13.892,43.594c.455,1.426-.56,2.899-1.998,2.899H2.108c-1.437,0-2.452-1.473-1.998-2.899L14.002,1.506c.64-2.008,3.356-2.008,3.996,0Z"
+              />
+              <path
+                fill="hsl(223,90%,80%)"
+                d="M14.009,102.499L.109,58.889c-.453-1.421,.559-2.889,1.991-2.889H29.899c1.433,0,2.444,1.468,1.991,2.889l-13.899,43.61c-.638,2.001-3.345,2.001-3.983,0Z"
+              />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+  )
 }
