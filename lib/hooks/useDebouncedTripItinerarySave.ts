@@ -39,13 +39,16 @@ export function useDebouncedTripItinerarySave(params: {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const saveKeyRef = useRef<string>("")
   const onSaveErrorRef = useRef(onSaveError)
-  onSaveErrorRef.current = onSaveError
 
   const isUuid = Boolean(tripId && UUID_RE.test(tripId))
   const routeMatchesUrl =
     !loading &&
     isUuid &&
     Boolean(loadedTripId && tripId && loadedTripId === tripId)
+
+  useEffect(() => {
+    onSaveErrorRef.current = onSaveError
+  }, [onSaveError])
 
   useEffect(() => {
     baselineRef.current = null

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 
 export async function GET(req: NextRequest) {
-    const rl = checkIpRateLimit(req, "geocode-cities", 30)
+    const rl = await checkIpRateLimit(req, "geocode-cities", 30)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const { searchParams } = req.nextUrl

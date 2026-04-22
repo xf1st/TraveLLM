@@ -20,7 +20,7 @@ export async function POST(req: Request) {
         const accessErr = await enforceAiAccess(userId)
         if (accessErr) return accessErr
 
-        const rl = checkRateLimit(userId, "main-chat", 30)
+        const rl = await checkRateLimit(userId, "main-chat", 30)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         const { message, history = [], tripContext } = await req.json()

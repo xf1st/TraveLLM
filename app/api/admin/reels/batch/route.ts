@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const adminId = adminUser?.id ?? "unknown"
 
   // Max 20 reels per hour per admin (4 requests × count=5) to prevent cost runaway
-  const rl = checkRateLimit(adminId, "admin-reels-batch", 20, 60 * 60 * 1000)
+  const rl = await checkRateLimit(adminId, "admin-reels-batch", 20, 60 * 60 * 1000)
   if (!rl.allowed) return rateLimitResponse(rl)
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!

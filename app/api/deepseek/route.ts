@@ -1,7 +1,7 @@
 // DeepSeek (Primary) -> Gemini (Fallback)
 import { jsonrepair } from "jsonrepair"
-import { deepseekInference, getSessionUsage, resetSessionUsage } from "@/lib/deepseek"
-import { geminiInference } from "@/lib/gemini"
+import { deepseekInference, getSessionUsage as getDeepSeekSessionUsage, resetSessionUsage as resetDeepSeekSessionUsage } from "@/lib/deepseek"
+import { geminiInference, getGeminiSessionUsage, resetGeminiSessionUsage } from "@/lib/gemini"
 import { NextResponse } from "next/server"
 import { getDestinationImage } from "@/lib/images"
 import { createClient } from '@supabase/supabase-js'
@@ -41,6 +41,10 @@ import {
     tripDurationError,
 } from "@/lib/route-generation-guard"
 import { getBookingMarketFromRequest } from "@/lib/booking-market"
+import {
+    combineRouteGenerationUsage,
+    getRouteGenerationProviderLabel,
+} from "@/lib/route-generation-utils"
 
 export const maxDuration = 60;
 
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
         if (accessErr) return accessErr
 
         // Rate limit: max 5 generation requests per minute per user
-        const rl = checkRateLimit(userId, "deepseek-generation", 5)
+        const rl = await checkRateLimit(userId, "deepseek-generation", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         // Monthly generation limit: 10 per user
@@ -76,6 +80,11 @@ export async function POST(req: Request) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
         if (!supabaseUrl || !supabaseKey) return NextResponse.json({ error: "Service unavailable" }, { status: 503 })
         const supabase = createClient(supabaseUrl, supabaseKey)
+
+        const { data: settings } = await supabase.from('app_settings').select('maintenance_mode, maintenance_message').single()
+        if (settings?.maintenance_mode) {
+            return NextResponse.json({ error: 'Maintenance', message: settings.maintenance_message }, { status: 503 })
+        }
 
         const body = await req.json()
         const bookingMarket = getBookingMarketFromRequest(req)
@@ -124,7 +133,13 @@ export async function POST(req: Request) {
         if (destinations.length > 0 && startDate && endDate) {
             try {
                 const validation = await validateRouteRequest({
-                    departureCity: effectiveDepartureCity, destinations, startDate, endDate, budget: budgetCap, citizenship: safePreferences.citizenship || "RU"
+                    departureCity: effectiveDepartureCity,
+                    destinations,
+                    startDate,
+                    endDate,
+                    budget: budgetCap,
+                    citizenship: safePreferences.citizenship || "RU",
+                    travelMode,
                 })
                 if (validation.blockers.length > 0) return NextResponse.json({ error: validation.blockers[0].message }, { status: 400 })
                 adjustedBudget = validation.adjustedBudget || budgetCap
@@ -192,7 +207,8 @@ export async function POST(req: Request) {
         const aiTemperature =
             (body.aiCreativity === "creative" || safePreferences.aiCreativity === "creative") ? 1.0 : 0.6
 
-        resetSessionUsage();
+        resetDeepSeekSessionUsage();
+        resetGeminiSessionUsage();
         try {
             console.log("DeepSeek: Starting generation...");
             const raw = await deepseekInference([
@@ -219,13 +235,22 @@ export async function POST(req: Request) {
             routeData = recalculateDayTotals(routeData); // BUG-06
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
-            routeData.tokenUsage = getSessionUsage();
-            await recordAiUsageEvent({ userId, source: "route-generation", provider: "deepseek", usage: routeData.tokenUsage });
+            const deepseekUsage = getDeepSeekSessionUsage();
+            const geminiUsage = getGeminiSessionUsage();
+            routeData.tokenUsage = combineRouteGenerationUsage(deepseekUsage, geminiUsage) ?? deepseekUsage;
+            await recordAiUsageEvent({
+                userId,
+                source: "route-generation",
+                provider: getRouteGenerationProviderLabel(geminiUsage, deepseekUsage),
+                usage: routeData.tokenUsage,
+            });
 
-            // Fetch cover image (BUG-03: was imported but never called)
+            // Fetch cover image
             if (!routeData.coverImage) {
                 try {
-                    const imageQuery = destinations[0] || safeHighlight || "travel";
+                    const imageQuery = destinations.length > 0 
+                        ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
+                        : "travel landmark";
                     routeData.coverImage = await getDestinationImage(imageQuery);
                 } catch (imgErr) {
                     console.warn("[CoverImage] Failed to fetch cover image:", imgErr);
@@ -248,6 +273,7 @@ export async function POST(req: Request) {
             }
             routeData = sanitizeActivityUrls(routeData);
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
+            routeData = await enrichViralSpotsWithWebSearch(routeData);
             routeData = normalizeActivityTypes(routeData);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
@@ -255,6 +281,25 @@ export async function POST(req: Request) {
             routeData = await enrichHotelCosts(routeData, startDate);
             routeData = recalculateDayTotals(routeData); // BUG-06
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
+
+            const deepseekUsage = getDeepSeekSessionUsage();
+            const geminiUsage = getGeminiSessionUsage();
+            routeData.tokenUsage = combineRouteGenerationUsage(deepseekUsage, geminiUsage) ?? geminiUsage;
+            await recordAiUsageEvent({
+                userId,
+                source: "route-generation",
+                provider: getRouteGenerationProviderLabel(geminiUsage, deepseekUsage),
+                usage: routeData.tokenUsage,
+            });
+
+            if (!routeData.coverImage) {
+                try {
+                    const imageQuery = destinations.length > 0 
+                        ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
+                        : "travel landmark";
+                    routeData.coverImage = await getDestinationImage(imageQuery);
+                } catch { /* non-critical */ }
+            }
 
             return NextResponse.json(routeData);
         }

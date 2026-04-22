@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Command } from "cmdk"
@@ -34,6 +35,20 @@ interface SearchState {
   loading: boolean
 }
 
+const INITIAL_SEARCH_STATE: SearchState = {
+  myTrips: [],
+  favorites: [],
+  people: [],
+  loading: false,
+}
+
+function toProxyImageSrc(url: string) {
+  if (!url || url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) {
+    return url
+  }
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export function GlobalSearch({
@@ -47,12 +62,7 @@ export function GlobalSearch({
   const { user } = useAuth()
   const ts = useTranslations("search")
   const [query, setQuery] = useState("")
-  const [state, setState] = useState<SearchState>({
-    myTrips: [],
-    favorites: [],
-    people: [],
-    loading: false,
-  })
+  const [state, setState] = useState<SearchState>(INITIAL_SEARCH_STATE)
 
   // Set search-open attribute on body for CSS to handle scroll lock bypass
   useEffect(() => {
@@ -63,13 +73,17 @@ export function GlobalSearch({
     }
   }, [open])
 
-  // Reset on close
-  useEffect(() => {
-    if (!open) {
-      setQuery("")
-      setState({ myTrips: [], favorites: [], people: [], loading: false })
+  const resetSearch = useCallback(() => {
+    setQuery("")
+    setState(INITIAL_SEARCH_STATE)
+  }, [])
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      resetSearch()
     }
-  }, [open])
+    onOpenChange(nextOpen)
+  }, [onOpenChange, resetSearch])
 
   const search = useCallback(
     async (q: string) => {
@@ -161,7 +175,7 @@ export function GlobalSearch({
   }, [query, open, search])
 
   const navigate = (href: string) => {
-    onOpenChange(false)
+    handleOpenChange(false)
     router.push(href)
   }
 
@@ -171,11 +185,11 @@ export function GlobalSearch({
     state.people.length > 0
 
   return (
-    <RadixDialog.Root modal={false} open={open} onOpenChange={onOpenChange}>
+    <RadixDialog.Root modal={false} open={open} onOpenChange={handleOpenChange}>
       <RadixDialog.Portal>
         {/* Backdrop (Custom to ensure blur when modal={false}) */}
         <div 
-          onClick={() => onOpenChange(false)}
+          onClick={() => handleOpenChange(false)}
           className={cn(
             "fixed inset-0 z-[200] bg-black/40 dark:bg-black/60 backdrop-blur-xl transition-all duration-300 ease-out",
             open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -385,12 +399,15 @@ function TripItem({
       {/* Thumbnail */}
       <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-muted border border-border/20">
         {trip.cover_image ? (
-          <img
-            src={trip.cover_image}
-            alt={trip.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={toProxyImageSrc(trip.cover_image)}
+              alt={trip.title}
+              fill
+              sizes="40px"
+              className="object-cover"
+            />
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-500/15 to-indigo-500/15">
             <MapPin className="w-4 h-4 text-sky-500/60" />
@@ -433,12 +450,15 @@ function PersonItem({
       {/* Avatar */}
       <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-muted border border-border/20">
         {person.avatar_url ? (
-          <img
-            src={person.avatar_url}
-            alt={person.full_name || ""}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={toProxyImageSrc(person.avatar_url)}
+              alt={person.full_name || ""}
+              fill
+              sizes="40px"
+              className="object-cover"
+            />
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500/15 to-purple-500/15">
             <User className="w-4 h-4 text-indigo-500/60" />

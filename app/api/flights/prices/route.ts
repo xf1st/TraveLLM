@@ -33,7 +33,7 @@ const FlightsQuerySchema = z.object({
 
 export async function GET(request: Request) {
   // Rate limit: 30 req/min per IP (prevents TravelPayouts quota abuse)
-  const rl = checkIpRateLimit(request, "flights-prices", 30)
+  const rl = await checkIpRateLimit(request, "flights-prices", 30)
   if (!rl.allowed) return rateLimitResponse(rl)
 
   const { searchParams } = new URL(request.url)

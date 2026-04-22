@@ -1,16 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { useTranslations } from "next-intl"
 import { LottieLoader } from "@/components/ui/LottieLoader"
+
+function subscribeToMount() {
+  return () => {}
+}
 
 export function GlobalLoader() {
   const t = useTranslations("common")
   const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(
+    subscribeToMount,
+    () => true,
+    () => false
+  )
 
   useEffect(() => {
-    setMounted(true)
     const timer = setTimeout(() => {
       setLoading(false)
     }, 900)

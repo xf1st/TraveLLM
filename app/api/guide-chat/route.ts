@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         const chatLimit = await checkMonthlyChatAiLimit(userId)
         if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
-        const rl = checkRateLimit(userId, "guide-chat", 20)
+        const rl = await checkRateLimit(userId, "guide-chat", 20)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         const { message, context, mode = 'local' } = await req.json()

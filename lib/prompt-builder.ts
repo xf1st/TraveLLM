@@ -33,11 +33,10 @@ Activity → partner → target URL pattern:
 | Hotels | Yandex + Ostrovok | bookingUrl: Yandex Travel hotel page URL with dates. link: Ostrovok search URL with hotel name. |
 CRITICAL — hotel names must be REAL existing hotels (chains, known local brands — e.g. "Ibis Irkutsk", "Marriott Irkutsk", "Angara Hotel"). NEVER invent generic names like "Hotel [City]", "Гостиница [City]", "Отель [City]" — these do not exist.
 Yandex Travel URL rules:
-  • Known real hotel → specific page: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — hyphens only, no underscores, no extra /hotel/ segment.
-  • Uncertain / generic name → city search fallback: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+  • ALWAYS use city search (never guess hotel slugs — they 404): \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • IMPORTANT city slugs (use exactly as shown): Moscow=\`moscow\`, Saint Petersburg=\`saint-petersburg\`, Novosibirsk=\`novosibirsk\`, Yekaterinburg=\`ekaterinburg\`, Kazan=\`kazan\`, Sochi=\`sochi\`, Vladivostok=\`vladivostok\`, Irkutsk=\`irkutsk\`, Krasnodar=\`krasnodar\`, Nizhny Novgorod=\`nizhniy-novgorod\`. NEVER use "sankt-peterburg", "moskva", or Russian transliterations.
-Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotels/search/?q={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
-  Example: https://ostrovok.ru/hotels/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
+Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
+  Example: https://ostrovok.ru/hotel/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
 ⚠️ Yandex Travel is for Russian cities ONLY — NEVER use it for foreign destinations. Use Booking.com for abroad.
 `.trim()
     }
@@ -54,11 +53,10 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
 | Отели | Яндекс + Островок | bookingUrl: страница отеля на Яндекс.Путешествиях с датами. link: поиск по названию отеля на Островке с датами. |
 КРИТИЧЕСКИ ВАЖНО — названия отелей должны быть РЕАЛЬНО СУЩЕСТВУЮЩИМИ (сети, известные местные бренды — например "Ibis Irkutsk", "Marriott Irkutsk", "Отель Ангара"). НИКОГДА не придумывай общие названия вроде "Отель [Город]", "Гостиница [Город]" — таких отелей не существует.
 Правила URL Яндекс.Путешествий:
-  • Известный реальный отель → конкретная страница: \`https://travel.yandex.ru/hotels/{city-slug}/{hotel-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\` — только дефисы, без подчёркиваний, без лишнего сегмента /hotel/.
-  • Неизвестный / общий — поиск по городу: \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
+  • ВСЕГДА используй поиск по городу (slug отеля не угадывать — это ведёт к 404): \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • ВАЖНО — слаги городов (использовать точно): Москва=\`moscow\`, Санкт-Петербург=\`saint-petersburg\`, Новосибирск=\`novosibirsk\`, Екатеринбург=\`ekaterinburg\`, Казань=\`kazan\`, Сочи=\`sochi\`, Владивосток=\`vladivostok\`, Иркутск=\`irkutsk\`, Краснодар=\`krasnodar\`, Нижний Новгород=\`nizhniy-novgorod\`. НИКОГДА не использовать "sankt-peterburg", "moskva" или русскую транслитерацию.
-Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotels/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
-  Пример: https://ostrovok.ru/hotels/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
+Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
+  Пример: https://ostrovok.ru/hotel/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
 ⚠️ Яндекс.Путешествия — ТОЛЬКО для городов России. Для зарубежных отелей — Booking.com, НЕ Яндекс.
 `.trim()
 }
@@ -308,7 +306,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (НЕ карта!) + link:
      bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обычный URL, партнёрский трекинг добавляется автоматически).
-     link: Островок — https://ostrovok.ru/hotels/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N. По РФ всегда обе ссылки; за рубежом — bookingUrl=Booking.com, link=Ostrovok. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
+     link: Островок — https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N. По РФ всегда обе ссылки; за рубежом — bookingUrl=Booking.com search URL, link=Ostrovok. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
 
    food → link (и bookingUrl, если важна бронь столика):
      ТОЛЬКО для городов РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.

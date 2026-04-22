@@ -18,7 +18,8 @@ export function BentoInsights({ tripData, className }: BentoInsightsProps) {
   const travelStyle = tripData.tags?.[0] || "Приключения"
   const duration = tripData.itinerary?.length || 0
   const destination = tripData.destination || tripData.countries?.[0]?.name || "Неизвестно"
-  const proTips = tripData.itinerary?.find((d: any) => d.tips)?.tips || "Возьмите с собой удобную обувь!"
+  const rawTips = tripData.itinerary?.find((d: any) => d.tips)?.tips
+  const proTips = (Array.isArray(rawTips) ? rawTips.join(' ') : rawTips) || "Возьмите с собой удобную обувь!"
   
   const mainImageUrl = tripData.mainImageUrl
   const foodImageUrl = tripData.foodImageUrl

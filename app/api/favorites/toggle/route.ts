@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   const userId = await getRequestUserId()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const rl = checkRateLimit(userId, "favorites-toggle", 30)
+  const rl = await checkRateLimit(userId, "favorites-toggle", 30)
   if (!rl.allowed) return rateLimitResponse(rl)
 
   const { tripId } = await req.json()

@@ -162,7 +162,7 @@ export async function POST(req: Request) {
     const accessErr = await enforceAiAccess(userId)
     if (accessErr) return accessErr
 
-    const rl = checkRateLimit(userId, "modify-itinerary", 5)
+    const rl = await checkRateLimit(userId, "modify-itinerary", 5)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const rawBody = await req.json()

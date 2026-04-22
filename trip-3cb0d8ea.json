@@ -1,0 +1,863 @@
+{
+  "id": "3cb0d8ea-84f1-4e51-a3ce-fcade98ce796",
+  "title": "Трансазиатский экспресс: Белград, Гуанчжоу, Джакарта",
+  "destination": "Сербия, Китай, Индонезия",
+  "user_id": "8a8f0889-3a8e-4cb7-89f2-55f9b4653a62",
+  "created_at": "2026-04-19T11:54:59.366974+00:00",
+  "updated_at": "2026-04-19T11:54:59.366974+00:00",
+  "status": "active",
+  "itinerary": [
+    {
+      "day": 1,
+      "city": "Белград",
+      "tips": {
+        "day.tips": "Поменяйте немного валюты в обменниках (менее известные, чем в аэропорту) для лучшего курса.",
+        "visaAdvice": "Для граждан РФ виза в Сербию не требуется до 30 дней пребывания.",
+        "paymentAdvice": "В Белграде широко принимают карты, но для мелких лавок и такси лучше иметь наличные динары (RSD).",
+        "safetyInfo.tips": "Белград безопасен, но следите за личными вещами в толпе на улице Князя Михаила."
+      },
+      "title": "Прибытие в Белград и знакомство с центром",
+      "dayTotal": "≈24 000 ₽",
+      "activities": [
+        {
+          "cost": "15 000 ₽",
+          "desc": "Прямой рейс 'Аэрофлота' или 'Air Serbia'. Прибытие в Белград.",
+          "link": "https://www.aviasales.ru/search/DME1904BEG1?marker=698817.flight_day_1",
+          "time": "Утро",
+          "type": "transport",
+          "title": "Перелёт Москва (DME) → Белград (BEG)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Belgrade+Nikola+Tesla+Airport",
+          "placeName": "Аэропорт Никола Тесла (BEG)"
+        },
+        {
+          "cost": "6 000 ₽/ночь",
+          "desc": "Исторический отель в центре города, рядом с пешеходной зоной. Заселение.",
+          "link": "https://ostrovok.ru/hotel/search/?q=Hotel+Moskva+Belgrade&checkin=2026-04-19&checkout=2026-04-20&guests=2",
+          "time": "День",
+          "type": "hotel",
+          "title": "Заселение в Hotel Moskva 4*",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Hotel+Moskva+Belgrade",
+          "placeName": "Hotel Moskva 4*",
+          "bookingUrl": "https://travel.yandex.ru/hotels/belgrade/?checkinDate=2026-04-19&checkoutDate=2026-04-20&adults=2"
+        },
+        {
+          "cost": "3 000 ₽",
+          "desc": "Традиционная сербская кухня с прекрасным видом на крепость и слияние рек.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294473-d1878447-Reviews-Kalemegdanska_Terasa-Belgrade.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в ресторане Kalemegdanska Terasa",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Kalemegdanska+Terasa+Belgrade",
+          "placeName": "Ресторан Kalemegdanska Terasa"
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "city": "Белград",
+      "tips": {
+        "day.tips": "Посетите Скупщину (здание парламента) для хороших фотографий с площади Теразие.",
+        "visaAdvice": "Продолжаете находиться без визы.",
+        "paymentAdvice": "В Скадарлии цены могут быть немного выше, чем в других районах.",
+        "safetyInfo.tips": "В Скадарлии вечером много уличных музыкантов, будьте готовы к чаевым, если просите песню."
+      },
+      "title": "Культурное наследие и богемный квартал",
+      "dayTotal": "≈4 500 ₽",
+      "activities": [
+        {
+          "cost": "500 ₽",
+          "desc": "Попробуйте свежий сербский бурек. Это аутентичное место, популярное у местных жителей.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294473-d17345537-Reviews-Pekara_Trpkovic-Belgrade.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак в пекарне Pekara Trpković",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Pekara+Trpkovic+Belgrade",
+          "placeName": "Пекарня Pekara Trpković"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Осмотр крепостных стен, Военного музея и Памятника Победы. Отличные виды на Дунай.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294473-d581328-Reviews-Kalemegdan_Park_and_Zoo-Belgrade.html",
+          "time": "День",
+          "type": "food",
+          "title": "Исследование крепости Калемегдан",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Kalemegdan+Fortress+Belgrade",
+          "placeName": "Крепость Калемегдан",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294473-d581328-Reviews-Kalemegdan_Park_and_Zoo-Belgrade.html"
+        },
+        {
+          "cost": "3 500 ₽",
+          "desc": "Богемный квартал, мощенные улицы, живая традиционная музыка (тамбурица).",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294473-d523255-Reviews-Skadarlija-Belgrade.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Прогулка и ужин в Скадарлии",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Skadarlija+Belgrade",
+          "placeName": "Скадарлия"
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "city": "Белград",
+      "tips": {
+        "day.tips": "Добраться до Земуна можно на местном автобусе (дешевле такси) или даже на речном трамвайчике.",
+        "visaAdvice": "Без изменений.",
+        "paymentAdvice": "В районе Земун лучше использовать наличные.",
+        "safetyInfo.tips": "Земун более спокойный район, но вечером на набережной стоит быть внимательнее."
+      },
+      "title": "Неизведанные места и гастрономия",
+      "dayTotal": "≈4 000 ₽",
+      "activities": [
+        {
+          "cost": "0 ₽",
+          "desc": "Один из крупнейших православных храмов в мире. Впечатляющий интерьер, мозаики.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294473-d247361-Reviews-Temple_of_Saint_Sava-Belgrade.html",
+          "time": "Утро",
+          "type": "activity",
+          "title": "Посещение Храма Святого Саввы",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Temple+of+Saint+Sava+Belgrade",
+          "placeName": "Храм Святого Саввы"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Поездка в старый австро-венгерский город Земун, ныне район Белграда, чтобы увидеть менее туристические места.",
+          "link": "https://kiwitaxi.ru/",
+          "time": "День",
+          "type": "transport",
+          "title": "Трансфер в Земун",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Zemun+Belgrade",
+          "placeName": "Земун (Zemun)"
+        },
+        {
+          "cost": "300 ₽",
+          "desc": "Средневековая башня с панорамным видом на Земун, Дунай и Белград. Менее многолюдно, чем Калемегдан.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g1214643-d10066714-Reviews-Gardoš_Tower-Zemun.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Подъем на башню Гардош",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Gardoš+Tower+Zemun",
+          "placeName": "Башня Гардош",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g1214643-d10066714-Reviews-Gardoš_Tower-Zemun.html"
+        },
+        {
+          "cost": "3 200 ₽",
+          "desc": "Рыбный ресторан на воде в Земуне. Попробуйте свежевыловленную рыбу из Дуная.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g1214643-d16476602-Reviews-Restoran_Saran-Zemun.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Обед/Ранний ужин на набережной Земуна",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Restoran+Šaran+Zemun",
+          "placeName": "Ресторан Saran"
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "city": "Белград",
+      "tips": {
+        "day.tips": "Посетите рынок, чтобы купить местные деликатесы в качестве сувениров, если не успели раньше.",
+        "visaAdvice": "Без изменений.",
+        "paymentAdvice": "Наличные понадобятся для оплаты такси до аэропорта.",
+        "safetyInfo.tips": "Будьте внимательны при упаковке багажа для дальнего перелета."
+      },
+      "title": "Релакс и подготовка к перелету в Азию",
+      "dayTotal": "≈3 500 ₽",
+      "activities": [
+        {
+          "cost": "900 ₽",
+          "desc": "Стильное кафе с хорошим кофе и видом на крепость Калемегдан.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294473-d10074880-Reviews-Comunale_Caffe-Belgrade.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Поздний завтрак в Comunale Caffé",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Comunale+Caffé+Belgrade",
+          "placeName": "Comunale Caffé"
+        },
+        {
+          "cost": "1 500 ₽",
+          "desc": "Свободное время для покупки сувениров, ракии, или просто прогулки по главной пешеходной улице.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294473-d523256-Reviews-Knez_Mihailova_Street-Belgrade.html",
+          "time": "День",
+          "type": "free",
+          "title": "Шопинг и сувениры",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Knez+Mihailova+Street+Belgrade",
+          "placeName": "Улица Князя Михаила"
+        },
+        {
+          "cost": "1 100 ₽",
+          "desc": "Интерактивный музей, посвященный великому изобретателю. Работает до 20:00.",
+          "link": "https://www.tesla-museum.org/",
+          "time": "Вечер",
+          "type": "activity",
+          "title": "Посещение музея Николы Теслы",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Nikola+Tesla+Museum+Belgrade",
+          "placeName": "Музей Николы Теслы",
+          "ticketUrl": "https://www.tesla-museum.org/en/tickets"
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "city": "Гуанчжоу",
+      "tips": {
+        "day.tips": "Из-за длительного перелета и смены часовых поясов запланируйте легкий ужин и ранний отход ко сну.",
+        "visaAdvice": "Для посещения КНР гражданам РФ требуется виза. Необходимо оформить заранее.",
+        "paymentAdvice": "В Китае доминируют WeChat Pay и Alipay. Наличные принимают неохотно. Настройте мобильные платежи заранее или используйте карты, привязанные к Alipay.",
+        "safetyInfo.tips": "Следите за вещами в аэропортах и на вокзалах. В Гуанчжоу сильная влажность."
+      },
+      "title": "Переезд в Гуанчжоу",
+      "dayTotal": "≈63 500 ₽",
+      "activities": [
+        {
+          "cost": "1 000 ₽",
+          "desc": "Быстрый завтрак перед трансфером в аэропорт.",
+          "link": "https://ostrovok.ru/hotel/search/?q=Hotel+Moskva+Belgrade&checkin=2026-04-20&checkout=2026-04-21&guests=2",
+          "time": "Утро",
+          "type": "food",
+          "title": "Ранний завтрак и выезд из отеля",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Hotel+Moskva+Belgrade",
+          "placeName": "Hotel Moskva 4*"
+        },
+        {
+          "cost": "55 000 ₽",
+          "desc": "Длинный перелет, вероятно, с одной пересадкой (например, в Стамбуле или Дохе).",
+          "link": "https://www.aviasales.ru/search/BEG2304CAN1?marker=698817.flight_day_5",
+          "time": "День",
+          "type": "transport",
+          "title": "Перелёт Белград (BEG) → Гуанчжоу (CAN)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Guangzhou+Baiyun+International+Airport",
+          "placeName": "Аэропорт Гуанчжоу Байюнь (CAN)"
+        },
+        {
+          "cost": "7 500 ₽/ночь",
+          "desc": "Отель рядом с аэропортом для акклиматизации после долгого перелета. Заселение.",
+          "link": "https://ostrovok.ru/hotel/search/?q=Novotel+Guangzhou+Baiyun+Airport&checkin=2026-04-20&checkout=2026-04-21&guests=2",
+          "time": "Вечер",
+          "type": "hotel",
+          "title": "Заселение в Novotel Guangzhou Baiyun Airport",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Novotel+Guangzhou+Baiyun+Airport",
+          "placeName": "Novotel Guangzhou Baiyun Airport",
+          "bookingUrl": "https://travel.yandex.ru/hotels/guangzhou/?checkinDate=2026-04-20&checkoutDate=2026-04-21&adults=2"
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "city": "Гуанчжоу",
+      "tips": {
+        "day.tips": "В Гуанчжоу очень много небоскребов. Башня CTF предлагает лучшие виды.",
+        "visaAdvice": "Виза обязательна. В аэропорту может быть доступен транзитный безвизовый режим (144 часа), но для полноценного пребывания нужна виза.",
+        "paymentAdvice": "Попробуйте активировать Alipay для оплаты в такси и магазинах.",
+        "safetyInfo.tips": "Используйте официальные приложения такси (например, Didi) или приложения для заказа через Alipay для избежания завышенных цен."
+      },
+      "title": "Современный Гуанчжоу и виды с высоты",
+      "dayTotal": "≈6 500 ₽",
+      "activities": [
+        {
+          "cost": "1 500 ₽",
+          "desc": "Переезд из отеля у аэропорта в центральный район Тяньхэ.",
+          "link": "https://kiwitaxi.ru/",
+          "time": "Утро",
+          "type": "transport",
+          "title": "Трансфер в центр города",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Guangzhou+Tianhe+District",
+          "placeName": "Аэропорт Гуанчжоу Байюнь (CAN)"
+        },
+        {
+          "cost": "2 500 ₽",
+          "desc": "Символ города. Подъем на смотровую площадку для обзора мегаполиса.",
+          "link": "https://www.klook.com/ru/search/?q=Canton+Tower+Guangzhou",
+          "time": "День",
+          "type": "activity",
+          "title": "Подъем на башню Canton Tower",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Canton+Tower+Guangzhou",
+          "placeName": "Кантонская башня (Canton Tower)",
+          "ticketUrl": "https://www.klook.com/ru/activity/1199-canton-tower-guangzhou/"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Осмотр футуристического делового района и вечерней подсветки небоскребов.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294211-d3678371-Reviews-Zhujiang_New_Town-Guangzhou.html",
+          "time": "Вечер",
+          "type": "activity",
+          "title": "Прогулка по набережной и башне CTF Finance Centre",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Zhujiang+New+Town+Guangzhou",
+          "placeName": "Zhujiang New Town (CBD)"
+        },
+        {
+          "cost": "2 000 ₽",
+          "desc": "Знаменитый ресторан, известный своей кантонской кухней. Попробуйте димсамы.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294211-d7307456-Reviews-Guangzhou_Restaurant-Guangzhou.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в ресторане Guangzhou Restaurant",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Guangzhou+Restaurant",
+          "placeName": "Ресторан Guangzhou Restaurant (Гуанчжоуский ресторан)"
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "city": "Гуанчжоу",
+      "tips": {
+        "day.tips": "Посещение Храма Шести Баньяновых Деревьев — это погружение в буддизм, одевайтесь уместно.",
+        "visaAdvice": "Без изменений.",
+        "paymentAdvice": "В старых храмах и на рынках могут быть более лояльны к наличным.",
+        "safetyInfo.tips": "Будьте осторожны с карманниками в местах большого скопления людей, особенно на рынках."
+      },
+      "title": "Древняя культура и храмы",
+      "dayTotal": "≈4 800 ₽",
+      "activities": [
+        {
+          "cost": "1 000 ₽",
+          "desc": "Аутентичный завтрак в стиле 'димсам' (Yum Cha) для знакомства с гастрономией региона.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294211-d7169472-Reviews-Liangyou_Restaurant-Guangzhou.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак (Димсамы) в Liangyou Restaurant",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Liangyou+Restaurant+Guangzhou",
+          "placeName": "Ресторан Liangyou"
+        },
+        {
+          "cost": "300 ₽",
+          "desc": "Древний буддийский храм с впечатляющей Пагодой Цветочных украшений.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294211-d584039-Reviews-Temple_of_the_Six_Banyan_Trees_Liurong_Temple-Guangzhou.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Посещение Храма Шести Баньяновых Деревьев",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Temple+of+the+Six+Banyan+Trees+Guangzhou",
+          "placeName": "Храм Шести Баньяновых Деревьев (Liurong Temple)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294211-d584039-Reviews-Temple_of_the_Six_Banyan_Trees_Liurong_Temple-Guangzhou.html"
+        },
+        {
+          "cost": "200 ₽",
+          "desc": "Величественное здание, посвященное отцу современной Китая. Архитектурный памятник.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294211-d584040-Reviews-Sun_Yat_sen_Memorial_Hall-Guangzhou.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Осмотр мемориального зала Сунь Ятсена",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Sun+Yat-sen+Memorial+Hall+Guangzhou",
+          "placeName": "Мемориальный зал Сунь Ятсена",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294211-d584040-Reviews-Sun_Yat_sen_Memorial_Hall-Guangzhou.html"
+        },
+        {
+          "cost": "1 000 ₽",
+          "desc": "Самый большой парк города, где находится знаменитая скульптура Пяти Козлов. Спокойный отдых.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294211-d584042-Reviews-Yuexiu_Park-Guangzhou.html",
+          "time": "Вечер",
+          "type": "free",
+          "title": "Вечерняя прогулка по озеру Юэсю",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Yuexiu+Park+Guangzhou",
+          "placeName": "Озеро Юэсю (Yuexiu Park)"
+        },
+        {
+          "cost": "2 300 ₽",
+          "desc": "Популярный ресторан с концепцией 'хот-пот' (самовар). Отличное гастрономическое впечатление.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294211-d10208865-Reviews-Haidilao_Hot_Pot-Guangzhou.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в местном хот-пот заведении",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Haidilao+Hot+Pot+Guangzhou",
+          "placeName": "Haidilao Hot Pot (сеть)"
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "city": "Гуанчжоу",
+      "tips": "В Гуанчжоу для туристов из РФ могут потребоваться визы, проверьте актуальные требования. Оплата: WeChat Pay или Alipay предпочтительнее, но наличные (юани) принимают в небольших местах. Владение английским ограничено, используйте переводчик.",
+      "dayTotal": "≈4 700 ₽",
+      "activities": [
+        {
+          "cost": "200 ₽",
+          "desc": "Древний буддийский храм с впечатляющей пагодой Цветов. Менее туристический, чем некоторые другие храмы.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294212-d316787-Reviews-Temple_of_the_Six_Banyan_Trees-Guangzhou_Guangdong.html",
+          "time": "Утро",
+          "type": "activity",
+          "title": "Посещение Храма Шести Баньяновых Деревьев (Люжун)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Temple+of+the+Six+Banyan+Trees+Guangzhou",
+          "placeName": "Храм Люжун (Храм Шести Баньяновых Деревьев)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294212-d316787-Reviews-Temple_of_the_Six_Banyan_Trees-Guangzhou_Guangdong.html"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Исследование традиционной архитектуры и местных рынков, где мало иностранных туристов. Поиск аутентичных лавок.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294212-d1012675-Reviews-Liwan_District-Guangzhou_Guangdong.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Изучение района Ливань и старых улочек",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Liwan+District+Guangzhou",
+          "placeName": "Район Ливань (Xiguan)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294212-d1012675-Reviews-Liwan_District-Guangzhou_Guangdong.html"
+        },
+        {
+          "cost": "3 500 ₽",
+          "desc": "Посещение одного из старейших и наиболее уважаемых ресторанов кантонской кухни для дегустации димсамов.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294212-d1014797-Reviews-Guangzhou_Restaurant-Guangzhou_Guangdong.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин с димсамами в местном заведении",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Guangzhou+Restaurant+Guangzhou",
+          "placeName": "Ресторан Guangzhou Restaurant (Guangzhou Jiujia)",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurant_Review-g294212-d1014797-Reviews-Guangzhou_Restaurant-Guangzhou_Guangdong.html"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Наблюдение за вечерней подсветкой небоскребов и башни Кантон (Canton Tower).",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294212-d1014797-Reviews-Canton_Tower-Guangzhou_Guangdong.html",
+          "time": "Поздний вечер",
+          "type": "free",
+          "title": "Прогулка по набережной возле башни Кантoн",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Canton+Tower+Guangzhou",
+          "placeName": "Набережная реки Чжуцзян",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294212-d1014797-Reviews-Canton_Tower-Guangzhou_Guangdong.html"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "city": "Гуанчжоу / Переезд в Джакарту",
+      "tips": "Для въезда в Индонезию гражданам РФ обычно требуется eVisa или оформление по прибытии (VOA), уточните актуальный статус на 2026 год. Обмен валюты лучше производить в аэропорту или официальных банках. В Джакарте трафик очень плотный, используйте Grab/Gojek.",
+      "dayTotal": "≈24 900 ₽",
+      "activities": [
+        {
+          "cost": "400 ₽",
+          "desc": "Поиск локального места, где подают утренние рисовые каши (конжи) или паровые булочки.",
+          "link": "https://www.tripadvisor.ru/Restaurants-g294212-c2-Guangzhou_Guangdong.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак с местными закусками",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=local+breakfast+Zhuangxi+Guangzhou",
+          "placeName": "Уличный продавец в районе Чжуанси",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurants-g294212-c2-Guangzhou_Guangdong.html"
+        },
+        {
+          "cost": "20 000 ₽",
+          "desc": "Перелёт из Гуанчжоу в Джакарту. Необходимо учесть смену часовых поясов.",
+          "link": "https://www.aviasales.ru/search/CAN2704CGK1?marker=698817.flight_day_9",
+          "time": "День",
+          "type": "transport",
+          "title": "Перелёт Гуанчжоу (CAN) → Джакарта (CGK)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Soekarno-Hatta+International+Airport+Jakarta",
+          "placeName": "Аэропорт Сукарно-Хатта (CGK)"
+        },
+        {
+          "cost": "4 500 ₽/ночь",
+          "desc": "Заселение в отель. Район Gajah Mada удобен для доступа к старому городу (Кота Туа).",
+          "link": "https://ostrovok.ru/hotel/search/?q=Novotel+Jakarta+Gajah+Mada+Jakarta&checkin=2026-04-27&checkout=2026-05-03&guests=2",
+          "time": "Вечер",
+          "type": "hotel",
+          "title": "Заселение в Novotel Jakarta Gajah Mada",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Novotel+Jakarta+Gajah+Mada",
+          "placeName": "Novotel Jakarta Gajah Mada",
+          "bookingUrl": "https://travel.yandex.ru/hotels/jakarta/?checkinDate=2026-04-27&checkoutDate=2026-05-03&adults=2"
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "city": "Джакарта",
+      "tips": "В Индонезии используйте приложения Grab или Gojek для заказа транспорта и еды — это намного дешевле и удобнее такси. Местная валюта — индонезийская рупия (IDR).",
+      "dayTotal": "≈3 800 ₽",
+      "activities": [
+        {
+          "cost": "800 ₽",
+          "desc": "Корейская пекарня с хорошим выбором выпечки и кофе для начала дня.",
+          "link": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак в пекарне Tous les Jours",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Tous+les+Jours+Jakarta",
+          "placeName": "Tous les Jours (Сеть)",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "1 000 ₽",
+          "desc": "Посещение исторического центра, бывшей голландской колониальной столицы. Музей Фатахилла.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317780-Reviews-Kota_Tua-Jakarta_Jakarta_Capital_Region.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Исследование старого города Кота Туа (Batavia)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Kota+Tua+Jakarta",
+          "placeName": "Кота Туа (Старый город)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317780-Reviews-Kota_Tua-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "500 ₽",
+          "desc": "Крупнейший музей страны, демонстрирующий богатое наследие архипелага (археология, этнография).",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317777-Reviews-National_Museum_of_Indonesia-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Вечер",
+          "type": "activity",
+          "title": "Посещение Национального музея Индонезии",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=National+Museum+of+Indonesia",
+          "placeName": "Национальный музей Индонезии",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317777-Reviews-National_Museum_of_Indonesia-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "1 500 ₽",
+          "desc": "Дегустация знаменитого жареного риса (Nasi Goreng) в аутентичном местном заведении.",
+          "link": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Поздний вечер",
+          "type": "food",
+          "title": "Ужин с насси горенг в местном варунге",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Local+Warung+Nasi+Goreng+Jakarta",
+          "placeName": "Варунг (Lokal Warung)",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html"
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "city": "Джакарта",
+      "tips": "Чтобы избежать пробок и увидеть больше, рассмотрите аренду автомобиля с водителем на день (через Grab/Gojek или местное агентство). Влажность высокая, пейте много воды.",
+      "dayTotal": "≈7 800 ₽",
+      "activities": [
+        {
+          "cost": "0 ₽",
+          "desc": "Крупнейшая мечеть в Юго-Восточной Азии, символ религиозной терпимости Индонезии. Напротив Кафедрального собора.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317779-Reviews-Istiqlal_Mosque-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Посещение Национальной мечети Истикляль",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Istiqlal+Mosque+Jakarta",
+          "placeName": "Мечеть Истикляль",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317779-Reviews-Istiqlal_Mosque-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "300 ₽",
+          "desc": "Символ борьбы за независимость Индонезии. Подъем на смотровую площадку (если нет очередей).",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317782-Reviews-National_Monument-Jakarta_Jakarta_Capital_Region.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Осмотр Монумента Монумент Насиональ (Monas)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=National+Monument+Jakarta",
+          "placeName": "Монумент Насиональ (Monas)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317782-Reviews-National_Monument-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "2 000 ₽",
+          "desc": "Один из крупнейших торговых центров, возможность передохнуть от жары и увидеть современную жизнь Джакарты.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d493215-Reviews-Grand_Indonesia-Jakarta_Jakarta_Capital_Region.html",
+          "time": "День",
+          "type": "free",
+          "title": "Обед и шопинг в Grand Indonesia Mall",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Grand+Indonesia+Mall",
+          "placeName": "Grand Indonesia Mall",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d493215-Reviews-Grand_Indonesia-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "5 500 ₽",
+          "desc": "Элитный ужин с панорамным видом на ночную Джакарту с крыши башни BCA.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d3299811-Reviews-Skye_Bar_Restaurant-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в ресторане с видом на город",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Skye+Bar+Restaurant+Jakarta",
+          "placeName": "Skye Bar & Restaurant",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d3299811-Reviews-Skye_Bar_Restaurant-Jakarta_Jakarta_Capital_Region.html"
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "city": "Джакарта",
+      "tips": "Для посещения мест, куда не ходят туристы (например, некоторые рынки или районы), используйте Grab/Gojek и будьте готовы к отсутствию англоговорящего персонала. Всегда имейте при себе немного наличных IDR.",
+      "dayTotal": "≈5 200 ₽",
+      "activities": [
+        {
+          "cost": "200 ₽",
+          "desc": "Небольшой, но интересный музей, посвященный традиционным индонезийским марионеткам (ваянг).",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Утро",
+          "type": "activity",
+          "title": "Посещение Художественной галереи и музея Wayang",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Wayang+Museum+Jakarta",
+          "placeName": "Музей Ваянг (Музей кукол)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "1 000 ₽",
+          "desc": "Старый рынок, где можно найти текстиль, специи и товары для дома. Менее туристический, чем крупные моллы.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d493218-Reviews-Pasar_Baru-Jakarta_Jakarta_Capital_Region.html",
+          "time": "День",
+          "type": "food",
+          "title": "Погружение в местную жизнь на рынке Пасар Бару",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Pasar+Baru+Jakarta",
+          "placeName": "Пасар Бару (Pasar Baru)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d493218-Reviews-Pasar_Baru-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "4 000 ₽",
+          "desc": "Изысканная яванская и индонезийская кухня в красивом колониальном особняке. Высокий класс.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d1006716-Reviews-Plataran_Menteng-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в ресторане с яванской кухней",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Plataran+Menteng+Jakarta",
+          "placeName": "Ресторан Plataran Menteng",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d1006716-Reviews-Plataran_Menteng-Jakarta_Jakarta_Capital_Region.html"
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "city": "Джакарта (Природа)",
+      "tips": "Для релакса и природы лучше выехать за пределы центра Джакарты. Возьмите с собой защиту от солнца и насекомых, если планируете долгие прогулки на природе.",
+      "dayTotal": "≈6 000 ₽",
+      "activities": [
+        {
+          "cost": "1 000 ₽",
+          "desc": "Поездка в Богор (около 60 км к югу от Джакарты). Поезд (KRL Commuter Line) — бюджетный вариант, такси/Grab — быстрее.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Утро",
+          "type": "transport",
+          "title": "Трансфер в Bogor (Богор)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Jakarta+to+Bogor",
+          "placeName": "Вокзал Gambir (для поезда) или заказ такси",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "700 ₽",
+          "desc": "Огромный тропический сад, созданный голландцами. Идеальное место для релакса и наслаждения природой.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294227-d317776-Reviews-Bogor_Botanical_Gardens-Bogor_West_Java.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Прогулка по Богорскому ботаническому саду",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Bogor+Botanical+Gardens",
+          "placeName": "Богорский ботанический сад (Kebun Raya Bogor)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294227-d317776-Reviews-Bogor_Botanical_Gardens-Bogor_West_Java.html"
+        },
+        {
+          "cost": "2 500 ₽",
+          "desc": "Попробуйте традиционные сунданские блюда в атмосфере, близкой к природе.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294227-d1006716-Reviews-Saung_Kuring-Bogor_West_Java.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Обед/Ранний ужин в Богоре",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Saung+Kuring+Bogor",
+          "placeName": "Ресторан Saung Kuring (в Богоре)",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurant_Review-g294227-d1006716-Reviews-Saung_Kuring-Bogor_West_Java.html"
+        },
+        {
+          "cost": "1 800 ₽",
+          "desc": "Обратный трансфер из Богора в Джакарту. Лучше выезжать до начала часа пик.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Поздний вечер",
+          "type": "transport",
+          "title": "Возвращение в Джакарту",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Bogor+to+Jakarta",
+          "placeName": "Отель в Джакарте",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html"
+        }
+      ]
+    },
+    {
+      "day": 14,
+      "city": "Джакарта",
+      "tips": "Сегодняшний день посвящен релаксации и гастрономии. Попробуйте традиционный индонезийский массаж, который очень доступен по цене.",
+      "dayTotal": "≈6 200 ₽",
+      "activities": [
+        {
+          "cost": "900 ₽",
+          "desc": "Насладитесь высококачественным местным индонезийским кофе и легким завтраком.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d7712385-Reviews-Tanamera_Coffee-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак с кофе и темпе",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Tanamera+Coffee+Jakarta",
+          "placeName": "Кофейня Tanamera Coffee",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d7712385-Reviews-Tanamera_Coffee-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "3 500 ₽",
+          "desc": "Посещение местного салона для традиционного индонезийского массажа (например, Balinese Massage) для релакса.",
+          "link": "https://www.tripadvisor.ru/Attractions-g294226-c4-Jakarta_Jakarta_Capital_Region.html",
+          "time": "День",
+          "type": "activity",
+          "title": "Релаксация и СПА-процедуры",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Best+Spa+Jakarta",
+          "placeName": "Jakarta Spa (местный салон)",
+          "ticketUrl": "https://www.tripadvisor.ru/Attraction_Review-g294226-d317778-Reviews-Wayang_Museum-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "1 500 ₽",
+          "desc": "Исследование популярного места для уличной еды, чтобы попробовать максимальное количество местных деликатесов (например, Sate Ayam).",
+          "link": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Прощальный ужин: Гастрономический тур по уличной еде",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Street+Food+Blok+M+Jakarta",
+          "placeName": "Уличная еда в районе Blok M",
+          "bookingUrl": "https://www.tripadvisor.ru/Restaurants-g294226-c1-Jakarta_Jakarta_Capital_Region.html"
+        },
+        {
+          "cost": "300 ₽",
+          "desc": "Сбор вещей и отдых перед долгим перелётом домой.",
+          "link": "https://ostrovok.ru/hotel/search/?q=Novotel+Jakarta+Gajah+Mada+Jakarta&checkin=2026-04-27&checkout=2026-05-03&guests=2",
+          "time": "Поздний вечер",
+          "type": "free",
+          "title": "Подготовка к отъезду",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Novotel+Jakarta+Gajah+Mada",
+          "placeName": "Novotel Jakarta Gajah Mada",
+          "bookingUrl": "https://travel.yandex.ru/hotels/jakarta/?checkinDate=2026-04-27&checkoutDate=2026-05-03&adults=2"
+        }
+      ]
+    },
+    {
+      "day": 15,
+      "city": "Джакарта",
+      "tips": {
+        "day.tips": "Используйте приложение Gojek или Grab для заказа такси и еды. Это самый удобный и предсказуемый по цене способ передвижения по городу.",
+        "safetyInfo": "Соблюдайте осторожность с уличной едой (Street Food) — выбирайте места с высокой проходимостью. В людных местах следите за личными вещами, особенно в общественном транспорте.",
+        "visaAdvice": "Для граждан РФ виза в Индонезию (Джакарта) не требуется для пребывания до 30 дней (требуется электронное подтверждение по прибытии или туристическая виза, если планируется продление).",
+        "paymentAdvice": "В отдаленных районах и на рынках лучше использовать наличные (Индонезийские рупии, IDR). Карты принимают в крупных ТЦ и ресторанах. Курс обмена лучше искать в официальных обменниках (Money Changer)."
+      },
+      "title": "День 15: Скрытая Джакарта и Гастрономическое Погружение",
+      "dayTotal": "≈6 000 ₽",
+      "activities": [
+        {
+          "cost": "500 ₽",
+          "desc": "Посещение местного рынка, где можно попробовать традиционные индонезийские закуски 'kue' и свежий кофе.",
+          "link": "https://www.tripadvisor.ru/Attraction_Review-g294226-d1033762-Reviews-Pasar_Santa-Jakarta.html",
+          "time": "Утро",
+          "type": "food",
+          "title": "Завтрак на местном рынке 'Pasar Santa'",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Pasar+Santa+Jakarta",
+          "placeName": "Pasar Santa"
+        },
+        {
+          "cost": "200 ₽",
+          "desc": "Посещение исторического порта, где до сих пор разгружаются традиционные деревянные парусные лодки 'Pinisi'. Менее туристическое место, чем Кота Туа.",
+          "link": "https://www.indonesia.travel/us/en/destinations/java/jakarta/sundakelapa-port",
+          "time": "День",
+          "type": "activity",
+          "title": "Исследование старого порта Сунда Келапа",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Sundakelapa+Port+Jakarta",
+          "placeName": "Sundakelapa (Старый порт)"
+        },
+        {
+          "cost": "800 ₽",
+          "desc": "Крупнейший музей страны, демонстрирующий историю и культуру архипелага. Меньше туристов, чем в других местах.",
+          "link": "https://museumnasional.or.id/",
+          "time": "Вторая половина дня",
+          "type": "activity",
+          "title": "Посещение Национального музея Индонезии",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=National+Museum+of+Indonesia",
+          "placeName": "Национальный музей Индонезии",
+          "ticketUrl": "https://museumnasional.or.id/en/ticket"
+        },
+        {
+          "cost": "3 500 ₽",
+          "desc": "Погружение в кухню народа Сунда (Западная Ява), известную своими свежими овощами и острыми соусами самбал.",
+          "link": "https://www.tripadvisor.ru/Restaurant_Review-g294226-d1194995-Reviews-Sunda_Rasa-Jakarta.html",
+          "time": "Вечер",
+          "type": "food",
+          "title": "Ужин в ресторане с традиционной яванской кухней 'Sunda Rasa'",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Sunda+Rasa+Restaurant+Jakarta",
+          "placeName": "Ресторан Sunda Rasa",
+          "bookingUrl": "https://travel.yandex.ru/restaurants/jakarta/sunda-rasa"
+        },
+        {
+          "cost": "1 000 ₽",
+          "desc": "Тихий район, где можно увидеть повседневную жизнь горожан и, возможно, найти интересные образцы уличного искусства.",
+          "time": "Поздний вечер",
+          "type": "free",
+          "title": "Прогулка по району Менггадуя (поиск уличного искусства)",
+          "placeName": "Менггадуя (Manggarai)"
+        }
+      ]
+    },
+    {
+      "day": 16,
+      "city": "Джакарта / Вылет",
+      "tips": {
+        "day.tips": "Для трансфера в аэропорт заранее забронируйте такси через Grab/Gojek или воспользуйтесь экспресс-автобусом Damri, если хотите сэкономить на пробках.",
+        "safetyInfo": "Прибудьте в аэропорт Сукарно-Хатта (CGK) заблаговременно (минимум за 3 часа), так как трафик в Джакарте непредсказуем.",
+        "visaAdvice": "Убедитесь, что ваш паспорт действителен еще минимум 6 месяцев на момент вылета из Индонезии.",
+        "paymentAdvice": "Заранее поменяйте оставшиеся IDR на доллары США или евро, так как в аэропорту курс может быть невыгодным. Основные покупки лучше совершить до отъезда в аэропорт."
+      },
+      "title": "День 16: Релакс и Вылет в Москву",
+      "dayTotal": "≈25 000 ₽",
+      "activities": [
+        {
+          "cost": "2 000 ₽",
+          "desc": "Спокойное утро, покупка сувениров и книг в крупнейшей сети книжных магазинов Индонезии.",
+          "time": "Утро",
+          "type": "free",
+          "title": "Утренний релакс и посещение местного книжного магазина",
+          "placeName": "Gramedia Bookstore (Центральный филиал)"
+        },
+        {
+          "cost": "5 000 ₽",
+          "desc": "Посещение спа-салона для полного расслабления перед долгим перелётом. Массаж с использованием местных трав и масел.",
+          "link": "https://www.klook.com/ru/search/?q=spa+jakarta",
+          "time": "День",
+          "type": "transport",
+          "title": "Релаксация в традиционном индонезийском спа (Массаж 'Бермалин')",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Bimasena+Spa+Jakarta",
+          "placeName": "Spa 'Bimasena' или аналогичный",
+          "ticketUrl": "https://www.klook.com/ru/search/?q=spa+jakarta"
+        },
+        {
+          "cost": "1 500 ₽",
+          "desc": "Быстрый и знакомый ужин в зоне вылета до регистрации на международный рейс.",
+          "link": "https://www.burgerking.co.id/",
+          "time": "Вторая половина дня",
+          "type": "food",
+          "title": "Поздний обед/Ранний ужин в аэропорту",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Burger+King+Soekarno-Hatta+International+Airport",
+          "placeName": "Burger King (Аэропорт CGK)"
+        },
+        {
+          "cost": "1 500 ₽",
+          "desc": "Трансфер из центра Джакарты в международный аэропорт CGK.",
+          "link": "https://kiwitaxi.ru/search?from=Jakarta+center&to=Soekarno-Hatta+International+Airport",
+          "time": "Вечер",
+          "type": "transport",
+          "title": "Трансфер в аэропорт Сукарно-Хатта (CGK)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Soekarno-Hatta+International+Airport",
+          "placeName": "Аэропорт Сукарно-Хатта (CGK)"
+        },
+        {
+          "cost": "15 000 ₽",
+          "desc": "Международный перелёт из Джакарты домой в Москву (вероятно, с пересадкой).",
+          "link": "https://www.aviasales.ru/search/CGK0405MOW1?marker=698817.flight_day_16",
+          "time": "Ночь",
+          "type": "transport",
+          "title": "Перелёт Джакарта (CGK) → Москва (MOW)",
+          "mapLink": "https://www.google.com/maps/search/?api=1&query=Soekarno-Hatta+International+Airport",
+          "placeName": "Аэропорт Внуково (VKO) или Домодедово (DME)"
+        }
+      ]
+    }
+  ],
+  "countries": [
+    {
+      "name": "Сербия",
+      "visaType": "Безвиз (до 30 дней)",
+      "visaRequired": false
+    },
+    {
+      "name": "Китай",
+      "visaType": "Безвиз (до 30 дней)",
+      "visaRequired": false
+    },
+    {
+      "name": "Индонезия",
+      "visaType": "Виза по прибытии (VOA)",
+      "visaRequired": true
+    }
+  ],
+  "token_usage": {
+    "totalTokens": 37163,
+    "promptTokens": 20615,
+    "completionTokens": 16548,
+    "costUsd": 0.008680700000000001,
+    "costRub": 0.781263,
+    "model": "gemini-mixed"
+  },
+  "cover_image": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
+  "user_email": "sergeifreddy@gmail.com",
+  "coverImage": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg"
+}

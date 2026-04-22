@@ -163,20 +163,10 @@ export default async function RootLayout({
         </NextIntlClientProvider>
 
         {/* Yandex.Metrika counter */}
-        <Script id="yandex-metrika" strategy="afterInteractive">
-          {`
-            (function(m,e,t,r,i,k,a){
-                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-                m[i].l=1*new Date();
-                for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-            })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=106450259', 'ym');
-
-            ym(106450259, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-          `}
-        </Script>
+        <Script src="/scripts/yandex-metrika.js" strategy="afterInteractive" />
         <noscript>
           <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://mc.yandex.ru/watch/106450259"
               style={{ position: 'absolute', left: '-9999px' }}
@@ -187,11 +177,11 @@ export default async function RootLayout({
 
         {/* Travelpayouts Drive: URL из сниппета (script.src), без WP-атрибутов */}
         {process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL ? (
-          <Script id="travelpayouts-drive-loader" strategy="afterInteractive">
-            {`(function(){var s=document.createElement("script");s.async=1;s.src=${JSON.stringify(
-              process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL
-            )};document.head.appendChild(s);})();`}
-          </Script>
+          <Script
+            id="travelpayouts-drive-loader"
+            src={process.env.NEXT_PUBLIC_TRAVELPAYOUTS_DRIVE_SCRIPT_URL}
+            strategy="afterInteractive"
+          />
         ) : null}
       </body>
     </html>

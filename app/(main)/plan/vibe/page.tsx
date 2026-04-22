@@ -19,7 +19,7 @@ import {
   Volume2,
   Wind,
 } from "lucide-react"
-import { PLAN_PENDING_GENERATION_KEY, streamGeminiTripGeneration } from "@/lib/trip-generation-stream"
+import { PLAN_PENDING_GENERATION_KEY, streamTripGeneration } from "@/lib/trip-generation-stream"
 import { saveGeneratedTripAndNavigate } from "@/lib/save-generated-trip-client"
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -154,7 +154,7 @@ export default function PlanVibePage() {
     try {
       if (abortControllerRef.current) abortControllerRef.current.abort()
       abortControllerRef.current = new AbortController()
-      const { routeData } = await streamGeminiTripGeneration(apiBody, abortControllerRef.current.signal)
+      const { routeData } = await streamTripGeneration(apiBody, abortControllerRef.current.signal)
       await saveGeneratedTripAndNavigate(routeData as Record<string, unknown>, payload, {
         autoFavorites: !!autoFavorites,
         defaultTripTitle: t("defaultTripTitle"),

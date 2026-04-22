@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const rl = checkRateLimit(user.id, "partner-promo-apply", 30, 60 * 60 * 1000)
+    const rl = await checkRateLimit(user.id, "partner-promo-apply", 30, 60 * 60 * 1000)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     let body: unknown

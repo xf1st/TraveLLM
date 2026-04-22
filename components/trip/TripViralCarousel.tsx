@@ -70,7 +70,11 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
             )}
           >
             <TripImage
-              query={destination ? `${spot.name} ${destination}` : spot.name}
+              query={
+                destination && !destination.includes(",")
+                  ? `${spot.name} ${destination}`
+                  : spot.name
+              }
               alt={spot.name}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 md:group-hover:scale-110"
             />

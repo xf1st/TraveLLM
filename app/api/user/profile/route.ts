@@ -41,7 +41,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const rl = checkRateLimit(user.id, "user-profile-patch", 24)
+    const rl = await checkRateLimit(user.id, "user-profile-patch", 24)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     let json: unknown

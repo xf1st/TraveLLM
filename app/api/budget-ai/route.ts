@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     const chatLimit = await checkMonthlyChatAiLimit(userId)
     if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
-    const rl = checkRateLimit(userId, "budget-ai", 10)
+    const rl = await checkRateLimit(userId, "budget-ai", 10)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const client = createServiceClient()

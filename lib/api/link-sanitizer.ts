@@ -130,6 +130,57 @@ function bookingSearchFallback(url: string, act: any): string {
     } catch { return url }
 }
 
+// ── Klook ──────────────────────────────────────────────────────────────────────
+// specific activity: /activity/1234-some-slug   ← can 404
+// search:            /search/?q=...             ← always works
+
+function isKlookActivityPage(url: string): boolean {
+    try {
+        const u = new URL(url)
+        if (!u.hostname.includes("klook.com")) return false
+        return u.pathname.includes("/activity/")
+    } catch { return false }
+}
+
+function klookSearchFallback(url: string, act: any): string {
+    const q = act?.placeName || ""
+    return `https://www.klook.com/ru/search/?q=${encodeURIComponent(q)}`
+}
+
+// ── Tripster ──────────────────────────────────────────────────────────────────
+// specific activity: /experiences/1234/   ← can 404
+// fallback:          /destinations/{city}/ or homepage
+
+function isTripsterActivityPage(url: string): boolean {
+    try {
+        const u = new URL(url)
+        if (!u.hostname.includes("tripster.ru")) return false
+        return u.pathname.includes("/experiences/") || u.pathname.includes("/tour/") || u.pathname.includes("/excursions/")
+    } catch { return false }
+}
+
+function tripsterFallback(url: string, act: any): string {
+    // Tripster doesn't have a reliable generic search endpoint, so we strip down to homepage
+    return "https://tripster.ru/"
+}
+
+// ── Sputnik8 ──────────────────────────────────────────────────────────────────
+// specific activity: /activities/1234-some-slug   ← can 404
+// search:            /search?q=...                ← always works
+
+function isSputnikActivityPage(url: string): boolean {
+    try {
+        const u = new URL(url)
+        if (!u.hostname.includes("sputnik8.com")) return false
+        return u.pathname.includes("/activities/")
+    } catch { return false }
+}
+
+function sputnikSearchFallback(url: string, act: any): string {
+    const q = act?.placeName || ""
+    return `https://sputnik8.com/ru/search?q=${encodeURIComponent(q)}`
+}
+
 /* ─── HTTP probe ─────────────────────────────────────────────────────────── */
 
 async function probeUrl(url: string): Promise<number> {
@@ -175,28 +226,47 @@ function collectCandidates(itinerary: any[]): Candidate[] {
     itinerary.forEach((day: any, di) => {
         if (!Array.isArray(day?.activities)) return
         day.activities.forEach((act: any, ai: number) => {
-            if (act?.type !== "hotel") return
-
-            // bookingUrl — Yandex Travel specific page (probe needed)
-            if (typeof act.bookingUrl === "string") {
-                const url = act.bookingUrl.trim()
-                if (isYandexHotelPage(url)) {
-                    out.push({ dayIdx: di, actIdx: ai, field: "bookingUrl", url, fallback: yandexCityFallback(url) })
+            if (act?.type === "hotel") {
+                // bookingUrl — Yandex Travel specific page (probe needed)
+                if (typeof act.bookingUrl === "string") {
+                    const url = act.bookingUrl.trim()
+                    if (isYandexHotelPage(url)) {
+                        out.push({ dayIdx: di, actIdx: ai, field: "bookingUrl", url, fallback: yandexCityFallback(url) })
+                    }
+                    // Booking.com /hotel/… specific page — always replace (soft-404, probe useless)
+                    if (isBookingHotelPage(url)) {
+                        out.push({ dayIdx: di, actIdx: ai, field: "bookingUrl", url, fallback: bookingSearchFallback(url, act), alwaysReplace: true })
+                    }
                 }
-                // Booking.com /hotel/… specific page — always replace (soft-404, probe useless)
-                if (isBookingHotelPage(url)) {
-                    out.push({ dayIdx: di, actIdx: ai, field: "bookingUrl", url, fallback: bookingSearchFallback(url, act), alwaysReplace: true })
+
+                // link — Ostrovok specific page (probe), or Booking.com specific page (always replace)
+                if (typeof act.link === "string") {
+                    const url = act.link.trim()
+                    if (isOstrovokHotelPage(url)) {
+                        out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: ostrovokSearchFallback(url, act) })
+                    } else if (isBookingHotelPage(url)) {
+                        out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: bookingSearchFallback(url, act), alwaysReplace: true })
+                    }
                 }
             }
 
-            // link — Ostrovok specific page (probe), or Booking.com specific page (always replace)
-            if (typeof act.link === "string") {
-                const url = act.link.trim()
-                if (isOstrovokHotelPage(url)) {
-                    out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: ostrovokSearchFallback(url, act) })
-                } else if (isBookingHotelPage(url)) {
-                    out.push({ dayIdx: di, actIdx: ai, field: "link", url, fallback: bookingSearchFallback(url, act), alwaysReplace: true })
-                }
+            // Sanitization for activities (Klook, Tripster, Sputnik8)
+            // They are always replaced, no probe needed (alwaysReplace: true)
+            if (act?.type === "activity" || act?.type === "free" || act?.type === "food" || act?.type === "hotel") {
+                const fieldsToCheck: LinkField[] = ["link", "ticketUrl"] as LinkField[]
+                
+                fieldsToCheck.forEach(field => {
+                    if (typeof act[field] === "string") {
+                        const url = act[field].trim()
+                        if (isKlookActivityPage(url)) {
+                            out.push({ dayIdx: di, actIdx: ai, field, url, fallback: klookSearchFallback(url, act), alwaysReplace: true })
+                        } else if (isTripsterActivityPage(url)) {
+                            out.push({ dayIdx: di, actIdx: ai, field, url, fallback: tripsterFallback(url, act), alwaysReplace: true })
+                        } else if (isSputnikActivityPage(url)) {
+                            out.push({ dayIdx: di, actIdx: ai, field, url, fallback: sputnikSearchFallback(url, act), alwaysReplace: true })
+                        }
+                    }
+                })
             }
         })
     })

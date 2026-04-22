@@ -24,7 +24,7 @@ function sanitizeQuery(q: string): string {
 
 export async function GET(req: NextRequest) {
     // IP rate limit: 30 image searches per minute
-    const rl = checkIpRateLimit(req, "gallery", 30)
+    const rl = await checkIpRateLimit(req, "gallery", 30)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const searchParams = req.nextUrl.searchParams;

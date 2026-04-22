@@ -198,7 +198,7 @@ export async function POST(req: Request) {
     if (accessErr) return accessErr
 
     // Rate limit: 20 req/min per user — each call hits Overpass API
-    const rl = checkRateLimit(userId, "nearby-poi", 20)
+    const rl = await checkRateLimit(userId, "nearby-poi", 20)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const body = (await req.json()) as NearbyPoiRequest

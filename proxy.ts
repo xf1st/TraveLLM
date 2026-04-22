@@ -140,7 +140,7 @@ export async function proxy(request: NextRequest) {
         : `ip:${getRequestIp(request)}`
 
       // 1. Global rate limit (30 req/min for all API)
-      const rl = checkRateLimit(rlKey, 'global-api', GLOBAL_API_LIMIT, GLOBAL_API_WINDOW)
+      const rl = await checkRateLimit(rlKey, 'global-api', GLOBAL_API_LIMIT, GLOBAL_API_WINDOW)
       if (!rl.allowed) {
         const retryAfter = Math.ceil((rl.resetAt - Date.now()) / 1000)
         return new NextResponse(
@@ -158,7 +158,7 @@ export async function proxy(request: NextRequest) {
 
       // 2. LLM-specific rate limit (6 req/min) — prevents AI budget drain
       if (LLM_PATHS.some(p => pathname.startsWith(p))) {
-        const llmRl = checkRateLimit(rlKey, 'llm-api', LLM_API_LIMIT, LLM_API_WINDOW)
+        const llmRl = await checkRateLimit(rlKey, 'llm-api', LLM_API_LIMIT, LLM_API_WINDOW)
         if (!llmRl.allowed) {
           const retryAfter = Math.ceil((llmRl.resetAt - Date.now()) / 1000)
           return new NextResponse(

@@ -313,7 +313,7 @@ export async function POST(req: Request) {
 
         const hasImages = imageDataUrls.length > 0
         const maxPerMinute = hasImages ? 8 : 15
-        const rl = checkRateLimit(userId, "trip-assistant", maxPerMinute)
+        const rl = await checkRateLimit(userId, "trip-assistant", maxPerMinute)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         const inferenceFn = geminiInferenceWithUsage

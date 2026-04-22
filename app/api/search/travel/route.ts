@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         const chatLimit = await checkMonthlyChatAiLimit(userId)
         if (!chatLimit.allowed) return monthlyChatAiLimitResponse(chatLimit)
 
-        const rl = checkRateLimit(userId, "travel-search", 5)
+        const rl = await checkRateLimit(userId, "travel-search", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         const body: SearchRequest = await req.json()

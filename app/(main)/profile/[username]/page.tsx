@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
@@ -159,10 +160,12 @@ export default function PublicProfilePage() {
             {/* Banner */}
             <div className="relative mb-[-48px] h-28 overflow-hidden rounded-2xl sm:h-32 sm:rounded-[2rem]">
               {profileBackground === "avatar" && avatarUrl ? (
-                <img
+                <Image
                   src={avatarUrl}
                   alt=""
-                  className="absolute inset-0 w-full h-full object-cover blur-md opacity-60 scale-110"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 896px"
+                  className="object-cover blur-md opacity-60 scale-110"
                 />
               ) : (
                 <div className={cn(
@@ -179,11 +182,15 @@ export default function PublicProfilePage() {
               <div className="shrink-0">
                 <div className="h-20 w-20 rounded-full ring-4 ring-background bg-muted overflow-hidden shadow-md sm:h-24 sm:w-24 md:shadow-2xl">
                   {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={profile.full_name || username}
-                      className="h-full w-full object-cover"
-                    />
+                    <div className="relative h-full w-full">
+                      <Image
+                        src={avatarUrl}
+                        alt={profile.full_name || username}
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-indigo-500/20 to-purple-500/20">
                       <User className="h-10 w-10 text-muted-foreground/50" />

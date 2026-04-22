@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useMemo, useState, useEffect } from "react"
 import {
   ExternalLink, Plane, Utensils, Hotel as HotelIcon,
@@ -26,6 +27,13 @@ interface LinkItem {
   type: ActivityType
   rawType: string
   imageQuery?: string
+}
+
+function toProxyImageSrc(url: string) {
+  if (!url || url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:")) {
+    return url
+  }
+  return `/api/proxy-image?url=${encodeURIComponent(url)}`
 }
 
 /* ─── Image thumbnail with lazy fetch ─── */
@@ -56,7 +64,15 @@ function ActivityImage({ query, type, accent }: { query?: string; type: Activity
 
   return (
     <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden" style={{ border: `1px solid ${accent}20` }}>
-      <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+      <div className="relative h-full w-full">
+        <Image
+          src={toProxyImageSrc(src)}
+          alt=""
+          fill
+          sizes="56px"
+          className="object-cover"
+        />
+      </div>
     </div>
   )
 }
@@ -166,7 +182,13 @@ function FlightCard({ item, onGoToDay, t }: { item: LinkItem; onGoToDay?: (d: nu
       {/* Background photo overlay */}
       {bgSrc && (
         <div className="absolute inset-0 z-0 rounded-2xl overflow-hidden pointer-events-none">
-          <img src={bgSrc} alt="" className="w-full h-full object-cover opacity-[0.12]" />
+          <Image
+            src={toProxyImageSrc(bgSrc)}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover opacity-[0.12]"
+          />
           <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 0%, rgba(11,14,20,0.85) 100%)" }} />
         </div>
       )}
@@ -587,20 +609,29 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
         let finalUrls: string[] = []
 
         if (actType === "hotel") {
-          // For hotels, deduplicate and pick one best link per service (Yandex / Ostrovok / Booking)
+          // For hotels, deduplicate and show each service once (Booking / Yandex / Ostrovok)
           const deduped = [...new Set(rawUrls)]
           const yandex = deduped.find(u => /travel\.yandex\.ru/i.test(u))
           const ostrovok = deduped.find(u => /ostrovok\.ru/i.test(u))
           const booking = deduped.find(u => /booking\.com/i.test(u))
 
-          if (yandex) finalUrls.push(yandex)
-          if (ostrovok) finalUrls.push(ostrovok)
-          // Only show Booking if no Russian service is available
-          if (!yandex && !ostrovok && booking) finalUrls.push(booking)
+          // Detect if hotel is abroad — then Booking comes first
+          const placeName: string = act.placeName || ""
+          const isAbroad = !isRussianHotelDestinationSync(placeName)
+
+          if (isAbroad) {
+            if (booking) finalUrls.push(booking)
+            if (ostrovok) finalUrls.push(ostrovok)
+            if (yandex) finalUrls.push(yandex)
+          } else {
+            if (yandex) finalUrls.push(yandex)
+            if (ostrovok) finalUrls.push(ostrovok)
+            if (booking) finalUrls.push(booking)
+          }
 
           // If still no link, use fallback
           if (finalUrls.length === 0) {
-            finalUrls.push(hotelFallbackUrl(act.placeName || ""))
+            finalUrls.push(hotelFallbackUrl(placeName))
           }
         } else {
           // Deduplicate & remove generic google.com search URLs when real service URLs exist

@@ -10,7 +10,7 @@ const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
     // IP rate limit: 60 req/min (image proxy is called often but should be bounded)
-    const rl = checkIpRateLimit(req, "proxy-image", 60)
+    const rl = await checkIpRateLimit(req, "proxy-image", 60)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const url = req.nextUrl.searchParams.get("url");

@@ -31,7 +31,10 @@ function AuthContent() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
-  const [partnerPromo, setPartnerPromo] = useState("")
+  const [partnerPromo, setPartnerPromo] = useState(() => {
+    if (typeof window === "undefined") return ""
+    return getPendingPartnerPromo() ?? ""
+  })
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login")
 
   const isAdminSubdomain = typeof window !== "undefined" && window.location.host.startsWith("admin.")
@@ -47,8 +50,6 @@ function AuthContent() {
     if (typeof window === "undefined") return
     captureReferralFromSearch(window.location.search)
     capturePartnerPromoFromSearch(window.location.search)
-    const pending = getPendingPartnerPromo()
-    if (pending) setPartnerPromo((prev) => (prev.trim() === "" ? pending : prev))
   }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {

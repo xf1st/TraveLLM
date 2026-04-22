@@ -8,7 +8,7 @@ const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
     // IP rate limit: 30 req/min — open-meteo is free but has fair-use limits
-    const rl = checkIpRateLimit(req, "weather", 30)
+    const rl = await checkIpRateLimit(req, "weather", 30)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const searchParams = req.nextUrl.searchParams;

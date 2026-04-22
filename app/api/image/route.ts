@@ -3,7 +3,7 @@ import { getDestinationImage } from "@/lib/images";
 import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
-    const rl = checkIpRateLimit(req, "api-destination-image", 60);
+    const rl = await checkIpRateLimit(req, "api-destination-image", 60);
     if (!rl.allowed) return rateLimitResponse(rl);
 
     const searchParams = req.nextUrl.searchParams;

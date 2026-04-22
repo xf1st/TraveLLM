@@ -3,16 +3,20 @@
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { SkySandBackground } from "@/components/SkySandBackground"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+function subscribeToMount() {
+  return () => {}
+}
 
 export function GlobalBackground() {
   const pathname = usePathname()
   const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    subscribeToMount,
+    () => true,
+    () => false
+  )
 
   if (!mounted) return null
 

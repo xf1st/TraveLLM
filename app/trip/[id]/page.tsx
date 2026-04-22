@@ -564,7 +564,7 @@ export default function TripDetailPage() {
         }
         return false
       })
-      if (hotelAct) return hotelAct
+      if (hotelAct) return { ...hotelAct, _dayCity: day?.city }
     }
     return null
   })()
@@ -585,7 +585,7 @@ export default function TripDetailPage() {
     cost: hotelActivityForDay.cost,
     bookingUrl: hotelActivityForDay.bookingUrl || apiHotel?.bookingUrl || hotelActivityForDay.link,
     desc: hotelActivityForDay.desc,
-    city: destinationName,
+    city: hotelActivityForDay._dayCity || apiHotel?.city || destinationName,
   } : apiHotel
     ? { ...apiHotel, city: (apiHotel as { city?: string }).city || destinationName }
     : null
@@ -603,7 +603,9 @@ export default function TripDetailPage() {
     }
   }
   
-  const itineraryTips = route.itinerary?.filter((day: any) => day?.tips?.trim()) || []
+  const normalizeTips = (tips: any): string =>
+    Array.isArray(tips) ? tips.join(' ') : (typeof tips === 'string' ? tips : '')
+  const itineraryTips = route.itinerary?.filter((day: any) => normalizeTips(day?.tips).trim()) || []
 
   // Activities for active day
   const rawActivities = currentDay?.activities || [
@@ -1465,10 +1467,10 @@ export default function TripDetailPage() {
                   </div>
 
                   {/* Day tips */}
-                  {currentDay.tips && (
+                  {normalizeTips(currentDay.tips).trim() && (
                     <div className="trip-glass rounded-2xl p-4 flex gap-3 text-sm text-amber-900 dark:text-amber-200 bg-amber-50/50 dark:!bg-amber-900/20 !border-amber-200/50 dark:!border-amber-900/30">
                       <Compass className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0" />
-                      <p><strong>{t('tip')}:</strong> {currentDay.tips}</p>
+                      <p><strong>{t('tip')}:</strong> {normalizeTips(currentDay.tips)}</p>
                     </div>
                   )}
                 </>
@@ -1798,7 +1800,7 @@ export default function TripDetailPage() {
                         className="trip-glass rounded-2xl p-4 text-sm text-slate-700 dark:text-blue-100/90"
                       >
                         <p className="font-bold text-slate-900 dark:text-white mb-1">{t('tips_modal.dayN', { day: day.day })}</p>
-                        <p className="leading-relaxed">{day.tips}</p>
+                        <p className="leading-relaxed">{normalizeTips(day.tips)}</p>
                       </div>
                     ))}
                   </div>

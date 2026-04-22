@@ -17,7 +17,7 @@ const searchCityLocales = async (term: string) => {
 
 export async function GET(request: NextRequest) {
   // IP rate limit: 30 req/min — each request can fan out to 7 TravelPayouts calls
-  const rl = checkIpRateLimit(request, "iata", 30)
+  const rl = await checkIpRateLimit(request, "iata", 30)
   if (!rl.allowed) return rateLimitResponse(rl)
 
   const { searchParams } = new URL(request.url);

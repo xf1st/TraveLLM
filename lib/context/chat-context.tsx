@@ -32,38 +32,51 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
-export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [isInitialized, setIsInitialized] = useState(false)
+interface StoredChatHistory {
+  sessions: ChatSession[]
+  activeSessionId: string | null
+}
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('travellm_chat_history')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        setSessions(parsed.sessions || [])
-        setActiveSessionId(parsed.activeSessionId || null)
-      }
-    } catch (e) {
-      console.error('Failed to load chat history', e)
+function loadStoredChatHistory(): StoredChatHistory {
+  if (typeof window === "undefined") {
+    return { sessions: [], activeSessionId: null }
+  }
+
+  try {
+    const stored = window.localStorage.getItem("travellm_chat_history")
+    if (!stored) {
+      return { sessions: [], activeSessionId: null }
     }
-    setIsInitialized(true)
-  }, [])
+
+    const parsed = JSON.parse(stored) as Partial<StoredChatHistory>
+    return {
+      sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+      activeSessionId:
+        typeof parsed.activeSessionId === "string" ? parsed.activeSessionId : null,
+    }
+  } catch (e) {
+    console.error("Failed to load chat history", e)
+    return { sessions: [], activeSessionId: null }
+  }
+}
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [initialHistory] = useState(loadStoredChatHistory)
+  const [sessions, setSessions] = useState<ChatSession[]>(initialHistory.sessions)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(initialHistory.activeSessionId)
 
   // Save to localStorage when sessions change
   useEffect(() => {
-    if (!isInitialized) return
+    if (typeof window === "undefined") return
     try {
-      localStorage.setItem('travellm_chat_history', JSON.stringify({
+      window.localStorage.setItem('travellm_chat_history', JSON.stringify({
         sessions,
         activeSessionId
       }))
     } catch (e) {
       console.error('Failed to save chat history', e)
     }
-  }, [sessions, activeSessionId, isInitialized])
+  }, [sessions, activeSessionId])
 
   const createSession = useCallback((initialMessage?: string) => {
     const newId = crypto.randomUUID()

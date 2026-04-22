@@ -8,7 +8,7 @@ const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
     // IP rate limit: 20 req/min — Nominatim policy: 1 req/s per IP; we proxy so limit ourselves
-    const rl = checkIpRateLimit(req, "geocode", 20)
+    const rl = await checkIpRateLimit(req, "geocode", 20)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const searchParams = req.nextUrl.searchParams;

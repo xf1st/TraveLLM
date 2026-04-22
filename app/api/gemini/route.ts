@@ -13,7 +13,7 @@ import {
 } from "@/lib/ai-usage-events"
 import { enforceAiAccess } from "@/lib/server/user-access"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
-import { validateRouteRequest, type ValidationResult } from "@/lib/real-time-validation"
+import { validateRouteRequest } from "@/lib/real-time-validation"
 import { collectDynamicContext, formatDynamicContextForPrompt } from "@/lib/context/dynamic-context"
 import {
     enrichTransportLinks,
@@ -48,6 +48,11 @@ import {
     sanitizeRouteUserText,
     tripDurationError,
 } from "@/lib/route-generation-guard"
+import {
+    combineRouteGenerationUsage,
+    getRouteGenerationProviderLabel,
+    resolveChunkDestination,
+} from "@/lib/route-generation-utils"
 
 export const maxDuration = 60; // Allow long-running generations
 
@@ -62,7 +67,7 @@ export async function POST(req: Request) {
         if (accessErr) return accessErr
 
         // Rate limit: max 5 generation requests per minute per user
-        const rl = checkRateLimit(userId, "gemini-generation", 5)
+        const rl = await checkRateLimit(userId, "gemini-generation", 5)
         if (!rl.allowed) return rateLimitResponse(rl)
 
         // Monthly generation limit: 10 per user
@@ -213,7 +218,8 @@ export async function POST(req: Request) {
                     startDate,
                     endDate,
                     budget: budgetCap,
-                    citizenship: safePreferences.citizenship || "RU"
+                    citizenship: safePreferences.citizenship || "RU",
+                    travelMode,
                 })
 
                 if (validation.blockers.length > 0) {
@@ -321,6 +327,77 @@ export async function POST(req: Request) {
         const aiTemperature =
             (body.aiCreativity === "creative" || safePreferences.aiCreativity === "creative") ? 0.8 : 0.6
 
+        function stripJsonFences(raw: string): string {
+            return raw.replace(/```json\s*/g, "").replace(/```\s*/g, "")
+        }
+
+        function parseJsonObjectResponse(raw: string, source: string): any {
+            if (!raw) throw new Error(`Empty response from ${source}`)
+            const clean = stripJsonFences(raw.match(/\{[\s\S]*\}/)?.[0] ?? raw)
+            try {
+                return JSON.parse(clean)
+            } catch {
+                console.warn(`[${source}] JSON malformed, attempting repair...`)
+                try {
+                    return JSON.parse(jsonrepair(clean))
+                } catch (e2) {
+                    console.error(`[${source}] JSON repair failed`, e2)
+                    throw new Error(`JSON parse failed after repair attempt: ${(e2 as Error).message}`)
+                }
+            }
+        }
+
+        function parseJsonArrayResponse(raw: string, source: string): ItineraryDay[] {
+            if (!raw) throw new Error(`Empty response from ${source}`)
+            const clean = stripJsonFences(raw.match(/\[[\s\S]*\]/)?.[0] ?? raw)
+            try {
+                return JSON.parse(clean)
+            } catch {
+                console.warn(`[${source}] JSON array malformed, attempting repair...`)
+                try {
+                    return JSON.parse(jsonrepair(clean))
+                } catch (e2) {
+                    console.error(`[${source}] JSON array repair failed`, e2)
+                    throw new Error(`JSON array parse failed after repair attempt: ${(e2 as Error).message}`)
+                }
+            }
+        }
+
+        function toDeepSeekMessages(messages: Array<{ role: "system" | "user" | "assistant"; content: string | unknown[] }>) {
+            return messages.map((message) => ({
+                role: message.role,
+                content: typeof message.content === "string"
+                    ? message.content
+                    : message.content
+                        .map((part) => typeof part === "string" ? part : JSON.stringify(part))
+                        .join("\n"),
+            }))
+        }
+
+        async function generateObjectWithFallback(params: {
+            geminiSource: string
+            deepseekSource: string
+            messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
+            maxTokens: number
+        }): Promise<any> {
+            try {
+                const raw = await geminiInference(params.messages, {
+                    maxTokens: params.maxTokens,
+                    temperature: aiTemperature,
+                })
+                return parseJsonObjectResponse(raw, params.geminiSource)
+            } catch (geminiError) {
+                console.warn(`[${params.geminiSource}] Gemini failed, falling back to DeepSeek`, geminiError)
+                const raw = await deepseekInference(toDeepSeekMessages(params.messages), {
+                    maxTokens: params.maxTokens,
+                    temperature: aiTemperature,
+                    tripDays: durationDays,
+                    responseFormat: "json_object",
+                })
+                return parseJsonObjectResponse(raw, params.deepseekSource)
+            }
+        }
+
         // Helper to parse JSON from AI response (with jsonrepair fallback)
         function parseJsonResponse(raw: string, source: string): any {
             if (!raw) throw new Error(`Empty response from ${source}`)
@@ -351,8 +428,12 @@ export async function POST(req: Request) {
                 reelAnchorPrompt,
             })
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: metaPrompt }]
-            const raw = await geminiInference(messages, { maxTokens: 2000, temperature: aiTemperature });
-            return parseJsonResponse(raw, "Gemini-Meta");
+            return generateObjectWithFallback({
+                geminiSource: "Gemini-Meta",
+                deepseekSource: "DeepSeek-Meta",
+                messages,
+                maxTokens: 2000,
+            })
         }
 
         async function generateDayChunk(startDay: number, endDay: number, destination: string, previousContext: any, tripPlan: any): Promise<ItineraryDay[]> {
@@ -375,22 +456,25 @@ export async function POST(req: Request) {
             const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: chunkPrompt }]
 
             const tryParse = async (attempt: number): Promise<ItineraryDay[]> => {
-                const raw = await geminiInference(messages, { maxTokens: 16000, temperature: attempt === 1 ? aiTemperature : Math.min(aiTemperature + 0.1, 1.0) });
-                const clean = (raw.match(/\[[\s\S]*\]/)?.[0] ?? raw)
-                    .replace(/```json\s*/g, '').replace(/```\s*/g, '')
                 try {
-                    return JSON.parse(clean)
-                } catch {
-                    try {
-                        console.warn(`[Gemini-Chunk ${startDay}-${endDay}] JSON malformed, attempting repair… (attempt ${attempt})`)
-                        return JSON.parse(jsonrepair(clean))
-                    } catch (repairErr) {
-                        if (attempt < 2) {
-                            console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Repair failed, retrying…`)
-                            return tryParse(attempt + 1)
-                        }
-                        throw repairErr
+                    const raw = await geminiInference(messages, {
+                        maxTokens: 16000,
+                        temperature: attempt === 1 ? aiTemperature : Math.min(aiTemperature + 0.1, 1.0),
+                    })
+                    return parseJsonArrayResponse(raw, `Gemini-Chunk ${startDay}-${endDay}`)
+                } catch (geminiError) {
+                    if (attempt < 2) {
+                        console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Gemini attempt ${attempt} failed, retrying...`, geminiError)
+                        return tryParse(attempt + 1)
                     }
+
+                    console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Gemini exhausted, falling back to DeepSeek`, geminiError)
+                    const raw = await deepseekInference(toDeepSeekMessages(messages), {
+                        maxTokens: 16000,
+                        temperature: aiTemperature,
+                        tripDays: durationDays,
+                    })
+                    return parseJsonArrayResponse(raw, `DeepSeek-Chunk ${startDay}-${endDay}`)
                 }
             }
 
@@ -433,8 +517,12 @@ export async function POST(req: Request) {
             const USE_SEQUENTIAL_CHUNKS = durationDays > 14;
             if (!USE_SEQUENTIAL_CHUNKS) {
                 const messages = [{ role: "system" as const, content: systemPrompt }, { role: "user" as const, content: prompt }]
-                const raw = await geminiInference(messages, { maxTokens: 16000, temperature: aiTemperature });
-                return parseJsonResponse(raw, "Gemini");
+                return generateObjectWithFallback({
+                    geminiSource: "Gemini",
+                    deepseekSource: "DeepSeek",
+                    messages,
+                    maxTokens: 16000,
+                })
             }
 
             const metadata = await generateMetadata();
@@ -452,7 +540,13 @@ export async function POST(req: Request) {
             const allDays: ItineraryDay[] = [];
 
             for (const chunk of chunks) {
-                let chunkDays = await generateDayChunk(chunk.start, chunk.end, destinations[0] || "Destination", previousContext, tripPlan);
+                const chunkDestination = resolveChunkDestination(
+                    tripPlan,
+                    chunk.start,
+                    chunk.end,
+                    destinations[0] || "Destination"
+                )
+                let chunkDays = await generateDayChunk(chunk.start, chunk.end, chunkDestination, previousContext, tripPlan);
                 
                 const expectedLength = chunk.end - chunk.start + 1;
                 if (chunkDays.length > expectedLength) {
@@ -466,7 +560,7 @@ export async function POST(req: Request) {
                 const lastDay = chunkDays[chunkDays.length - 1];
                 const chunkStr = JSON.stringify(chunkDays);
                 
-                const newCities = chunkDays.map((d: any) => extractLastCityFromChunk(d, destinations[0] || effectiveDepartureCity));
+                const newCities = chunkDays.map((d: any) => extractLastCityFromChunk(d, chunkDestination));
                 const allVisitedCities = Array.from(new Set([...previousContext.visitedCities, ...newCities].filter(Boolean)));
                 
                 let isHighlightFulfilled = previousContext.highlightFulfilled || chunkStr.includes('✨') || chunkStr.includes('ПРИОРИТЕТ');
@@ -475,7 +569,7 @@ export async function POST(req: Request) {
                 }
 
                 previousContext = {
-                    lastCity: extractLastCityFromChunk(lastDay, destinations[0] || effectiveDepartureCity),
+                    lastCity: extractLastCityFromChunk(lastDay, chunkDestination),
                     visitedPlaces: [...previousContext.visitedPlaces, ...chunkDays.flatMap((d: any) => d.activities?.map((a: any) => a.placeName || a.title) || [])],
                     visitedCities: allVisitedCities,
                     highlightFulfilled: isHighlightFulfilled
@@ -536,13 +630,22 @@ export async function POST(req: Request) {
                         }
                     }
                     
-                    routeData.tokenUsage = getGeminiSessionUsage();
-                    await recordAiUsageEvent({ userId, source: "route-generation", provider: "gemini", usage: routeData.tokenUsage });
+                    const geminiUsage = getGeminiSessionUsage();
+                    const deepseekUsage = getDeepSeekSessionUsage();
+                    routeData.tokenUsage = combineRouteGenerationUsage(geminiUsage, deepseekUsage) ?? geminiUsage;
+                    await recordAiUsageEvent({
+                        userId,
+                        source: "route-generation",
+                        provider: getRouteGenerationProviderLabel(geminiUsage, deepseekUsage),
+                        usage: routeData.tokenUsage,
+                    });
 
-                    // Fetch cover image for the trip (was imported but never called — BUG-03)
+                    // Fetch cover image for the trip
                     if (!routeData.coverImage) {
                         try {
-                            const imageQuery = destinations[0] || safeHighlight || "travel";
+                            const imageQuery = destinations.length > 0 
+                                ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
+                                : "travel landmark";
                             routeData.coverImage = await getDestinationImage(imageQuery);
                         } catch (imgErr) {
                             console.warn("[CoverImage] Failed to fetch cover image:", imgErr);

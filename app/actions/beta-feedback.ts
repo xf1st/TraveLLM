@@ -11,7 +11,7 @@ export async function submitBetaFeedback(formData: FormData) {
       return { success: false, message: "Войдите в аккаунт, чтобы отправить отзыв." }
     }
 
-    const rl = checkRateLimit(userId, "beta-feedback", 5)
+    const rl = await checkRateLimit(userId, "beta-feedback", 5)
     if (!rl.allowed) {
       return { success: false, message: "Слишком много отправок. Подождите минуту и попробуйте снова." }
     }

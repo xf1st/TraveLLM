@@ -253,7 +253,7 @@ export async function POST(request: Request) {
     if (accessErr) return accessErr
 
     // Rate limit: 10 req/min — Google Places costs $20/1000 requests
-    const rl = checkRateLimit(userId, "reviews", 10)
+    const rl = await checkRateLimit(userId, "reviews", 10)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     const body = await request.json()
@@ -289,7 +289,7 @@ export async function GET(request: Request) {
   const accessErr = await enforceAiAccess(userId)
   if (accessErr) return accessErr
 
-  const rl = checkRateLimit(userId, "reviews-get", 10)
+  const rl = await checkRateLimit(userId, "reviews-get", 10)
   if (!rl.allowed) return rateLimitResponse(rl)
 
   const { searchParams } = new URL(request.url)

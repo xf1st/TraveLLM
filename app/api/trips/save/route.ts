@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     if (accessErr) return accessErr
 
     // Rate limit: max 10 saves per minute (generous for legit use, blocks bots)
-    const rl = checkRateLimit(userId, "trips-save", 10)
+    const rl = await checkRateLimit(userId, "trips-save", 10)
     if (!rl.allowed) return rateLimitResponse(rl)
 
     // Monthly generation limit
