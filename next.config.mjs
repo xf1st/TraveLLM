@@ -11,7 +11,7 @@ const isDevelopment = process.env.NODE_ENV === "development"
 //   still rely on it for source-mapped debugging and stack reconstruction.
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://*.travelpayouts.com`,
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://mc.yandex.ru https://*.travelpayouts.com https://emrld.ltd`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",

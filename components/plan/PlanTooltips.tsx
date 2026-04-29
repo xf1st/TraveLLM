@@ -36,7 +36,7 @@ export function PlanTooltips({ forceShow }: Props) {
 
   useEffect(() => {
     if (forceShow || !getSeen()) {
-      const timer = setTimeout(() => setVisible(true), 900)
+      const timer = setTimeout(() => setVisible(true), 3500)
       return () => clearTimeout(timer)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,7 +71,7 @@ export function PlanTooltips({ forceShow }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[990] pointer-events-none"
-            style={{ background: "rgba(0,0,0,0.50)", backdropFilter: "blur(2px)" }}
+            style={{ background: "rgba(0,0,0,0.34)", backdropFilter: "blur(1px)" }}
           />
 
           {/* Hint card */}

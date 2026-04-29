@@ -30,63 +30,57 @@ export function CookieConsent() {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
+          initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
+          exit={{ y: 80, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 200 }}
-          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-sm z-[200]"
+          className="fixed inset-x-3 bottom-3 z-[200] mx-auto max-w-[760px] sm:bottom-5 sm:left-auto sm:right-5 sm:mx-0 sm:max-w-[430px]"
         >
           <div
-            className="relative rounded-2xl p-5 shadow-2xl"
+            className="relative rounded-2xl p-3.5 shadow-2xl sm:p-4"
             style={{
-              background: "rgba(22, 26, 33, 0.97)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+              background: "rgba(15, 18, 24, 0.95)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 18px 50px rgba(0,0,0,0.38)",
             }}
           >
             {/* Close */}
             <button
               onClick={() => accept("necessary")}
-              className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-all"
+              className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full text-white/40 transition-all hover:bg-white/10 hover:text-white/80"
               aria-label={t("close")}
             >
               <X className="w-3.5 h-3.5" />
             </button>
 
-            {/* Icon + Title */}
-            <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex items-start gap-3 pr-8">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl"
                 style={{ background: "rgba(133,173,255,0.15)" }}
               >
                 <Cookie className="text-blue-300" style={{ width: 18, height: 18 }} />
               </div>
-              <span className="font-bold text-white text-sm">{t("title")}</span>
+              <div className="min-w-0">
+                <div className="mb-1 text-sm font-bold text-white">{t("title")}</div>
+                <p className="text-[11px] leading-relaxed text-white/58 sm:text-xs">
+                  {t("message")}{" "}
+                  <Link href="/cookies" className="text-sky-300 hover:underline">
+                    {t("learnMore")}
+                  </Link>
+                </p>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-white/38">
+                  <span className="font-semibold text-white/50">{t("affiliateTitle")}</span>{" "}
+                  {t("affiliateText")}{" "}
+                  <Link href="/terms#affiliate" className="text-sky-300/80 hover:underline">
+                    {t("affiliateLink")}
+                  </Link>
+                </p>
+              </div>
             </div>
 
-            {/* Text */}
-            <p className="text-xs text-white/55 leading-relaxed mb-3">
-              {t("message")}{" "}
-              <Link href="/cookies" className="text-sky-400 hover:underline">
-                {t("learnMore")}
-              </Link>
-            </p>
-
-            {/* Affiliate disclosure */}
-            <div
-              className="text-[10px] text-white/40 leading-relaxed mb-4 px-3 py-2.5 rounded-xl"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-            >
-              <span className="font-bold text-white/55">{t("affiliateTitle")}</span> {t("affiliateText")}{" "}
-              <Link href="/terms#affiliate" className="text-sky-400/70 hover:underline">
-                {t("affiliateLink")}
-              </Link>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex gap-2">
+            <div className="mt-3 flex gap-2 sm:mt-3.5">
               <button
                 onClick={() => accept("necessary")}
                 className="flex-1 h-9 rounded-xl text-xs font-semibold transition-colors"

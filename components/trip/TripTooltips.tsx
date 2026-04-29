@@ -72,7 +72,7 @@ export function TripTooltips({ userId, forceShow }: Props) {
 
   useEffect(() => {
     if (forceShow || !getSeen(userId)) {
-      const t = setTimeout(() => setVisible(true), 1200) // let page render first
+      const t = setTimeout(() => setVisible(true), 4200) // let the user orient before interrupting
       return () => clearTimeout(t)
     }
   }, [userId, forceShow])
@@ -104,7 +104,7 @@ export function TripTooltips({ userId, forceShow }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[990] pointer-events-none"
-            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(2px)" }}
+            style={{ background: "rgba(0,0,0,0.34)", backdropFilter: "blur(1px)" }}
           />
 
           {/* Floating hint card — centred on screen */}

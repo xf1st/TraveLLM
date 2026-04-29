@@ -67,7 +67,7 @@ export function MobileLanding() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative h-[92vh] w-full overflow-hidden">
+      <section className="relative min-h-[82svh] w-full overflow-hidden">
         <video
           autoPlay
           muted
@@ -79,26 +79,26 @@ export function MobileLanding() {
           <source src="/vidforland.mp4" type="video/mp4" />
         </video>
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-[#0B1120]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/45 to-[#0B1120]" />
 
-        <div className="relative h-full flex flex-col justify-end px-6 pb-16 z-10">
+        <div className="relative z-10 flex min-h-[82svh] flex-col justify-end px-6 pb-44 pt-28">
           <motion.div initial="hidden" animate="show" variants={staggerContainer}>
             <motion.span
               variants={fadeUp}
-              className="inline-block px-3 py-1 mb-4 text-[10px] font-bold tracking-widest uppercase bg-blue-500 text-white rounded-full shadow-lg"
+              className="mb-4 inline-block rounded-full bg-blue-500 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-lg"
             >
               AI Travel Concierge
             </motion.span>
-            <motion.h1 variants={fadeUp} className="text-5xl font-black text-white mb-4 leading-[1.08] tracking-tight">
+            <motion.h1 variants={fadeUp} className="mb-4 text-5xl font-black leading-[1.04] tracking-tight text-white">
               TraveLLM
             </motion.h1>
-            <motion.p variants={fadeUp} className="text-white/75 text-lg mb-8 leading-relaxed max-w-[280px]">
+            <motion.p variants={fadeUp} className="mb-7 max-w-[310px] text-base leading-relaxed text-white/78">
               {t("hero.subtitle")}
             </motion.p>
             <motion.div variants={fadeUp}>
               <Link
                 href={user ? "/plan" : "/auth"}
-                className="w-full py-4 bg-blue-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-xl shadow-blue-500/30"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 py-4 font-bold text-white shadow-xl shadow-blue-500/25 transition-transform active:scale-[0.98]"
               >
                 {t("hero.getStarted")}
                 <ChevronRight className="w-5 h-5" />
@@ -108,40 +108,40 @@ export function MobileLanding() {
         </div>
       </section>
 
-      <main className="space-y-20 pt-14">
+      <main className="space-y-[4.5rem] pt-12">
         {/* Partners */}
         <section className="px-6">
-          <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-8">
+          <p className="mb-6 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
             {t("mobile.partnersTitle")}
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-6 opacity-30 grayscale">
-            <span className="font-bold text-lg">Yandex</span>
-            <span className="font-bold text-lg uppercase">Ostrovok</span>
-            <span className="font-bold text-lg">Aviasales</span>
-            <span className="font-bold text-lg">Tripadvisor</span>
+          <div className="mx-auto grid max-w-xs grid-cols-2 gap-3 text-center">
+            <span className="rounded-xl border border-border/70 bg-card/45 px-3 py-2 text-sm font-bold text-foreground/55">Yandex</span>
+            <span className="rounded-xl border border-border/70 bg-card/45 px-3 py-2 text-sm font-bold uppercase text-foreground/55">Ostrovok</span>
+            <span className="rounded-xl border border-border/70 bg-card/45 px-3 py-2 text-sm font-bold text-foreground/55">Aviasales</span>
+            <span className="rounded-xl border border-border/70 bg-card/45 px-3 py-2 text-sm font-bold text-foreground/55">Tripadvisor</span>
           </div>
         </section>
 
         {/* Reels Style Section */}
         <section className="px-6 overflow-hidden">
-          <h2 className="text-3xl font-extrabold mb-10 leading-tight text-foreground">
+          <h2 className="mb-8 text-3xl font-extrabold leading-tight text-foreground">
             {t("mobile.activitiesTitle")}
           </h2>
 
-          <div className="relative rounded-[32px] overflow-visible bg-card p-8 border border-border shadow-lg h-72">
-            <div className="relative z-10 space-y-4 max-w-[58%] top-1/2 -translate-y-1/2 absolute left-0">
+          <div className="relative h-72 overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card to-muted/25 p-6 shadow-sm">
+            <div className="absolute left-6 top-1/2 z-10 max-w-[52%] -translate-y-1/2 space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-sky-400" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-sky-400">
                   Канайма, Венесуэла
                 </span>
               </div>
-              <p className="font-bold text-lg leading-snug text-foreground">
+              <p className="text-base font-bold leading-snug text-foreground">
                 Полёт на параплане над плато Тебуи: Над облаками Венесуэльской Гайаны
               </p>
             </div>
 
-            <div className="absolute right-[-20px] top-[-20px] w-52 h-80 rotate-6 transform-gpu">
+            <div className="absolute right-[-18px] top-[-10px] w-48 h-80 rotate-6 transform-gpu">
               <img
                 src="/phone_reels_ads2.png"
                 alt="Reels Ad"
@@ -153,10 +153,10 @@ export function MobileLanding() {
 
         {/* Bento AI Features */}
         <section className="px-6">
-          <h2 className="text-3xl font-extrabold mb-10 text-foreground">{t("mobile.featuresTitle")}</h2>
+          <h2 className="mb-8 text-3xl font-extrabold text-foreground">{t("mobile.featuresTitle")}</h2>
           <div className="grid grid-cols-2 gap-4">
             {/* Instant Routes card — inspired by the design */}
-            <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors relative overflow-hidden">
+            <div className="relative flex aspect-square flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card/70 p-5 transition-colors active:bg-muted">
               <Zap className="text-blue-400 w-8 h-8 mb-2" />
               <div>
                 <h3 className="text-sm font-bold leading-tight text-foreground">Маршруты за минуту</h3>
@@ -166,14 +166,14 @@ export function MobileLanding() {
               <Timer className="absolute -bottom-3 -right-3 w-20 h-20 text-foreground/5 select-none pointer-events-none" />
             </div>
 
-            <div className="bg-card rounded-3xl p-6 border border-border flex flex-col justify-between aspect-square group active:bg-muted transition-colors">
+            <div className="flex aspect-square flex-col justify-between rounded-3xl border border-border bg-card/70 p-5 transition-colors active:bg-muted">
               <Cloud className="text-sky-400 w-8 h-8 mb-4" />
               <h3 className="text-sm font-bold leading-tight text-foreground">Погода по дням</h3>
             </div>
 
-            <div className="col-span-2 bg-card rounded-3xl p-6 flex items-center justify-between border border-border active:bg-muted transition-colors">
+            <div className="col-span-2 flex items-center justify-between rounded-3xl border border-border bg-card/70 p-5 transition-colors active:bg-muted">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-500/15 rounded-full flex items-center justify-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500/15">
                   <MessageSquare className="text-blue-400 w-5 h-5" />
                 </div>
                 <h3 className="text-sm font-bold text-foreground">AI-чат для правок</h3>
@@ -185,11 +185,10 @@ export function MobileLanding() {
 
         {/* Why Us — Comparison */}
         <section className="px-6">
-          <div className="bg-card rounded-[32px] p-8 border border-border shadow-md relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20" />
-            <h2 className="text-3xl font-extrabold mb-8 text-foreground">{t("mobile.comparisonTitle")}</h2>
+          <div className="relative overflow-hidden rounded-3xl border border-border bg-card/70 p-6 shadow-sm">
+            <h2 className="mb-7 text-3xl font-extrabold text-foreground">{t("mobile.comparisonTitle")}</h2>
             <div className="space-y-5">
-              <div className="grid grid-cols-3 text-[10px] uppercase tracking-[0.15em] text-muted-foreground pb-4 border-b border-border">
+              <div className="grid grid-cols-3 border-b border-border pb-4 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                 <div>Функция</div>
                 <div className="text-center text-blue-400 font-bold">TraveLLM</div>
                 <div className="text-center">Другие</div>

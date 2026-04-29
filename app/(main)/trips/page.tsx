@@ -74,6 +74,8 @@ const tagIcons: Record<string, any> = {
   default: Sparkles,
 };
 
+const TRIP_LIST_COLUMNS = "id,title,destination,cover_image,start_date,end_date,tags,total_cost,budget_range,safety_info,is_public,created_at,updated_at";
+
 function getTagStyle(tag: string) {
   const clean = tag.toLowerCase().replace("#", "").trim();
   const colorKey = Object.keys(tagColors).find(k => clean.includes(k)) || "default";
@@ -532,14 +534,26 @@ function TripsContent() {
   const PAGE_SIZE = 12;
 
   // ── Data Processing hooks ──
+  const getDurationLabel = useCallback((r: any) => {
+    if (Array.isArray(r.itinerary) && r.itinerary.length > 0) return `${r.itinerary.length} ${t("days")}`;
+    if (!r.start_date || !r.end_date) return "";
+
+    const start = new Date(r.start_date);
+    const end = new Date(r.end_date);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+
+    const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1);
+    return `${days} ${t("days")}`;
+  }, [t]);
+
   const normalize = useCallback((r: any) => ({
     ...r,
     image: r.cover_image || undefined,
-    duration: `${r.itinerary?.length || 0} ${t("days")}`,
+    duration: getDurationLabel(r),
     safetyLevel: r.safety_info?.level || 10,
     budget: r.total_cost || r.budget || r.budget_range,
     tags: r.tags || [],
-  }), [t]);
+  }), [getDurationLabel]);
 
   const displayRoutes = useMemo(() =>
     (view === "my" ? userRoutes : favoriteRoutes).map(normalize),
@@ -607,12 +621,12 @@ function TripsContent() {
           setHasMoreRoutes((count || 0) > PAGE_SIZE);
 
           const { data: myTrips } = await supabase
-            .from("trips").select("*").eq("user_id", user.id)
+            .from("trips").select(TRIP_LIST_COLUMNS).eq("user_id", user.id)
             .order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1);
           if (myTrips) setUserRoutes(myTrips);
 
           const { data: favs } = await supabase
-            .from("favorites").select("trip_id, trips(*)").eq("user_id", user.id)
+            .from("favorites").select(`trip_id, trips(${TRIP_LIST_COLUMNS})`).eq("user_id", user.id)
             .order("created_at", { ascending: false });
           if (favs) {
             setFavoriteIds(new Set(favs.map((f: any) => f.trip_id)));
@@ -621,8 +635,9 @@ function TripsContent() {
         }
       } catch (e) {
         console.warn("Error fetching trips:", e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchData();
   }, []);
@@ -635,7 +650,7 @@ function TripsContent() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const from = userRoutes.length;
-        const { data } = await supabase.from("trips").select("*")
+        const { data } = await supabase.from("trips").select(TRIP_LIST_COLUMNS)
           .eq("user_id", session.user.id)
           .order("created_at", { ascending: false })
           .range(from, from + PAGE_SIZE - 1);

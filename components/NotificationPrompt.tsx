@@ -1,24 +1,35 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Send, X } from "lucide-react"
 
 const TG_URL = "https://t.me/TraveLLM_AI"
 
 export function NotificationPrompt() {
+    const pathname = usePathname()
     const [isVisible, setIsVisible] = useState(false)
 
     useEffect(() => {
+        const isCoreWorkflow =
+            pathname === "/" ||
+            pathname.startsWith("/auth") ||
+            pathname.startsWith("/plan") ||
+            pathname.startsWith("/trips") ||
+            pathname.startsWith("/trip")
+
+        if (isCoreWorkflow) return
+
         const dismissed = localStorage.getItem("notif-prompt-dismissed")
         const twoWeeks = 14 * 24 * 60 * 60 * 1000
         const lastDismissed = dismissed ? parseInt(dismissed) : 0
 
         if (Date.now() - lastDismissed > twoWeeks) {
-            const timer = setTimeout(() => setIsVisible(true), 6000)
+            const timer = setTimeout(() => setIsVisible(true), 12000)
             return () => clearTimeout(timer)
         }
-    }, [])
+    }, [pathname])
 
     const dismiss = () => {
         setIsVisible(false)

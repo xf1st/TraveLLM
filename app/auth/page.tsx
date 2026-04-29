@@ -129,7 +129,7 @@ function AuthContent() {
         className="absolute inset-0 bg-cover bg-center lg:hidden"
         style={{ backgroundImage: "url('/auth-bg2.png')" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/45 to-black/75 lg:hidden" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/82 lg:hidden" />
 
       {/* ── LEFT PANEL — always dark, branded ── */}
       <div className="hidden lg:flex lg:w-[52%] xl:w-[55%] relative overflow-hidden flex-col bg-[#060612]">
@@ -192,7 +192,7 @@ function AuthContent() {
       {/* ── RIGHT PANEL — theme-aware desktop / glass mobile ── */}
       <div className="flex-1 flex flex-col relative z-10 lg:bg-background min-h-screen overflow-y-auto">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 sm:px-8 pt-6">
+        <div className="flex items-center justify-between px-6 sm:px-8 pt-5">
           <div className="flex items-center gap-2 lg:hidden">
             <Logo size={28} />
             <span className="font-black text-lg text-white">TraveLLM</span>
@@ -203,10 +203,10 @@ function AuthContent() {
         </div>
 
         {/* Form area */}
-        <div className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-8 py-6 sm:py-8">
+        <div className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-8 py-5 sm:py-8">
           {/* Glass card on mobile, plain on desktop */}
-          <div className="w-full max-w-[400px] rounded-3xl p-6 sm:p-8
-            bg-white/10 backdrop-blur-md md:backdrop-blur-2xl border border-white/20 shadow-md md:shadow-2xl
+          <div className="w-full max-w-[400px] rounded-[1.35rem] p-5 sm:p-8
+            bg-[#0b1118]/78 backdrop-blur-xl border border-white/12 shadow-[0_24px_70px_rgba(0,0,0,0.34)]
             lg:p-0 lg:bg-transparent lg:backdrop-blur-none lg:border-0 lg:shadow-none">
 
             {/* Logo on desktop */}
@@ -221,12 +221,12 @@ function AuthContent() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="mb-6"
+              className="mb-5"
             >
-              <h2 className="text-2xl sm:text-3xl font-black text-white lg:text-foreground">
+              <h2 className="text-2xl sm:text-3xl font-black leading-tight text-white lg:text-foreground">
                 {activeTab === "login" ? t("welcomeBack") : t("welcome")}
               </h2>
-              <p className="text-white/70 lg:text-muted-foreground mt-1.5 text-sm sm:text-base">
+              <p className="mt-1.5 text-sm leading-relaxed text-white/68 sm:text-base lg:text-muted-foreground">
                 {activeTab === "login"
                   ? t("continueJourney")
                   : t("createAndPlan")}
@@ -238,7 +238,7 @@ function AuthContent() {
               <Button
                 variant="outline"
                 className="w-full h-11 gap-3 font-semibold rounded-xl transition-all
-                  bg-white/15 border-white/30 text-white hover:bg-white/25
+                  bg-white/10 border-white/18 text-white hover:bg-white/16
                   lg:bg-transparent lg:border-border lg:text-foreground lg:hover:bg-accent"
                 onClick={handleGoogleLogin}
               >
@@ -291,7 +291,7 @@ function AuthContent() {
               </div>
               <div className="relative flex justify-center">
                 <span className="px-3 text-[11px] uppercase tracking-widest font-medium
-                  bg-transparent text-white/50
+                  bg-[#0b1118] text-white/45
                   lg:bg-background lg:text-muted-foreground">
                   {t("or")} email
                 </span>
@@ -301,19 +301,19 @@ function AuthContent() {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-5 h-10 rounded-xl p-1
-                bg-white/15 lg:bg-muted">
+                bg-black/24 border border-white/8 lg:bg-muted lg:border-0">
                 <TabsTrigger
                   value="login"
-                  className="rounded-lg text-sm font-semibold text-white/70
-                    data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
+                  className="rounded-lg text-sm font-semibold text-white/62
+                    data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm
                     lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
                   {t("signIn")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
-                  className="rounded-lg text-sm font-semibold text-white/70
-                    data-[state=active]:bg-white/25 data-[state=active]:text-white data-[state=active]:shadow-sm
+                  className="rounded-lg text-sm font-semibold text-white/62
+                    data-[state=active]:bg-white data-[state=active]:text-slate-950 data-[state=active]:shadow-sm
                     lg:text-foreground/70 lg:data-[state=active]:bg-background lg:data-[state=active]:text-foreground"
                 >
                   {t("signUp")}
@@ -335,7 +335,7 @@ function AuthContent() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
@@ -357,7 +357,7 @@ function AuthContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
@@ -382,7 +382,7 @@ function AuthContent() {
                         onChange={(e) => setName(e.target.value)}
                         required
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
@@ -399,7 +399,7 @@ function AuthContent() {
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
@@ -416,7 +416,7 @@ function AuthContent() {
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>
@@ -452,7 +452,7 @@ function AuthContent() {
                         onChange={(e) => setPartnerPromo(e.target.value)}
                         autoComplete="off"
                         className="pl-10 h-11 rounded-xl
-                          bg-white/10 border-white/20 text-white placeholder:text-white/35
+                          bg-black/24 border-white/12 text-white placeholder:text-white/35
                           lg:bg-background lg:border-input lg:text-foreground lg:placeholder:text-muted-foreground"
                       />
                     </div>

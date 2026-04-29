@@ -28,11 +28,16 @@ function getLsKey(userId?: string) {
 
 function getSeenFlag(userId?: string): boolean {
   if (typeof window === "undefined") return true
-  try { return !!localStorage.getItem(getLsKey(userId)) } catch { return true }
+  try {
+    return !!localStorage.getItem(getLsKey(userId)) || !!localStorage.getItem("travellm_welcome_seen")
+  } catch { return true }
 }
 
 function setSeenFlag(userId?: string) {
-  try { localStorage.setItem(getLsKey(userId), "1") } catch {}
+  try {
+    localStorage.setItem(getLsKey(userId), "1")
+    localStorage.setItem("travellm_welcome_seen", "1")
+  } catch {}
 }
 
 /* ───────────────────────────────────────────────

@@ -37,20 +37,17 @@ export function TourHint({
 }: TourHintProps) {
   const storageKey = `travellm_hint_${id}`
   const [visible, setVisible] = useState(false)
-  const [dismissed, setDismissed] = useState(true)
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return true
+    try { return !!localStorage.getItem(storageKey) } catch { return true }
+  })
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
-    try {
-      const seen = localStorage.getItem(storageKey)
-      if (seen) return
-      setDismissed(false)
-      timerRef.current = setTimeout(() => setVisible(true), delay)
-    } catch {
-      // localStorage unavailable
-    }
+    if (dismissed) return
+    timerRef.current = setTimeout(() => setVisible(true), delay)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [storageKey, delay])
+  }, [dismissed, delay])
 
   const dismiss = () => {
     setVisible(false)
@@ -118,6 +115,8 @@ export function resetAllHints() {
   try {
     const keys = Object.keys(localStorage).filter(k => k.startsWith("travellm_hint_"))
     keys.forEach(k => localStorage.removeItem(k))
-    localStorage.removeItem("travellm_welcome_seen")
+    Object.keys(localStorage)
+      .filter(k => k.startsWith("travellm_welcome_seen"))
+      .forEach(k => localStorage.removeItem(k))
   } catch {}
 }
