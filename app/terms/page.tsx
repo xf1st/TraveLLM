@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale } from "next-intl/server"
+import { LEGAL } from "@/lib/legal"
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale()
@@ -15,14 +16,14 @@ export async function generateMetadata(): Promise<Metadata> {
       }
 }
 
-const COMPANY = "TraveLLM"
-const EMAIL = "legal@travellm.ru"
+const COMPANY = LEGAL.serviceName
+const EMAIL = LEGAL.legalEmail
 
 export default async function TermsPage() {
   const locale = await getLocale()
   const isEn = locale === "en"
 
-  const UPDATED = isEn ? "March 18, 2026" : "18 марта 2026 г."
+  const UPDATED = isEn ? "May 2, 2026" : "2 мая 2026 г."
   const DOMAIN = isEn ? "travellm.world" : "travellm.ru"
 
   return (
@@ -62,6 +63,12 @@ export default async function TermsPage() {
                 ? "By using the Service, you confirm that you are at least 18 years old and that you accept these Terms in full. If you disagree with any provision, please discontinue use of the Service."
                 : "Пользуясь Сервисом, вы подтверждаете, что вам исполнилось 18 лет, и что вы принимаете настоящие Условия в полном объёме. Если вы не согласны с какими-либо положениями, пожалуйста, прекратите использование Сервиса."}
             </p>
+            <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+              <p className="font-semibold text-foreground">{isEn ? "Service operator" : "Оператор сервиса"}</p>
+              <p className="mt-2">{LEGAL.operatorName}</p>
+              <p>{LEGAL.operatorInn} · {LEGAL.operatorOgrn}</p>
+              <p>{LEGAL.operatorAddress}</p>
+            </div>
           </section>
 
           <section>

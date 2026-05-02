@@ -5,7 +5,7 @@
       "headline1": "TraveLLM",
       "headline2": "Your perfect trip, planned in",
       "headline2Accent": "60 seconds",
-      "subtitle": "Just say where you're headed. AI builds a complete day-by-day itinerary with flights, hotels, maps, and budget — then answers any question in chat.",
+      "subtitle": "Just say where you're headed. AI builds a day-by-day itinerary with activities, rough flight and hotel guidance, budget notes, and chat support.",
       "ctaCreate": "Build my itinerary",
       "ctaTrips": "My Trips",
       "ctaSignIn": "Get started — it's free",
@@ -22,9 +22,9 @@
       "step1Title": "Describe your trip",
       "step1Desc": "Destination, dates, budget, who's joining — type it however you want. The AI gets it.",
       "step2Title": "AI does the rest",
-      "step2Desc": "In under a minute, you get a full day-by-day plan with activities, prices, hotels, and a route map.",
+      "step2Desc": "In under a minute, you get a day-by-day plan with activities, rough prices, hotel ideas, and daily pacing.",
       "step3Title": "Travel with confidence",
-      "step3Desc": "Pull up your itinerary on the go. AI assistant answers questions, map works offline, every day is sorted."
+      "step3Desc": "Pull up your itinerary on the go. AI assistant answers questions, your plan stays in the browser, every day is sorted."
     },
     "preview": {
       "badge": "See it in action",
@@ -43,7 +43,7 @@
       "partly": "partly",
       "feat1": "Complete day-by-day plan in under a minute",
       "feat2": "AI chat to tweak any day on the fly",
-      "feat3": "Interactive route map",
+      "feat3": "Addresses and useful links",
       "feat4": "Day-by-day weather forecast",
       "feat5": "Live flight prices",
       "feat6": "Built-in budget tracker",
@@ -59,8 +59,8 @@
       "subtitle": "From planning to touchdown — TraveLLM has your back the entire way",
       "ai60Title": "AI itinerary in 60 seconds",
       "ai60Desc": "Pick a destination and dates — get a full day-by-day plan with descriptions, costs, timing, and addresses. Long trips? We handle those in smart segments.",
-      "mapTitle": "Interactive map",
-      "mapDesc": "Every stop, route, and activity visualized on a single map.",
+      "mapTitle": "Addresses and links",
+      "mapDesc": "Each activity includes a clear place, address cue, and helpful links where they make sense.",
       "weatherTitle": "Weather for every day",
       "weatherDesc": "Real forecast for each day of your trip, right on the day card.",
       "chatTitle": "AI chat for instant edits",
@@ -88,31 +88,31 @@
     "previewNext": "Next",
     "previewDay": "Day",
     "previewTickets": "Tickets",
-    "previewMap": "Map",
+    "previewMap": "Address",
     "previewAiTip": "AI Assistant Tip",
     "news": {
       "badge": "Guides & ideas",
-      "title": "News & articles",
-      "subtitle": "Trip inspiration — then turn ideas into a day-by-day TraveLLM itinerary and grab flights at real prices.",
+      "title": "Guides & trip ideas",
+      "subtitle": "Fresh destination ideas, budgets, and route inspiration you can turn into a personal TraveLLM plan.",
       "readArticle": "Read",
       "allArticles": "All articles",
       "minRead": "min read"
     }
   },
   "newsPage": {
-    "listTitle": "Travel guides — TraveLLM",
-    "listDescription": "Ideas for your next trip. Build an AI itinerary in about a minute, then book flights and hotels.",
+    "listTitle": "Travel guides and itinerary ideas — TraveLLM",
+    "listDescription": "Practical travel articles for planning destinations, seasons, budgets, and activities. Build a personal TraveLLM itinerary in about a minute.",
     "backHome": "Back to home",
     "backToNews": "All articles",
     "published": "Published",
     "author": "Author",
     "notFound": "Article not found",
     "ctaTitle": "Turn this inspiration into a trip",
-    "ctaBody": "TraveLLM builds a day-by-day plan with budgets, weather, and an in-trip AI chat — then find flights in a few clicks.",
+    "ctaBody": "TraveLLM builds a day-by-day plan with budgets, weather, addresses, and an in-trip AI chat — then find flights in a few clicks.",
     "ctaPlan": "Create itinerary — free",
     "ctaFlights": "Find flights",
     "ctaFlightsHint": "Aviasales — compare prices, no extra fee",
-    "stickyNote": "On TraveLLM you don’t just read a guide — you turn it into a real itinerary and add flights."
+    "stickyNote": "On TraveLLM you don’t just read a guide — you turn the idea into a real day-by-day itinerary."
   },
   "generating": {
     "title": "Planning your trip",
@@ -294,7 +294,10 @@
     "rights": "All rights reserved.",
     "madeWith": "Made with",
     "forTravelers": "for travelers",
-    "affiliate": "Affiliate links"
+    "affiliate": "Affiliate links",
+    "personalDataConsent": "Personal data consent",
+    "contacts": "Contacts and legal details",
+    "operatorTitle": "Service operator"
   },
   "partners": {
     "disclosure": "Links to external booking services may be affiliate links: we may earn a commission at no extra cost to you.",
@@ -332,7 +335,12 @@
       "invalidCredentials": "Invalid email or password",
       "emailTaken": "An account with this email already exists",
       "weakPassword": "Password must be at least 8 characters"
-    }
+    },
+    "personalDataConsentRequired": "Please confirm consent to personal data processing.",
+    "personalDataConsentText": "I give voluntary consent to personal data processing and accept the",
+    "personalDataConsentLink": "personal data consent",
+    "privacyPolicy": "privacy policy",
+    "and": "and"
   },
   "plan": {
     "title": "Plan Your Trip",
@@ -447,7 +455,18 @@
       "liveMusic": "An evening in an atmospheric place with live music",
       "coffee": "Find the best third-wave coffee shops"
     },
-    "popularCities": ["Tokyo", "Bali", "Tbilisi", "Istanbul", "Barcelona", "Prague", "Dubai", "Seoul", "Vienna", "Lisbon"],
+    "popularCities": [
+      "Tokyo",
+      "Bali",
+      "Tbilisi",
+      "Istanbul",
+      "Barcelona",
+      "Prague",
+      "Dubai",
+      "Seoul",
+      "Vienna",
+      "Lisbon"
+    ],
     "validation": {
       "departureRequired": "Enter departure city",
       "datesRequired": "Select travel dates",
@@ -711,7 +730,7 @@
     "rateTrip": "Rate",
     "watchReels": "Watch Reels",
     "checkPrices": "Check prices",
-    "ticketsHotelsMap": "Flights · Hotels · Maps",
+    "ticketsHotelsMap": "Flights · Hotels · Addresses",
     "dayLabel": "Day {day}",
     "dayTitle": "Day {day}: {title}",
     "dayDefaultTitle": "Continuing the adventure",
@@ -1154,17 +1173,47 @@
     "tip": "Press «Create itinerary» in the sidebar or the header button — it opens the planning form.",
     "startPlanning": "Start planning",
     "steps": {
-      "0": { "step": "01", "title": "Fill the form", "desc": "Enter country, cities, dates, budget and preferences (beach, culture, food, etc.)." },
-      "1": { "step": "02", "title": "AI builds the itinerary", "desc": "In seconds the AI builds a day-by-day plan: activities, dining and hotels matched to your stay and overnight stops in each city." },
-      "2": { "step": "03", "title": "Edit & book", "desc": "Refine the plan in AI chat and use ready links to Aviasales, hotel partners and other partner services." }
+      "0": {
+        "step": "01",
+        "title": "Fill the form",
+        "desc": "Enter country, cities, dates, budget and preferences (beach, culture, food, etc.)."
+      },
+      "1": {
+        "step": "02",
+        "title": "AI builds the itinerary",
+        "desc": "In seconds the AI builds a day-by-day plan: activities, dining and hotels matched to your stay and overnight stops in each city."
+      },
+      "2": {
+        "step": "03",
+        "title": "Edit & book",
+        "desc": "Refine the plan in AI chat and use ready links to Aviasales, hotel partners and other partner services."
+      }
     },
     "features": {
-      "0": { "title": "AI generation", "desc": "Gemini & DeepSeek — routes and hotels for your cities" },
-      "1": { "title": "Partner services", "desc": "Flights, hotels and tools via trusted partners" },
-      "2": { "title": "Mini-chat", "desc": "Edit the plan via AI dialogue" },
-      "3": { "title": "Service links", "desc": "Aviasales, Hotels and more" },
-      "4": { "title": "Trip history", "desc": "All itineraries saved in profile" },
-      "5": { "title": "Viral Spots", "desc": "Reels-style clips of trending spots & TikTok hype" }
+      "0": {
+        "title": "AI generation",
+        "desc": "Gemini & DeepSeek — routes and hotels for your cities"
+      },
+      "1": {
+        "title": "Partner services",
+        "desc": "Flights, hotels and tools via trusted partners"
+      },
+      "2": {
+        "title": "Mini-chat",
+        "desc": "Edit the plan via AI dialogue"
+      },
+      "3": {
+        "title": "Service links",
+        "desc": "Aviasales, Hotels and more"
+      },
+      "4": {
+        "title": "Trip history",
+        "desc": "All itineraries saved in profile"
+      },
+      "5": {
+        "title": "Viral Spots",
+        "desc": "Reels-style clips of trending spots & TikTok hype"
+      }
     }
   },
   "flight": {
@@ -1230,7 +1279,7 @@
     "unauthorized": "Please sign in to continue",
     "serverError": "Server error. Please try again.",
     "notFound": "You've lost your way",
-    "notFoundSubtitle": "Looks like this location isn't on our map. Let AI chart a new course.",
+    "notFoundSubtitle": "Looks like this page was not found. Let AI help you plan a new route.",
     "goHome": "Go home",
     "newPlan": "New plan",
     "notFoundHeading": "YOU'VE LOST YOUR WAY"

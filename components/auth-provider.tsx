@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { applyPendingReferral, captureReferralFromSearch } from "@/lib/referral-client"
 import { applyPendingPartnerPromo, capturePartnerPromoFromSearch } from "@/lib/partner-promo-client"
+import { LEGAL_DOCUMENT_VERSION } from "@/lib/legal"
 import type { Session, User } from "@supabase/supabase-js"
 
 interface AuthContextType {
@@ -72,6 +73,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!user || isLoading) return
         void Promise.all([applyPendingPartnerPromo(), applyPendingReferral()])
+    }, [user?.id, isLoading])
+
+    useEffect(() => {
+        if (!user || isLoading || typeof window === "undefined") return
+
+        const pending = window.localStorage.getItem("travellm_pending_pd_consent")
+        if (!pending) return
+
+        try {
+            const parsed = JSON.parse(pending) as { version?: string; acceptedAt?: string; source?: string }
+            const version = parsed.version || LEGAL_DOCUMENT_VERSION
+            const acceptedAt = parsed.acceptedAt || new Date().toISOString()
+
+            void supabase.auth.updateUser({
+                data: {
+                    personal_data_consent_version: version,
+                    personal_data_consent_at: acceptedAt,
+                    personal_data_consent_source: parsed.source || "auth-oauth",
+                },
+            }).then(({ error }) => {
+                if (!error) window.localStorage.removeItem("travellm_pending_pd_consent")
+            })
+        } catch {
+            window.localStorage.removeItem("travellm_pending_pd_consent")
+        }
     }, [user?.id, isLoading])
 
     // Listen for auth state changes (login, logout, token refresh)

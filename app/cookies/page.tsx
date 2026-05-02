@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale } from "next-intl/server"
+import { LEGAL } from "@/lib/legal"
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale()
@@ -15,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
       }
 }
 
-const EMAIL = "privacy@travellm.ru"
+const EMAIL = LEGAL.privacyEmail
 
 function getCookies(isEn: boolean) {
   return [
@@ -167,7 +168,7 @@ export default async function CookiesPage() {
   const locale = await getLocale()
   const isEn = locale === "en"
 
-  const UPDATED = isEn ? "March 18, 2026" : "18 марта 2026 г."
+  const UPDATED = isEn ? "May 2, 2026" : "2 мая 2026 г."
   const cookies = getCookies(isEn)
 
   return (
@@ -215,8 +216,8 @@ export default async function CookiesPage() {
             </h2>
             <p>
               {isEn
-                ? "When you first visit the Service, a banner will appear asking you to accept cookies. Essential cookies are always active. Functional and analytics cookies are only activated after your explicit consent."
-                : "При первом посещении Сервиса появляется баннер с предложением принять cookies. Необходимые cookies активны всегда. Функциональные и аналитические cookies активируются только после вашего явного согласия."}
+                ? "When you first visit the Service, a banner appears with cookie choices. Essential cookies are always active. Analytics and partner tracking technologies should only be enabled after your consent; if they are not connected, the relevant rows below describe possible future integrations."
+                : "При первом посещении Сервиса появляется баннер с выбором cookies. Необходимые cookies активны всегда. Аналитические и партнёрские трекеры должны включаться только после вашего согласия; если они не подключены, соответствующие строки ниже описывают возможные будущие интеграции."}
             </p>
             <p className="mt-2">
               {isEn

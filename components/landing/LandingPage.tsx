@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   ArrowRight, Check, X, Zap, Crown, MapPin, MessageSquare,
-  CloudSun, Wallet, Share2, Map, Sparkles, Clock, Users,
+  CloudSun, Wallet, Share2, Sparkles, Clock, Users,
   Globe, Star, ChevronRight, Bot, Route, Camera,
   Compass, Mountain, PlaneTakeoff, Hotel, Landmark, Ticket,
   Building, Plane, Film, PlayCircle, PiggyBank, Thermometer, Car, Wand2, ChevronDown
@@ -291,7 +291,7 @@ export default function LandingPage() {
                   </div>
                   <div className="space-y-4">
                     <h3 className="text-2xl font-bold text-foreground">Готово к вылету</h3>
-                    <p className="text-muted-foreground leading-relaxed px-4">Получи план с таймингами, картами и билетами. Осталось только собрать чемодан!</p>
+                    <p className="text-muted-foreground leading-relaxed px-4">Получи план с таймингами, адресами и ссылками на билеты. Осталось только собрать чемодан!</p>
                   </div>
                 </motion.div>
               </div>
@@ -512,7 +512,7 @@ export default function LandingPage() {
             >
               <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-sky-500/10 blur-2xl pointer-events-none hidden md:block" />
               <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/25 flex items-center justify-center mb-4">
-                <Map className="w-6 h-6 text-sky-400" />
+                <Route className="w-6 h-6 text-sky-400" />
               </div>
               <h3 className="text-lg font-black mb-2">{t("features.mapTitle")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -623,7 +623,7 @@ export default function LandingPage() {
                 features: [
                   "3 генерации маршрута",
                   "10 AI-сообщений на маршрут",
-                  "Интерактивная карта",
+                  "Адреса и ссылки",
                   "Погода по дням",
                   "Публичные маршруты",
                   "Базовый AI-чат",

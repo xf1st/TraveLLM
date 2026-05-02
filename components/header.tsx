@@ -237,7 +237,7 @@ export function Header({ floating = false }: HeaderProps) {
                         <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.5b</p>
+                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.6b</p>
                     </div>
                     {userMenuGenUsage}
                   </DropdownMenuLabel>
@@ -393,7 +393,7 @@ export function Header({ floating = false }: HeaderProps) {
                       <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.5b</p>
+                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.6b</p>
                   </div>
                   {userMenuGenUsage}
                 </DropdownMenuLabel>

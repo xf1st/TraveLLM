@@ -167,8 +167,7 @@ export function rateLimitResponse(result: RateLimitResult) {
   )
   return new Response(
     JSON.stringify({
-      error:
-        "РЎР»РёС€РєРѕРј РјРЅРѕРіРѕ Р·Р°РїСЂРѕСЃРѕРІ. РџРѕРґРѕР¶РґРёС‚Рµ РЅРµРјРЅРѕРіРѕ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.",
+      error: "Слишком много запросов. Подождите немного и попробуйте снова.",
       code: "RATE_LIMIT",
       retryAfterSec,
     }),

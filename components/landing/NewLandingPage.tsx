@@ -246,7 +246,7 @@ export default function NewLandingPage() {
                   </div>
                   <div className="space-y-4">
                     <h3 className="text-2xl font-bold text-white">Готово к вылету</h3>
-                    <p className="text-slate-400 leading-relaxed px-4">Получи план с таймингами, картами и билетами. Осталось только собрать чемодан!</p>
+                    <p className="text-slate-400 leading-relaxed px-4">Получи план с таймингами, адресами и ссылками на билеты. Осталось только собрать чемодан!</p>
                   </div>
                 </motion.div>
               </div>

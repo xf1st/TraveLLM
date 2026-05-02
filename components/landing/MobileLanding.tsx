@@ -199,7 +199,7 @@ export function MobileLanding() {
                 { label: "AI-чат правок", partial: false },
                 { label: "Авиабилеты", partial: true },
                 { label: "Трекер бюджета", partial: false },
-                { label: "Офлайн доступ", partial: false },
+                { label: "План в браузере", partial: false },
                 { label: "Погода в плане", partial: false },
                 { label: "Совместный доступ", partial: true },
               ].map((row, i) => (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale } from "next-intl/server"
+import { LEGAL } from "@/lib/legal"
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale()
@@ -15,13 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
       }
 }
 
-const EMAIL = "privacy@travellm.ru"
+const EMAIL = LEGAL.privacyEmail
 
 export default async function PrivacyPage() {
   const locale = await getLocale()
   const isEn = locale === "en"
 
-  const UPDATED = isEn ? "March 18, 2026" : "18 марта 2026 г."
+  const UPDATED = isEn ? "May 2, 2026" : "2 мая 2026 г."
 
   const providers = [
     {
@@ -96,6 +97,12 @@ export default async function PrivacyPage() {
                 ? <>The data controller is TraveLLM (hereinafter &quot;we&quot;, &quot;the Service&quot;). For data protection inquiries, contact us at: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>.</>
                 : <>Оператором персональных данных является TraveLLM (далее — «мы», «Сервис»). Контакт по вопросам персональных данных: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>.</>}
             </p>
+            <dl className="mt-4 grid gap-2 rounded-xl border border-border bg-muted/30 p-4">
+              <div><dt className="font-semibold text-foreground">{isEn ? "Full legal name" : "Полное наименование"}</dt><dd>{LEGAL.operatorName}</dd></div>
+              <div><dt className="font-semibold text-foreground">ИНН</dt><dd>{LEGAL.operatorInn}</dd></div>
+              <div><dt className="font-semibold text-foreground">ОГРН/ОГРНИП</dt><dd>{LEGAL.operatorOgrn}</dd></div>
+              <div><dt className="font-semibold text-foreground">{isEn ? "Postal address" : "Почтовый адрес"}</dt><dd>{LEGAL.operatorAddress}</dd></div>
+            </dl>
           </section>
 
           <section>
@@ -193,6 +200,16 @@ export default async function PrivacyPage() {
                   : <><strong>Соблюдение законодательства</strong> — выполнение требований законов РФ.</>}
               </li>
             </ul>
+            <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
+              <p className="font-semibold text-foreground">
+                {isEn ? "Legal grounds and methods" : "Правовые основания и способы обработки"}
+              </p>
+              <p className="mt-2">
+                {isEn
+                  ? "We process data based on user consent, performance of the user agreement, legal obligations, and legitimate security interests. Processing may include collection, recording, systematization, storage, clarification, use, transfer to processors, blocking, deletion, and destruction using automated systems."
+                  : "Мы обрабатываем данные на основании согласия пользователя, исполнения пользовательского соглашения, требований закона и законного интереса по защите сервиса. Обработка может включать сбор, запись, систематизацию, хранение, уточнение, использование, передачу обработчикам, блокирование, удаление и уничтожение с использованием автоматизированных систем."}
+              </p>
+            </div>
           </section>
 
           <section>
@@ -291,7 +308,23 @@ export default async function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-bold text-foreground mb-3">
-              {isEn ? "9. Children" : "9. Дети"}
+              {isEn ? "9. Personal Data Incidents" : "9. Инциденты с персональными данными"}
+            </h2>
+            <p>
+              {isEn
+                ? "If a personal data incident is detected, we register it internally, limit the impact, preserve evidence, assess harm, notify the competent authority where required, and complete the investigation within the statutory timeframe."
+                : "При выявлении инцидента с персональными данными мы фиксируем его во внутреннем журнале, ограничиваем последствия, сохраняем доказательства, оцениваем вред, уведомляем уполномоченный орган в установленные законом сроки и завершаем расследование в предусмотренный срок."}
+            </p>
+            {!isEn && (
+              <p className="mt-2">
+                Для срочных сообщений об инцидентах используйте <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a> с темой «Инцидент ПДн».
+              </p>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-foreground mb-3">
+              {isEn ? "10. Children" : "10. Дети"}
             </h2>
             <p>
               {isEn
@@ -302,7 +335,7 @@ export default async function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-bold text-foreground mb-3">
-              {isEn ? "10. Changes to This Policy" : "10. Изменения Политики"}
+              {isEn ? "11. Changes to This Policy" : "11. Изменения Политики"}
             </h2>
             <p>
               {isEn
@@ -313,7 +346,7 @@ export default async function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-bold text-foreground mb-3">
-              {isEn ? "11. Contact Us" : "11. Контакты"}
+              {isEn ? "12. Contact Us" : "12. Контакты"}
             </h2>
             <ul className="space-y-1">
               <li>Email: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a></li>

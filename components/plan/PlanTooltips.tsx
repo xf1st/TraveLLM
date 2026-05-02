@@ -36,7 +36,10 @@ export function PlanTooltips({ forceShow }: Props) {
 
   useEffect(() => {
     if (forceShow || !getSeen()) {
-      const timer = setTimeout(() => setVisible(true), 3500)
+      const hasCookieBanner =
+        typeof window !== "undefined" &&
+        !localStorage.getItem("travellm_cookies_consent")
+      const timer = setTimeout(() => setVisible(true), hasCookieBanner ? 8000 : 3500)
       return () => clearTimeout(timer)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,7 +84,7 @@ export function PlanTooltips({ forceShow }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: "spring", damping: 22, stiffness: 300 }}
-            className="fixed z-[995] left-1/2 bottom-8 -translate-x-1/2 w-[min(92vw,400px)] pointer-events-auto"
+            className="fixed z-[995] left-1/2 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] -translate-x-1/2 w-[min(92vw,400px)] pointer-events-auto sm:bottom-8"
           >
             <div
               className="relative rounded-2xl overflow-hidden shadow-2xl"

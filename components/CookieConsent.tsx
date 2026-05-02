@@ -34,7 +34,7 @@ export function CookieConsent() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 200 }}
-          className="fixed inset-x-3 bottom-3 z-[200] mx-auto max-w-[760px] sm:bottom-5 sm:left-auto sm:right-5 sm:mx-0 sm:max-w-[430px]"
+          className="fixed inset-x-3 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-[200] mx-auto max-w-[760px] sm:bottom-5 sm:left-auto sm:right-5 sm:mx-0 sm:max-w-[430px]"
         >
           <div
             className="relative rounded-2xl p-3.5 shadow-2xl sm:p-4"

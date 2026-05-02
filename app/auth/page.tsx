@@ -21,6 +21,7 @@ import {
   normalizePartnerPromo,
   persistPartnerPromoForSignup,
 } from "@/lib/partner-promo-client"
+import { LEGAL_DOCUMENT_VERSION } from "@/lib/legal"
 
 
 function AuthContent() {
@@ -35,6 +36,7 @@ function AuthContent() {
     if (typeof window === "undefined") return ""
     return getPendingPartnerPromo() ?? ""
   })
+  const [personalDataConsent, setPersonalDataConsent] = useState(false)
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login")
 
   const isAdminSubdomain = typeof window !== "undefined" && window.location.host.startsWith("admin.")
@@ -73,10 +75,23 @@ function AuthContent() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!personalDataConsent) {
+      toast.error(t("personalDataConsentRequired"))
+      return
+    }
     setLoading(true)
     persistPartnerPromoForSignup(partnerPromo)
     const promoNorm = normalizePartnerPromo(partnerPromo)
-    const signUpData: { full_name: string; partner_promo_code?: string } = { full_name: name }
+    const signUpData: {
+      full_name: string
+      partner_promo_code?: string
+      personal_data_consent_version: string
+      personal_data_consent_at: string
+    } = {
+      full_name: name,
+      personal_data_consent_version: LEGAL_DOCUMENT_VERSION,
+      personal_data_consent_at: new Date().toISOString(),
+    }
     if (promoNorm) signUpData.partner_promo_code = promoNorm
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -100,7 +115,21 @@ function AuthContent() {
   }
 
   const handleGoogleLogin = async () => {
-    if (activeTab === "signup") persistPartnerPromoForSignup(partnerPromo)
+    if (activeTab === "signup" && !personalDataConsent) {
+      toast.error(t("personalDataConsentRequired"))
+      return
+    }
+    if (activeTab === "signup") {
+      persistPartnerPromoForSignup(partnerPromo)
+      localStorage.setItem(
+        "travellm_pending_pd_consent",
+        JSON.stringify({
+          version: LEGAL_DOCUMENT_VERSION,
+          acceptedAt: new Date().toISOString(),
+          source: "auth-oauth-google",
+        })
+      )
+    }
     const { error } = await signInWithGoogle()
     if (error) toast.error(error.message)
   }
@@ -458,7 +487,30 @@ function AuthContent() {
                     </div>
                     <p className="text-[11px] leading-snug text-white/45 lg:text-muted-foreground">{t("promoCodeHint")}</p>
                   </div>
-                  <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading}>
+                  <label className="flex gap-3 rounded-2xl border border-white/12 bg-black/20 p-3 text-xs leading-relaxed text-white/70 lg:border-border lg:bg-muted/30 lg:text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={personalDataConsent}
+                      onChange={(e) => setPersonalDataConsent(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 accent-primary"
+                      required
+                    />
+                    <span>
+                      {t("personalDataConsentText")}{" "}
+                      <Link href="/personal-data-consent" target="_blank" className="underline underline-offset-4 hover:text-white lg:hover:text-foreground">
+                        {t("personalDataConsentLink")}
+                      </Link>
+                      ,{" "}
+                      <Link href="/privacy" target="_blank" className="underline underline-offset-4 hover:text-white lg:hover:text-foreground">
+                        {t("privacyPolicy")}
+                      </Link>{" "}
+                      {t("and")}{" "}
+                      <Link href="/terms" target="_blank" className="underline underline-offset-4 hover:text-white lg:hover:text-foreground">
+                        {t("terms")}
+                      </Link>
+                    </span>
+                  </label>
+                  <Button type="submit" className="w-full h-11 rounded-xl font-bold" disabled={loading || !personalDataConsent}>
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("signUp")} <ArrowRight className="ml-2 h-4 w-4" /></>}
                   </Button>
                 </form>

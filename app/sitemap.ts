@@ -11,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '', priority: 1 as const, changefreq: 'weekly' as const },
     { path: '/plan', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/guide', priority: 0.85, changefreq: 'weekly' as const },
-    { path: '/news', priority: 0.85, changefreq: 'weekly' as const },
+    { path: '/news', priority: 0.7, changefreq: 'weekly' as const },
     { path: '/reels', priority: 0.75, changefreq: 'daily' as const },
     { path: '/support', priority: 0.7, changefreq: 'monthly' as const },
     { path: '/privacy', priority: 0.5, changefreq: 'yearly' as const },
@@ -27,8 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articleRoutes: MetadataRoute.Sitemap = getAllArticleIds().map((id) => ({
     url: `${baseUrl}/news/${id}`,
     lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.75,
+    changeFrequency: 'weekly' as const,
+    priority: 0.65,
   }))
 
   return [...staticRoutes, ...articleRoutes]
