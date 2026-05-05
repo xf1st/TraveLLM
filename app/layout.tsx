@@ -11,6 +11,7 @@ import { PwaRegister } from "@/components/pwa-register"
 import { PwaInstallBanner } from "@/components/pwa-install-banner"
 import { AuthProvider } from "@/components/auth-provider"
 import { ChatProvider } from "@/lib/context/chat-context"
+import { TripGenerationProvider } from "@/lib/context/trip-generation-context"
 import { GlobalLoader } from "@/components/GlobalLoader"
 import { DriveLegalLabelRelocator } from "@/components/partners/DriveLegalLabelRelocator"
 import { NextIntlClientProvider } from "next-intl"
@@ -145,6 +146,7 @@ export default async function RootLayout({
           >
             <AuthProvider>
               <ChatProvider>
+                <TripGenerationProvider>
                 <GuardsWrapper>
                   <ErrorBoundary>
                     {children}
@@ -155,6 +157,7 @@ export default async function RootLayout({
                 <PwaInstallBanner />
                 {/* Non-critical overlays — lazy loaded to keep framer-motion out of critical path */}
                 <ClientModals />
+                </TripGenerationProvider>
               </ChatProvider>
             </AuthProvider>
             <Toaster />

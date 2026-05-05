@@ -117,7 +117,13 @@
   "generating": {
     "title": "Planning your trip",
     "processing": "Processing",
+    "miniTitle": "Progress",
     "close": "Close",
+    "cancelGeneration": "Cancel generation",
+    "cancelTitle": "Cancel generation?",
+    "cancelBody": "The current progress will stop and the itinerary will not be saved. If you only close the modal, generation keeps running in the background.",
+    "keepGenerating": "Keep generating",
+    "confirmCancel": "Yes, cancel",
     "steps": {
       "flights": "Finding flights",
       "hotels": "Booking hotels",

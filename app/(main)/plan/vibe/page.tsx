@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import dynamic from "next/dynamic"
 import Image from "next/image"
 import { Epilogue, Plus_Jakarta_Sans } from "next/font/google"
 import { AppLayout } from "@/components/app-layout"
@@ -19,16 +18,11 @@ import {
   Volume2,
   Wind,
 } from "lucide-react"
-import { PLAN_PENDING_GENERATION_KEY, streamTripGeneration } from "@/lib/trip-generation-stream"
-import { saveGeneratedTripAndNavigate } from "@/lib/save-generated-trip-client"
+import { PLAN_PENDING_GENERATION_KEY } from "@/lib/trip-generation-stream"
+import { useTripGeneration } from "@/lib/context/trip-generation-context"
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-
-const GeneratingModal = dynamic(
-  () => import("@/components/GeneratingModal").then((m) => ({ default: m.GeneratingModal })),
-  { ssr: false }
-)
 
 /** Moodboard image — scripts/Vibe/code.html */
 const MOODBOARD_IMG =
@@ -99,12 +93,12 @@ export default function PlanVibePage() {
   const t = useTranslations("plan")
   const tv = useTranslations("plan.vibe")
   const tc = useTranslations("common")
+  const { isGenerating, startGeneration } = useTripGeneration()
 
   const [basePayload, setBasePayload] = useState<Record<string, unknown> | null>(null)
   const [vibe, setVibe] = useState("")
   const [energy, setEnergy] = useState<EnergyKey>("electric")
   const [vibeError, setVibeError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
   const [showEconomyWarning, setShowEconomyWarning] = useState(false)
   const [pendingPayload, setPendingPayload] = useState<Record<string, unknown> | null>(null)
   const [errorModal, setErrorModal] = useState<{
@@ -113,8 +107,6 @@ export default function PlanVibePage() {
     message: string
     details?: string
   }>({ open: false, message: "" })
-
-  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     try {
@@ -144,63 +136,12 @@ export default function PlanVibePage() {
     setVibeError(null)
   }
 
-  const handleCancelGeneration = () => {
-    abortControllerRef.current?.abort()
-    setLoading(false)
-  }
-
   const runGeneration = async (payload: Record<string, unknown>) => {
-    const { autoFavorites, ...apiBody } = payload
-    try {
-      if (abortControllerRef.current) abortControllerRef.current.abort()
-      abortControllerRef.current = new AbortController()
-      const { routeData } = await streamTripGeneration(apiBody, abortControllerRef.current.signal)
-      await saveGeneratedTripAndNavigate(routeData as Record<string, unknown>, payload, {
-        autoFavorites: !!autoFavorites,
-        defaultTripTitle: t("defaultTripTitle"),
-        defaultDestination: t("defaultDestination"),
-        router,
-      })
-    } catch (error: unknown) {
-      const err = error as {
-        name?: string
-        message?: string
-        stack?: string
-        limitExceeded?: boolean
-        code?: string
-        limit?: number
-        resetAt?: string
-        retryAfterSec?: number
-      }
-      if (err.name === "AbortError") return
-      console.error("Generation error:", error)
-      let title = t("generationError")
-      let message = err.message || t("generationErrorMessage")
-      if (err.limitExceeded && err.resetAt) {
-        title = t("monthlyLimitTitle")
-        message = t("monthlyLimitBody", {
-          limit: err.limit ?? 10,
-          date: new Date(err.resetAt).toLocaleDateString(undefined, {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-        })
-      } else if (err.code === "RATE_LIMIT") {
-        message = t("rateLimitGeneration", {
-          seconds: err.retryAfterSec ?? 60,
-        })
-      }
-      setErrorModal({
-        open: true,
-        title,
-        message,
-        details: err.stack,
-      })
-    } finally {
-      setLoading(false)
-      abortControllerRef.current = null
-    }
+    await startGeneration(payload, {
+      autoFavorites: !!payload.autoFavorites,
+      defaultTripTitle: t("defaultTripTitle"),
+      defaultDestination: t("defaultDestination"),
+    })
   }
 
   const startWithPayload = async (payload: Record<string, unknown>) => {
@@ -209,7 +150,6 @@ export default function PlanVibePage() {
       setShowEconomyWarning(true)
       return
     }
-    setLoading(true)
     await runGeneration(payload)
   }
 
@@ -218,7 +158,6 @@ export default function PlanVibePage() {
     if (!pendingPayload) return
     const finalPayload = { ...pendingPayload, strictDestinations: strict }
     setPendingPayload(null)
-    setLoading(true)
     await runGeneration(finalPayload)
   }
 
@@ -279,7 +218,6 @@ export default function PlanVibePage() {
       )}
     >
       <div className="relative -mx-3 -mt-4 min-w-0 max-w-[100vw] px-3 pb-28 pt-4 sm:-mx-4 sm:px-4 sm:pb-24 sm:pt-6 lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-32 lg:pt-10">
-        <GeneratingModal open={loading} onCancel={handleCancelGeneration} />
         <ErrorModal
           open={errorModal.open}
           onClose={() => setErrorModal((m) => ({ ...m, open: false }))}
@@ -557,7 +495,7 @@ export default function PlanVibePage() {
                 <button
                   type="button"
                   onClick={handleContinue}
-                  disabled={loading}
+                  disabled={isGenerating}
                   className={cn(
                     "inline-flex w-full min-h-12 items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#a33800] to-[#ff7941] px-6 py-3.5 text-base font-black uppercase tracking-widest text-[#ffefeb] transition hover:scale-[1.02] sm:hover:scale-105 active:scale-95 disabled:opacity-60 touch-manipulation sm:w-auto sm:px-10 sm:py-4 sm:text-lg md:text-xl",
                     stickerShadow,
@@ -571,7 +509,7 @@ export default function PlanVibePage() {
                   type="button"
                   variant="ghost"
                   onClick={handleSkip}
-                  disabled={loading}
+                  disabled={isGenerating}
                   className={cn(
                     "w-full min-h-11 rounded-full text-[#6b5469] hover:bg-[#f7d1f3]/50 hover:text-[#3b283b] touch-manipulation sm:w-auto",
                     "dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100",

@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useLocale, useTranslations } from "next-intl"
-import dynamic from "next/dynamic"
 import { format, parseISO } from "date-fns"
 import { ru, enUS } from "date-fns/locale"
 import type { DateRange } from "react-day-picker"
@@ -37,18 +36,12 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import { streamGeminiTripGeneration } from "@/lib/trip-generation-stream"
-import { saveGeneratedTripAndNavigate } from "@/lib/save-generated-trip-client"
+import { useTripGeneration } from "@/lib/context/trip-generation-context"
 import { ErrorModal } from "@/components/ErrorModal"
 import type { ReelCardDTO } from "@/components/travel/DiscoveryReelsFeed"
 import { CityAutocomplete } from "@/components/ui/city-autocomplete"
 import { PlanTooltips } from "@/components/plan/PlanTooltips"
 import { ReelAnchorPreviewCard } from "@/components/travel/ReelAnchorPreviewCard"
-
-const GeneratingModal = dynamic(
-  () => import("@/components/GeneratingModal").then((m) => ({ default: m.GeneratingModal })),
-  { ssr: false },
-)
 
 const CIRC = 2 * Math.PI * 60
 function getBudgetOffset(budget: string, customBudget: string): number {
@@ -119,6 +112,7 @@ export default function PlanFromReelPage() {
   const locale = useLocale()
   const t = useTranslations("fromReel")
   const tPlan = useTranslations("plan")
+  const { isGenerating, startGeneration } = useTripGeneration()
   const dateFnsLocale = locale === "ru" ? ru : enUS
 
   const BUDGET_LABELS: Record<string, string> = {
@@ -152,15 +146,12 @@ export default function PlanFromReelPage() {
   const [highlightFocused, setHighlightFocused] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [errorModal, setErrorModal] = useState<{
     open: boolean
     title?: string
     message: string
     blockers?: Array<{ code: string; message: string; suggestion?: string }>
   }>({ open: false, message: "" })
-
-  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -342,46 +333,11 @@ export default function PlanFromReelPage() {
       autoFavorites: false,
     }
 
-    try {
-      if (abortRef.current) abortRef.current.abort()
-      abortRef.current = new AbortController()
-      setLoading(true)
-      const { autoFavorites, ...apiBody } = requestPayload
-      const { routeData } = await streamGeminiTripGeneration(apiBody, abortRef.current.signal)
-      await saveGeneratedTripAndNavigate(routeData as Record<string, unknown>, requestPayload, {
-        autoFavorites: !!autoFavorites,
-        defaultTripTitle: tPlan("defaultTripTitle"),
-        defaultDestination: tPlan("defaultDestination"),
-        router,
-      })
-    } catch (error: unknown) {
-      const err = error as {
-        name?: string
-        message?: string
-        limitExceeded?: boolean
-        limit?: number
-        resetAt?: string
-        code?: string
-        retryAfterSec?: number
-      }
-      if (err.name === "AbortError") return
-      let message = err.message || t("generationFailed")
-      if (err.limitExceeded && err.resetAt) {
-        message = tPlan("monthlyLimitBody", {
-          limit: err.limit ?? 10,
-          date: new Date(err.resetAt).toLocaleDateString(undefined, {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-        })
-      } else if (err.code === "RATE_LIMIT") {
-        message = tPlan("rateLimitGeneration", { seconds: err.retryAfterSec ?? 60 })
-      }
-      setErrorModal({ open: true, title: tPlan("generationError"), message })
-    } finally {
-      setLoading(false)
-    }
+    await startGeneration(requestPayload, {
+      autoFavorites: false,
+      defaultTripTitle: tPlan("defaultTripTitle"),
+      defaultDestination: tPlan("defaultDestination"),
+    })
   }
 
   if (loadError || !reelId) {
@@ -989,18 +945,17 @@ export default function PlanFromReelPage() {
               <button
                 type="button"
                 onClick={runGeneration}
-                disabled={loading || !anchorOk}
+                disabled={isGenerating || !anchorOk}
                 className="flex w-full min-h-[3.25rem] items-center justify-center gap-3 rounded-2xl bg-blue-500 py-3.5 text-base font-bold text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] transition-all duration-200 hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 touch-manipulation sm:py-4 sm:text-lg"
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : t("generate")}
-                {!loading && <Sparkles className="h-5 w-5" />}
+                {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : t("generate")}
+                {!isGenerating && <Sparkles className="h-5 w-5" />}
               </button>
             </div>
           </div>
         </section>
       </div>
 
-      <GeneratingModal open={loading} onCancel={() => abortRef.current?.abort()} />
     </AppLayout>
   )
 }
