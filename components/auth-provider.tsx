@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import { applyPendingReferral, captureReferralFromSearch } from "@/lib/referral-client"
 import { applyPendingPartnerPromo, capturePartnerPromoFromSearch } from "@/lib/partner-promo-client"
 import { LEGAL_DOCUMENT_VERSION } from "@/lib/legal"
@@ -34,21 +33,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Force session refresh function
     const refreshSession = useCallback(async () => {
         try {
-            // Use getUser() which validates the session with the server
-            // This is more reliable than getSession() for detecting expired/invalid sessions
-            const { data: { user }, error } = await supabase.auth.getUser()
+            const res = await fetch("/api/auth/session", { credentials: "same-origin" })
+            const data = (await res.json().catch(() => ({}))) as { user?: User | null }
 
-            if (error) {
-                // Session is invalid or expired
+            if (!res.ok || !data.user) {
                 setUser(null)
                 setSession(null)
                 return
             }
 
-            // Also get the session for the token
-            const { data: { session } } = await supabase.auth.getSession()
-            setSession(session)
-            setUser(user)
+            setSession(null)
+            setUser(data.user)
         } catch (error) {
             console.error("Session refresh error:", error)
             setUser(null)
@@ -86,46 +81,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const version = parsed.version || LEGAL_DOCUMENT_VERSION
             const acceptedAt = parsed.acceptedAt || new Date().toISOString()
 
-            void supabase.auth.updateUser({
-                data: {
-                    personal_data_consent_version: version,
-                    personal_data_consent_at: acceptedAt,
-                    personal_data_consent_source: parsed.source || "auth-oauth",
-                },
-            }).then(({ error }) => {
-                if (!error) window.localStorage.removeItem("travellm_pending_pd_consent")
+            void fetch("/api/auth/consent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({
+                    version,
+                    acceptedAt,
+                    source: parsed.source || "auth-oauth",
+                }),
+            }).then((res) => {
+                if (res.ok) window.localStorage.removeItem("travellm_pending_pd_consent")
             })
         } catch {
             window.localStorage.removeItem("travellm_pending_pd_consent")
         }
     }, [user?.id, isLoading])
 
-    // Listen for auth state changes (login, logout, token refresh)
+    // Keep auth state in sync without requiring browser access to Supabase.
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                // console.log("Auth State Change:", event)
+        if (typeof window === "undefined") return
 
-                setSession(session)
-                setUser(session?.user || null)
-                setIsLoading(false)
+        const syncSession = () => {
+            void refreshSession().then(() => router.refresh())
+        }
 
-                if (event === "SIGNED_IN") {
-                    router.refresh()
-                }
-
-                if (event === "SIGNED_OUT") {
-                    setUser(null)
-                    setSession(null)
-                    router.refresh()
-                }
-            }
-        )
+        window.addEventListener("focus", syncSession)
+        window.addEventListener("travellm-auth-refresh", syncSession)
 
         return () => {
-            subscription.unsubscribe()
+            window.removeEventListener("focus", syncSession)
+            window.removeEventListener("travellm-auth-refresh", syncSession)
         }
-    }, [router])
+    }, [refreshSession, router])
 
     return (
         <AuthContext.Provider value={{ user, session, isLoading, refreshSession }}>

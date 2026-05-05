@@ -33,7 +33,6 @@ import {
 import Image from "next/image";
 import { TripImage } from "@/components/TripImage";
 import { FadeIn } from "@/components/FadeIn";
-import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { FloatingIcons } from "@/components/FloatingIcons";
 
@@ -286,42 +285,28 @@ function ResultsContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const authUser = session?.user || null;
+        const sessionRes = await fetch("/api/auth/session", { credentials: "same-origin" });
+        const sessionData = await sessionRes.json().catch(() => ({}));
+        const authUser = sessionRes.ok ? sessionData.user : null;
 
         if (authUser) {
-          // 1. Fetch My Routes (First Page)
-          const { count } = await supabase
-            .from("trips")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", authUser.id);
+          const [myTripsRes, favoriteRes] = await Promise.all([
+            fetch(`/api/trips?view=my&from=0&limit=${PAGE_SIZE}`, { credentials: "same-origin" }),
+            fetch("/api/trips?view=favorites", { credentials: "same-origin" }),
+          ]);
+          const myTripsData = await myTripsRes.json().catch(() => ({}));
+          const favoriteData = await favoriteRes.json().catch(() => ({}));
 
-          setTotalRoutes(count || 0);
-          setHasMoreRoutes((count || 0) > PAGE_SIZE);
+          if (myTripsRes.ok) {
+            setTotalRoutes(myTripsData.total || 0);
+            setHasMoreRoutes(Boolean(myTripsData.hasMore));
+            setUserRoutes(myTripsData.trips || []);
+            setFavoriteIds(new Set(myTripsData.favoriteIds || []));
+          }
 
-          const { data: myTrips } = await supabase
-            .from("trips")
-            .select("*")
-            .eq("user_id", authUser.id)
-            .order("created_at", { ascending: false })
-            .range(0, PAGE_SIZE - 1);
-
-          if (myTrips) setUserRoutes(myTrips);
-
-          // 2. Fetch Favorites (IDs + Data)
-          const { data: favs } = await supabase
-            .from("favorites")
-            .select("trip_id, trips(*)")
-            .eq("user_id", authUser.id)
-            .order("created_at", { ascending: false });
-
-          if (favs) {
-            const ids = new Set(favs.map((f: any) => f.trip_id));
-            const trips = favs.map((f: any) => f.trips).filter(Boolean);
-            setFavoriteIds(ids);
-            setFavoriteRoutes(trips);
+          if (favoriteRes.ok) {
+            setFavoriteIds((prev) => new Set([...prev, ...(favoriteData.favoriteIds || [])]));
+            setFavoriteRoutes(favoriteData.trips || []);
           }
         }
       } catch (err) {
@@ -350,22 +335,16 @@ function ResultsContent() {
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
+      const sessionRes = await fetch("/api/auth/session", { credentials: "same-origin" });
+      const sessionData = await sessionRes.json().catch(() => ({}));
+      if (sessionRes.ok && sessionData.user) {
         const from = userRoutes.length;
-        const to = from + PAGE_SIZE - 1;
-        const { data } = await supabase
-          .from("trips")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .range(from, to);
+        const res = await fetch(`/api/trips?view=my&from=${from}&limit=${PAGE_SIZE}`, { credentials: "same-origin" });
+        const payload = await res.json().catch(() => ({}));
 
-        if (data && data.length > 0) {
-          setUserRoutes((prev) => [...prev, ...data]);
-          setHasMoreRoutes(from + data.length < totalRoutes);
+        if (res.ok && payload.trips?.length > 0) {
+          setUserRoutes((prev) => [...prev, ...payload.trips]);
+          setHasMoreRoutes(Boolean(payload.hasMore));
         } else {
           setHasMoreRoutes(false);
         }
@@ -400,16 +379,14 @@ function ResultsContent() {
     }
     setFavoriteIds(newFavs);
 
-    // Server request (using lazy import or fetch)
-    // We can use supabase client directly for simpler auth handling in CLIENT component
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const sessionRes = await fetch("/api/auth/session", { credentials: "same-origin" });
+    const sessionData = await sessionRes.json().catch(() => ({}));
+    if (!sessionRes.ok || !sessionData.user) return;
 
     await fetch("/api/favorites/toggle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({ tripId }),
     })
   };

@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { supabase } from "@/lib/supabase"
+import { supabase, signOut } from "@/lib/supabase"
 import { patchMyProfile, ProfilePatchError } from "@/lib/user-profile-client"
 import { buildAuthSignupReferralUrl } from "@/lib/referral-client"
 import { appToast as toast } from "@/components/ui/sonner"
@@ -376,14 +376,14 @@ function ProfileContent() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      const authUser = session?.user || null
+      const meRes = await fetch("/api/user/me?include=profile-page", { credentials: "same-origin" })
+      const meData = await meRes.json().catch(() => ({}))
+      const authUser = meRes.ok ? meData.user || null : null
       setUser(authUser)
       setDebugInfo((prev: any) => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
 
       if (authUser) {
-        const { data: row } = await supabase.from('profiles').select('*').eq('id', authUser.id).single()
-        let data = row
+        let data = meData.profile
         if (data) {
           const rc = data.referral_code != null ? String(data.referral_code).trim() : ""
           if (rc.length < 4) {
@@ -429,17 +429,6 @@ function ProfileContent() {
           })
         }
 
-        const { data: dbTrips, error: dbError } = await supabase
-          .from('trips')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .order('created_at', { ascending: false })
-
-        if (dbError) {
-          console.error("Profile load error (DB):", dbError.message, "Code:", dbError.code, "Details:", dbError.details)
-          setDebugInfo((prev: any) => ({ ...prev, error: dbError.message }))
-        }
-
         setDebugInfo((prev: any) => ({ ...prev, userId: authUser.id }))
         const localTrips: any[] = []
         for (let i = 0; i < localStorage.length; i++) {
@@ -461,7 +450,7 @@ function ProfileContent() {
           }
         }
 
-        const allRoutes = [...(dbTrips || [])]
+        const allRoutes = [...(meData.trips || [])]
         localTrips.forEach(lt => {
           const isDup = allRoutes.find(dr =>
             dr.id === lt.id ||
@@ -472,27 +461,14 @@ function ProfileContent() {
 
         setUserRoutes(allRoutes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
 
-        try {
-          const { data: feedbackRows, error: feedbackError } = await supabase
-            .from("trip_feedback")
-            .select("trip_id,rating,comment,liked,disliked,source,updated_at")
-            .eq("user_id", authUser.id)
-
-          if (feedbackError) {
-            if (feedbackError.code !== "42P01") {
-              console.warn("Profile feedback load error:", feedbackError.message)
-            }
-          } else if (Array.isArray(feedbackRows)) {
-            const byTrip: Record<string, TripFeedbackRecord> = {}
-            feedbackRows.forEach((row: any) => {
-              const tripKey = String(row?.trip_id || "")
-              if (!tripKey) return
-              byTrip[tripKey] = row
-            })
-            setFeedbackByTripId(byTrip)
-          }
-        } catch (feedbackFetchError) {
-          console.warn("Failed to fetch trip feedback:", feedbackFetchError)
+        if (Array.isArray(meData.feedback)) {
+          const byTrip: Record<string, TripFeedbackRecord> = {}
+          meData.feedback.forEach((row: any) => {
+            const tripKey = String(row?.trip_id || "")
+            if (!tripKey) return
+            byTrip[tripKey] = row
+          })
+          setFeedbackByTripId(byTrip)
         }
       } else {
         // GUEST MODE
@@ -744,7 +720,7 @@ function ProfileContent() {
 
       if (res.ok) {
         toast.success(tp("toast.accountDeleted"))
-        await supabase.auth.signOut()
+        await signOut()
         window.location.href = "/"
       } else {
         const data = await res.json()
@@ -2047,7 +2023,7 @@ function ProfileContent() {
                             variant="outline"
                             className="w-full justify-start text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 border-red-500/20"
                             onClick={async () => {
-                              await supabase.auth.signOut()
+                              await signOut()
                               window.location.href = "/"
                             }}
                           >

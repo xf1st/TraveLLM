@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { supabase, signOut } from "@/lib/supabase"
+import { signOut } from "@/lib/supabase"
 import { useState, useEffect } from "react"
 import { ModeToggle } from "@/components/mode-toggle"
 import { appToast as toast } from "@/components/ui/sonner"
@@ -47,11 +47,9 @@ export function Header({ floating = false }: HeaderProps) {
 
     const loadUserData = async () => {
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name, avatar_url, gen_limit_override')
-          .eq('id', user.id)
-          .maybeSingle()
+        const res = await fetch("/api/user/me", { credentials: "same-origin" })
+        const data = await res.json().catch(() => ({}))
+        const profile = data.profile
 
         if (profile) {
           setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
@@ -59,22 +57,13 @@ export function Header({ floating = false }: HeaderProps) {
             full_name: profile.full_name || user.user_metadata?.full_name,
             avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
           })
-          const now = new Date()
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-          const { count } = await supabase
-            .from('ai_usage_events')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('source', 'route-generation')
-            .gte('created_at', monthStart)
-          const limit = profile.gen_limit_override ?? 10
-          setGenUsage({ used: count ?? 0, limit })
+          setGenUsage(data.genUsage || { used: 0, limit: profile.gen_limit_override ?? 10 })
         } else {
           setUserData({
             full_name: user.user_metadata?.full_name,
             avatar_url: user.user_metadata?.avatar_url
           })
-          setGenUsage({ used: 0, limit: 10 })
+          setGenUsage(data.genUsage || { used: 0, limit: 10 })
         }
       } else {
         setIsAdmin(false)
@@ -237,7 +226,7 @@ export function Header({ floating = false }: HeaderProps) {
                         <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.6b</p>
+                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.7b</p>
                     </div>
                     {userMenuGenUsage}
                   </DropdownMenuLabel>
@@ -393,7 +382,7 @@ export function Header({ floating = false }: HeaderProps) {
                       <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.6b</p>
+                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.7b</p>
                   </div>
                   {userMenuGenUsage}
                 </DropdownMenuLabel>

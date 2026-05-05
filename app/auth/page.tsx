@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ModeToggle } from "@/components/mode-toggle"
 import { ArrowRight, Loader2, Mail, Lock, User, Tag } from "lucide-react"
-import { supabase, signInWithGoogle } from "@/lib/supabase"
+import { signInWithGoogle } from "@/lib/supabase"
 import { appToast as toast } from "@/components/ui/sonner"
 import { motion } from "framer-motion"
 import { useTranslations } from "next-intl"
@@ -43,8 +43,9 @@ function AuthContent() {
   const defaultRedirect = isAdminSubdomain ? "/admin" : "/plan"
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) router.push(defaultRedirect)
+    fetch("/api/auth/session", { credentials: "same-origin" }).then(async (res) => {
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.user) router.push(defaultRedirect)
     })
   }, [router, defaultRedirect])
 
@@ -57,18 +58,19 @@ function AuthContent() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      toast.error(error.message)
+    const res = await fetch("/api/auth/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ action: "login", email, password }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      toast.error(data.error || t("errors.invalidCredentials"))
     } else {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const next = searchParams.get("next")
-        router.push(next || defaultRedirect)
-      } else {
-        router.push(defaultRedirect)
-      }
+      const next = searchParams.get("next")
       localStorage.setItem("user", JSON.stringify({ email, name: "Пользователь" }))
+      window.location.href = next || defaultRedirect
     }
     setLoading(false)
   }
@@ -93,19 +95,27 @@ function AuthContent() {
       personal_data_consent_at: new Date().toISOString(),
     }
     if (promoNorm) signUpData.partner_promo_code = promoNorm
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: signUpData },
+    const res = await fetch("/api/auth/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        action: "signup",
+        email,
+        password,
+        name,
+        metadata: signUpData,
+      }),
     })
-    if (error) {
-      toast.error(error.message)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      toast.error(data.error || t("errors.emailTaken"))
     } else {
       localStorage.setItem("user", JSON.stringify({ email, name }))
 
-      if (data.session) {
+      if (data.hasSession) {
         toast.success(t("signIn"))
-        router.push(defaultRedirect)
+        window.location.href = defaultRedirect
       } else {
         toast.success(t("verifyEmail"))
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`)

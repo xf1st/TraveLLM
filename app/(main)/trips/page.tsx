@@ -38,7 +38,6 @@ import {
 } from "lucide-react";
 import { TripImage } from "@/components/TripImage";
 import { FadeIn } from "@/components/FadeIn";
-import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppEmptyState } from "@/components/ui/empty-state";
@@ -73,8 +72,6 @@ const tagIcons: Record<string, any> = {
   дайвинг: Waves, уникальный: Camera, аквапарк: Waves,
   default: Sparkles,
 };
-
-const TRIP_LIST_COLUMNS = "id,title,destination,cover_image,start_date,end_date,tags,total_cost,budget_range,safety_info,is_public,created_at,updated_at";
 
 function getTagStyle(tag: string) {
   const clean = tag.toLowerCase().replace("#", "").trim();
@@ -611,30 +608,26 @@ function TripsContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const user = session?.user || null;
+        const [myRes, favRes] = await Promise.all([
+          fetch(`/api/trips?view=my&from=0&limit=${PAGE_SIZE}`, { credentials: "same-origin" }),
+          fetch("/api/trips?view=favorites", { credentials: "same-origin" }),
+        ]);
 
-        if (user) {
-          const { count } = await supabase
-            .from("trips").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-          setTotalRoutes(count || 0);
-          setHasMoreRoutes((count || 0) > PAGE_SIZE);
-
-          const { data: myTrips } = await supabase
-            .from("trips").select(TRIP_LIST_COLUMNS).eq("user_id", user.id)
-            .order("created_at", { ascending: false }).range(0, PAGE_SIZE - 1);
-          if (myTrips) setUserRoutes(myTrips);
-
-          const { data: favs } = await supabase
-            .from("favorites").select(`trip_id, trips(${TRIP_LIST_COLUMNS})`).eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-          if (favs) {
-            setFavoriteIds(new Set(favs.map((f: any) => f.trip_id)));
-            setFavoriteRoutes(favs.map((f: any) => f.trips).filter(Boolean));
-          }
+        if (!myRes.ok) {
+          toast.error(t("loadError"));
+          return;
         }
+        const myData = await myRes.json();
+        const favData = favRes.ok ? await favRes.json() : { trips: [], favoriteIds: [] };
+
+        setTotalRoutes(myData.total || 0);
+        setHasMoreRoutes(Boolean(myData.hasMore));
+        setUserRoutes(myData.trips || []);
+        setFavoriteIds(new Set(favData.favoriteIds || []));
+        setFavoriteRoutes(favData.trips || []);
       } catch (e) {
         console.warn("Error fetching trips:", e);
+        toast.error(t("loadError"));
       } finally {
         setLoading(false);
       }
@@ -647,18 +640,13 @@ function TripsContent() {
     isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const from = userRoutes.length;
-        const { data } = await supabase.from("trips").select(TRIP_LIST_COLUMNS)
-          .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .range(from, from + PAGE_SIZE - 1);
-        if (data && data.length > 0) {
-          setUserRoutes(prev => [...prev, ...data]);
-          setHasMoreRoutes(from + data.length < totalRoutes);
-        } else setHasMoreRoutes(false);
-      }
+      const from = userRoutes.length;
+      const res = await fetch(`/api/trips?view=my&from=${from}&limit=${PAGE_SIZE}`, { credentials: "same-origin" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.trips?.length > 0) {
+        setUserRoutes(prev => [...prev, ...data.trips]);
+        setHasMoreRoutes(Boolean(data.hasMore));
+      } else setHasMoreRoutes(false);
     } catch (e) {}
     setIsLoadingMore(false);
     isLoadingMoreRef.current = false;
@@ -678,8 +666,6 @@ function TripsContent() {
       if (trip) setFavoriteRoutes(prev => [trip, ...prev]);
     }
     setFavoriteIds(newFavs);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     await fetch("/api/favorites/toggle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -693,12 +679,14 @@ function TripsContent() {
     setIsDeleting(true);
     try {
       const ids = Array.from(selectedIds);
-      const { error } = await supabase
-        .from("trips")
-        .delete()
-        .in("id", ids);
+      const res = await fetch("/api/trips", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ ids }),
+      });
 
-      if (error) {
+      if (!res.ok) {
         toast.error(t("deleteError"));
         return;
       }

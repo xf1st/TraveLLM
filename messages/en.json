@@ -685,7 +685,8 @@
       "draft": "Draft",
       "planned": "Planned",
       "completed": "Completed"
-    }
+    },
+    "loadError": "Could not load trips"
   },
   "trip": {
     "itinerary": "Itinerary",

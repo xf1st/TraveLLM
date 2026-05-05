@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { supabase } from "@/lib/supabase"
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -91,15 +90,18 @@ export function useDebouncedTripItinerarySave(params: {
       const latest = JSON.stringify(itinerary ?? [])
       if (latest === baselineRef.current) return
 
-      const { error } = await supabase
-        .from("trips")
-        .update({ itinerary })
-        .eq("id", tripId!)
-        .eq("user_id", userId)
+      const res = await fetch(`/api/trips/${tripId!}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ itinerary }),
+      })
 
-      if (error) {
-        console.error("[debounced trip itinerary save]", error)
-        onSaveErrorRef.current?.(error.message)
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        const message = typeof payload?.error === "string" ? payload.error : "Failed to save itinerary"
+        console.error("[debounced trip itinerary save]", message)
+        onSaveErrorRef.current?.(message)
         return
       }
 

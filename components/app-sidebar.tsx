@@ -41,7 +41,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { supabase, signOut } from "@/lib/supabase"
+import { signOut } from "@/lib/supabase"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { appToast as toast } from "@/components/ui/sonner"
@@ -84,13 +84,9 @@ export function AppSidebar() {
     useEffect(() => {
         const loadUserData = async () => {
             if (user) {
-                loadRecentTrips(user.id)
-                // Check if user is admin
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role, full_name, avatar_url, gen_limit_override')
-                    .eq('id', user.id)
-                    .maybeSingle()
+                const res = await fetch("/api/user/me", { credentials: "same-origin" })
+                const data = await res.json().catch(() => ({}))
+                const profile = data.profile
 
                 if (profile) {
                     setIsAdmin(profile.role === 'admin' || profile.role === 'super_admin')
@@ -98,23 +94,15 @@ export function AppSidebar() {
                         full_name: profile.full_name || user.user_metadata?.full_name,
                         avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
                     })
-                    // Fetch monthly generation usage
-                    const now = new Date()
-                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-                    const { count } = await supabase
-                        .from('ai_usage_events')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('user_id', user.id)
-                        .eq('source', 'route-generation')
-                        .gte('created_at', monthStart)
-                    const limit = profile.gen_limit_override ?? 10
-                    setGenUsage({ used: count ?? 0, limit })
+                    setGenUsage(data.genUsage || { used: 0, limit: profile.gen_limit_override ?? 10 })
+                    setRecentTrips(data.recentTrips || [])
                 } else {
                     setUserData({
                         full_name: user.user_metadata?.full_name,
                         avatar_url: user.user_metadata?.avatar_url
                     })
-                    setGenUsage({ used: 0, limit: 10 })
+                    setGenUsage(data.genUsage || { used: 0, limit: 10 })
+                    setRecentTrips(data.recentTrips || [])
                 }
             } else {
                 setRecentTrips([])
@@ -133,18 +121,6 @@ export function AppSidebar() {
         return () => window.removeEventListener('profile_updated', handleProfileUpdate)
     }, [user])
 
-    const loadRecentTrips = async (userId: string) => {
-        const { data } = await supabase
-            .from('trips')
-            .select('id, title, destination')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(5)
-        if (data) setRecentTrips(data)
-    }
-
-
-
     const handleLogout = async () => {
         try {
             const { error } = await signOut()
@@ -155,8 +131,6 @@ export function AppSidebar() {
             }
 
             localStorage.removeItem("user")
-            // Auth state will be updated by AuthProvider via onAuthStateChange
-            await supabase.auth.signOut({ scope: 'local' })
 
             toast.success(t("signOut"))
 
@@ -371,7 +345,7 @@ export function AppSidebar() {
             <div className="p-3 border-t border-border/50">
                 {!isCollapsed && (
                     <div className="px-2 pb-2 text-[11px] font-mono font-bold text-muted-foreground/30 uppercase tracking-widest select-none">
-                        TraveLLM AI V: 2.08.6b
+                        TraveLLM AI V: 2.08.7b
                     </div>
                 )}
                 {user ? (

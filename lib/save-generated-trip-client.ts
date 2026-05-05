@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase"
 import { normalizeTravelMode } from "@/lib/travel-mode"
 
 type RouterLike = { push: (href: string) => void }
@@ -17,7 +16,9 @@ export async function saveGeneratedTripAndNavigate(
     router: RouterLike
   }
 ): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const sessionRes = await fetch("/api/auth/session", { credentials: "same-origin" })
+  const sessionData = await sessionRes.json().catch(() => ({}))
+  const user = sessionRes.ok ? sessionData.user : null
 
   if (user) {
     const res = await fetch("/api/trips/save", {

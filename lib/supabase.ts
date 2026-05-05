@@ -59,12 +59,19 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   try {
-    const { error } = await supabase.auth.signOut()
-    // Ignore "Auth session missing" during logout.
-    if (error?.message?.includes('Auth session missing')) {
-      return { error: null }
+    const res = await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    })
+
+    try {
+      await supabase.auth.signOut({ scope: "local" })
+    } catch {
+      /* Server logout already cleared cookies. */
     }
-    return { error }
+
+    if (!res.ok) return { error: new Error(`Logout failed (${res.status})`) }
+    return { error: null }
   } catch (error) {
     if (error instanceof Error && !error.message.includes('Auth session missing')) {
       return { error }

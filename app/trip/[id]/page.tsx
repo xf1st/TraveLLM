@@ -38,7 +38,6 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 const MeshGradient = dynamic(
   () => import("@paper-design/shaders-react").then(m => ({ default: m.MeshGradient })),
   { ssr: false }
@@ -66,7 +65,6 @@ import { motion, useScroll, useTransform } from "framer-motion"
 import dynamic from "next/dynamic"
 import { getPopularRoute } from "@/lib/popular-routes"
 import { LottieLoader } from "@/components/ui/LottieLoader"
-import { toggleFavorite } from "@/app/actions/favorites"
 import { ActivityTimelineCard, getActivityColorTheme } from "@/components/trip/ActivityTimelineCard"
 import { clearTripGalleryCache } from "@/components/PlaceGallery"
 import { TripViralCarousel } from "@/components/trip/TripViralCarousel"
@@ -339,27 +337,29 @@ export default function TripDetailPage() {
         const isLocal = id?.startsWith("local-")
         const isPopular = id?.startsWith("pop-")
 
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        setUser(currentUser)
-
         let data = null
         let error = null
+        let currentUser = null
+        let owner = false
+        let favorite = false
 
         if (isPopular) {
           data = getPopularRoute(id)
         } else if (isUuid) {
-          const result = await supabase
-            .from("trips")
-            .select("*")
-            .eq("id", id)
-            .single()
-          data = result.data
-          error = result.error
-
-          // If access denied (RLS) and not logged in — redirect to auth
-          if (error && !currentUser) {
+          const result = await fetch(`/api/trips/${id}`, { credentials: "same-origin" })
+          const payload = await result.json().catch(() => ({}))
+          if (result.status === 401) {
             router.push(`/auth?next=/trip/${id}`)
             return
+          }
+
+          if (!result.ok) {
+            error = payload?.error || "Failed to load trip"
+          } else {
+            data = payload.trip
+            currentUser = payload.user || null
+            owner = Boolean(payload.isOwner)
+            favorite = Boolean(payload.isFavorite)
           }
         } else if (isLocal || id === "ai-last") {
           const key = isLocal ? `trip-${id}` : "lastGeneratedRoute"
@@ -379,6 +379,9 @@ export default function TripDetailPage() {
             } catch {}
           }
         } else {
+          setUser(currentUser)
+          setIsOwner(owner)
+          setIsFavorite(favorite)
           clearTripGalleryCache()
           setRoute({
             ...data,
@@ -406,18 +409,7 @@ export default function TripDetailPage() {
           })
 
           if (currentUser && data.id) {
-            const tripOwner = data.user_id === currentUser.id
-            setIsOwner(tripOwner)
-
-            const { data: favData } = await supabase
-              .from("favorites")
-              .select("trip_id")
-              .eq("trip_id", data.id)
-              .eq("user_id", currentUser.id)
-              .maybeSingle()
-            setIsFavorite(!!favData)
-
-            if (tripOwner) {
+            if (owner) {
               fetch(`/api/trip-feedback?tripId=${data.id}`)
                 .then((r) => r.json())
                 .then((payload) => { if (payload?.feedback) setTripFeedback(payload.feedback) })
@@ -753,11 +745,13 @@ export default function TripDetailPage() {
   const handleTogglePublic = async () => {
     if (!route?.id) return
     const newValue = !route.is_public
-    const { error } = await supabase
-      .from("trips")
-      .update({ is_public: newValue })
-      .eq("id", route.id)
-    if (error) {
+    const res = await fetch(`/api/trips/${route.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({ is_public: newValue }),
+    })
+    if (!res.ok) {
       toast.error(t('toast.visibilityError'))
       return
     }
@@ -792,7 +786,13 @@ export default function TripDetailPage() {
     const newFav = !isFavorite
     setIsFavorite(newFav)
     try {
-      await toggleFavorite(route.id)
+      const res = await fetch("/api/favorites/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ tripId: route.id }),
+      })
+      if (!res.ok) throw new Error("Favorite toggle failed")
       toast.success(newFav ? t('toast.favoriteAdded') : t('toast.favoriteRemoved'))
     } catch {
       setIsFavorite(!newFav)
@@ -806,11 +806,11 @@ export default function TripDetailPage() {
     if (!route?.id || !isOwner) return
     setIsDeleting(true)
     try {
-      const { error } = await supabase
-        .from('trips')
-        .delete()
-        .eq('id', route.id)
-      if (error) {
+      const res = await fetch(`/api/trips/${route.id}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      })
+      if (!res.ok) {
         toast.error(t('deleteError'))
         return
       }
