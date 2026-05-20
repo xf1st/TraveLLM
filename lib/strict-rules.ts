@@ -60,7 +60,7 @@ placeName — ТОЛЬКО само название: "Ресторан Буря
 Поля ссылок (заполняй по типу активности):
 • mapLink — ВСЕГДА: Google Maps поиск места
 • link — ссылка на бронирование/официальный сайт (не карта!)
-• bookingUrl — ТОЛЬКО для hotel (Booking.com/Ostrovok) и food (резервация стола)
+• bookingUrl — ТОЛЬКО для hotel (Яндекс.Путешествия/Booking.com) и food (резервация стола)
 • ticketUrl — ТОЛЬКО для платных activity (музеи, экскурсии, аттракционы)
 
 === ПРАВИЛА ССЫЛОК ПО ТИПУ ===
@@ -82,9 +82,9 @@ HOTEL:
   Для российских городов: ищи отели, которые реально есть в этом городе (Ibis есть в Москве, СПб, Казани, Екатеринбурге, Иркутске; Marriott — в крупных городах; Azimut — по всей России).
   mapLink = Google Maps с конкретным названием
   bookingUrl — Яндекс.Путешествия: ВСЕГДА поиск по городу (slug отеля не угадывать — это ведёт к 404): "https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N"
-  link — Островок поиск: "https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N"
-  Ночёвка в РФ: Яндекс в bookingUrl + Островок в link; не Booking.com как основная ссылка.
-  За границей: bookingUrl = "https://www.booking.com/search.html?ss={HotelName}%2C+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — ТОЛЬКО поиск. ЗАПРЕЩЕНО генерировать /hotel/{country}/{slug}.html — AI не знает реальный slug и он будет 404.
+  link — НЕ заполняй Островком как fallback для Яндекс.Путешествий.
+  Ночёвка в РФ: Яндекс в bookingUrl; не Booking.com и не вторая fallback-ссылка как основная/fallback ссылка.
+  За границей: bookingUrl = "https://www.booking.com/search.html?ss={City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — ТОЛЬКО поиск отелей по городу. ЗАПРЕЩЕНО генерировать /hotel/{country}/{slug}.html или ссылку на конкретную страницу отеля — AI не знает реальный slug и он будет 404.
 
 FOOD (ресторан):
   placeName = реальное название заведения: "Ресторан Бурятия", "Кафе Байкал", "Пекарня Хлеб".

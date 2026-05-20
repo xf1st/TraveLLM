@@ -82,7 +82,6 @@ const SVC: Record<string, { color: string; label: string }> = {
   "Aviasales":    { color: "#ff6d00", label: "Aviasales"    },
   "Skyscanner":   { color: "#0770e3", label: "Skyscanner"   },
   "Booking.com":  { color: "#57b8f0", label: "Booking.com"  },
-  "Ostrovok":     { color: "#ed1c24", label: "Ostrovok"     },
   "Yandex Travel": { color: "#fc3f1e", label: "Яндекс Путешествия" },
   "Travelpayouts": { color: "#7c3aed", label: "Travelpayouts" },
   "Tripster":     { color: "#e11d48", label: "Tripster"     },
@@ -115,7 +114,7 @@ function parseService(url: string): string {
   if (/skyscanner/i.test(u))                   return "Skyscanner"
   if (/booking\.com/i.test(u))                 return "Booking.com"
   if (/travel\.yandex\.ru\/hotels/i.test(u))   return "Yandex Travel"
-  if (/ostrovok/i.test(u))                     return "Ostrovok"
+  if (/ostrovok/i.test(u))                     return "Hotel search"
   if (/airbnb/i.test(u))                       return "Airbnb"
   if (/hotels\.com/i.test(u))                  return "Hotels.com"
   if (/tripadvisor/i.test(u))                  return "TripAdvisor"
@@ -609,10 +608,10 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
         let finalUrls: string[] = []
 
         if (actType === "hotel") {
-          // For hotels, deduplicate and show each service once (Booking / Yandex / Ostrovok)
-          const deduped = [...new Set(rawUrls)]
+          // For hotels, deduplicate and show each service once (Booking / Yandex).
+          // Do not show secondary hotel fallback links next to Yandex Travel.
+          const deduped = [...new Set(rawUrls)].filter(u => !/ostrovok\.ru/i.test(u))
           const yandex = deduped.find(u => /travel\.yandex\.ru/i.test(u))
-          const ostrovok = deduped.find(u => /ostrovok\.ru/i.test(u))
           const booking = deduped.find(u => /booking\.com/i.test(u))
 
           // Detect if hotel is abroad — then Booking comes first
@@ -621,11 +620,9 @@ export function TripLinksPanel({ route, onGoToDay }: Props) {
 
           if (isAbroad) {
             if (booking) finalUrls.push(booking)
-            if (ostrovok) finalUrls.push(ostrovok)
             if (yandex) finalUrls.push(yandex)
           } else {
             if (yandex) finalUrls.push(yandex)
-            if (ostrovok) finalUrls.push(ostrovok)
             if (booking) finalUrls.push(booking)
           }
 

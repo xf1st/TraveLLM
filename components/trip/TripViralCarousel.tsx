@@ -4,11 +4,16 @@ import { useMemo, useState } from "react"
 import { TripImage } from "@/components/TripImage"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
+import { ArrowRight, Map } from "lucide-react"
 
 interface ViralSpot {
   name: string
   desc?: string
   description?: string
+  image?: string
+  imageUrl?: string
+  photo?: string
+  photoUrl?: string
   mapLink?: string
 }
 
@@ -21,15 +26,35 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
   const t = useTranslations("viral")
   const [expanded, setExpanded] = useState(false)
 
+  const singleDestination = useMemo(() => {
+    const value = String(destination || "").trim()
+    if (!value) return ""
+    if (value.includes(",") || /[—–]|(?:\s-\s)|→|->/u.test(value)) return ""
+    if (value.length > 36 && value.split(/\s+/).length > 3) return ""
+    return value
+  }, [destination])
+
   const normalizedSpots = useMemo(
     () =>
       (spots || [])
         .filter((spot) => spot?.name)
-        .map((spot) => ({
+        .map((spot, idx) => ({
           ...spot,
           text: spot.description || spot.desc || t("defaultDesc"),
+          imageSrc: spot.imageUrl || spot.photoUrl || spot.image || spot.photo,
+          imageQuery: [
+            spot.name,
+            spot.description || spot.desc,
+            singleDestination,
+            "travel landmark photo",
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim(),
+          imageKey: `${spot.name}-${idx}`,
         })),
-    [spots, t],
+    [singleDestination, spots, t],
   )
 
   if (normalizedSpots.length === 0) return null
@@ -49,12 +74,10 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
             className="inline-flex min-h-10 touch-manipulation items-center gap-1 rounded-full py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500 transition-colors hover:text-sky-600 dark:text-white/60 dark:hover:text-white"
           >
             {expanded ? t("collapse") : t("seeAll")}
-            <span className={cn("material-symbols-outlined text-sm transition-transform", expanded && "rotate-90")}>
-              arrow_forward
-            </span>
+            <ArrowRight className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-90")} strokeWidth={2.25} aria-hidden />
           </button>
         ) : (
-          <span className="material-symbols-outlined text-slate-400 dark:text-white/40 text-sm">arrow_forward</span>
+          <ArrowRight className="h-3.5 w-3.5 text-slate-400 dark:text-white/40" strokeWidth={2.25} aria-hidden />
         )}
       </div>
 
@@ -70,11 +93,9 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
             )}
           >
             <TripImage
-              query={
-                destination && !destination.includes(",")
-                  ? `${spot.name} ${destination}`
-                  : spot.name
-              }
+              key={spot.imageKey}
+              src={spot.imageSrc}
+              query={spot.imageQuery}
               alt={spot.name}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 md:group-hover:scale-110"
             />
@@ -91,7 +112,7 @@ export function TripViralCarousel({ spots, destination }: TripViralCarouselProps
                 }}
                 className="flex min-h-10 w-full touch-manipulation items-center justify-center gap-1 rounded-lg border border-white/40 bg-white/20 py-2 text-[10px] font-bold text-white backdrop-blur-md transition-all hover:bg-white/30 active:scale-[0.98] dark:border-white/30 dark:bg-white/10 dark:hover:bg-white/20 sm:rounded-xl sm:text-[10px]"
               >
-                <span className="material-symbols-outlined text-[10px] sm:text-xs">map</span>
+                <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2.25} aria-hidden />
                 {t("onMap")}
               </button>
             </div>

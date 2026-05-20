@@ -26,6 +26,7 @@ import {
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
     recalculateDayTotals,
+    enforceTravelModeConsistency,
 } from "@/lib/api/route-pipeline"
 import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
@@ -124,7 +125,6 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        // budgetDesc computed after validation (BUG-07 fix)
         let budgetDesc = ""
         let dynamicContextStr = ""
         let adjustedBudget = budgetCap
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
             } catch (e) { console.error("[Validation Error]", e) }
         }
 
-        // BUG-07: compute budgetDesc using adjustedBudget if validation raised it
+        // Use adjustedBudget if validation raised it (e.g. 15 000 ₽ for Tokyo is unrealistic)
         {
             const effectiveBudgetForPrompt = adjustedBudget > budgetCap ? adjustedBudget : budgetCap
             const originalNote = adjustedBudget > budgetCap
@@ -210,7 +210,6 @@ export async function POST(req: Request) {
         resetDeepSeekSessionUsage();
         resetGeminiSessionUsage();
         try {
-            console.log("DeepSeek: Starting generation...");
             const raw = await deepseekInference([
                 { role: "system", content: systemPrompt },
                 { role: "user", content: prompt }
@@ -228,11 +227,12 @@ export async function POST(req: Request) {
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
             routeData = await enrichViralSpotsWithWebSearch(routeData);
             routeData = normalizeActivityTypes(routeData);
+            routeData = enforceTravelModeConsistency(routeData, travelMode);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
             routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
             routeData = await enrichHotelCosts(routeData, startDate);
-            routeData = recalculateDayTotals(routeData); // BUG-06
+            routeData = recalculateDayTotals(routeData);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             const deepseekUsage = getDeepSeekSessionUsage();
@@ -275,11 +275,12 @@ export async function POST(req: Request) {
             await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
             routeData = await enrichViralSpotsWithWebSearch(routeData);
             routeData = normalizeActivityTypes(routeData);
+            routeData = enforceTravelModeConsistency(routeData, travelMode);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
             routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
             routeData = await enrichHotelCosts(routeData, startDate);
-            routeData = recalculateDayTotals(routeData); // BUG-06
+            routeData = recalculateDayTotals(routeData);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
             const deepseekUsage = getDeepSeekSessionUsage();

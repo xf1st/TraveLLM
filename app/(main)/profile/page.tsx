@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { AppLayout } from "@/components/app-layout"
@@ -10,10 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import {
   User, Settings, Heart, Map as MapIcon, Clock as ClockIcon, LogOut, Camera, Edit2,
   Check, Globe, Utensils, Zap, BookOpen, MapPin, ArrowRight, RotateCcw, Flag, Wallet,
-  Medal, Hotel as HotelIcon, Star, Calendar,
-  LayoutDashboard, Trophy, SlidersHorizontal, Settings as SettingsIcon, X,
+  Hotel as HotelIcon, Star, Calendar,
+  LayoutDashboard, SlidersHorizontal, Settings as SettingsIcon, X,
   Bell, Bookmark, Plane, Banknote, Languages, ChevronDown, ChevronRight as ChevronRightIcon, Share2,
-  Loader2, Gift,
+  Loader2,
 } from "lucide-react"
 import {
   Dialog,
@@ -29,11 +29,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase, signOut } from "@/lib/supabase"
 import { patchMyProfile, ProfilePatchError } from "@/lib/user-profile-client"
-import { buildAuthSignupReferralUrl } from "@/lib/referral-client"
 import { appToast as toast } from "@/components/ui/sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
-import Achievements, { ACHIEVEMENTS } from "@/components/Achievements"
 import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { cn } from "@/lib/utils"
 import {
@@ -249,7 +247,8 @@ function ProfileContent() {
   const [debugInfo, setDebugInfo] = useState<any>({ userId: null, error: null, sessionStatus: "Checking..." })
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [activeTab, setActiveTab] = useState(searchParams?.get("tab") || "overview")
+  const initialTab = searchParams?.get("tab")
+  const [activeTab, setActiveTab] = useState(initialTab === "settings" ? "settings" : "overview")
   const [editForm, setEditForm] = useState({
     full_name: "",
     citizenship: "",
@@ -385,21 +384,6 @@ function ProfileContent() {
       if (authUser) {
         let data = meData.profile
         if (data) {
-          const rc = data.referral_code != null ? String(data.referral_code).trim() : ""
-          if (rc.length < 4) {
-            try {
-              const res = await fetch("/api/user/ensure-referral-code", {
-                method: "POST",
-                credentials: "same-origin",
-              })
-              const j = (await res.json().catch(() => ({}))) as { referral_code?: string }
-              if (res.ok && typeof j.referral_code === "string" && j.referral_code.trim().length >= 4) {
-                data = { ...data, referral_code: j.referral_code.trim().toUpperCase() }
-              }
-            } catch {
-              /* keep row as loaded */
-            }
-          }
           setProfile(data)
           setAvatarUrl(data.avatar_url)
           const prefs = data.preferences || {}
@@ -496,50 +480,6 @@ function ProfileContent() {
     }
     loadProfile()
   }, [])
-
-  const achievementNotifiedRef = useRef(false)
-
-  useEffect(() => {
-    // Wait until profile and data are fully loaded
-    if (!profile || !user) return
-    // Run only once per mount after data is ready
-    if (achievementNotifiedRef.current) return
-    achievementNotifiedRef.current = true
-
-    const STORAGE_KEY = `travellm_seen_achievements_${user.id}`
-    const seen: string[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]")
-
-    const stats = {
-      countries: visitedSummary.countries.length,
-      trips: userRoutes.length,
-      weeks: 0,
-    }
-
-    const newlyUnlocked: string[] = []
-    ACHIEVEMENTS.forEach((ach) => {
-      if (ach.condition(stats) && !seen.includes(ach.id)) {
-        newlyUnlocked.push(ach.id)
-        toast.custom(
-          () => (
-            <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white p-4 rounded-xl shadow-md md:shadow-2xl flex items-center gap-4 border border-white/20">
-              <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
-                <Medal className="w-8 h-8 animate-bounce" />
-              </div>
-              <div>
-                <h4 className="font-bold text-lg">{tp("achievement.newAchievement")}!</h4>
-                <p className="text-sm opacity-90">{tp(`achievement.${ach.titleKey}`)}</p>
-              </div>
-            </div>
-          ),
-          { duration: 5000 },
-        )
-      }
-    })
-
-    if (newlyUnlocked.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...seen, ...newlyUnlocked]))
-    }
-  }, [visitedSummary.countries.length, userRoutes.length, profile, user])
 
   const handleUpdateProfile = async () => {
     if (!user) return
@@ -772,7 +712,6 @@ function ProfileContent() {
 
   const tabs = [
     { id: "overview", label: tp("overview"), icon: LayoutDashboard },
-    { id: "achievements", label: tp("achievements"), icon: Trophy },
     { id: "settings", label: tp("settings"), icon: SettingsIcon },
   ]
 
@@ -1365,51 +1304,6 @@ function ProfileContent() {
                       </div>
 
                       {/* Приглашение друга — на обзоре, без входа в «Настроить» */}
-                      {profile?.referral_code && siteOrigin ? (
-                        <div className="trip-glass border border-violet-400/25 rounded-2xl p-5 space-y-3">
-                          <h3 className="text-sm font-bold flex items-center gap-2">
-                            <Gift className="h-4 w-4 text-violet-400" />
-                            {tp("sectionReferral")}
-                          </h3>
-                          <p className="text-xs text-muted-foreground leading-relaxed">{tp("referralDesc")}</p>
-                          {profile?.referred_by && (
-                            <p className="text-xs text-sky-600/90 dark:text-sky-400/90">{tp("referralJoinedViaFriend")}</p>
-                          )}
-                          <div className="space-y-1">
-                            <div className="text-xs font-medium text-muted-foreground">{tp("referralYourCode")}</div>
-                            <div className="font-mono text-sm font-semibold tracking-wide">{profile.referral_code}</div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <div className="text-xs font-medium text-muted-foreground">{tp("referralInviteLink")}</div>
-                            <div className="rounded-lg border border-white/15 bg-background/30 px-3 py-2 text-xs break-all font-mono text-muted-foreground">
-                              {buildAuthSignupReferralUrl(siteOrigin, profile.referral_code)}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="w-full sm:w-auto"
-                              onClick={async () => {
-                                const url = buildAuthSignupReferralUrl(siteOrigin, profile.referral_code!)
-                                try {
-                                  await navigator.clipboard.writeText(url)
-                                  toast.success(tp("referralCopied"))
-                                } catch {
-                                  toast.error(tp("referralCopyFailed"))
-                                }
-                              }}
-                            >
-                              <Share2 className="h-3.5 w-3.5 mr-2" />
-                              {tp("referralCopyLink")}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : profile && siteOrigin ? (
-                        <div className="trip-glass border border-amber-500/25 rounded-2xl p-4">
-                          <p className="text-xs text-amber-700 dark:text-amber-300/90 leading-relaxed">{tp("referralUnavailable")}</p>
-                        </div>
-                      ) : null}
-
                       {/* Interests card */}
                       <div className="trip-glass border border-white/20 rounded-2xl p-5">
                         <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
@@ -1467,121 +1361,6 @@ function ProfileContent() {
                         </div>
                       </div>
 
-                      {/* Achievements embedded */}
-                      <div className="trip-glass border border-white/20 rounded-2xl p-5">
-                        <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                          <Medal className="h-4 w-4 text-amber-400" />
-                          {tp("achievementsTab")}
-                        </h3>
-                        <Achievements visitedCountries={visitedSummary.countries} completedTripsCount={completedTrips.length} />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ====== ACHIEVEMENTS TAB ====== */}
-                  {activeTab === "achievements" && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-bold flex items-center gap-2">
-                          <MapPin className="w-6 h-6 text-cyan-500" />
-                          {tp("completedTripsTitle")}
-                        </h2>
-                        <p className="text-muted-foreground text-sm">{tp("completedTripsSubtitle")}</p>
-
-                        {completedTrips.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {completedTrips.map((trip: any) => {
-                              const feedback = feedbackByTripId[String(trip.id)] || null
-                              return (
-                                <Link key={trip.id} href={`/trip/completed?tripId=${trip.id}`}>
-                                  <motion.div whileHover={{ y: -4, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
-                                    <Card className="h-full border-white/10 bg-white/5 hover:bg-white/10 transition-colors overflow-hidden group flex flex-col relative">
-                                      <div className="absolute top-3 right-3 z-10">
-                                        {feedback?.rating ? (
-                                          <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 backdrop-blur-md">
-                                            <Star className="w-3 h-3 mr-1 fill-emerald-400 text-emerald-400" /> {feedback.rating}
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="secondary" className="bg-black/40 backdrop-blur-md border-white/10 text-white/70">
-                                            {tp("noRating")}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="h-32 w-full bg-muted/20 relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-cyan-500/20 to-blue-500/20 opacity-80 group-hover:opacity-100 transition-opacity" />
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                          <MapPin className="w-8 h-8 text-white/30 group-hover:text-white/50 transition-colors group-hover:scale-110 duration-500" />
-                                        </div>
-                                      </div>
-                                      <div className="p-4 flex flex-col flex-grow">
-                                        <div className="font-bold text-foreground line-clamp-1 mb-1 group-hover:text-cyan-400 transition-colors">{trip.title || tp("defaultTripTitle")}</div>
-                                        <div className="text-sm text-muted-foreground flex items-center gap-2 mb-3">
-                                          <span>{trip.destination || tp("defaultDestination")}</span>
-                                        </div>
-                                        <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-xs text-muted-foreground">
-                                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(trip.created_at || Date.now()).toLocaleDateString()}</span>
-                                          <span className="flex items-center gap-1 text-cyan-500 group-hover:translate-x-1 transition-transform">{tp("view")} <ArrowRight className="w-3 h-3" /></span>
-                                        </div>
-                                      </div>
-                                    </Card>
-                                  </motion.div>
-                                </Link>
-                              )
-                            })}
-                          </div>
-                        ) : (
-                          <Card className="border-white/20 trip-glass p-8 text-center text-muted-foreground">
-                            {tp("noCompletedTrips")}
-                          </Card>
-                        )}
-                      </div>
-
-                      {/* Cities by country */}
-                      <div className="grid gap-6">
-                        <Card className="p-5 border-white/20 trip-glass">
-                          <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <MapIcon className="h-5 w-5 text-cyan-500" />
-                            {tp("citiesByCountry")}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-1 mb-4">
-                            {tp("citiesSummary", { countries: visitedSummary.countries.length, cities: visitedSummary.totalCities })}
-                          </p>
-                          <div className="mt-3 space-y-3 max-h-72 overflow-y-auto pr-1">
-                            {visitedSummary.citiesByCountry.map((entry) => (
-                              <div key={entry.country} className="rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-500/10 to-emerald-500/5 p-3">
-                                <div className="flex items-center justify-between gap-3 mb-2">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-lg leading-none">{getCountryFlag(entry.country)}</span>
-                                    <div className="font-semibold text-foreground truncate">{entry.country}</div>
-                                  </div>
-                                  <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400">
-                                    {tp("cityCount", { count: entry.cities.length })}
-                                  </Badge>
-                                </div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {entry.cities.map((city) => (
-                                    <Badge key={entry.country + "-" + city} variant="outline" className="text-[10px] border-emerald-500/25">
-                                      {city}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                            {visitedSummary.citiesByCountry.length === 0 && (
-                              <span className="text-sm text-muted-foreground">{tp("noData")}</span>
-                            )}
-                          </div>
-                        </Card>
-                      </div>
-
-                      {/* Achievements */}
-                      <div className="space-y-4">
-                        <h2 className="text-2xl font-bold flex items-center gap-2">
-                          <Medal className="w-6 h-6 text-amber-500" />
-                          {tp("achievementsTab")}
-                        </h2>
-                        <Achievements visitedCountries={visitedSummary.countries} completedTripsCount={completedTrips.length} />
-                      </div>
                     </div>
                   )}
 
@@ -1957,50 +1736,6 @@ function ProfileContent() {
                           >
                             {savingPublicProfile ? tp("saving") : tp("saveChanges")}
                           </Button>
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Gift className="h-3.5 w-3.5" />} title={tp("sectionReferral")} />
-                        <div className="px-5 py-4 space-y-3">
-                          <p className="text-sm text-muted-foreground leading-relaxed">{tp("referralDesc")}</p>
-                          {profile?.referred_by && (
-                            <p className="text-xs text-sky-600/90 dark:text-sky-400/90">{tp("referralJoinedViaFriend")}</p>
-                          )}
-                          {profile?.referral_code && siteOrigin ? (
-                            <>
-                              <div className="space-y-1">
-                                <div className="text-xs font-medium text-muted-foreground">{tp("referralYourCode")}</div>
-                                <div className="font-mono text-sm font-semibold tracking-wide">{profile.referral_code}</div>
-                              </div>
-                              <div className="space-y-1.5">
-                                <div className="text-xs font-medium text-muted-foreground">{tp("referralInviteLink")}</div>
-                                <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-2 text-xs break-all font-mono text-muted-foreground">
-                                  {buildAuthSignupReferralUrl(siteOrigin, profile.referral_code)}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full sm:w-auto"
-                                  onClick={async () => {
-                                    const url = buildAuthSignupReferralUrl(siteOrigin, profile.referral_code!)
-                                    try {
-                                      await navigator.clipboard.writeText(url)
-                                      toast.success(tp("referralCopied"))
-                                    } catch {
-                                      toast.error(tp("referralCopyFailed"))
-                                    }
-                                  }}
-                                >
-                                  <Share2 className="h-3.5 w-3.5 mr-2" />
-                                  {tp("referralCopyLink")}
-                                </Button>
-                              </div>
-                            </>
-                          ) : (
-                            <p className="text-xs text-muted-foreground leading-relaxed">{tp("referralUnavailable")}</p>
-                          )}
                         </div>
                       </div>
 

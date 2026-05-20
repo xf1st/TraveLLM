@@ -345,7 +345,7 @@ export function AppSidebar() {
             <div className="p-3 border-t border-border/50">
                 {!isCollapsed && (
                     <div className="px-2 pb-2 text-[11px] font-mono font-bold text-muted-foreground/30 uppercase tracking-widest select-none">
-                        TraveLLM AI V: 2.08.7b
+                        TraveLLM AI V: 2.08.8b
                     </div>
                 )}
                 {user ? (

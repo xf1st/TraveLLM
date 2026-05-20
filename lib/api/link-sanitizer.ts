@@ -89,8 +89,7 @@ function ostrovokSearchFallback(url: string, act: any): string {
         const seg = u.pathname.replace(/^\/|\/$/g, "").split("/")
         // seg[2] is city slug (e.g. "irkutsk")
         const citySlug = seg[2] || ""
-        const placeName = act?.placeName || ""
-        const q = [placeName, citySlug].filter(Boolean).join(" ")
+        const q = act?.city || citySlug || ""
         const f = new URL("https://ostrovok.ru/hotel/search/")
         if (q) f.searchParams.set("q", q)
         for (const k of ["checkin", "checkout", "guests"]) {
@@ -118,8 +117,7 @@ function bookingSearchFallback(url: string, act: any): string {
         const u = new URL(url)
         // Extract country code from /hotel/{cc}/name.html
         const seg = u.pathname.replace(/^\/|\/$/g, "").split("/")
-        const placeName = act?.placeName || ""
-        const q = placeName || seg[seg.length - 1]?.replace(".html", "").replace(/-/g, " ") || ""
+        const q = act?.city || seg[seg.length - 2] || ""
         const f = new URL("https://www.booking.com/search.html")
         if (q) f.searchParams.set("ss", q)
         for (const k of ["checkin", "checkout", "group_adults"]) {
@@ -305,8 +303,6 @@ export async function sanitizeBookingLinks(itinerary: unknown): Promise<unknown>
     const patched = JSON.parse(JSON.stringify(itinerary))
     for (const b of broken) {
         patched[b.dayIdx].activities[b.actIdx][b.field] = b.fallback
-        const reason = b.alwaysReplace ? "always-replace" : `HTTP ${(b as any).status}`
-        console.log(`[link-sanitizer] ${b.field} ${b.url} → ${reason} → ${b.fallback}`)
     }
 
     return patched

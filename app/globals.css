@@ -479,6 +479,16 @@
     animation: none;
   }
 
+  html.trip-page-shell,
+  body.trip-page-shell {
+    background: #e0f2fe !important;
+  }
+
+  html.dark.trip-page-shell,
+  html.dark body.trip-page-shell {
+    background: #1e3a8a !important;
+  }
+
   /* Trip glassmorphism panels */
   .trip-glass {
     background: rgba(255, 255, 255, 0.45);

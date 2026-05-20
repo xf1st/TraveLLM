@@ -1,8 +1,6 @@
 /**
- * Route Pipeline - Consolidated logic for travel route generation
+ * Route Pipeline - Post-processing logic for travel route generation.
  * Used by both Gemini and DeepSeek routes to ensure consistency.
- * 
- * Recommended by Audit March 2025.
  */
 
 import { sanitizeMislabeledForeignCosts } from "@/lib/cost-sanity"
@@ -11,6 +9,7 @@ import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } f
 import type { RealFlight } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
 import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
+import type { TravelMode } from "@/lib/travel-mode"
 
 /* ───────────────────────────────────────────────
    INTERFACES
@@ -112,10 +111,8 @@ export function enrichTransportLinks(
 
                     const origIata = currentIata || fromIataFromTitle
 
-                    // Skip link enrichment if we can't resolve both IATA codes —
-                    // a partial URL (e.g. aviasales.ru/search/1506 1) is worse than no link.
-                    if (!origIata || !toIata) {
-                        console.warn(`[enrichTransportLinks] Cannot resolve IATA for "${originalTitle}" (from=${origIata || "?"} to=${toIata || "?"}), skipping link override`)
+                                    if (!origIata || !toIata) {
+                        // Skip — partial URL is worse than no link
                     } else {
                         let date = startDate
                         if (startDate && i > 0) {
@@ -353,8 +350,6 @@ export async function sanitizeClosedAirportLogistics(
     market: BookingMarket = "ru"
 ) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
-    console.log(`[Pipeline] Sanitize logistics for ${itinerary.length} days...`)
-
     let currentCity = departureCity || "Москва"
 
     for (let i = 0; i < itinerary.length; i++) {
@@ -374,7 +369,6 @@ export async function sanitizeClosedAirportLogistics(
 
                 if (isFlightLogistics && (decision.mode === 'train' || decision.mode === 'bus')) {
                     // Flight → replace with ground transport
-                    console.log(`[Pipeline] Replacing flight with ${decision.mode}: ${fromCity} -> ${toCity}`);
 
                     let transportLink =
                         market === "world" ? "https://www.trip.com/trains/" : "https://travel.yandex.ru/trains/"
@@ -404,7 +398,6 @@ export async function sanitizeClosedAirportLogistics(
                     }
                 } else if (isGroundLogistics && decision.mode === 'flight') {
                     // Bus/train suggested but ground route not feasible — replace with flight
-                    console.log(`[Pipeline] Ground transport impossible ${fromCity} -> ${toCity} (likely sea crossing), replacing with flight`);
 
                     let flightLink: string
                     try {
@@ -474,13 +467,76 @@ export function removeSameCityFlights(routeData: any): any {
             const [, fromIata, toIata] = iataMatch
             const fromCity = METRO_AIRPORT_GROUPS[fromIata] || fromIata
             const toCity = METRO_AIRPORT_GROUPS[toIata] || toIata
-            if (fromCity === toCity) {
-                console.log(`[Pipeline] Removed same-city flight: ${act.title}`)
-                return false
-            }
+            if (fromCity === toCity) return false
             return true
         })
     }
+    return routeData
+}
+
+const FLIGHT_ACTIVITY_RE =
+    /\b(flight|airport|airline|air\s*ticket|plane|aviasales|iata)\b|\u043f\u0435\u0440\u0435\u043b[\u0435\u0451]\u0442|\u0440\u0435\u0439\u0441|\u0432\u044b\u043b\u0435\u0442|\u043f\u0440\u0438\u043b\u0435\u0442|\u0441\u0430\u043c\u043e\u043b[\u0435\u0451]\u0442|\u0430\u044d\u0440\u043e\u043f\u043e\u0440\u0442/i
+
+function hasCyrillicText(value: string): boolean {
+    return /[\u0400-\u04ff]/.test(value)
+}
+
+function stripFlightLinks(act: any) {
+    for (const key of ["link", "bookingUrl", "ticketUrl"]) {
+        if (typeof act[key] === "string" && /(aviasales|aero|airline|airport|flight|ticket)/i.test(act[key])) {
+            delete act[key]
+        }
+    }
+}
+
+/**
+ * Keeps generated logistics aligned with the user's selected primary mode.
+ * LLMs can forget the mode in later chunks, so this is a final server-side guard.
+ */
+export function enforceTravelModeConsistency(routeData: any, travelMode: TravelMode): any {
+    if (travelMode !== "car" || !Array.isArray(routeData?.itinerary)) return routeData
+
+    routeData.travelMode = travelMode
+    if (Array.isArray(routeData.flights)) routeData.flights = []
+
+    for (const day of routeData.itinerary) {
+        const dayText = `${day?.title || ""} ${day?.city || ""}`
+        if (day?.logistics && FLIGHT_ACTIVITY_RE.test(JSON.stringify(day.logistics))) {
+            const from = day.logistics.from || ""
+            const to = day.logistics.to || day.city || ""
+            day.logistics = {
+                ...day.logistics,
+                mode: hasCyrillicText(dayText) ? "Своя машина" : "Own car",
+                bookingLink: undefined,
+                note: hasCyrillicText(dayText)
+                    ? "Основной режим поездки - автопутешествие; авиа-сегменты не используются."
+                    : "Primary trip mode is a road trip; flight segments are not used.",
+                from,
+                to,
+            }
+        }
+
+        if (!Array.isArray(day.activities)) continue
+
+        for (const act of day.activities) {
+            const text = `${act?.type || ""} ${act?.title || ""} ${act?.placeName || ""} ${act?.desc || ""}`
+            if (act?.type === "flight" || FLIGHT_ACTIVITY_RE.test(text)) {
+                const ru = hasCyrillicText(text || dayText)
+                const from = day.logistics?.from || ""
+                const to = day.logistics?.to || day.city || act.placeName || ""
+                act.type = "transport"
+                act.title = ru
+                    ? `Автопереезд${from || to ? ` ${from}${from && to ? " -> " : ""}${to}` : ""}`
+                    : `Road drive${from || to ? ` ${from}${from && to ? " -> " : ""}${to}` : ""}`
+                act.placeName = act.placeName || to || from || (ru ? "Маршрут на автомобиле" : "Road route")
+                act.desc = ru
+                    ? "Переезд на своей машине с остановками на отдых, еду, топливо и парковку. Перелеты в режиме автопутешествия не используются."
+                    : "Drive in your own car with stops for rest, food, fuel, and parking. Flights are not used in road-trip mode."
+                stripFlightLinks(act)
+            }
+        }
+    }
+
     return routeData
 }
 
@@ -515,8 +571,7 @@ export function normalizeActivityTypes(routeData: any) {
         }
       }
 
-      // BUG-04: reverse correction — AI sometimes marks museum/sight visits as "transport" or "food"
-      // e.g. "Посещение Галереи Уффици" → type=transport, "Прогулка по кварталу" → type=food
+      // Reverse correction — AI sometimes marks museum/sight visits as "transport" or "food"
       if (act.type === "transport" && !TRANSPORT_RE.test(text)) {
         act.type = "activity"
       }
@@ -535,9 +590,9 @@ export function normalizeActivityTypes(routeData: any) {
 }
 
 /**
- * BUG-06: Recalculate dayTotal from sum of activity costs.
- * AI sometimes miscalculates dayTotal (e.g. double-counting hotel) or fills it with text.
- * Only override if we can parse at least one numeric cost from activities.
+ * Recalculates dayTotal from the sum of activity costs.
+ * AI sometimes miscalculates dayTotal or fills it with text.
+ * Only overrides if at least one numeric cost is parseable.
  */
 export function recalculateDayTotals(routeData: any): any {
     if (!Array.isArray(routeData?.itinerary)) return routeData
@@ -588,8 +643,6 @@ export async function collectRealTimeSearchContext(departureCity: string, destin
         `новые рестораны и модные места в ${mainDest} ${new Date().getFullYear()}`
     ]
 
-    console.log(`[Pipeline] Collecting real-time data for: ${mainDest}...`)
-    
     try {
         const searchPromises = queries.map(q => googleSearch(q, { num: 3 }))
         const allResults = await Promise.all(searchPromises)
@@ -618,8 +671,6 @@ export async function collectRealTimeSearchContext(departureCity: string, destin
 export async function enrichViralSpotsWithWebSearch(routeData: any) {
   if (!Array.isArray(routeData?.viralSpots) || routeData.viralSpots.length === 0) return routeData
 
-  console.log(`[Pipeline] Searching for ${routeData.viralSpots.length} viral spots...`)
-  
   try {
     const searchPromises = routeData.viralSpots.map(async (spot: { name?: string }) => {
       if (!spot.name) return spot
@@ -653,7 +704,7 @@ const ACTIVITY_URL_FIELDS = ["link", "mapLink", "bookingUrl", "ticketUrl", "book
  * This function walks the itinerary and nulls out any URL field that is not a
  * valid absolute http/https URL, so broken values never reach the client or DB.
  */
-// BUG-10: tomesto.ru is only for Russian restaurants — strip it for foreign destinations
+// tomesto.ru is only for Russian restaurants — strip it for foreign destinations
 const RUSSIA_HINT_RE = /россия|russia|москва|moscow|петербург|petersburg|сочи|sochi|казань|kazan|екатеринбург|ekaterinburg|новосибирск|novosibirsk|irkutsk|иркутск|krasnodar|краснодар|vladivostok|владивосток|нижний новгород|nizhniy.novgorod|золотое кольцо|yaroslavl|ярославль|suzdal|суздаль|vladimir|владимир/i
 
 function isTometoSafeCity(city?: string): boolean {
@@ -668,11 +719,10 @@ export function sanitizeActivityUrls(routeData: any): any {
     if (!Array.isArray(day.activities)) continue
     const dayCity: string | undefined = day.city
     for (const act of day.activities) {
-      // BUG-10: remove tomesto.ru links for food activities outside Russia
+      // Remove tomesto.ru links for food activities outside Russia
       if (act.type === "food" && !isTometoSafeCity(dayCity)) {
         for (const field of ["link", "bookingUrl"] as const) {
           if (typeof act[field] === "string" && act[field].includes("tomesto.ru")) {
-            console.warn(`[sanitizeActivityUrls] Removing tomesto.ru link for non-Russian food in ${dayCity}: ${act[field]}`)
             act[field] = undefined
           }
         }
@@ -681,7 +731,6 @@ export function sanitizeActivityUrls(routeData: any): any {
         const val = act[field]
         if (val === undefined || val === null) continue
         if (typeof val !== "string" || !/^https?:\/\/.{4,}/.test(val.trim())) {
-          console.warn(`[sanitizeActivityUrls] Dropping invalid ${field}: ${String(val).slice(0, 80)}`)
           act[field] = undefined
         }
       }

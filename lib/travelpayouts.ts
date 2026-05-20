@@ -809,9 +809,15 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
     return url
   }
 
-  // 2. Для россиян за границей -> Островок (Hotellook)
+  // 2. Для россиян за границей -> Booking.com city search.
+  // Use Booking.com city search abroad instead of a secondary hotel fallback.
   if (!russianHotelDestination) {
-    return getHotellookLink(params)
+    const englishName = cityInfo?.nameEn || destination.trim()
+    const ss = encodeURIComponent(englishName)
+    const aid = process.env.NEXT_PUBLIC_BOOKING_AID
+    let url = `https://www.booking.com/search.html?ss=${ss}`
+    if (aid) url += `&aid=${encodeURIComponent(aid)}`
+    return url
   }
 
   // 3. Для россиян внутри РФ -> Яндекс.Путешествия
@@ -819,7 +825,7 @@ export async function getHotelSearchLink(params: HotelSearchParams): Promise<str
 }
 
 /**
- * Альтернативная ссылка на Островок / Hotellook
+ * Альтернативная ссылка на Hotellook.
  */
 export function getHotellookLink(params: HotelSearchParams): string {
   const {
@@ -829,12 +835,9 @@ export function getHotellookLink(params: HotelSearchParams): string {
     adults = 2,
     subId,
     hotelName,
-    market = "ru"
   } = params
 
-  const isRu = market === "ru"
-  // For RU market use Ostrovok directly if it's for search fallback
-  const baseUrl = isRu ? "https://ostrovok.ru/hotel/search/" : "https://search.hotellook.com"
+  const baseUrl = "https://search.hotellook.com"
 
   const searchParams = new URLSearchParams()
 
@@ -843,19 +846,10 @@ export function getHotellookLink(params: HotelSearchParams): string {
     searchParams.set("marker", marker)
   }
 
-  if (isRu) {
-    // Ostrovok search format: ?q={hotelName}+{destination}&checkin=DD.MM.YYYY&checkout=DD.MM.YYYY&guests=N
-    const q = hotelName ? `${hotelName} ${destination}` : destination
-    searchParams.set("q", q)
-    if (checkIn) searchParams.set("checkin", formatDate(checkIn, "DD.MM.YYYY"))
-    if (checkOut) searchParams.set("checkout", formatDate(checkOut, "DD.MM.YYYY"))
-    searchParams.set("guests", adults.toString())
-  } else {
-    searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
-    searchParams.set("adults", adults.toString())
-    if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
-    if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
-  }
+  searchParams.set("destination", hotelName ? `${hotelName} ${destination}` : destination)
+  searchParams.set("adults", adults.toString())
+  if (checkIn) searchParams.set("checkIn", formatDate(checkIn))
+  if (checkOut) searchParams.set("checkOut", formatDate(checkOut))
 
   return `${baseUrl}?${searchParams.toString()}`
 }

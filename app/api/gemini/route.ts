@@ -26,6 +26,7 @@ import {
     enrichViralSpotsWithWebSearch,
     sanitizeActivityUrls,
     recalculateDayTotals,
+    enforceTravelModeConsistency,
 } from "@/lib/api/route-pipeline"
 import { sanitizeBookingLinks } from "@/lib/api/link-sanitizer"
 import { checkDirectFlightsLive } from "@/lib/travelpayouts"
@@ -179,7 +180,7 @@ export async function POST(req: Request) {
         else if (budget === "premium" || budget === "luxury") budgetCap = 50000 * durationDays;
         budgetCap = Math.min(budgetCap, MAX_BUDGET);
 
-        // budgetDesc is computed after validation so adjustedBudget is used when budget is too low (BUG-07)
+        // budgetDesc is computed after validation so adjustedBudget is used when budget is too low
         let budgetDesc = ""
 
         if (reelRecord) {
@@ -243,7 +244,7 @@ export async function POST(req: Request) {
             }
         }
 
-        // BUG-07: use adjustedBudget when validation raised it (e.g. 15 000 ₽ for Tokyo is unrealistic)
+        // Use adjustedBudget when validation raised it (e.g. 15 000 ₽ for Tokyo is unrealistic)
         {
             const effectiveBudgetForPrompt = adjustedBudget > budgetCap ? adjustedBudget : budgetCap
             const originalNote = adjustedBudget > budgetCap
@@ -289,7 +290,6 @@ export async function POST(req: Request) {
                 const validation = await validateAirports(destinations)
                 if (!validation.allOpen && validation.closedAirports.length > 0) {
                     airportValidationContext = `СТАТУС АЭРОПОРТОВ: ${validation.closedAirports.join('; ')} — авиаперелёт НЕДОСТУПЕН, используй наземный транспорт или хаб пересадки.`
-                    console.log(`[AirportValidation] Closed: ${validation.closedAirports.join(', ')}`)
                 }
             } catch (e) {
                 console.error("[Airport Validation Error]", e)
@@ -449,7 +449,7 @@ export async function POST(req: Request) {
                 locale: userLocale,
                 travelMode,
                 reelAnchorPrompt: chunkReelPrompt,
-                tripStartDate: startDate, // BUG-12: pass real date so AI uses actual checkin/checkout dates
+                tripStartDate: startDate,
                 planForChunk: (tripPlan || []).filter((s: any) => s.startDay <= endDay && s.endDay >= startDay)
                     .map((s: any) => `Дни ${Math.max(s.startDay, startDay)}-${Math.min(s.endDay, endDay)}: ${s.city}`).join('\n')
             })
@@ -614,11 +614,12 @@ export async function POST(req: Request) {
                     await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
                     routeData = await enrichViralSpotsWithWebSearch(routeData);
                     routeData = normalizeActivityTypes(routeData);
+                    routeData = enforceTravelModeConsistency(routeData, travelMode);
                     routeData = removeSameCityFlights(routeData);
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
                     routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
                     routeData = await enrichHotelCosts(routeData, startDate);
-                    routeData = recalculateDayTotals(routeData); // BUG-06
+                    routeData = recalculateDayTotals(routeData);
                     routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
                     if (reelRecord && Array.isArray(routeData.itinerary)) {

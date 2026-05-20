@@ -97,6 +97,27 @@
       "readArticle": "Read",
       "allArticles": "All articles",
       "minRead": "min read"
+    },
+    "mobile": {
+      "partnersTitle": "Trusted by leading travel brands",
+      "activitiesTitle": "Pick activities like Reels",
+      "featuresTitle": "Smart features",
+      "comparisonTitle": "Why us?",
+      "journalTitle": "Journal",
+      "faqTitle": "Your questions, answered",
+      "allArticles": "All articles",
+      "readTime": "{minutes} min read",
+      "reelsLocation": "Lake Como, Italy",
+      "reelsAction": "Morning boat ride past hidden villas"
+    },
+    "faq": {
+      "title": "Your questions, answered",
+      "q1": "Is it free?",
+      "a1": "Yes — you get 10 AI-generated itineraries per month, completely free. No credit card needed.",
+      "q2": "How does the AI work?",
+      "a2": "We use state-of-the-art language models trained on millions of real routes, reviews, and live flight and weather data.",
+      "q3": "Does it work on mobile?",
+      "a3": "Yes, TraveLLM works in your mobile browser. Saved itineraries stay in your account after sign-in."
     }
   },
   "newsPage": {
@@ -750,7 +771,7 @@
     "accommodation": "Accommodation",
     "checkInTime": "Check-in: {time}",
     "confirmed": "Confirmed",
-    "bookNow": "Book",
+    "bookNow": "Find hotels",
     "freeTimeTitle": "Free time",
     "freeTimeDesc": "Free time to rest or explore the city.",
     "aiAssistant": "AI Assistant",
@@ -1264,7 +1285,7 @@
     "reviews": "{count} reviews"
   },
   "viral": {
-    "title": "TikTok places",
+    "title": "Trending spots",
     "defaultDesc": "Popular spot from social media",
     "collapse": "Collapse",
     "seeAll": "Show all",

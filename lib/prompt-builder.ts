@@ -30,14 +30,12 @@ Activity → partner → target URL pattern:
 | Tickets: museums, water parks, boats, fun | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ (muzei, ekskursii, vodnyie-progulki — pick what fits) |
 | Airport ↔ hotel transfer | Kiwitaxi | Real search URL on kiwitaxi.ru with from/to (not homepage) |
 | Apartment / daily rent (not hotel room) | Sutochno | City subdomain: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Moscow), kazan.sutochno.ru |
-| Hotels | Yandex + Ostrovok | bookingUrl: Yandex Travel hotel page URL with dates. link: Ostrovok search URL with hotel name. |
+| Hotels | Yandex Travel | bookingUrl: Yandex Travel city hotel search URL with dates. Do not generate a direct hotel page URL or secondary hotel fallback link. |
 CRITICAL — hotel names must be REAL existing hotels (chains, known local brands — e.g. "Ibis Irkutsk", "Marriott Irkutsk", "Angara Hotel"). NEVER invent generic names like "Hotel [City]", "Гостиница [City]", "Отель [City]" — these do not exist.
 Yandex Travel URL rules:
   • ALWAYS use city search (never guess hotel slugs — they 404): \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • IMPORTANT city slugs (use exactly as shown): Moscow=\`moscow\`, Saint Petersburg=\`saint-petersburg\`, Novosibirsk=\`novosibirsk\`, Yekaterinburg=\`ekaterinburg\`, Kazan=\`kazan\`, Sochi=\`sochi\`, Vladivostok=\`vladivostok\`, Irkutsk=\`irkutsk\`, Krasnodar=\`krasnodar\`, Nizhny Novgorod=\`nizhniy-novgorod\`. NEVER use "sankt-peterburg", "moskva", or Russian transliterations.
-Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/hotel/search/?q={HotelName}+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
-  Example: https://ostrovok.ru/hotel/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
-⚠️ Yandex Travel is for Russian cities ONLY — NEVER use it for foreign destinations. Use Booking.com for abroad.
+⚠️ Yandex Travel is for Russian cities ONLY — NEVER use it for foreign destinations. Use Booking.com city search for abroad.
 `.trim()
     }
     return `
@@ -50,14 +48,12 @@ Ostrovok (always use hotel-name search, works reliably): \`https://ostrovok.ru/h
 | Билеты: музеи, аквапарки, катера, развлечения | Sputnik8 | https://sputnik8.com/ru/{city_slug}/category/{category_slug}/ — подбери category по смыслу (muzei, ekskursii, vodnyie-progulki, razvlecheniya…) |
 | Трансфер аэропорт ↔ отель/адрес | Kiwitaxi | Реальный URL маршрута на kiwitaxi.ru (не только главная) |
 | Жильё посуточно (квартира, дом, не номер отеля) | Суточно | Поддомен города: spb.sutochno.ru, sochi.sutochno.ru, www.sutochno.ru (Москва), kazan.sutochno.ru |
-| Отели | Яндекс + Островок | bookingUrl: страница отеля на Яндекс.Путешествиях с датами. link: поиск по названию отеля на Островке с датами. |
+| Отели | Яндекс.Путешествия | bookingUrl: поиск отелей по городу на Яндекс.Путешествиях с датами. Не добавляй вторую fallback-ссылку на отели. |
 КРИТИЧЕСКИ ВАЖНО — названия отелей должны быть РЕАЛЬНО СУЩЕСТВУЮЩИМИ (сети, известные местные бренды — например "Ibis Irkutsk", "Marriott Irkutsk", "Отель Ангара"). НИКОГДА не придумывай общие названия вроде "Отель [Город]", "Гостиница [Город]" — таких отелей не существует.
 Правила URL Яндекс.Путешествий:
   • ВСЕГДА используй поиск по городу (slug отеля не угадывать — это ведёт к 404): \`https://travel.yandex.ru/hotels/{city-slug}/?checkinDate=YYYY-MM-DD&checkoutDate=YYYY-MM-DD&adults=N\`
   • ВАЖНО — слаги городов (использовать точно): Москва=\`moscow\`, Санкт-Петербург=\`saint-petersburg\`, Новосибирск=\`novosibirsk\`, Екатеринбург=\`ekaterinburg\`, Казань=\`kazan\`, Сочи=\`sochi\`, Владивосток=\`vladivostok\`, Иркутск=\`irkutsk\`, Краснодар=\`krasnodar\`, Нижний Новгород=\`nizhniy-novgorod\`. НИКОГДА не использовать "sankt-peterburg", "moskva" или русскую транслитерацию.
-Островок (всегда через поиск по названию — надёжно работает): \`https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N\`
-  Пример: https://ostrovok.ru/hotel/search/?q=Fabrika+Tbilisi+Hostel&checkin=2026-04-11&checkout=2026-04-12&guests=1
-⚠️ Яндекс.Путешествия — ТОЛЬКО для городов России. Для зарубежных отелей — Booking.com, НЕ Яндекс.
+⚠️ Яндекс.Путешествия — ТОЛЬКО для городов России. Для зарубежных отелей — поиск Booking.com по городу, НЕ Яндекс.
 `.trim()
 }
 
@@ -198,7 +194,7 @@ function buildRegionalPartnerRoutingBlock(
 0. REGION → PARTNER STACK (Travelpayouts — use the programs you have connected; **per activity geography**):
 Pick \`link\` / \`bookingUrl\` / \`ticketUrl\` by **where that card happens** (city/country of the hotel or place), not by TraveLLM UI locale.
 
-• **Russia (RF)** — hotel night or activity in a Russian city: PRIMARY your **RU-connected** stack — Yandex Travel + Ostrovok (hotels, plain deep URLs), Tripster (excursions/guides), Sputnik8 (tickets/categories), Kiwitaxi.ru (airport↔hotel), Sutochno (daily apartments), Aviasales.ru for flight legs when appropriate, Tomesto for restaurants in RF.
+• **Russia (RF)** — hotel night or activity in a Russian city: PRIMARY your **RU-connected** stack — Yandex Travel for hotels (plain city search URLs), Tripster (excursions/guides), Sputnik8 (tickets/categories), Kiwitaxi.ru (airport↔hotel), Sutochno (daily apartments), Aviasales.ru for flight legs when appropriate, Tomesto for restaurants in RF. Do not add a secondary hotel fallback link.
 
 • **Outside Russia:** Do **not** use Tripster / Sputnik8 / Yandex Travel / Sutochno as the main booking path for that foreign city (coverage is RF-centric). Use the **global connected** stack from §5–§6 — Booking.com / Trip.com (hotels), Klook / Tiqets / WeGoTrip (activities), TripAdvisor or official sites (food), kiwitaxi.com / Intui / Welcome Pickups (transfers), Aviasales domain that matches the segment (§5–§6).
 
@@ -212,7 +208,7 @@ ${russiaFocused ? "Russia-focused itinerary — RU stack is the default unless a
 0. РЕГИОН → СТЕК ПАРТНЁРОВ Travelpayouts (удобно по географии; только подключённые программы):
 Поля \`link\` / \`bookingUrl\` / \`ticketUrl\` выбирай по **месту этой карточки** (город/страна отеля или места), а не по тому, открыт ли TraveLLM как .ru или .world.
 
-• **Россия (РФ)** — ночёвка или активность в российском городе: основной канал **RU-программы TP** — Яндекс.Путешествия + Островок (отели, обычные глубокие ссылки), Tripster, Sputnik8, Kiwitaxi.ru, Суточно, Aviasales.ru для перелётов где уместно, ТоМесто для ресторанов в РФ.
+• **Россия (РФ)** — ночёвка или активность в российском городе: основной канал **RU-программы TP** — Яндекс.Путешествия для отелей (поиск по городу), Tripster, Sputnik8, Kiwitaxi.ru, Суточно, Aviasales.ru для перелётов где уместно, ТоМесто для ресторанов в РФ. Не добавляй вторую fallback-ссылку на отели.
 
 • **За рубежом:** не ставь Tripster / Sputnik8 / Яндекс.Путешествия / Суточно **главной** ссылкой на активность в иностранном городе. Используй **глобальный стек из п.5–п.6** — Booking.com / Trip.com, Klook / Tiqets / WeGoTrip, TripAdvisor или официальный сайт, kiwitaxi.com / Intui / Welcome Pickups, домен Aviasales по сегменту.
 
@@ -243,9 +239,9 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
    transport (transfer/taxi) → link:
      Kiwitaxi deep search URL (from/to airport or hotel), not generic homepage.
 
-   hotel → bookingUrl (NOT map) + link:
+   hotel → bookingUrl (NOT map):
      bookingUrl: Yandex Travel hotels deep URL with dates (plain URL, affiliate tracking is added automatically).
-     link: Ostrovok hotel search deep URL https://ostrovok.ru/hotels/search/?q={CityOrHotel}. Russia: always offer BOTH; abroad: Booking/Trip.com per §5 world rules.
+     Do not add a secondary hotel fallback link. Abroad: Booking/Trip.com per §5 world rules.
 
    food → link (and bookingUrl when table booking matters):
      Russian cities ONLY: Tomesto first — ${TOMESTO_RU_REF_URL} (any deeper tomesto.ru URL MUST keep ref_id=2163507). Fine dining / luxury: Tomesto + official venue site.
@@ -275,7 +271,7 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
 
    hotel → bookingUrl (NOT map):
      Russian cities: Yandex Travel (Travelpayouts): "https://travel.yandex.ru/hotels/{city-slug}/?..." — required; do NOT use Booking.com as primary for Russia.
-     Other countries: "https://www.booking.com/search.html?ss={HotelName}%2C+{City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — search URL ONLY. NEVER generate /hotel/{country}/{slug}.html — AI cannot know the real slug and it will 404.
+     Other countries: "https://www.booking.com/search.html?ss={City}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&group_adults=N" — city hotel search URL ONLY. NEVER generate /hotel/{country}/{slug}.html or a hotel-specific landing page — AI cannot know the real slug and it will 404.
 
    food → link:
      TripAdvisor or official site.
@@ -299,14 +295,14 @@ function buildBookingLinksTechnicalBlock(isEn: boolean, market: BookingMarket): 
      (mapLink НЕ нужен для перелётов)
 
    transport (поезд) → link:
-     "https://ticket.rzd.ru/" для РФ; также "https://travel.yandex.ru/trains/" (Яндекс.Путешествия + Островок)
+     "https://ticket.rzd.ru/" для РФ; также "https://travel.yandex.ru/trains/"
 
    transport (трансфер/такси) → link:
      Kiwitaxi — глубокий URL маршрута (аэропорт↔отель/адрес), не только главная.
 
    hotel → bookingUrl (НЕ карта!) + link:
      bookingUrl: Яндекс.Путешествия — глубокий URL отелей с датами (обычный URL, партнёрский трекинг добавляется автоматически).
-     link: Островок — https://ostrovok.ru/hotel/search/?q={НазваниеОтеля}+{Город}&checkin=YYYY-MM-DD&checkout=YYYY-MM-DD&guests=N. По РФ всегда обе ссылки; за рубежом — bookingUrl=Booking.com search URL, link=Ostrovok. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
+     НЕ добавляй вторую fallback-ссылку в link. По РФ достаточно bookingUrl на поиск Яндекса; за рубежом — bookingUrl=Booking.com city search URL. ⚠️ Яндекс.Путешествия — ТОЛЬКО РФ, для иностранных городов не использовать.
 
    food → link (и bookingUrl, если важна бронь столика):
      ТОЛЬКО для городов РФ: в первую очередь ТоМесто — ${TOMESTO_RU_REF_URL} (любая ссылка на tomesto.ru — с ref_id=2163507). Люкс и премиум-рестораны: обязательно ТоМесто + официальный сайт заведения.
@@ -359,7 +355,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
             return `
 6. TRAVELPAYOUTS PARTNER DOMAINS (RU stack — travellm.ru; real https://; NEVER invent path slugs):
 - Flights: Aviasales https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 in \`link\`.
-- Hotels: Yandex Travel in \`bookingUrl\`; Ostrovok search in \`link\` (both plain deep URLs). Booking.com only as extra for non-Russian cities abroad.
+- Hotels: Yandex Travel in \`bookingUrl\` for Russian cities. Do not add a secondary hotel fallback in \`link\`. Booking.com only for non-Russian cities abroad.
 - Trains: ticket.rzd.ru, travel.yandex.ru/trains
 - Airport / city transfers: https://kiwitaxi.ru/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
 - Car rental (when hiring a car — NOT "own car" mode): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
@@ -397,7 +393,7 @@ function buildTravelpayoutsPartnerLinksBlock(isEn: boolean, market: BookingMarke
         return `
 6. ПАРТНЁРЫ Travelpayouts (стек travellm.ru — реальные https://; НЕ выдумывай slug):
 - Перелёты → в \`link\` Aviasales: https://www.aviasales.ru/search/{ORG}{DDMM}{DEST}1 (как в п.5).
-- Отели → \`bookingUrl\`: Яндекс.Путешествия; \`link\`: Островок поиск — оба глубокие URL (партнёрский трекинг добавляется автоматически). Booking.com — дополнительно только для нероссийских городов за границей.
+- Отели → \`bookingUrl\`: Яндекс.Путешествия для городов РФ. НЕ добавляй вторую fallback-ссылку в \`link\`. Booking.com — только для нероссийских городов за границей.
 - Ж/д: ticket.rzd.ru, travel.yandex.ru/trains
 - Трансфер аэропорт ↔ город: https://kiwitaxi.ru/, https://kiwitaxi.com/, https://intui.travel/, https://www.welcomepickups.com/, https://gettransfer.com/
 - Аренда авто (не режим «своя машина»): https://www.economybookings.com/, https://localrent.com/, https://www.qeeq.com/, https://getrentacar.com/
@@ -454,9 +450,9 @@ function formatTravelModeBlock(mode: TravelMode, isEn: boolean): string {
     return isEn
         ? `PRIMARY TRANSPORT MODE: Own car (road trip) — user drives their vehicle.
 - FORBIDDEN as main intercity logistics: private transfers, chauffeured "business class" sedans, pre-booked driver between cities, tips/fees for a hired driver on long legs, Kiwitaxi/intercity taxi as the primary way to move between hubs.
-- REQUIRED wording: "in your own car", "driving", "road segment", fuel, tolls, parking, realistic drive time. City hops by air/train are NOT the default in this mode.
+- REQUIRED wording: "in your own car", "driving", "road segment", fuel, tolls, parking, realistic drive time. Flights, airports, IATA hops, airlines, and air tickets between hubs are forbidden in road-trip mode.
 - Short urban rides (taxi/ride-hail) inside a city for parking or nightlife are OK occasionally — they must NOT replace intercity driving.
-- Flights/trains between cities only if the user clearly switches mode (they did NOT — car mode is active).
+- Do not switch to flights later in the itinerary or in later chunks. If a destination is too far for one day, split the road journey across multiple days with overnight stops.
 
 ROAD TRIP TO THE DESTINATION (structure the calendar, not a single line):
 - A long drive can take many hours or more than one calendar day — do NOT collapse it into one vague "drove there". Spread it across day 1 (or several days) with a believable timeline.
@@ -466,7 +462,7 @@ ROAD TRIP TO THE DESTINATION (structure the calendar, not a single line):
 - Use activity types sensibly: type=transport for driving legs (with duration/distance in desc); type=food for meals at stops; type=activity for a short waypoint visit; keep mapLink for real places near the route.`.trim()
         : `ОСНОВНОЙ ТИП ПЕРЕДВИЖЕНИЯ: СВОЯ МАШИНА (автопутешествие) — пользователь едет на своём авто.
 - ЗАПРЕЩЕНО как основной межгород: заказные трансферы, «приватный трансфер», машина с водителем/бизнес-класс между городами, чаевые водителю за межгород, Kiwitaxi/межгородское такси вместо поездки на своей машине.
-- НУЖНО: формулировки «на своём авто», «за рулём», «трасса», «время в пути», топливо, платные участки, парковка. Перелёт/поезд между хабами — не по умолчанию (режим — машина).
+- НУЖНО: формулировки «на своём авто», «за рулём», «трасса», «время в пути», топливо, платные участки, парковка. Перелёты, аэропорты, IATA-перегоны и авиабилеты между хабами запрещены в режиме автопутешествия.
 - Короткое такси внутри города (до ресторана/отеля) допустимо точечно; НЕ подменяй им межгород.
 - Не предлагай отдельную строку бюджета «оплата водителю» между городами — пользователь сам водит.
 
@@ -513,7 +509,7 @@ function logisticsRuleLine1(mode: TravelMode, isEn: boolean): string {
         if (mode === "train") {
             return "1. LOGISTICS: Prefer long-distance rail between cities; use flights only when rail is impractical or impossible."
         }
-        return "1. LOGISTICS: Own car — intercity segments as the driver; NO chauffeured intercity transfers or business taxi as the main mode; parking/tolls/fuel; flights only if driving is impossible."
+        return "1. LOGISTICS: Own car - intercity segments as the driver; NO chauffeured intercity transfers, business taxi, flights, airports, IATA hops, or air tickets as main logistics. If a hub is too far for one day, split the road trip into multiple driving days with overnight stops."
     }
     if (mode === "flight") {
         return "1. ЛОГИСТИКА: Прямые рейсы — приоритет! Расстояние < 600 км — поезд."
@@ -521,7 +517,7 @@ function logisticsRuleLine1(mode: TravelMode, isEn: boolean): string {
     if (mode === "train") {
         return "1. ЛОГИСТИКА: Приоритет — ж/д между городами; авиа только если поезд нереалистичен или невозможен."
     }
-    return "1. ЛОГИСТИКА: Своя машина — межгород только как водитель; без заказных трансферов и «бизнес-такси» между городами; парковка/топливо/трасса."
+    return "1. ЛОГИСТИКА: Своя машина - межгород только как водитель; без заказных трансферов, «бизнес-такси», перелетов, аэропортов и авиабилетов между городами; если хаб далеко, разбей дорогу на несколько дней с ночевками."
 }
 
 /**
@@ -930,8 +926,8 @@ export function buildMetadataPrompt(params: PromptBuilderParams): string {
                 : "ТРАНСПОРТ: приоритет ж/д между городами; авиа только если поезд нереалистичен."
             : travelMode === "car"
               ? isEn
-                  ? "TRANSPORT: OWN CAR — user drives; NO chauffeured intercity transfers/taxi as main mode; fuel/parking/tolls; long drives = structured day(s) with stops along the route (meals, short waypoints), multi-day if needed."
-                  : "ТРАНСПОРТ: СВОЯ МАШИНА — за рулём; без трансферов/бизнес-такси как основы; длинный путь = день(и) с остановками у трассы, при необходимости несколько суток в пути."
+                  ? "TRANSPORT: OWN CAR - user drives; NO chauffeured intercity transfers/taxi/flights/airports as main mode; fuel/parking/tolls; long drives = structured day(s) with stops along the route (meals, short waypoints), multi-day if needed."
+                  : "ТРАНСПОРТ: СВОЯ МАШИНА - за рулём; без трансферов/бизнес-такси/перелетов/аэропортов как основы; длинный путь = день(и) с остановками у трассы, при необходимости несколько суток в пути."
               : isEn
                 ? "TRANSPORT: flights for long legs; trains for short hops when sensible."
                 : "ТРАНСПОРТ: перелёты на длинных дистанциях; поезд на коротких при необходимости."
@@ -1074,8 +1070,8 @@ export function buildDayChunkPrompt(params: {
                 : "Транспорт: приоритет ж/д между городами."
             : travelMode === "car"
               ? isEn
-                  ? "Transport: own car — driving segments only; no chauffeured intercity transfers."
-                  : "Транспорт: своя машина — межгород на своём авто; без заказных трансферов и бизнес-такси между городами."
+                  ? "Transport: own car - driving segments only; no chauffeured intercity transfers, flights, airports, airlines, or air tickets between hubs."
+                  : "Транспорт: своя машина - межгород на своём авто; без заказных трансферов, бизнес-такси, перелетов, аэропортов и авиабилетов между городами."
               : isEn
                 ? "Transport: flights for long legs; trains for short hops when sensible."
                 : "Транспорт: перелёты на длинных дистанциях; поезд на коротких при необходимости."
@@ -1090,8 +1086,8 @@ export function buildDayChunkPrompt(params: {
     const roadTripChunkHint =
         travelMode === "car"
             ? isEn
-                ? "Road-trip days: several time slots — driving legs + food/activity stops along the route (not one empty transport line)."
-                : "Дни на своём авто: несколько слотов — сегменты за рулём + остановки по пути (еда, короткие точки), не одна пустая строка «переезд»."
+                ? "Road-trip days: several time slots - driving legs + food/activity stops along the route (not one empty transport line). HARD RULE FOR EVERY CHUNK: do not create flights, airports, IATA airport hops, air tickets, airlines, or plane icons. If the next planned hub is not realistically reachable by car inside this chunk, continue the road trip toward it with overnight stops instead of switching to a flight."
+                : "Дни на своём авто: несколько слотов - сегменты за рулём + остановки по пути (еда, короткие точки), не одна пустая строка «переезд». ЖЕСТКОЕ ПРАВИЛО ДЛЯ КАЖДОГО ЧАНКА: не создавай перелеты, аэропорты, IATA-перегоны, авиабилеты, авиакомпании и иконки самолета. Если следующий хаб нереалистично достижим на авто в этом чанке, продолжай автомаршрут к нему с ночевками в пути, а не переключайся на авиа."
             : ""
 
     return `

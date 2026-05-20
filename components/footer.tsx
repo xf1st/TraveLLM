@@ -4,14 +4,20 @@ import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { useTranslations } from "next-intl"
 import { LEGAL } from "@/lib/legal"
+import { cn } from "@/lib/utils"
 
-export function Footer() {
+interface FooterProps {
+    className?: string
+    contentClassName?: string
+}
+
+export function Footer({ className, contentClassName }: FooterProps = {}) {
     const t = useTranslations("footer")
     const tCommon = useTranslations("common")
 
     return (
-        <footer className="border-t border-white/10 bg-background/60 backdrop-blur-md md:backdrop-blur-xl mt-auto">
-            <div className="container px-3 sm:px-4 md:px-6 py-10 sm:py-12">
+        <footer className={cn("border-t border-white/10 bg-background/60 backdrop-blur-md md:backdrop-blur-xl mt-auto", className)}>
+            <div className={cn("container px-3 sm:px-4 md:px-6 py-10 sm:py-12", contentClassName)}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
                     {/* Brand */}
                     <div className="space-y-4">

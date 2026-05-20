@@ -37,6 +37,13 @@ import {
   Trash2,
   AlertTriangle,
   Loader2,
+  ArrowLeft,
+  CalendarDays,
+  User,
+  Share2,
+  Lightbulb,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 const MeshGradient = dynamic(
   () => import("@paper-design/shaders-react").then(m => ({ default: m.MeshGradient })),
@@ -77,9 +84,8 @@ import { CurrentWeatherWidget } from "@/components/trip/CurrentWeatherWidget"
 import { TripWeatherWidget } from "@/components/trip/TripWeatherWidget"
 import { getWeatherForLocation, getWeatherEmoji, WeatherData } from "@/lib/weather"
 import { getCoordinates } from "@/lib/geocoding"
-import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata, getYandexOnlyHotelLink, isRussianHotelDestinationSync } from "@/lib/travelpayouts"
+import { getFlightSearchLink, getHotelSearchLink, getIataCode, parseCityIata } from "@/lib/travelpayouts"
 import { addDays } from "date-fns"
-import { maybeWrapPartnerAffiliateUrl } from "@/lib/tp-media"
 
 import { useDebouncedTripItinerarySave } from "@/lib/hooks/useDebouncedTripItinerarySave"
 import { useBookingMarket } from "@/lib/hooks/useBookingMarket"
@@ -273,6 +279,15 @@ export default function TripDetailPage() {
   const displayBudget = calculatedTotal !== null
     ? `${hasUnknownCosts ? "≈ " : ""}${currencySymbol}${calculatedTotal.toLocaleString(locale === "en" ? "en-US" : "ru-RU")}`
     : route?.totalBudget
+
+  useEffect(() => {
+    document.documentElement.classList.add("trip-page-shell")
+    document.body.classList.add("trip-page-shell")
+    return () => {
+      document.documentElement.classList.remove("trip-page-shell")
+      document.body.classList.remove("trip-page-shell")
+    }
+  }, [])
 
   useEffect(() => {
     const checkSidebar = () => {
@@ -997,7 +1012,7 @@ export default function TripDetailPage() {
                   onClick={() => router.back()}
                   className="flex h-11 w-11 flex-shrink-0 touch-manipulation items-center justify-center rounded-full border border-white/50 bg-white/40 text-slate-700 backdrop-blur-md transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/15 sm:h-10 sm:w-10"
                 >
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  <ArrowLeft className="h-5 w-5" strokeWidth={2.4} aria-hidden />
                 </button>
                 <button
                   type="button"
@@ -1016,7 +1031,7 @@ export default function TripDetailPage() {
                   onClick={() => router.back()}
                   className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full border border-white/50 bg-white/40 text-slate-700 backdrop-blur-md transition-colors hover:bg-white/60 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/15"
                 >
-                  <span className="material-symbols-outlined text-sm">arrow_back</span>
+                  <ArrowLeft className="h-5 w-5" strokeWidth={2.4} aria-hidden />
                 </button>
                 <div className="min-w-0 flex flex-col justify-center flex-1">
                   <h1 className="text-lg lg:text-xl font-black text-white tracking-tight line-clamp-2 drop-shadow-md pr-2 uppercase italic leading-tight">
@@ -1025,11 +1040,11 @@ export default function TripDetailPage() {
                   <div className="flex items-center gap-3 lg:gap-4 mt-1.5 overflow-hidden flex-wrap">
                     <div className="flex items-center text-xs text-white/80 gap-3 font-bold shrink-0">
                       <span className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm opacity-70">calendar_month</span>
+                        <CalendarDays className="h-4 w-4 opacity-70" strokeWidth={2.4} aria-hidden />
                         {formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-sm opacity-70">person</span>
+                        <User className="h-4 w-4 opacity-70" strokeWidth={2.4} aria-hidden />
                         {t("travelersMeta", { count: route.travelers || 2 })}
                       </span>
                     </div>
@@ -1099,7 +1114,7 @@ export default function TripDetailPage() {
                     onClick={handleShare}
                     className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20 sm:h-10 sm:w-10"
                   >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">share</span>
+                    <Share2 className="h-[22px] w-[22px]" strokeWidth={2.4} aria-hidden />
                   </button>
                   <button
                     type="button"
@@ -1109,7 +1124,7 @@ export default function TripDetailPage() {
                   >
                     <Heart
                       className={cn(
-                        "h-4 w-4 sm:h-5 sm:w-5 transition-all duration-300",
+                        "h-5 w-5 transition-all duration-300",
                         isFavorite ? "fill-rose-500 text-rose-500" : "",
                       )}
                     />
@@ -1121,7 +1136,7 @@ export default function TripDetailPage() {
                       title="Удалить маршрут"
                       className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-red-500/30 bg-red-500/10 text-red-400 backdrop-blur-md transition-all hover:bg-red-500/25 hover:border-red-500/50 sm:h-10 sm:w-10"
                     >
-                      <Trash2 className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
+                      <Trash2 className="h-5 w-5" strokeWidth={2.4} />
                     </button>
                   )}
                 </div>
@@ -1164,13 +1179,13 @@ export default function TripDetailPage() {
 
               <div className="flex md:hidden flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-bold text-white/90 mb-2">
                 <span className="flex items-center gap-1 min-w-0">
-                  <span className="material-symbols-outlined text-[14px] opacity-80 shrink-0">calendar_month</span>
+                  <CalendarDays className="h-4 w-4 shrink-0 opacity-80" strokeWidth={2.4} aria-hidden />
                   <span className="truncate">
                     {formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}
                   </span>
                 </span>
                 <span className="flex items-center gap-1 shrink-0">
-                  <span className="material-symbols-outlined text-[14px] opacity-80">person</span>
+                  <User className="h-4 w-4 opacity-80" strokeWidth={2.4} aria-hidden />
                   {t("travelersMeta", { count: route.travelers || 2 })}
                 </span>
               </div>
@@ -1189,31 +1204,13 @@ export default function TripDetailPage() {
 
               {/* Hero actions: mobile = «Цены» сверху на всю ширину, снизу погода + советы; md+ = пиллы + отдельная CTA */}
               <div className="mt-2 sm:mt-3 flex w-full flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLinksModal(true)}
-                  className="group relative flex min-h-12 w-full shrink-0 touch-manipulation flex-row items-center justify-center gap-3 overflow-hidden rounded-full border border-white/25 px-5 py-3 shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] md:hidden"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(56,189,248,0.50) 0%, rgba(99,102,241,0.55) 100%)",
-                    backdropFilter: "blur(20px)",
-                    boxShadow: "0 8px 32px rgba(56,189,248,0.28), inset 0 1px 0 rgba(255,255,255,0.20)",
-                  }}
-                >
-                  <ExternalLink className="text-white shrink-0" style={{ width: 18, height: 18 }} />
-                  <div className="flex min-w-0 flex-col items-start text-left">
-                    <span className="text-[12px] font-black uppercase leading-tight tracking-widest text-white">
-                      {t("checkPrices")}
-                    </span>
-                    <span className="text-[10px] font-medium leading-tight text-white/70">{t("ticketsHotelsMap")}</span>
-                  </div>
-                </button>
 
                 <div className="flex w-full flex-row gap-2 md:flex md:flex-row md:flex-wrap md:gap-2 md:[&>button]:w-auto">
                   {currentDayWeather && (
                     <button
                       type="button"
                       onClick={() => setShowWeatherModal(true)}
-                      className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-white/20 bg-white/12 px-3 py-2 text-[11px] font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
+                      className="flex flex-1 min-h-11 touch-manipulation items-center justify-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-xs font-bold text-white shadow-sm backdrop-blur-md hover:bg-white/20 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-2 md:px-4 md:py-2 md:text-xs"
                     >
                       <span className="shrink-0 text-base leading-none">{getWeatherEmoji(currentDayWeather.weatherCode)}</span>
                       <span className="whitespace-nowrap">{Math.round(currentDayWeather.minTemp)}–{Math.round(currentDayWeather.maxTemp)}°C</span>
@@ -1222,18 +1219,18 @@ export default function TripDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowTipsModal(true)}
-                    className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/15 px-3 py-2 text-[11px] font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
+                    className="flex flex-1 min-h-11 touch-manipulation items-center justify-center gap-2 rounded-full border border-amber-400/30 bg-amber-500/15 px-4 py-2 text-xs font-bold text-amber-200 shadow-sm backdrop-blur-md hover:bg-amber-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-2 md:px-4 md:py-2 md:text-xs"
                   >
-                    <span className="material-symbols-outlined shrink-0 text-base leading-none">lightbulb</span>
+                    <Lightbulb className="h-[18px] w-[18px] shrink-0" strokeWidth={2.4} aria-hidden />
                     <span className="whitespace-nowrap">{t("routeTips")}</span>
                   </button>
                   {isOwner && (
                     <button
                       type="button"
                       onClick={() => setShowFeedbackDialog(true)}
-                      className="flex flex-1 min-h-10 touch-manipulation items-center justify-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/15 px-3 py-2 text-[11px] font-bold text-violet-200 shadow-sm backdrop-blur-md hover:bg-violet-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
+                      className="flex flex-1 min-h-11 touch-manipulation items-center justify-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/15 px-4 py-2 text-xs font-bold text-violet-200 shadow-sm backdrop-blur-md hover:bg-violet-500/25 transition-colors md:flex-none md:min-h-0 md:w-auto md:justify-start md:gap-2 md:px-4 md:py-2 md:text-xs"
                     >
-                      <Star className={cn("shrink-0 w-3.5 h-3.5", tripFeedback ? "fill-violet-300 text-violet-300" : "")} />
+                      <Star className={cn("h-[18px] w-[18px] shrink-0", tripFeedback ? "fill-violet-300 text-violet-300" : "")} strokeWidth={2.4} />
                       <span className="whitespace-nowrap">{tripFeedback ? `${tripFeedback.rating}/5` : t("rateTrip")}</span>
                     </button>
                   )}
@@ -1242,35 +1239,6 @@ export default function TripDetailPage() {
             </div>
 
             {/* Links button — desktop / lg only (на мобилке кнопка внутри колонки выше) */}
-            <button
-              type="button"
-              onClick={() => setShowLinksModal(true)}
-              className="group relative hidden shrink-0 touch-manipulation items-center gap-2 overflow-hidden rounded-2xl px-5 py-3 transition-all duration-200 hover:scale-105 md:flex sm:gap-3"
-              style={{
-                background: "linear-gradient(135deg, rgba(56,189,248,0.22) 0%, rgba(99,102,241,0.28) 100%)",
-                border: "1px solid rgba(255,255,255,0.18)",
-                backdropFilter: "blur(16px)",
-                boxShadow: "0 8px 32px rgba(56,189,248,0.20), inset 0 1px 0 rgba(255,255,255,0.15)",
-              }}
-            >
-              <div
-                className="pointer-events-none absolute -top-4 -right-6 h-20 w-20 rounded-full opacity-50"
-                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.5) 0%, transparent 70%)" }}
-              />
-              <div
-                className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl sm:h-10 sm:w-10"
-                style={{ background: "rgba(56,189,248,0.20)", border: "1px solid rgba(56,189,248,0.35)" }}
-              >
-                <ExternalLink className="text-sky-300" style={{ width: 18, height: 18 }} />
-              </div>
-              <div className="relative flex flex-col items-start">
-                <span className="text-[11px] font-black uppercase leading-tight tracking-wider text-white/90">
-                  {t("checkPrices")}
-                </span>
-                <span className="text-[9px] font-medium text-white/50">{t("ticketsHotelsMap")}</span>
-              </div>
-            </button>
-
           </div>
         </div>
 
@@ -1281,15 +1249,15 @@ export default function TripDetailPage() {
             showReadOnlyBanner ? "top-10" : "top-0"
           )}
         >
-          <div className="trip-glass mx-auto flex max-w-7xl items-center gap-1 rounded-full p-1.5 shadow-md sm:p-2 md:shadow-2xl">
+          <div className="trip-glass mx-auto flex max-w-7xl items-center gap-1 rounded-full p-1.5 shadow-none sm:p-2">
             {/* Left arrow */}
             {tripDurationDays > 1 && (
               <button
                 type="button"
                 onClick={() => setActiveDay(Math.max(1, activeDay - 1))}
-                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/50 dark:text-white/60 dark:hover:bg-white/10 sm:h-9 sm:w-9"
+                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:text-sky-700 dark:text-white/60 dark:hover:text-white sm:h-9 sm:w-9"
               >
-                <span className="material-symbols-outlined text-lg">chevron_left</span>
+                <ChevronLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
               </button>
             )}
             <div className="relative flex-1 overflow-hidden">
@@ -1317,7 +1285,7 @@ export default function TripDetailPage() {
                       "relative flex min-h-10 flex-shrink-0 touch-manipulation flex-col items-center rounded-full border transition-all sm:min-h-0",
                       isCompact ? "min-w-[56px] px-3 py-1.5" : "min-w-[76px] px-3 py-2 sm:min-w-[100px] sm:px-6 sm:py-3",
                       isActive
-                        ? "bg-sky-500 dark:bg-blue-600 text-white shadow-lg shadow-sky-400/40 dark:shadow-blue-500/40 border-sky-400/50 dark:border-blue-400/50"
+                        ? "bg-sky-500 dark:bg-blue-600 text-white shadow-lg shadow-sky-400/25 dark:shadow-blue-500/25 border-sky-400/40 dark:border-blue-400/40"
                         : "text-slate-600 dark:text-white/70 hover:bg-white/50 dark:hover:bg-white/10 hover:text-sky-700 dark:hover:text-white border-transparent hover:border-white/30 dark:hover:border-white/10 group"
                     )}
                   >
@@ -1363,9 +1331,9 @@ export default function TripDetailPage() {
               <button
                 type="button"
                 onClick={() => setActiveDay(Math.min(tripDurationDays, activeDay + 1))}
-                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-white/50 dark:text-white/60 dark:hover:bg-white/10 sm:h-9 sm:w-9"
+                className="flex h-10 w-10 flex-shrink-0 touch-manipulation items-center justify-center rounded-full text-slate-500 transition-colors hover:text-sky-700 dark:text-white/60 dark:hover:text-white sm:h-9 sm:w-9"
               >
-                <span className="material-symbols-outlined text-lg">chevron_right</span>
+                <ChevronRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
               </button>
             )}
             {/* Stats tab */}
@@ -1390,7 +1358,7 @@ export default function TripDetailPage() {
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <button className="p-2.5 text-slate-500 dark:text-white/70 hover:text-sky-700 dark:hover:text-white transition-colors bg-white/30 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10 rounded-full backdrop-blur-md">
-                    <span className="material-symbols-outlined text-xl">calendar_month</span>
+                    <CalendarDays className="h-5 w-5" strokeWidth={2.25} aria-hidden />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 rounded-2xl" align="end">
@@ -1435,9 +1403,9 @@ export default function TripDetailPage() {
               {currentDay && (
                 <>
                   {/* Day title bar */}
-                  <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-lg">
+                  <div className="flex items-center justify-between trip-glass p-3 sm:p-4 rounded-3xl shadow-none">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <h3 className="text-sm sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white drop-shadow-sm line-clamp-2 sm:line-clamp-2 md:truncate break-words">
+                      <h3 className="text-sm sm:text-xl lg:text-2xl font-bold text-slate-800 dark:text-white line-clamp-2 sm:line-clamp-2 md:truncate break-words">
                         {t('dayTitle', { day: currentDay.day, title: currentDay.title || t('dayDefaultTitle') })}
                       </h3>
                       {currentDayWeather && (
@@ -1484,7 +1452,7 @@ export default function TripDetailPage() {
 
               {/* Accommodation Card (sidebar preview) */}
               {sidebarHotel && (
-                <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-lg hover:shadow-md md:shadow-xl transition-colors">
+                <div className="trip-glass p-3 sm:p-6 rounded-[2rem] shadow-none transition-colors">
                   <h4 className="text-[10px] sm:text-xs font-bold text-sky-700 dark:text-blue-200 uppercase tracking-widest mb-3 sm:mb-4 opacity-80">{t('accommodation')}</h4>
                   <div className="flex items-center gap-3 sm:gap-5">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gray-200 dark:bg-gray-700 overflow-hidden flex-shrink-0 shadow-lg border border-white/40 dark:border-white/10">
@@ -1497,7 +1465,7 @@ export default function TripDetailPage() {
                     <div>
                       <h5 className="font-bold text-slate-800 dark:text-white text-sm sm:text-lg truncate">{sidebarHotel.hotelName}</h5>
                       <div className="flex items-center text-[10px] sm:text-xs text-yellow-500 dark:text-yellow-300 mt-0.5 sm:mt-1 font-bold">
-                        <span className="material-symbols-outlined text-sm text-yellow-400 mr-1">star</span>
+                        <Star className="mr-1 h-3.5 w-3.5 fill-yellow-400 text-yellow-400" strokeWidth={2.25} aria-hidden />
                         <span>{sidebarHotel.stars || sidebarHotel.rating || "5.0"}</span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-slate-500 dark:text-blue-100/70 mt-1 font-medium truncate">
@@ -1516,18 +1484,10 @@ export default function TripDetailPage() {
                       <button
                         type="button"
                         onClick={async () => {
-                          // Priority: 1. bookingUrl from AI, 2. link from AI, 3. Generated search link
-                          const directUrl = sidebarHotel.bookingUrl || sidebarHotel.link
-                          if (directUrl && directUrl.startsWith("http") && !directUrl.includes("google.com/maps")) {
-                            window.open(maybeWrapPartnerAffiliateUrl(directUrl, { market: bookingMarket }), "_blank")
-                            return
-                          }
-
                           const destCity = (sidebarHotel as { city?: string }).city || destinationName
                           try {
                             const url = await getHotelSearchLink({
                               destination: destCity || "Москва",
-                              hotelName: sidebarHotel.title,
                               checkIn: route.start_date || undefined,
                               checkOut: route.end_date || undefined,
                               adults: route.travelers || 2,
@@ -1541,44 +1501,12 @@ export default function TripDetailPage() {
                             window.open(`https://travel.yandex.ru/hotels/?${p.toString()}`, "_blank")
                           }
                         }}
-                        className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-lg shadow-sky-500/20 transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:shadow-blue-500/20 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
+                        className="min-h-9 touch-manipulation rounded-full bg-sky-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-none transition-colors hover:bg-sky-400 dark:bg-blue-600 dark:hover:bg-blue-500 sm:min-h-0 sm:px-4 sm:py-2 sm:text-xs"
                       >
                         {t('bookNow')}
                       </button>
                     </div>
 
-                    {/* Fallback to Yandex if user is RU but destination is potentially international */}
-                    {bookingMarket === "ru" && !isRussianHotelDestinationSync((sidebarHotel as { city?: string }).city || destinationName) && (
-                      <div className="flex justify-end mt-1">
-                        <button
-                          type="button"
-                          className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 hover:text-sky-600 dark:hover:text-sky-300 transition-colors underline underline-offset-2"
-                          onClick={async () => {
-                            // Similar priority for "fallback" Yandex link
-                            if (sidebarHotel.bookingUrl?.includes("travel.yandex.ru")) {
-                               window.open(maybeWrapPartnerAffiliateUrl(sidebarHotel.bookingUrl, { market: bookingMarket }), "_blank")
-                               return
-                            }
-
-                            const destCity = (sidebarHotel as { city?: string }).city || destinationName
-                            try {
-                              const yandexUrl = await getYandexOnlyHotelLink({
-                                destination: destCity || "Москва",
-                                hotelName: sidebarHotel.title,
-                                checkIn: route.start_date || undefined,
-                                checkOut: route.end_date || undefined,
-                                adults: route.travelers || 2,
-                              })
-                              window.open(yandexUrl, "_blank")
-                            } catch {
-                              window.open("https://travel.yandex.ru/hotels/", "_blank")
-                            }
-                          }}
-                        >
-                          Нет мест? Искать на Яндекс.Путешествиях
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -1600,11 +1528,11 @@ export default function TripDetailPage() {
             <p className="text-base font-semibold text-foreground leading-snug -mt-1">{route.title}</p>
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-2 text-muted-foreground">
-                <span className="material-symbols-outlined text-lg shrink-0">calendar_month</span>
+                <CalendarDays className="h-4.5 w-4.5 shrink-0" strokeWidth={2.25} aria-hidden />
                 <span>{formatDateRange(tripStartDate, tripEndDate, locale) || t("noDates", { days: tripDurationDays })}</span>
               </div>
               <div className="flex items-start gap-2 text-muted-foreground">
-                <span className="material-symbols-outlined text-lg shrink-0">person</span>
+                <User className="h-4.5 w-4.5 shrink-0" strokeWidth={2.25} aria-hidden />
                 <span>{t("travelersMeta", { count: route.travelers || 2 })}</span>
               </div>
               {route.tags && route.tags.length > 0 && (
@@ -1859,8 +1787,11 @@ export default function TripDetailPage() {
           </DialogContent>
         </Dialog>
 
-        <div className="mt-20">
-          <Footer />
+        <div className="mt-12 bg-gradient-to-b from-transparent via-[#1f3d86]/80 to-[#1f3d86] pb-16 sm:mt-16 lg:pb-20">
+          <Footer
+            className="bg-transparent backdrop-blur-none"
+            contentClassName="pb-[calc(4rem+env(safe-area-inset-bottom,0px))] lg:pb-16"
+          />
         </div>
 
 
