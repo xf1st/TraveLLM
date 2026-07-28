@@ -478,6 +478,7 @@ JSON СХЕМА (строго следуй):
     {
       "day": 1,
       "title": "Прибытие в город",
+      "endCity": "Белград",
       "dayTotal": "15 000 ₽",
       "activities": [
         {
@@ -528,36 +529,58 @@ JSON СХЕМА (строго следуй):
 
         const systemPrompt = "You are an expert travel planner for TraveLM, specialized in Russian travelers. You provide JSON only. Be concise."
 
+
         // Helper to parse JSON from AI response
         function parseJsonResponse(raw: string, source: string): any {
             if (!raw) throw new Error(`Empty response from ${source}`)
 
             let clean = raw.match(/\{[\s\S]*\}/)?.[0] || raw
 
+            // Remove markdown code blocks if present
+            clean = clean.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
             // Basic repair for unquoted hashtags which DeepSeek sometimes outputs
             clean = clean.replace(/:\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ': "#$1"'); // keys or values starting with #
             clean = clean.replace(/,\s*#([a-zA-Zа-яА-Я0-9_]+)/g, ', "#$1"'); // array items starting with #
             clean = clean.replace(/\[\s*#([a-zA-Zа-яА-Я0-9_]+)/g, '["#$1"'); // first array item
 
+            // Fix missing colons after property names (common DeepSeek error)
+            // Pattern: "propertyName" "value" -> "propertyName": "value"
+            clean = clean.replace(/"([^"]+)"\s+"([^"]+)"/g, '"$1": "$2"');
+            // Pattern: "propertyName" { -> "propertyName": {
+            clean = clean.replace(/"([^"]+)"\s+\{/g, '"$1": {');
+            // Pattern: "propertyName" [ -> "propertyName": [
+            clean = clean.replace(/"([^"]+)"\s+\[/g, '"$1": [');
+            // Pattern: "propertyName" number -> "propertyName": number
+            clean = clean.replace(/"([^"]+)"\s+(\d+)/g, '"$1": $2');
+
+            // Fix trailing commas before closing brackets
+            clean = clean.replace(/,\s*}/g, '}');
+            clean = clean.replace(/,\s*]/g, ']');
+
             if (!clean.trim().endsWith('}')) {
                 console.warn(`${source} JSON appears truncated, attempting basic repair...`);
                 let openBraces = (clean.match(/\{/g) || []).length;
                 let closeBraces = (clean.match(/\}/g) || []).length;
+                let openBrackets = (clean.match(/\[/g) || []).length;
+                let closeBrackets = (clean.match(/\]/g) || []).length;
+                while (openBrackets > closeBrackets) { clean += ']'; closeBrackets++; }
                 while (openBraces > closeBraces) { clean += '}'; closeBraces++; }
-            }
-
-            // Also fix truncated arrays
-            if (!clean.trim().endsWith('}')) {
-                clean = clean.replace(/,\s*$/, '') + ']}'
             }
 
             try {
                 return JSON.parse(clean);
             } catch (e) {
                 // Last ditch: try to just regex out the whole tags array if it's the culprit
-                console.warn("JSON repair failed, trying to strip tags...", e);
+                console.warn("JSON repair failed, trying to strip problematic fields...", e);
                 clean = clean.replace(/"tags":\s*\[[^\]]*\]/g, '"tags": []');
-                return JSON.parse(clean);
+                clean = clean.replace(/"viralSpots":\s*\[[^\]]*\]/g, '"viralSpots": []');
+                try {
+                    return JSON.parse(clean);
+                } catch (e2) {
+                    console.error("Final JSON parse failed:", e2);
+                    throw e2;
+                }
             }
         }
 
@@ -626,80 +649,6 @@ CRITICAL:
 
             const raw = await deepseekInference(messages, { maxTokens: 2000, temperature: 0.6, tripDays: 3 });
             return parseJsonResponse(raw, "DeepSeek-Meta");
-        }
-
-        // Dedicated Logistics Fetcher using Online Model (Perplexity/Sonar via OpenRouter)
-        async function fetchLogistics(context: any): Promise<any> {
-            console.log("Logistics: Fetching REAL-TIME data via Perplexity/Sonar...");
-            console.log("Logistics Context:", JSON.stringify(context, null, 2)); // Debug context
-
-            const searchPromptFull = `
-You are a Real-Time Travel Logistics Engine.
-TASK: Search the web for ACTUAL available flights and hotels for the following trip.
-
-TRIP DETAILS:
-- Departure: ${context.departureCity}
-- Destination: ${context.targetDescription}
-- Dates: ${context.startDate} to ${context.endDate}
-- Budget Level: ${budgetDesc}
-- Travelers: ${context.travelers}
-
-REQUIREMENTS:
-1. Find 3 SPECIFIC flight options (Best, Cheapest, Fastest) from ${context.departureCity} to the destination.
-   - MUST include: Airline, Flight Number (e.g. SU123), Departure/Arrival Times, Price (RUB), Transfer info.
-2. Find 3 SPECIFIC hotels available for these dates.
-   - MUST include: Real Name, Star Rating, Price/Night (RUB), Key Amenities, Review Score (e.g. 8.5/10), Photo Query.
-3. If multiple cities are involved, find inter-city transport (Train/Flight) with specific details.
-
-OUTPUT JSON ONLY:
-{
-  "flights": [
-    {
-      "type": "flight",
-      "airline": "Airline Name",
-      "flightNumber": "XX123",
-      "departureTime": "HH:MM",
-      "arrivalTime": "HH:MM",
-      "duration": "4h 30m",
-      "price": 15000,
-      "terminal": "A",
-      "transfer": "Direct"
-    }
-  ],
-  "hotels": [
-    {
-      "type": "hotel",
-      "hotelName": "Hotel Name",
-      "stars": 4,
-      "rating": 8.5,
-      "reviewsCount": 120,
-      "pricePerNight": 8000,
-      "amenities": ["WiFi", "Pool", "Breakfast"],
-      "address": "Street Address",
-      "photoQuery": "Hotel Name External View" 
-    }
-  ],
-  "interCity": []
-}
-`;
-            try {
-                console.log("Logistics: Sending request to OpenRouter...");
-                const raw = await openrouterInference([
-                    { role: "system", content: "You are a real-time travel search engine. Output JSON only." },
-                    { role: "user", content: searchPromptFull }
-                ], {
-                    maxTokens: 4000,
-                    temperature: 0.1,
-                    model: "perplexity/sonar-reasoning-pro"
-                });
-                console.log("Logistics: Received raw response:", raw.slice(0, 200) + "...");
-                const parsed = parseJsonResponse(raw, "Perplexity-Logistics");
-                console.log("Logistics: Parsed data:", JSON.stringify(parsed, null, 2));
-                return parsed;
-            } catch (e) {
-                console.warn("Logistics fetch failed:", e);
-                return null;
-            }
         }
 
         // Generate a chunk of days (e.g., days 1-4) with context from previous chunks
@@ -815,14 +764,7 @@ ${isLastChunk
             const CHUNK_SIZE = 4; // Days per chunk
             const USE_SEQUENTIAL_CHUNKS = durationDays > 7;
 
-            // Start Logistics fetch in parallel
-            const logisticsPromise = fetchLogistics({
-                departureCity,
-                targetDescription,
-                startDate,
-                endDate,
-                travelers: companions || "2 adults",
-            });
+            const travelersCount = parseInt(String(companions).match(/\d+/)?.[0] || "2")
 
             let routeData: any = {};
 
@@ -905,18 +847,19 @@ ${isLastChunk
                 console.log(`Sequential generation completed in ${elapsed}s (${chunks.length + 1} requests)`);
             }
 
-            // Await logistics and merge
-            try {
-                const realLogistics = await logisticsPromise;
-                if (realLogistics) {
-                    console.log("Merging real-time logistics data...");
-                    // Attach global flight/hotel data
-                    routeData.flights = realLogistics.flights || [];
-                    routeData.hotels = realLogistics.hotels || [];
-                    routeData.interCity = realLogistics.interCity || [];
+            // Post-generation: extract logistics from AI-generated itinerary
+            if (startDate && endDate) {
+                try {
+                    const { extractLogisticsFromItinerary } = await import("@/lib/travelpayouts")
+                    const logistics = await extractLogisticsFromItinerary(
+                        routeData, departureCity, startDate, endDate, travelersCount
+                    )
+                    routeData.flights = logistics.flights
+                    routeData.hotels = logistics.hotels
+                    routeData.interCity = logistics.interCity
+                } catch (logisticsError) {
+                    console.error("Failed to extract logistics:", logisticsError)
                 }
-            } catch (mergeError) {
-                console.error("Failed to merge logistics:", mergeError);
             }
 
             return routeData;

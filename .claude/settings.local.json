@@ -6,7 +6,16 @@
       "Bash(npm install:*)",
       "Bash(npx next build)",
       "Bash(npx tsc:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebSearch",
+      "WebFetch(domain:travelpayouts.github.io)",
+      "WebFetch(domain:support.travelpayouts.com)",
+      "Bash(timeout:*)",
+      "Bash(findstr:*)",
+      "Bash(ping:*)",
+      "Bash(npx next dev:*)"
     ]
   }
 }

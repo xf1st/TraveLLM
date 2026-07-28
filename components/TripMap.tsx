@@ -65,7 +65,15 @@ function MapController({ activePlaceId, places, userLocation }: { activePlaceId?
 
         const active = places.find(p => p.id === activePlaceId)
         if (active && active.coords) {
-            map.flyTo(active.coords, 12, { duration: 1.5, easeLinearity: 0.25 })
+            const lat = Number(Array.isArray(active.coords) ? active.coords[0] : (active.coords as any).lat)
+            const lng = Number(Array.isArray(active.coords) ? active.coords[1] : (active.coords as any).lng)
+            if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                try {
+                    map.flyTo([lat, lng], 12, { duration: 1.5, easeLinearity: 0.25 })
+                } catch (e) {
+                    console.warn("TripMap flyTo error:", e)
+                }
+            }
         }
     }, [activePlaceId, places, map, userLocation])
 
