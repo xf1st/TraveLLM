@@ -12,7 +12,7 @@ TraveLLM — AI-powered travel planning app that generates personalized trip iti
 - **Production URLs**: `https://travellm.ru` (RU default) · `https://travellm.world` (EN default)
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions, RLS)
 - **AI**:
-  - **Gemini 2.0 Flash** (Primary: `google/gemini-2.0-flash-001` via OpenRouter)
+  - **Gemini 3.1 Flash Lite** (Primary: `google/gemini-3.1-flash-lite` via OpenRouter)
   - **DeepSeek** (Fallback: `deepseek-chat` / `deepseek-reasoner`)
   - **OpenRouter** (Routing layer для Gemini + Qwen fallback)
 - **Animation**: Framer Motion, Three.js, OGL (WebGL), Lottie, `tailwindcss-animate`
@@ -126,12 +126,12 @@ supabase/
 
 ```
 POST /api/gemini  ←  фронт использует сейчас
-  Primary:  google/gemini-2.0-flash-001 (OpenRouter) — все маршруты
+  Primary:  google/gemini-3.1-flash-lite (OpenRouter) — все маршруты
   Fallback: deepseek-chat / deepseek-reasoner
 
 POST /api/deepseek  ←  готов для быстрого переключения
   Primary:  deepseek-chat (≤7 дней) / deepseek-reasoner (8+ дней)
-  Fallback: google/gemini-2.0-flash-001
+  Fallback: google/gemini-3.1-flash-lite
 ```
 
 **Переключение провайдера** — одна строка в `app/(main)/plan/page.tsx`:
@@ -146,7 +146,7 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 - Разбивка на 4-дневные чанки (sequential, с контекстом предыдущего чанка)
 - Отдельный запрос для metadata (title, budget, tags)
-- Всё через `gemini-2.0-flash-001` ($0.10/$0.40 per 1M tokens)
+- Всё через `gemini-3.1-flash-lite` ($0.25/$1.50 per 1M tokens)
 
 ### Стоимость (ориентир)
 
@@ -208,6 +208,7 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 ### Optional / Feature-Specific
 
+- `HTTP_PROXY` — исходящий HTTP(S)-прокси для OpenRouter, DeepSeek и image API; формат `http://username:password@host:port` без угловых скобок
 - `TRAVELLM_DEV_SKIP_PROXY_AUTH=1` — только локально: ослабить `proxy.ts` (как раньше в dev); без этого в development те же редиректы/админ-гейт, что в production
 - `TRAVELLM_LIMIT_FAIL_OPEN=1` — только локально: если нет `SUPABASE_SERVICE_ROLE_KEY` или сбой запроса лимитов, не блокировать генерации/чат (в **проде не включать**). Без флага — **fail-closed** и **503** `LIMITS_UNAVAILABLE` на `/api/gemini`, `/api/deepseek` и чат-роутах при ошибке бэкенда лимитов.
 - `TRAVELPAYOUTS_TOKEN` (Flights)

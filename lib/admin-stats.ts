@@ -52,7 +52,7 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
             .lt('created_at', endIso),
         supabase
             .from('ai_usage_events')
-            .select('total_tokens, cost_rub, cost_usd')
+            .select('source, total_tokens, cost_rub, cost_usd')
             .gte('created_at', startIso)
             .lt('created_at', endIso)
     ])
@@ -70,6 +70,7 @@ export async function getStatsForPeriod(startDate: Date, endDate: Date): Promise
     })
     if (!usageEventsError || usageEventsError.code === '42P01') {
         usageEvents?.forEach((event: any) => {
+            if (event.source === 'route-generation') return
             tokens += toNumber(event.total_tokens)
             costRub += toNumber(event.cost_rub)
             costUsd += toNumber(event.cost_usd)
@@ -100,7 +101,7 @@ export async function getTopSpenders(limit = 10, days = 30) {
             .gte('created_at', date.toISOString()),
         supabase
             .from('ai_usage_events')
-            .select('user_id, total_tokens, cost_rub')
+            .select('user_id, source, total_tokens, cost_rub')
             .gte('created_at', date.toISOString())
     ])
 
@@ -125,7 +126,7 @@ export async function getTopSpenders(limit = 10, days = 30) {
     })
 
     usageEvents.forEach((event: any) => {
-        if (!event.user_id) return
+        if (!event.user_id || event.source === 'route-generation') return
 
         const current = userStats.get(event.user_id) || { userId: event.user_id, costRub: 0, tokens: 0, trips: 0 }
         current.costRub += toNumber(event.cost_rub)

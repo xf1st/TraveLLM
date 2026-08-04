@@ -91,7 +91,7 @@ export async function GET(req: Request) {
 
         let usageEventsQuery = supabase
             .from("ai_usage_events")
-            .select("prompt_tokens, completion_tokens, total_tokens, cost_usd, cost_rub, created_at")
+            .select("source, prompt_tokens, completion_tokens, total_tokens, cost_usd, cost_rub, created_at")
 
         if (dateFilter) {
             usageEventsQuery = usageEventsQuery.gte("created_at", dateFilter)
@@ -110,7 +110,11 @@ export async function GET(req: Request) {
         if (usageEventsError && usageEventsError.code !== "42P01") {
             console.warn("[AI Stats] Failed to fetch ai_usage_events, fallback to trips only:", usageEventsError.message)
         }
-        const mapEvents = (usageEvents || []).filter((e: any) => !e.source?.startsWith("route-generation"))
+        // Route generation is already represented by trips.token_usage. Exclude its
+        // mirror usage event so admin totals do not count each generated route twice.
+        const auxiliaryEvents = (usageEvents || []).filter(
+            (event: any) => event.source !== "route-generation"
+        )
 
         // Find first trip with token usage for debugging
         const firstTripWithUsage = trips?.find(t => t.token_usage && Object.keys(t.token_usage).length > 0)
@@ -120,7 +124,7 @@ export async function GET(req: Request) {
         console.log("[AI Stats] Total trips in DB:", totalTripCount)
         console.log("[AI Stats] Trips fetched:", trips?.length || 0)
         console.log("[AI Stats] Trips with non-null token_usage:", tripsWithTokenUsageCount)
-        console.log("[AI Stats] Map usage events:", mapEvents.length)
+        console.log("[AI Stats] Auxiliary usage events:", auxiliaryEvents.length)
 
         if (firstTripWithUsage) {
             console.log("[AI Stats] Sample token_usage structure:", JSON.stringify(firstTripWithUsage.token_usage, null, 2))
@@ -161,7 +165,7 @@ export async function GET(req: Request) {
             }
         }
 
-        for (const event of mapEvents) {
+        for (const event of auxiliaryEvents) {
             totalPromptTokens += toNumber(event.prompt_tokens)
             totalCompletionTokens += toNumber(event.completion_tokens)
             totalTokens += toNumber(event.total_tokens)
@@ -194,7 +198,7 @@ export async function GET(req: Request) {
                 const created = new Date(t.created_at)
                 return created >= date && created < nextDate
             })
-            const dayEvents = mapEvents.filter((event: any) => {
+            const dayEvents = auxiliaryEvents.filter((event: any) => {
                 const created = new Date(event.created_at)
                 return created >= date && created < nextDate
             })
@@ -232,7 +236,7 @@ export async function GET(req: Request) {
                 totalRequests: requestCount,
                 totalTrips: totalTripCount || 0,
                 tripsWithTokenData: tripsWithTokenUsageCount,
-                mapEventsCount: mapEvents.length,
+                mapEventsCount: auxiliaryEvents.length,
                 totalTokens,
                 totalPromptTokens,
                 totalCompletionTokens,

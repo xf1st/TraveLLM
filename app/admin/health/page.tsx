@@ -99,43 +99,20 @@ export default function AdminHealthPage() {
       })
     }
 
-    // 4. AI Generation API Check
-    const deepseekStart = Date.now()
+    // 4. Lightweight Gemini/OpenRouter check (does not generate a full route)
+    const geminiStart = Date.now()
     try {
-      const response = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          departureCity: "Москва",
-          destinationType: "russia",
-          countryCount: 1,
-          budget: "comfort",
-          startDate: new Date().toISOString().split('T')[0],
-          endDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          travelStyle: ["culture"],
-          companions: "solo",
-          preferences: {
-            pace: "moderate",
-            visitedCountries: [],
-            interestsDetailed: [],
-            dietaryRestrictions: []
-          },
-          paymentMethods: ["card"],
-          requireRussianGuide: false,
-        }),
-      })
-
-      const duration = Date.now() - deepseekStart
+      const response = await fetch("/api/admin/health/ai", { cache: "no-store" })
+      const data = await response.json().catch(() => ({}))
+      const duration = Date.now() - geminiStart
       if (!response.ok) {
-        const text = await response.text()
-        throw new Error(`HTTP ${response.status}: ${text.slice(0, 100)}`)
+        throw new Error(data.error || `HTTP ${response.status}`)
       }
 
-      // Don't wait for full response, just check if it starts
       results.push({
         name: "AI API (Gemini)",
         status: "success",
-        message: "API отвечает (тестовый запрос)",
+        message: `${data.model || "Gemini"} отвечает через OpenRouter`,
         duration,
       })
     } catch (error: any) {
@@ -143,22 +120,39 @@ export default function AdminHealthPage() {
         name: "AI API (Gemini)",
         status: "error",
         message: error.message || "Ошибка запроса к AI API",
-        duration: Date.now() - deepseekStart,
+        duration: Date.now() - geminiStart,
       })
     }
 
-    // 5. Image API Check
+    // 5. Image API Check: require a URL and verify that it serves image bytes.
     const imageStart = Date.now()
     try {
-      const response = await fetch("/api/image?query=Москва", {
-        method: "GET",
+      const cacheBust = Date.now()
+      const response = await fetch(`/api/image?query=Москва&health=${cacheBust}`, {
+        cache: "no-store",
       })
-      const duration = Date.now() - imageStart
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const data = await response.json()
+      if (!data.url || typeof data.url !== "string") {
+        throw new Error("Image API did not return an image URL")
+      }
+
+      const imageResponse = await fetch(
+        `/api/proxy-image?url=${encodeURIComponent(data.url)}&health=${cacheBust}`,
+        { cache: "no-store" }
+      )
+      const contentType = imageResponse.headers.get("content-type") || ""
+      if (!imageResponse.ok) throw new Error(`Image fetch HTTP ${imageResponse.status}`)
+      if (!contentType.startsWith("image/")) {
+        throw new Error(`Unexpected content type: ${contentType || "missing"}`)
+      }
+
+      const duration = Date.now() - imageStart
+      const hostname = new URL(data.url).hostname
       results.push({
         name: "Image API",
         status: "success",
-        message: "API изображений работает",
+        message: `Изображение доступно (${hostname}, ${contentType})`,
         duration,
       })
     } catch (error: any) {

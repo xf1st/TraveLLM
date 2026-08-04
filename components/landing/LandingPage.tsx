@@ -500,7 +500,7 @@ export default function LandingPage() {
                 {t("features.ai60Desc")}
               </p>
               <div className="flex flex-wrap gap-2">
-                {["DeepSeek", "Gemini 2.5 Flash", "OpenRouter"].map(m => (
+                {["DeepSeek", "Gemini 3.1 Flash Lite", "OpenRouter"].map(m => (
                   <span key={m} className="text-[10px] font-bold uppercase tracking-widest border border-primary/20 rounded-full px-3 py-1 text-primary/80">{m}</span>
                 ))}
               </div>
@@ -643,7 +643,7 @@ export default function LandingPage() {
                   "25 генераций маршрутов/мес",
                   "25 AI-сообщений на маршрут",
                   "Всё из Free",
-                  "Gemini 2.0 Flash (быстрее)",
+                  "Gemini 3.1 Flash Lite (быстрее)",
                   "AI-экономист для бюджета",
                   "Приоритетная обработка",
                   "Поддержка в Telegram",

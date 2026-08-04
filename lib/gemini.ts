@@ -4,7 +4,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
 
-export const GEMINI_FLASH = "google/gemini-2.5-flash-lite-preview-09-2025";
+export const GEMINI_FLASH = "google/gemini-3.1-flash-lite";
 
 // Create a singleton dispatcher for the proxy
 let proxyDispatcher: any = undefined;
@@ -15,11 +15,11 @@ if (typeof window === "undefined" && httpProxy) {
     } catch(e) {}
 }
 
-// Pricing (Feb 2026) — per 1M tokens
+// OpenRouter pricing (Aug 2026) — $0.25 input / $1.50 output per 1M tokens
 const PRICING = {
     [GEMINI_FLASH]: {
-        input:  0.10 / 1_000_000,
-        output: 0.40 / 1_000_000,
+        input:  0.25 / 1_000_000,
+        output: 1.50 / 1_000_000,
     },
 } as const;
 
@@ -47,6 +47,7 @@ interface GeminiOptions {
     temperature?: number;
     tripDays?: number;
     responseFormat?: "json_object" | "text";
+    reasoningEffort?: "minimal" | "low" | "medium" | "high";
 }
 
 /** OpenRouter multimodal parts (vision). */
@@ -121,6 +122,13 @@ async function runGeminiInference(
         max_tokens: maxTokens,
         temperature,
     };
+
+    if (options.reasoningEffort) {
+        bodyPayload.reasoning = {
+            effort: options.reasoningEffort,
+            exclude: true,
+        };
+    }
 
     // json_object mode is not reliably supported with multimodal user messages on some providers
     const hasMultimodal = messages.some(

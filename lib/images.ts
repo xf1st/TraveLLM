@@ -140,15 +140,15 @@ async function searchWikimedia(query: string): Promise<string | null> {
             queries.push(cleanQuery + " nature")
         }
 
-        for (const q of queries) {
-            if (!q || q.length < 2) continue
+        const candidates = await Promise.all(queries.slice(0, 3).map(async (q) => {
+            if (!q || q.length < 2) return null
             try {
                 const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(q)}&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&format=json&origin=*&gsrlimit=15`
                 const res = await proxiedFetch(url, { 
                     signal: AbortSignal.timeout(4000),
                     headers: { Accept: "application/json" }
                 })
-                if (!res.ok) continue
+                if (!res.ok) return null
                 const data = await res.json()
                 if (data.query?.pages) {
                     const pages = Object.values(data.query.pages) as any[]
@@ -164,10 +164,11 @@ async function searchWikimedia(query: string): Promise<string | null> {
                     })
                     if (validImage) return validImage.imageinfo[0].url
                 }
-            } catch (e) {
-                // Continue to next query
-            }
-        }
+            } catch {}
+            return null
+        }))
+
+        return candidates.find((candidate): candidate is string => Boolean(candidate)) ?? null
     } catch (error) {
         console.error("Wikimedia search failed:", error)
     }
@@ -291,67 +292,32 @@ export async function getDestinationImage(query: string): Promise<string> {
         enhancedQuery = `${translatedQuery} landmark cityscape`;
     }
 
-    let result: string | null = null
-
-    // 1. Unsplash (highest quality, landscape, CDN not blocked in Russia)
-    let unsplashUrls = await searchUnsplash(enhancedQuery, 1)
-    
-    // 1.2 Fallback to translated query without enhancement
-    if (unsplashUrls.length === 0 && enhancedQuery !== translatedQuery) {
-        unsplashUrls = await searchUnsplash(translatedQuery, 1)
+    const searchProviders = async (unsplashQuery: string, stockQuery: string): Promise<string | null> => {
+        const [unsplashUrls, pexelsUrls, pixabayUrls] = await Promise.all([
+            searchUnsplash(unsplashQuery, 1),
+            searchPexels(stockQuery, 1),
+            searchPixabay(stockQuery, 1),
+        ])
+        return unsplashUrls[0] || pexelsUrls[0] || pixabayUrls[0] || null
     }
 
-    // 1.4 Fallback to the last 2-3 words (often contains city/location since we append it)
-    if (unsplashUrls.length === 0 && wordCount > 2) {
-        const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
-        unsplashUrls = await searchUnsplash(lastWords, 1)
-    }
+    // Query independent providers concurrently. A provider timeout now costs one
+    // timeout window instead of accumulating across the whole waterfall.
+    let result = await searchProviders(enhancedQuery, translatedQuery)
 
-    // 1.6 Last ditch effort for Unsplash: try the first 2 words if it's a long tagged query
-    if (unsplashUrls.length === 0 && wordCount > 2) {
-        const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
-        unsplashUrls = await searchUnsplash(simpleQuery, 1)
-    }
-
-    if (unsplashUrls.length > 0) {
-        result = unsplashUrls[0]
-    }
-
-    // 2. Pexels (broader database, good for hotels/bars/specific spots)
     if (!result) {
-        let pexelsUrls = await searchPexels(translatedQuery, 1)
-        
-        if (pexelsUrls.length === 0 && wordCount > 2) {
-            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
-            pexelsUrls = await searchPexels(lastWords, 1)
-        }
+        const fallbackQueries = wordCount > 2
+            ? [
+                translatedQuery.split(/\s+/).slice(-2).join(" "),
+                translatedQuery.split(/\s+/).slice(0, 2).join(" "),
+            ]
+            : enhancedQuery !== translatedQuery
+                ? [translatedQuery]
+                : []
 
-        if (pexelsUrls.length === 0 && wordCount > 2) {
-            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
-            pexelsUrls = await searchPexels(simpleQuery, 1)
-        }
-
-        if (pexelsUrls.length > 0) {
-            result = pexelsUrls[0]
-        }
-    }
-
-    // 2.5. Pixabay (large free library, good geo coverage)
-    if (!result) {
-        let pixabayUrls = await searchPixabay(translatedQuery, 1)
-        
-        if (pixabayUrls.length === 0 && wordCount > 2) {
-            const lastWords = translatedQuery.split(/\s+/).slice(-2).join(" ");
-            pixabayUrls = await searchPixabay(lastWords, 1)
-        }
-
-        if (pixabayUrls.length === 0 && wordCount > 2) {
-            const simpleQuery = translatedQuery.split(/\s+/).slice(0, 2).join(" ");
-            pixabayUrls = await searchPixabay(simpleQuery, 1)
-        }
-
-        if (pixabayUrls.length > 0) {
-            result = pixabayUrls[0]
+        for (const fallbackQuery of Array.from(new Set(fallbackQueries))) {
+            result = await searchProviders(fallbackQuery, fallbackQuery)
+            if (result) break
         }
     }
 

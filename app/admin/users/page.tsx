@@ -211,7 +211,7 @@ export default function AdminUsersPage() {
         { data: monthlyGenEvents, error: monthlyGenError },
       ] = await Promise.all([
         supabase.from("trips").select("user_id, token_usage"),
-        supabase.from("ai_usage_events").select("user_id, total_tokens, cost_rub"),
+        supabase.from("ai_usage_events").select("user_id, source, total_tokens, cost_rub"),
         supabase.from("trip_feedback").select("user_id, rating"),
         supabase.from("ai_usage_events").select("user_id").eq("source", "route-generation").gte("created_at", monthStart),
       ])
@@ -242,7 +242,7 @@ export default function AdminUsersPage() {
       }
 
       for (const event of usageEvents || []) {
-        if (!event.user_id) continue
+        if (!event.user_id || event.source === "route-generation") continue
         const c = agg.get(event.user_id) || { trips_count: 0, total_tokens: 0, total_cost_rub: 0, feedback_count: 0, feedback_rating_sum: 0 }
         c.total_tokens += Number(event.total_tokens || 0)
         c.total_cost_rub += Number(event.cost_rub || 0)
