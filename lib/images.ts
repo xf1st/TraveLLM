@@ -213,53 +213,19 @@ async function searchWikimediaGallery(query: string, count: number): Promise<str
     return Array.from(results)
 }
 
-// --- Static fallbacks for popular destinations ---
+// --- Local fallbacks (must never depend on a third-party host) ---
+const LOCAL_TRAVEL_FALLBACK = "/priroda.jpg"
+
 const FALLBACK_IMAGES: Record<string, string> = {
-    россия: "https://upload.wikimedia.org/wikipedia/commons/4/49/Red_Square_Moscow.JPG",
-    moscow: "https://upload.wikimedia.org/wikipedia/commons/4/49/Red_Square_Moscow.JPG",
-    москва: "https://upload.wikimedia.org/wikipedia/commons/4/49/Red_Square_Moscow.JPG",
-    france: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
-    франция: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
-    paris: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
-    париж: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Tour_Eiffel_Wikimedia_Commons.jpg",
-    spain: "https://upload.wikimedia.org/wikipedia/commons/9/99/Sagrada_Familia_01.jpg",
-    испания: "https://upload.wikimedia.org/wikipedia/commons/9/99/Sagrada_Familia_01.jpg",
-    italy: "https://upload.wikimedia.org/wikipedia/commons/d/d8/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg",
-    италия: "https://upload.wikimedia.org/wikipedia/commons/d/d8/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg",
-    germany: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Brandenburger_Tor_nachts.jpg",
-    германия: "https://upload.wikimedia.org/wikipedia/commons/e/ec/Brandenburger_Tor_nachts.jpg",
-    poland: "https://upload.wikimedia.org/wikipedia/commons/1/1c/Krak%C3%B3w_-_Sukiennice_1.jpg",
-    польша: "https://upload.wikimedia.org/wikipedia/commons/1/1c/Krak%C3%B3w_-_Sukiennice_1.jpg",
-    czech: "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
-    чехия: "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
-    прага: "https://upload.wikimedia.org/wikipedia/commons/9/91/Prague_panorama.jpg",
-    грузия: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
-    georgia: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
-    tbilisi: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
-    тбилиси: "https://upload.wikimedia.org/wikipedia/commons/a/a2/Tbilisi_View.jpg",
-    amsterdam: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
-    амстердам: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Keizersgracht_Amsterdam.jpg",
-    turkey: "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
-    турция: "https://upload.wikimedia.org/wikipedia/commons/2/25/Istanbul_Montage_2022.jpg",
-    balkan: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    балканы: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    belgrade: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    белград: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    serbia: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    сербия: "https://upload.wikimedia.org/wikipedia/commons/b/b3/Belgrade_Montage_2022.jpg",
-    bosnia: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
-    босния: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
-    sarajevo: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
-    сараево: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Sarajevo_Montage_2023.jpg",
-    egypt: "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
-    египет: "https://upload.wikimedia.org/wikipedia/commons/a/af/All_Gizah_Pyramids.jpg",
-    dubai: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dubai_Skyline_2015.jpg",
-    дубай: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Dubai_Skyline_2015.jpg",
-    thailand: "https://upload.wikimedia.org/wikipedia/commons/0/04/Wat_Arun_by_Nand_Nirodh.jpg",
-    таиланд: "https://upload.wikimedia.org/wikipedia/commons/0/04/Wat_Arun_by_Nand_Nirodh.jpg",
-    japan: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Fuji_from_Pagoda.jpg",
-    япония: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Fuji_from_Pagoda.jpg",
-    travel: "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg",
+    грузия: "/tbilisi-old-town-panorama.jpg",
+    georgia: "/tbilisi-old-town-panorama.jpg",
+    tbilisi: "/tbilisi-old-town-panorama.jpg",
+    тбилиси: "/tbilisi-old-town-panorama.jpg",
+    batumi: "/batumi-seaside-boulevard-sunset.jpg",
+    батуми: "/batumi-seaside-boulevard-sunset.jpg",
+    kazbegi: "/kazbegi-mountain-church-gergeti-trinity.jpg",
+    казбеги: "/kazbegi-mountain-church-gergeti-trinity.jpg",
+    travel: LOCAL_TRAVEL_FALLBACK,
 }
 
 function getStaticFallback(query: string): string {
@@ -276,7 +242,7 @@ export async function getDestinationImage(query: string): Promise<string> {
     // 0. Skip fetching for airports/stations - they rarely produce good travel photos
     const skipKeywords = ["аэропорт", "airport", "вокзал", "station", "перелет", "flight", "transfer", "трансфер"]
     if (skipKeywords.some(k => cacheKey.includes(k))) {
-        return "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
+        return LOCAL_TRAVEL_FALLBACK
     }
 
     const cached = imageCache.get(cacheKey)
@@ -327,7 +293,7 @@ export async function getDestinationImage(query: string): Promise<string> {
         if (wikiImg) result = wikiImg
     }
 
-    // 4. Static Wikimedia map (last resort)
+    // 4. Local bundled image (last resort)
     if (!result) {
         result = getStaticFallback(query) // Use original query for fallback check as it has RU keys
     }

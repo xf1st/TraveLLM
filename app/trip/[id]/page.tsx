@@ -522,7 +522,7 @@ export default function TripDetailPage() {
   const topTags = route.tags?.slice(0, 2).map((t: string) => t.replace("#", "")).join(" ") || ""
   const heroQuery = `${cleanDestination} ${topTags}`.trim()
 
-  const heroImage = route.coverImage || route.image || "https://upload.wikimedia.org/wikipedia/commons/c/cc/Travel_022.jpg"
+  const heroImage = route.coverImage || route.image || "/priroda.jpg"
   const tripDurationDays = Array.isArray(route.itinerary) ? route.itinerary.length : 0
 
   // Active day data

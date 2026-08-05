@@ -137,10 +137,11 @@ export default function AdminHealthPage() {
         throw new Error("Image API did not return an image URL")
       }
 
-      const imageResponse = await fetch(
-        `/api/proxy-image?url=${encodeURIComponent(data.url)}&health=${cacheBust}`,
-        { cache: "no-store" }
-      )
+      const isLocalImage = data.url.startsWith("/")
+      const verificationUrl = isLocalImage
+        ? `${data.url}?health=${cacheBust}`
+        : `/api/proxy-image?url=${encodeURIComponent(data.url)}&health=${cacheBust}`
+      const imageResponse = await fetch(verificationUrl, { cache: "no-store" })
       const contentType = imageResponse.headers.get("content-type") || ""
       if (!imageResponse.ok) throw new Error(`Image fetch HTTP ${imageResponse.status}`)
       if (!contentType.startsWith("image/")) {
@@ -148,7 +149,7 @@ export default function AdminHealthPage() {
       }
 
       const duration = Date.now() - imageStart
-      const hostname = new URL(data.url).hostname
+      const hostname = isLocalImage ? "local asset" : new URL(data.url).hostname
       results.push({
         name: "Image API",
         status: "success",
