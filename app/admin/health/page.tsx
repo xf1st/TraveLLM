@@ -106,20 +106,26 @@ export default function AdminHealthPage() {
       const data = await response.json().catch(() => ({}))
       const duration = Date.now() - geminiStart
       if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}`)
+        const healthError: any = new Error(data.error || `HTTP ${response.status}`)
+        healthError.proxyStatus = data.proxy?.configurationError
+          ? "proxy invalid"
+          : data.proxy?.active
+            ? "proxy active"
+            : "direct"
+        throw healthError
       }
 
       results.push({
         name: "AI API (Gemini)",
         status: "success",
-        message: `${data.model || "Gemini"} отвечает через OpenRouter`,
+        message: `${data.model || "Gemini"} отвечает через OpenRouter (${data.proxy?.active ? "proxy active" : "direct"})`,
         duration,
       })
     } catch (error: any) {
       results.push({
         name: "AI API (Gemini)",
         status: "error",
-        message: error.message || "Ошибка запроса к AI API",
+        message: `${error.message || "Ошибка запроса к AI API"}${error.proxyStatus ? ` (${error.proxyStatus})` : ""}`,
         duration: Date.now() - geminiStart,
       })
     }

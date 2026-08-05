@@ -1,18 +1,32 @@
 // Gemini via OpenRouter (Primary AI Provider)
 // https://openrouter.ai
+import { ProxyAgent } from "undici";
+
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+const httpProxy = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy
 
 export const GEMINI_FLASH = "google/gemini-3.1-flash-lite";
 
-// Create a singleton dispatcher for the proxy
-let proxyDispatcher: any = undefined;
+// Static import is intentional: Next standalone must include undici in the
+// production image. A dynamic eval(require()) could fail silently and bypass
+// the proxy, exposing the Timeweb egress IP to OpenRouter.
+let proxyDispatcher: ProxyAgent | undefined;
+let proxyConfigurationError = false;
 if (typeof window === "undefined" && httpProxy) {
     try {
-        const undici = eval('require("undici")');
-        proxyDispatcher = new undici.ProxyAgent(httpProxy);
-    } catch(e) {}
+        proxyDispatcher = new ProxyAgent(httpProxy);
+    } catch {
+        proxyConfigurationError = true;
+    }
+}
+
+export function getGeminiProxyStatus() {
+    return {
+        configured: Boolean(httpProxy),
+        active: Boolean(proxyDispatcher),
+        configurationError: proxyConfigurationError,
+    };
 }
 
 // OpenRouter pricing (Aug 2026) — $0.25 input / $1.50 output per 1M tokens

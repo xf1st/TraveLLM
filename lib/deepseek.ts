@@ -1,11 +1,12 @@
 // Proxy configuration
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
-let proxyDispatcher: any = undefined;
+import { ProxyAgent } from "undici";
+
+const PROXY_URL = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy || "";
+let proxyDispatcher: ProxyAgent | undefined;
 if (typeof window === "undefined" && PROXY_URL) {
     try {
-        const undici = eval('require("undici")');
-        proxyDispatcher = new undici.ProxyAgent(PROXY_URL);
-    } catch(e) {}
+        proxyDispatcher = new ProxyAgent(PROXY_URL);
+    } catch {}
 }
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";

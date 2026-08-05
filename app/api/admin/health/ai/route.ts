@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/admin-auth"
 import { getRequestUserId, recordAiUsageEvent } from "@/lib/ai-usage-events"
-import { geminiInferenceWithUsage, GEMINI_FLASH } from "@/lib/gemini"
+import { geminiInferenceWithUsage, GEMINI_FLASH, getGeminiProxyStatus } from "@/lib/gemini"
 
 export const maxDuration = 20
 
@@ -40,6 +40,7 @@ export async function GET() {
       ok: true,
       provider: "openrouter",
       model: result.usage?.model || GEMINI_FLASH,
+      proxy: getGeminiProxyStatus(),
       duration: Date.now() - startedAt,
       usage: result.usage
         ? {
@@ -53,7 +54,13 @@ export async function GET() {
     const message = error instanceof Error ? error.message : "Gemini health check failed"
     console.error("[Admin Health] Gemini check failed:", message)
     return NextResponse.json(
-      { ok: false, model: GEMINI_FLASH, error: message, duration: Date.now() - startedAt },
+      {
+        ok: false,
+        model: GEMINI_FLASH,
+        error: message,
+        proxy: getGeminiProxyStatus(),
+        duration: Date.now() - startedAt,
+      },
       { status: 502 }
     )
   }

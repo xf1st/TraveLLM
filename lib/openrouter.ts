@@ -1,8 +1,14 @@
 // OpenRouter API Client
 // https://openrouter.ai/api/v1
+import { ProxyAgent } from "undici";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
-export const OPENROUTER_MODEL = "google/gemini-2.0-flash-001";
+const PROXY_URL = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy || "";
+const proxyDispatcher = typeof window === "undefined" && PROXY_URL
+    ? new ProxyAgent(PROXY_URL)
+    : undefined;
+
+export const OPENROUTER_MODEL = "google/gemini-3.1-flash-lite";
 
 interface OpenRouterMessage {
     role: "system" | "user" | "assistant";
@@ -30,11 +36,13 @@ export async function openrouterInference(
 
     console.log("OpenRouter: Starting inference with model:", model);
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const fetchOptions: any = {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://travellm.ru",
+            "X-Title": "TraveLLM",
         },
         body: JSON.stringify({
             model: model,
@@ -43,7 +51,11 @@ export async function openrouterInference(
             temperature,
             ...(reasoning ? { reasoning } : {}),
         }),
-    });
+    };
+
+    if (proxyDispatcher) fetchOptions.dispatcher = proxyDispatcher;
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", fetchOptions);
 
     if (!response.ok) {
         const errorText = await response.text();
