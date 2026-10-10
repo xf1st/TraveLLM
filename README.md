@@ -1,103 +1,134 @@
 # 🌍 TraveLLM: Your AI Travel Compass
 
-[![Next.js 16](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Gemini AI](https://img.shields.io/badge/Powered_by-Gemini_AI-1E88E5?style=for-the-badge)](https://deepmind.google/technologies/gemini/)
+[![OpenRouter](https://img.shields.io/badge/AI-OpenRouter%20%7C%20Gemini%20%7C%20DeepSeek-7C3AED?style=for-the-badge)](https://openrouter.ai/)
 
-**TraveLLM** — это умный планировщик путешествий, который превращает ваши мечты в готовый маршрут за считанные секунды. Используя мощь Gemini API и данные в реальном времени, мы создаем персонализированные поездки с детальным таймингом, билетами, логистикой, картами и бюджетом.
-
----
-
-## 📚 Документация
-
-Полная документация проекта доступна в формате GitBook. Вы можете найти исходные файлы в папке `docs/` или перейти к навигации:
-
-### 👉 **[Открыть Документацию (GitBook)](docs/SUMMARY.md)**
-
-В документации вы найдете:
-
-- **[Начало работы](docs/getting-started.md)**: Как запустить проект.
-- **[Возможности](docs/features/planning.md)**: Создание маршрутов, карты, AI-гид.
-- **[Технологии](docs/tech/stack.md)**: Подробный обзор стека.
-
-**Заметки в Obsidian:** откройте папку [Obsidian/TraveLLM](Obsidian/TraveLLM/) как vault (роадмап, архитектура, API — во вложенных папках).
+**TraveLLM** — двуязычный (RU/EN) AI-сервис для планирования путешествий. Сервис генерирует детализированные многодневные маршруты с таймингом по дням, логистикой, билетами, бюджетом, советами по безопасности и визам, а также предоставляет интерактивного AI-ассистента для модификации плана на лету.
 
 ---
 
-## ✨ Возможности
+## 🌐 Продакшен-домены
 
-### 🗺️ Генерация маршрутов
+- 🇷🇺 [https://travellm.ru](https://travellm.ru) — русскоязычная версия по умолчанию
+- 🌍 [https://travellm.world](https://travellm.world) — англоязычная версия по умолчанию
 
-Создавайте многодневные планы поездок простым запросом. Укажите бюджет, компанию и интересы — AI сделает остальное, включая поиск актуальных авиарейсов через Travelpayouts.
+---
 
-### 🤖 Личный AI Гид
+## ✨ Ключевые возможности
 
-Два режима общения с помощником:
+### 🗺️ Генерация маршрутов на базе ИИ
+- **Мультимодальный и чанковый пайплайн:** генерация через Gemini 3.1 Flash Lite (через OpenRouter) с надежным фоллбэком на DeepSeek (`deepseek-chat` / `deepseek-reasoner`).
+- **Длинные маршруты (>7 дней):** разбивка на последовательные 4-дневные чанки с контекстом и отдельной генерацией метаданных.
+- **Гибкие параметры:** выбор типа транспорта (*flight / train / car*), стиля отдыха, темпа, бюджета (RUB / USD) и состава компании.
 
-- **О месте:** Спросите про историю, часы работы или меню конкретной локации.
-- **О маршруте:** Планируйте логистику и следите за бюджетом всей поездки.
+### 🤖 Интерактивный AI-ассистент поездки (`/trip/[id]`)
+- Умный чат-помощник с поддержкой контекста конкретной поездки.
+- Редактирование отдельных активностей или переписывание сегментов дней (`startDay` – `endDay`) в один клик.
+- Поддержка изображений (Vision) и мультимодальных вопросов.
+- Автосохранение правок маршрута с дебаунсом в базу данных.
 
-### 📍 Интерактивная Карта
+### 💰 Бюджет и аналитика расходов
+- Детализированный расчет бюджета по категориям: жилье, еда, транспорт, развлечения.
+- Подбор авиабилетов в реальном времени через TravelPayouts API (Aviasales).
+- Валидация актуальных логистических ограничений и закрытых аэропортов.
 
-Визуализируйте свой путь. Карта (Leaflet) синхронизируется с маршрутом: кликните на место в списке, и карта перелетит к нему с показом 3D-моделей.
+### 🔒 Безопасность, профили и контроль доступа
+- Авторизация через Supabase Auth (Email / Magic Link, Google, GitHub).
+- Поддержка ролей пользователей (`user`, `admin`, `super_admin`) и админ-панель (`/admin`).
+- Ежемесячные квоты на генерации маршрутов и использование AI-чата.
 
-### ✅ Умные Чек-листы
+---
 
-Следите за бронированием билетов, отелей и страховок.
+## 🛠️ Стек технологий
+
+### Frontend
+- **Фреймворк:** [Next.js 16](https://nextjs.org/) (App Router, React 19, standalone-сборка)
+- **Стилизация:** [Tailwind CSS 4](https://tailwindcss.com/) (`@theme inline`), [shadcn/ui](https://ui.shadcn.com/) (Radix UI)
+- **Иконки:** Lucide React, Material Symbols
+- **Интернационализация (i18n):** [next-intl](https://next-intl-docs.vercel.app/) v4.8+ (RU/EN, cookie `NEXT_LOCALE`, доменная маршрутизация)
+- **Анимации и 3D:** Framer Motion 12, Three.js, `@react-three/fiber`, OGL, Lottie React
+- **UI-компоненты:** Sonner (тосты), Vaul (шторки/drawers), CMDK (командная строка), Embla Carousel, Recharts
+
+### Backend & AI
+- **BaaS / База данных:** [Supabase](https://supabase.com/) (PostgreSQL, Row Level Security, Storage, Auth)
+- **Основной AI-пайплайн:** Gemini 3.1 Flash Lite через [OpenRouter](https://openrouter.ai/)
+- **Фоллбэк AI:** [DeepSeek](https://platform.deepseek.com/) (`deepseek-chat`, `deepseek-reasoner`)
+- **Внешние API:** TravelPayouts (авиабилеты), OpenWeather (погода), Google Places (отзывы)
 
 ---
 
 ## 🚀 Быстрый старт
 
 ### Требования
+- **Node.js** 20+ (или Node.js 18+)
+- **npm** 10+
+- Аккаунт **Supabase**
+- API-ключ **OpenRouter** или **DeepSeek**
 
-- Node.js 18+
-- Supabase Account
-- Gemini API Key
-- Travelpayouts API Key
+### 1. Клонирование репозитория
+```bash
+git clone https://github.com/xf1st/TraveLLM.git
+cd TraveLLM
+```
 
-### Установка
+### 2. Установка зависимостей
+```bash
+npm install
+```
 
-1.  **Клонируйте репозиторий:**
+### 3. Настройка переменных окружения
+Создайте файл `.env.local` в корне проекта (на основе `.env.example`):
 
-    ```bash
-    git clone https://github.com/xf1st/TraveLLM.git
-    ```
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-2.  **Установите зависимости:**
+# AI Providers (OpenRouter рекомендуется как primary)
+OPENROUTER_API_KEY=sk-or-your-openrouter-key
+DEEPSEEK_API_KEY=sk-your-deepseek-key
 
-    ```bash
-    npm install
-    ```
+# TravelPayouts (Авиабилеты)
+TRAVELPAYOUTS_API_TOKEN=your_token_here
+NEXT_PUBLIC_TRAVELPAYOUTS_MARKER=123456
 
-3.  **Настройте окружение (.env.local):**
+# Опционально: исходящий прокси для внешних AI-запросов
+# HTTP_PROXY=http://username:password@host:port
+```
 
-    ```env
-    NEXT_PUBLIC_SUPABASE_URL=...
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-    GEMINI_API_KEY=...
-    TRAVELPAYOUTS_API_TOKEN=...
-    NEXT_PUBLIC_TRAVELPAYOUTS_MARKER=...
-    ```
-
-4.  **Запустите:**
-    ```bash
-    npm run dev
-    ```
-
-Приложение доступно по адресу [http://localhost:3000](http://localhost:3000).
+### 4. Запуск в режиме разработки
+```bash
+npm run dev
+```
+Приложение откроется по адресу [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🛠️ Стек технологий
+## 📜 Доступные скрипты
 
-- **Frontend:** Next.js 16 (App Router), React 19, Tailwind CSS v4
-- **Maps:** Leaflet, React-Leaflet, MapLibre GL
-- **UI Components:** Radix UI, Lucide React, Custom Glassmorphism Theme
-- **Backend:** Supabase (Auth, DB, Realtime)
-- **AI Inference:** Gemini API
-- **3D / Animations:** Three.js, React Three Fiber, Framer Motion
+| Команда | Описание |
+|---|---|
+| `npm run dev` | Запуск сервера разработки (порт 3000) |
+| `npm run build` | Сборка проекта для продакшена (standalone) |
+| `npm run start` | Запуск собранного продакшен-сервера |
+| `npm run lint` | Проверка кода линтером ESLint |
+| `npm run typecheck` | Проверка типов TypeScript (`tsc --noEmit`) |
+| `npm run test` | Запуск тестов Node.js |
+| `npm run check` | Комплексная проверка: типы, линтинг и сборка |
+
+---
+
+## 📚 Документация проекта
+
+Подробные руководства и документация:
+- **[AGENTS.md](AGENTS.md)** — полное руководство по архитектуре, AI-пайплайну, лимитам и структуре приложения для AI-ассистентов и разработчиков.
+- **[docs/SUMMARY.md](docs/SUMMARY.md)** — общая документация проекта.
+- **[docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md)** — настройка админ-панели и прав доступа.
+- **[docs/rkn-compliance-checklist.md](docs/rkn-compliance-checklist.md)** — чеклист соответствия юридическим требованиям.
 
 ---
 
