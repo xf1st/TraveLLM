@@ -1,11 +1,9 @@
-import { normalizeTravelMode } from "@/lib/travel-mode"
+import { normalizeTravelMode } from "./travel-mode.ts"
+import { fetchWithTimeout } from "./fetch-with-timeout.ts"
 
 type RouterLike = { push: (href: string) => void }
 
-/**
- * Persist streamed route via server API (rate-limited, generation-limit-checked),
- * with localStorage fallback for unauthenticated users.
- */
+/** A generated itinerary survives failed/slow persistence without another AI call. */
 export async function saveGeneratedTripAndNavigate(
   routeData: Record<string, unknown>,
   requestPayload: Record<string, unknown>,
@@ -14,49 +12,39 @@ export async function saveGeneratedTripAndNavigate(
     defaultTripTitle: string
     defaultDestination: string
     router: RouterLike
-  }
+    signal?: AbortSignal
+    onLocalFallback?: () => void
+  },
 ): Promise<void> {
-  const sessionRes = await fetch("/api/auth/session", { credentials: "same-origin" })
-  const sessionData = await sessionRes.json().catch(() => ({}))
-  const user = sessionRes.ok ? sessionData.user : null
-
-  if (user) {
-    const res = await fetch("/api/trips/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        routeData,
-        requestPayload,
-        autoFavorites: opts.autoFavorites,
-      }),
-    })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      console.error("[saveGeneratedTrip] Server error:", err)
-
-      // Fallback to localStorage so the user doesn't lose their route
-      const localId = `local-${Date.now()}`
-      localStorage.setItem(`trip-${localId}`, JSON.stringify(routeData))
-      opts.router.push(`/trip/${localId}`)
-      return
-    }
-
-    const { trip } = await res.json()
-    if (trip) opts.router.push(`/trip/${trip.id}`)
-  } else {
-    const travelMode = normalizeTravelMode(requestPayload.travelMode)
-    const departureCity =
-      typeof requestPayload.departureCity === "string"
-        ? requestPayload.departureCity.trim() || undefined
-        : undefined
-
-    const localId = `${Date.now()}`
-    localStorage.setItem(
-      `trip-local-${localId}`,
-      JSON.stringify({ ...routeData, travelMode, departureCity })
-    )
-    localStorage.setItem("lastGeneratedRoute", JSON.stringify(routeData))
-    opts.router.push(`/trip/local-${localId}`)
+  opts.signal?.throwIfAborted()
+  const preparedRoute = {
+    ...routeData,
+    title: routeData.title || opts.defaultTripTitle,
+    destination: routeData.destination || requestPayload.customDestination || opts.defaultDestination,
+    travelMode: normalizeTravelMode(requestPayload.travelMode),
+    departureCity: typeof requestPayload.departureCity === "string" ? requestPayload.departureCity.trim() : undefined,
   }
+  let guest = false
+  try {
+    const response = await fetchWithTimeout("/api/trips/save", {
+      method: "POST", credentials: "same-origin", signal: opts.signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ routeData: preparedRoute, requestPayload, autoFavorites: opts.autoFavorites }),
+    }, 20000)
+    guest = response.status === 401
+    if (!response.ok) throw new Error(`Trip save failed (${response.status})`)
+    const { trip } = await response.json()
+    if (typeof trip?.id !== "string" || !trip.id) throw new Error("Missing saved trip ID")
+    opts.signal?.throwIfAborted()
+    opts.router.push(`/trip/${trip.id}`)
+    return
+  } catch (error) {
+    if (opts.signal?.aborted) throw opts.signal.reason
+    if (!guest) console.warn("[saveGeneratedTrip] Saving locally after a persistence failure")
+  }
+  opts.signal?.throwIfAborted()
+  const localId = `local-${crypto.randomUUID()}`
+  localStorage.setItem(`trip-${localId}`, JSON.stringify({ ...preparedRoute, id: localId, created_at: new Date().toISOString() }))
+  if (!guest) opts.onLocalFallback?.()
+  opts.router.push(`/trip/${localId}`)
 }

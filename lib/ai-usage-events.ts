@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -27,7 +28,7 @@ function getServiceRoleClient(): SupabaseClient | null {
     return null;
   }
 
-  return createClient(supabaseUrl, serviceRoleKey);
+  return createClient(supabaseUrl, serviceRoleKey, { global: { fetch: (input, init) => fetchWithTimeout(input, init, 10000) } });
 }
 
 /** Только для локальной отладки: при отсутствии service role / ошибке БД не блокировать лимиты. В проде не задавать. */

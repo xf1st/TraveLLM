@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 
 /**
  * Distributed rate limiter with DB-first semantics.
@@ -15,12 +16,13 @@ interface RateLimitEntry {
 const memoryStore = new Map<string, RateLimitEntry>()
 
 if (typeof setInterval !== "undefined") {
-  setInterval(() => {
+  const cleanupTimer = setInterval(() => {
     const now = Date.now()
     for (const [key, entry] of memoryStore.entries()) {
       if (now >= entry.resetAt) memoryStore.delete(key)
     }
   }, 5 * 60 * 1000)
+  cleanupTimer.unref?.()
 }
 
 export interface RateLimitResult {
@@ -74,6 +76,7 @@ function checkRateLimitInMemory(
 }
 
 let serviceRoleClient: SupabaseClient | null | undefined
+let dbUnavailableUntil = 0
 
 function getServiceRoleClient(): SupabaseClient | null {
   if (serviceRoleClient !== undefined) return serviceRoleClient
@@ -88,6 +91,7 @@ function getServiceRoleClient(): SupabaseClient | null {
 
   serviceRoleClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (input, init) => fetchWithTimeout(input, init, 4000) },
   })
 
   return serviceRoleClient
@@ -99,6 +103,7 @@ async function checkRateLimitInDb(
   maxRequests: number,
   windowMs: number
 ): Promise<RateLimitResult | null> {
+  if (Date.now() < dbUnavailableUntil) return null
   const client = getServiceRoleClient()
   if (!client) return null
 
@@ -113,9 +118,12 @@ async function checkRateLimitInDb(
   })
 
   if (error) {
+    dbUnavailableUntil = Date.now() + (error.code === "PGRST202" ? 300000 : 10000)
     console.warn("[RateLimit] Falling back to memory store:", error.message)
     return null
   }
+
+  dbUnavailableUntil = 0
 
   return {
     allowed: Boolean(data),

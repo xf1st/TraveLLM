@@ -1,91 +1,86 @@
-import {
-  getRouteGenerationEndpoint,
-  normalizeRouteGenerationProvider,
-} from "@/lib/route-generation-provider"
+import { getDefaultRouteGenerationProvider, getRouteGenerationEndpoint, normalizeRouteGenerationProvider } from "./route-generation-provider.ts"
+import { combineAbortSignals } from "./fetch-with-timeout.ts"
 
-/**
- * Shared client-side streaming fetch for route generation (plan + vibe pages).
- */
+export type GenerationPhase = "preparing" | "generating" | "enriching" | "saving"
+
+type GenerationStreamOptions = { onPhase?: (phase: GenerationPhase) => void; timeoutMs?: number }
+
+/** Supports streamed Gemini responses and the JSON DeepSeek endpoint. */
 export async function streamTripGeneration(
   requestPayload: Record<string, unknown> & { generationProvider?: unknown },
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: GenerationStreamOptions = {},
 ): Promise<{ routeData: unknown }> {
-  const provider = normalizeRouteGenerationProvider(
-    requestPayload.generationProvider
-  )
+  const days = Math.max(1, Number(requestPayload.days) || 7)
+  const calls = days > 14 ? Math.ceil(days / 7) + 1 : 1
+  const timeout = AbortSignal.timeout(options.timeoutMs ?? Math.max(420000, calls * 240000 + 90000))
+  const requestSignal = signal ? combineAbortSignals([signal, timeout]) : timeout
+  const provider = requestPayload.generationProvider === undefined
+    ? getDefaultRouteGenerationProvider()
+    : normalizeRouteGenerationProvider(requestPayload.generationProvider)
   const { generationProvider: _generationProvider, ...apiBody } = requestPayload
-
-  const response = await fetch(getRouteGenerationEndpoint(provider), {
-    signal,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(apiBody),
-  })
-
-  if (!response.ok) {
-    const err = (await response.json().catch(() => ({}))) as {
-      error?: string
-      message?: string
-      code?: string
-      limitExceeded?: boolean
-      limit?: number
-      resetAt?: string
-      retryAfterSec?: number
+  options.onPhase?.("preparing")
+  try {
+    const response = await fetch(getRouteGenerationEndpoint(provider), {
+      signal: requestSignal, method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(apiBody),
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      const error = Object.assign(new Error(err.message || err.error || `API Error: ${response.status}`), {
+        code: err.code, limitExceeded: err.limitExceeded, limit: err.limit,
+        resetAt: err.resetAt, retryAfterSec: err.retryAfterSec ?? (Number(response.headers.get("Retry-After")) || undefined),
+      })
+      throw error
     }
-    const msg = err.message || err.error || `API Error: ${response.status}`
-    const e = new Error(msg) as Error & {
-      code?: string
-      limitExceeded?: boolean
-      limit?: number
-      resetAt?: string
-      retryAfterSec?: number
+    options.onPhase?.("generating")
+    if (response.headers.get("Content-Type")?.includes("application/json")) {
+      const routeData = await response.json()
+      if (!routeData || !Array.isArray(routeData.itinerary)) throw new Error("Invalid response format")
+      return { routeData }
     }
-    e.code = err.code
-    e.limitExceeded = err.limitExceeded
-    e.limit = err.limit
-    e.resetAt = err.resetAt
-    e.retryAfterSec = err.retryAfterSec
-    throw e
-  }
-
-  let routeData: unknown = null
-  const reader = response.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ""
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-
-    buffer += decoder.decode(value, { stream: true })
-    const parts = buffer.split("\n\n")
-    buffer = parts.pop() ?? ""
-
-    for (const part of parts) {
-      const line = part.trim()
-      if (!line || line.startsWith(":") || !line.startsWith("data: ")) continue
-
-      try {
-        const event = JSON.parse(line.slice(6))
-        if (event.type === "error") {
-          throw new Error(event.message || "Generation failed")
-        }
-        if (event.type === "result") routeData = event.data
-      } catch (e) {
-        if (e instanceof SyntaxError) continue
-        throw e
+    if (!response.body) throw new Error("Empty response body")
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    const parseEvent = (part: string): unknown => {
+      const data = part.split("\n").filter(line => line.startsWith("data:")).map(line => line.slice(5).trimStart()).join("\n")
+      if (!data) return undefined
+      const event = JSON.parse(data)
+      if (event.type === "error") throw Object.assign(new Error(event.message || "Generation failed"), { code: event.code })
+      if (event.type === "progress" && ["generating", "enriching"].includes(event.phase)) options.onPhase?.(event.phase)
+      if (event.type === "result") {
+        if (!event.data || !Array.isArray(event.data.itinerary)) throw new Error("Invalid response format")
+        return event.data
       }
+      return undefined
     }
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true })
+        // Normalize line endings after joining chunks, including split CR/LF pairs.
+        buffer = buffer.replace(/\r\n/g, "\n")
+        const parts = buffer.split("\n\n")
+        buffer = parts.pop() ?? ""
+        if (done && buffer.trim()) { parts.push(buffer); buffer = "" }
+        for (const part of parts) {
+          const routeData = parseEvent(part)
+          if (routeData !== undefined) return { routeData }
+        }
+        if (done) throw new Error("Stream ended without a route")
+      }
+    } finally {
+      void reader.cancel().catch(() => {})
+      reader.releaseLock()
+    }
+  } catch (error) {
+    if (timeout.aborted && !signal?.aborted) {
+      throw Object.assign(new Error("Generation request timed out"), { code: "GENERATION_TIMEOUT" })
+    }
+    throw error
   }
-
-  if (!routeData || typeof routeData !== "object") {
-    throw new Error("Invalid response format")
-  }
-
-  return { routeData }
 }
 
 export const streamGeminiTripGeneration = streamTripGeneration
-
-/** sessionStorage key for plan -> vibe handoff */
 export const PLAN_PENDING_GENERATION_KEY = "travellm_plan_pending_generation"

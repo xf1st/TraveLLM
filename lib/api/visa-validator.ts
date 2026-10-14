@@ -1,3 +1,4 @@
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Visa Validator - Проверка визовых требований с обходными путями
  * Использует Travel Buddy AI Visa API (RapidAPI)

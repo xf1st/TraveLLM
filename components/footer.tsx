@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Logo } from "@/components/logo"
 import { useTranslations } from "next-intl"
-import { LEGAL } from "@/lib/legal"
 import { cn } from "@/lib/utils"
 
 interface FooterProps {
@@ -101,18 +100,6 @@ export function Footer({ className, contentClassName }: FooterProps = {}) {
                             </ul>
                         </div>
                     </div>
-                </div>
-
-                <div className="mb-6 rounded-2xl border border-white/5 bg-muted/20 p-4 text-xs leading-relaxed text-muted-foreground/70">
-                    <p className="font-semibold text-foreground/80">{t("operatorTitle")}</p>
-                    <p>{LEGAL.operatorName}</p>
-                    <p>{LEGAL.operatorInn} · {LEGAL.operatorOgrn}</p>
-                    <p>{LEGAL.operatorAddress}</p>
-                    <p>
-                        <a href={`mailto:${LEGAL.privacyEmail}`} className="hover:text-muted-foreground transition-colors">
-                            {LEGAL.privacyEmail}
-                        </a>
-                    </p>
                 </div>
 
                 <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-muted-foreground/50">

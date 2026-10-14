@@ -1,19 +1,22 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { MapPin, Plane, Hotel, Utensils, Camera, X, TimerReset } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { LottieLoader } from "@/components/ui/LottieLoader"
 import { useTranslations } from "next-intl"
 
+import type { GenerationPhase } from "@/lib/trip-generation-stream"
+
 interface GeneratingModalProps {
+    phase?: GenerationPhase
     open: boolean
     destination?: string
     onCancel?: () => void
 }
 
-export function GeneratingModal({ open, destination, onCancel }: GeneratingModalProps) {
+export function GeneratingModal({ open, destination, onCancel, phase = "generating" }: GeneratingModalProps) {
     const t = useTranslations("generating")
     const STEPS = [
         { icon: Plane,    text: t("steps.flights"),       color: "text-sky-400" },
@@ -23,7 +26,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
         { icon: Camera,   text: t("steps.sights"),        color: "text-rose-400" },
     ]
     const [currentStep, setCurrentStep] = useState(0)
-    const [progress, setProgress] = useState(0)
+    const progress = { preparing: 12, generating: 42, enriching: 78, saving: 94 }[phase]
     const [dismissed, setDismissed] = useState(false)
     const [confirmCancelOpen, setConfirmCancelOpen] = useState(false)
     const wasOpenRef = useRef(false)
@@ -31,7 +34,6 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
     useEffect(() => {
         if (!open) {
             setCurrentStep(0)
-            setProgress(0)
             setDismissed(false)
             setConfirmCancelOpen(false)
             wasOpenRef.current = false
@@ -40,7 +42,6 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
 
         if (!wasOpenRef.current) {
             setCurrentStep(0)
-            setProgress(0)
             setDismissed(false)
             wasOpenRef.current = true
         }
@@ -49,22 +50,13 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
             setCurrentStep((prev) => (prev + 1) % STEPS.length)
         }, 3000)
 
-        const progressInterval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 98) return prev
-                return prev + (Math.random() < 0.3 ? 2 : 0.5)
-            })
-        }, 200)
-
         return () => {
             clearInterval(stepInterval)
-            clearInterval(progressInterval)
         }
-    }, [open])
+    }, [open, STEPS.length])
 
     const step = STEPS[currentStep]
     const StepIcon = step.icon
-    const roundedProgress = Math.round(progress)
     const dialogOpen = open && !dismissed
     const requestCancel = () => {
         if (onCancel) setConfirmCancelOpen(true)
@@ -79,6 +71,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
         <Dialog open={dialogOpen} onOpenChange={(val) => !val && setDismissed(true)}>
             <DialogContent className="sm:max-w-md border-none p-0 overflow-hidden rounded-[2.5rem] shadow-2xl [&>button]:hidden">
                 <DialogTitle className="sr-only">{t("title")}</DialogTitle>
+                <DialogDescription className="sr-only">{t(`phases.${phase}`)}</DialogDescription>
 
                 <div className="relative min-h-[450px] flex flex-col items-center justify-center p-8 bg-zinc-950 overflow-hidden">
 
@@ -133,7 +126,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                             <div className="space-y-1.5">
                                 <div className="flex justify-between items-center px-0.5">
                                     <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/30">{t("processing")}</span>
-                                    <span className="text-xs font-black tabular-nums text-white/60">{roundedProgress}%</span>
+                                    <span className="text-xs font-black tabular-nums text-white/60">{t(`phases.${phase}`)}</span>
                                 </div>
                                 <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
                                     <motion.div
@@ -204,7 +197,7 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                         type="button"
                         onClick={() => setDismissed(false)}
                         className="flex min-w-0 flex-1 items-center gap-3 rounded-full px-2 text-left"
-                        aria-label={`${t("processing")} ${roundedProgress}%`}
+                        aria-label={`${t("processing")} ${t(`phases.${phase}`)}`}
                     >
                         <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/8 text-cyan-200 ring-1 ring-white/10">
                             <span className="absolute inset-0 rounded-full bg-cyan-400/15 motion-safe:animate-ping" />
@@ -215,8 +208,8 @@ export function GeneratingModal({ open, destination, onCancel }: GeneratingModal
                                 <span className="truncate text-sm font-black uppercase tracking-[0.16em] text-white/85">
                                     {t("miniTitle")}
                                 </span>
-                                <span className="shrink-0 text-lg font-black tabular-nums text-cyan-100">
-                                    {roundedProgress}%
+                                <span className="shrink-0 text-xs font-semibold text-cyan-100">
+                                    {t(`phases.${phase}`)}
                                 </span>
                             </span>
                             <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-white/12">

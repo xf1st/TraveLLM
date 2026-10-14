@@ -1,3 +1,4 @@
+import { optionalWithTimeout } from "@/lib/async-timeout"
 /**
  * Dynamic Context - Главный агрегатор контекста для промпта
  * Собирает все данные и форматирует для AI
@@ -116,10 +117,12 @@ export async function collectDynamicContext(
 
     // Параллельно собираем все данные
     const [flights, events, weather] = await Promise.all([
-        fetchFlightContext(departureCity, destinations, startDate, endDate),
+        optionalWithTimeout(fetchFlightContext(departureCity, destinations, startDate, endDate), 12000, {
+            departureCity, destinations, flights: [], priceRange: null, recommendations: [], rawDataAvailable: false,
+        } as FlightContextData, "flight context"),
         fetchEventContext(destinations, startDate, endDate),
         destinations.length > 0
-            ? fetchWeatherContext(destinations[0], startDate, endDate)
+            ? optionalWithTimeout(fetchWeatherContext(destinations[0], startDate, endDate), 10000, "", "weather context")
             : Promise.resolve("")
     ])
 

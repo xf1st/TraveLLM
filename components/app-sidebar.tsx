@@ -1,5 +1,8 @@
 "use client"
 
+import { getAccountSummary } from "@/lib/account-summary-client"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Logo } from "@/components/logo"
@@ -66,7 +69,7 @@ export function AppSidebar() {
 
     const navItems = [
         { title: t("plan"), href: "/plan", icon: Compass },
-        { title: t("reels"), href: "/reels", icon: Clapperboard },
+        ...(PUBLIC_REELS_ENABLED ? [{ title: t("reels"), href: "/reels", icon: Clapperboard }] : []),
         { title: t("routes"), href: "/trips", icon: Map },
     ]
 
@@ -82,10 +85,11 @@ export function AppSidebar() {
 
     // Load trips and check admin role when user changes
     useEffect(() => {
+        let cancelled = false
         const loadUserData = async () => {
             if (user) {
-                const res = await fetch("/api/user/me", { credentials: "same-origin" })
-                const data = await res.json().catch(() => ({}))
+                const data = await getAccountSummary(user.id).catch(() => null)
+                if (cancelled || !data) return
                 const profile = data.profile
 
                 if (profile) {
@@ -94,14 +98,14 @@ export function AppSidebar() {
                         full_name: profile.full_name || user.user_metadata?.full_name,
                         avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
                     })
-                    setGenUsage(data.genUsage || { used: 0, limit: profile.gen_limit_override ?? 10 })
+                    setGenUsage(data.genUsage ?? null)
                     setRecentTrips(data.recentTrips || [])
                 } else {
                     setUserData({
                         full_name: user.user_metadata?.full_name,
                         avatar_url: user.user_metadata?.avatar_url
                     })
-                    setGenUsage(data.genUsage || { used: 0, limit: 10 })
+                    setGenUsage(data.genUsage ?? null)
                     setRecentTrips(data.recentTrips || [])
                 }
             } else {
@@ -118,7 +122,7 @@ export function AppSidebar() {
             loadUserData()
         }
         window.addEventListener('profile_updated', handleProfileUpdate)
-        return () => window.removeEventListener('profile_updated', handleProfileUpdate)
+        return () => { cancelled = true; window.removeEventListener('profile_updated', handleProfileUpdate) }
     }, [user])
 
     const handleLogout = async () => {
@@ -345,7 +349,7 @@ export function AppSidebar() {
             <div className="p-3 border-t border-border/50">
                 {!isCollapsed && (
                     <div className="px-2 pb-2 text-[11px] font-mono font-bold text-muted-foreground/30 uppercase tracking-widest select-none">
-                        TraveLLM AI V: 2.08.84b
+                        TraveLLM AI V: 2.08.89b
                     </div>
                 )}
                 {user ? (

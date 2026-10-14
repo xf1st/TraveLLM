@@ -1,3 +1,6 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Unsplash Photo Search
  * API: https://api.unsplash.com/search/photos
@@ -7,7 +10,7 @@
  */
 
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+const httpProxy = getHttpProxyUrl()
 
 // Create a singleton dispatcher for the proxy
 let proxyDispatcher: any = undefined;
@@ -38,7 +41,7 @@ export async function searchUnsplash(query: string, count: number = 1, page: num
             signal: controller.signal,
         }
 
-        if (proxyDispatcher) {
+        if (proxyDispatcher && !(await isProxyDisabled())) {
             fetchOptions.dispatcher = proxyDispatcher;
         }
 

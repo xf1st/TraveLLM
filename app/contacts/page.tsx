@@ -8,12 +8,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return locale === "en"
     ? {
-        title: "Contacts and Legal Details — TraveLLM",
-        description: "Official contacts, legal details, and support channels for TraveLLM.",
+        title: "Contacts — TraveLLM",
+        description: "Contact and support channels for the TraveLLM project.",
       }
     : {
-        title: "Контакты и реквизиты — TraveLLM",
-        description: "Официальные контакты, реквизиты оператора и каналы поддержки TraveLLM.",
+        title: "Контакты — TraveLLM",
+        description: "Контакты и поддержка проекта TraveLLM.",
       }
 }
 
@@ -29,37 +29,25 @@ export default async function ContactsPage() {
         </Link>
 
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-          {isEn ? "Contacts and Legal Details" : "Контакты и реквизиты"}
+          {isEn ? "Contacts" : "Контакты"}
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
           {isEn
-            ? "Use these channels for official correspondence, support requests, and personal data inquiries."
-            : "Эти данные используются для официальной корреспонденции, обращений в поддержку и запросов по персональным данным."}
+            ? "TraveLLM is a personal travel-planning project. Use these channels for questions, feedback, and support."
+            : "TraveLLM — личный проект для планирования путешествий. Здесь можно задать вопрос, оставить отзыв или обратиться за поддержкой."}
         </p>
-
-        <section className="mt-10 rounded-2xl border border-border bg-muted/25 p-5 text-sm text-muted-foreground">
-          <h2 className="mb-4 text-lg font-bold text-foreground">
-            {isEn ? "Service operator" : "Оператор сервиса"}
-          </h2>
-          <dl className="space-y-3">
-            <div><dt className="font-semibold text-foreground">{isEn ? "Full name" : "Полное наименование"}</dt><dd>{LEGAL.operatorName}</dd></div>
-            <div><dt className="font-semibold text-foreground">ИНН</dt><dd>{LEGAL.operatorInn}</dd></div>
-            <div><dt className="font-semibold text-foreground">ОГРН/ОГРНИП</dt><dd>{LEGAL.operatorOgrn}</dd></div>
-            <div><dt className="font-semibold text-foreground">{isEn ? "Postal address" : "Почтовый адрес"}</dt><dd>{LEGAL.operatorAddress}</dd></div>
-          </dl>
-        </section>
 
         <section className="mt-6 rounded-2xl border border-border bg-muted/25 p-5 text-sm text-muted-foreground">
           <h2 className="mb-4 text-lg font-bold text-foreground">{isEn ? "Contacts" : "Контакты"}</h2>
           <ul className="space-y-2">
-            <li>
+            {LEGAL.privacyEmail && <li>
               {isEn ? "Personal data:" : "Персональные данные:"}{" "}
               <a href={`mailto:${LEGAL.privacyEmail}`} className="text-sky-400 hover:underline">{LEGAL.privacyEmail}</a>
-            </li>
-            <li>
+            </li>}
+            {LEGAL.legalEmail && <li>
               {isEn ? "Legal notices:" : "Юридические уведомления:"}{" "}
               <a href={`mailto:${LEGAL.legalEmail}`} className="text-sky-400 hover:underline">{LEGAL.legalEmail}</a>
-            </li>
+            </li>}
             <li>
               {isEn ? "Support:" : "Поддержка:"}{" "}
               <a href={LEGAL.supportTelegram} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">

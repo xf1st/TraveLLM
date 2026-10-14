@@ -45,14 +45,11 @@ export default async function PersonalDataConsentPage() {
         <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
           <section className="rounded-2xl border border-border bg-muted/25 p-5">
             <h2 className="mb-3 text-lg font-bold text-foreground">
-              {isEn ? "Controller" : "Оператор персональных данных"}
+              {isEn ? "Project contacts" : "Контакты проекта"}
             </h2>
             <dl className="space-y-2">
-              <div><dt className="font-semibold text-foreground">{isEn ? "Name" : "Наименование"}</dt><dd>{LEGAL.operatorName}</dd></div>
-              <div><dt className="font-semibold text-foreground">ИНН</dt><dd>{LEGAL.operatorInn}</dd></div>
-              <div><dt className="font-semibold text-foreground">ОГРН/ОГРНИП</dt><dd>{LEGAL.operatorOgrn}</dd></div>
-              <div><dt className="font-semibold text-foreground">{isEn ? "Postal address" : "Почтовый адрес"}</dt><dd>{LEGAL.operatorAddress}</dd></div>
-              <div><dt className="font-semibold text-foreground">Email</dt><dd><a href={`mailto:${LEGAL.privacyEmail}`} className="text-sky-400 hover:underline">{LEGAL.privacyEmail}</a></dd></div>
+              {LEGAL.privacyEmail && <div><dt className="font-semibold text-foreground">Email</dt><dd><a href={`mailto:${LEGAL.privacyEmail}`} className="text-sky-400 hover:underline">{LEGAL.privacyEmail}</a></dd></div>}
+              <div><dt className="font-semibold text-foreground">{isEn ? "Support" : "Поддержка"}</dt><dd><a href={LEGAL.supportTelegram} className="text-sky-400 hover:underline">{LEGAL.supportTelegramHandle}</a></dd></div>
             </dl>
           </section>
 
@@ -88,8 +85,8 @@ export default async function PersonalDataConsentPage() {
             <h2 className="mb-3 text-lg font-bold text-foreground">{isEn ? "Withdrawal" : "Отзыв согласия"}</h2>
             <p>
               {isEn
-                ? <>You may withdraw consent at any time by emailing <a href={`mailto:${LEGAL.privacyEmail}`} className="text-sky-400 hover:underline">{LEGAL.privacyEmail}</a> from the account email or by requesting account deletion in the Service. Withdrawal may make account features unavailable.</>
-                : <>Вы можете отозвать согласие в любой момент, отправив письмо на <a href={`mailto:${LEGAL.privacyEmail}`} className="text-sky-400 hover:underline">{LEGAL.privacyEmail}</a> с email аккаунта или запросив удаление аккаунта в сервисе. После отзыва согласия функции аккаунта могут стать недоступны.</>}
+                ? <>You may withdraw consent at any time by contacting <a href={LEGAL.privacyEmail ? `mailto:${LEGAL.privacyEmail}` : LEGAL.supportTelegram} className="text-sky-400 hover:underline">{LEGAL.privacyEmail || LEGAL.supportTelegramHandle}</a> or by requesting account deletion in the Service. Withdrawal may make account features unavailable.</>
+                : <>Вы можете отозвать согласие в любой момент, обратившись по адресу <a href={LEGAL.privacyEmail ? `mailto:${LEGAL.privacyEmail}` : LEGAL.supportTelegram} className="text-sky-400 hover:underline">{LEGAL.privacyEmail || LEGAL.supportTelegramHandle}</a> или запросив удаление аккаунта в сервисе. После отзыва согласия функции аккаунта могут стать недоступны.</>}
             </p>
           </section>
 

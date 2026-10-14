@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-14T19:52:51.156Z",
+  "sequential": [
+    {
+      "allowed": true,
+      "errorCode": null
+    },
+    {
+      "allowed": true,
+      "errorCode": null
+    },
+    {
+      "allowed": false,
+      "errorCode": null
+    }
+  ],
+  "parallel": {
+    "requests": 12,
+    "allowed": 5,
+    "blocked": 7,
+    "errorCodes": []
+  },
+  "anon": {
+    "allowed": null,
+    "errorCode": "42501",
+    "status": 401
+  },
+  "passed": true
+}

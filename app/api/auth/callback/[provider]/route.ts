@@ -133,13 +133,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Update app_metadata to track provider (optional but good for admin panel)
-    const { data: { session } } = await authClient.auth.getSession();
-    if (session?.user?.id) {
-      const existingProviders = session.user.app_metadata?.providers || [];
+    const { data: { user } } = await authClient.auth.getUser();
+    if (user?.id) {
+      const existingProviders = user.app_metadata?.providers || [];
       if (!existingProviders.includes(provider)) {
-        await adminAuth.auth.admin.updateUserById(session.user.id, {
+        await adminAuth.auth.admin.updateUserById(user.id, {
           app_metadata: {
-            ...session.user.app_metadata,
+            ...user.app_metadata,
             provider: provider, // For default provider UI mapping
             providers: [...existingProviders, provider],
           }

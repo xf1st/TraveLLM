@@ -1,3 +1,6 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * AeroDataBox API Client (via RapidAPI)
  * 
@@ -9,7 +12,7 @@ import { ProxyAgent } from "undici";
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_AERODATABOX_KEY || "";
 const HOST = "aerodatabox.p.rapidapi.com";
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+const httpProxy = getHttpProxyUrl();
 
 export interface AirportInfo {
     iata: string;
@@ -36,7 +39,7 @@ const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 async function proxiedFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const fetchOptions: any = { ...options };
-    if (proxyDispatcher) {
+    if (proxyDispatcher && !(await isProxyDisabled())) {
         fetchOptions.dispatcher = proxyDispatcher;
     }
     return fetch(url, fetchOptions);

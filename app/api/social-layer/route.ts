@@ -1,10 +1,12 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
 import { NextResponse } from "next/server"
 import { ProxyAgent } from "undici"
 import { getRequestUserId } from "@/lib/ai-usage-events"
 import { enforceFullSiteAccess } from "@/lib/server/user-access"
 
 // Proxy configuration
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || ""
+const PROXY_URL = getHttpProxyUrl()
 let proxyDispatcher: ProxyAgent | undefined
 if (typeof window === "undefined" && PROXY_URL) {
   try {
@@ -125,7 +127,7 @@ const fetchOverpass = async (query: string) => {
         body: `data=${encodeURIComponent(query)}`,
       };
 
-      if (proxyDispatcher) {
+      if (proxyDispatcher && !(await isProxyDisabled())) {
         // @ts-ignore
         fetchOptions.dispatcher = proxyDispatcher;
       }

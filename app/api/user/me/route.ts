@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createServiceRoleClient, getServerUser } from "@/lib/server/supabase-server"
+import { summarizeProfileTrips } from "@/lib/profile-trip-summary"
 
 export const runtime = "nodejs"
 
@@ -20,19 +21,19 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const includeProfilePage = url.searchParams.get("include") === "profile-page"
 
-  const [profileRes, usageRes, recentTripsRes, tripsRes, feedbackRes] = await Promise.all([
+  const [profileRes, usageRes, recentTripsRes, tripsRes] = await Promise.all([
     admin
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle(),
-    admin
+    includeProfilePage ? Promise.resolve({ count: null, error: null }) : admin
       .from("ai_usage_events")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("source", "route-generation")
       .gte("created_at", monthStart),
-    admin
+    includeProfilePage ? Promise.resolve({ data: null, error: null }) : admin
       .from("trips")
       .select("id, title, destination")
       .eq("user_id", user.id)
@@ -41,15 +42,9 @@ export async function GET(request: Request) {
     includeProfilePage
       ? admin
           .from("trips")
-          .select("*")
+          .select("id,title,destination,created_at,status,countries,itinerary")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
-      : Promise.resolve({ data: null, error: null }),
-    includeProfilePage
-      ? admin
-          .from("trip_feedback")
-          .select("trip_id,rating,comment,liked,disliked,source,updated_at")
-          .eq("user_id", user.id)
       : Promise.resolve({ data: null, error: null }),
   ])
 
@@ -65,8 +60,10 @@ export async function GET(request: Request) {
   if (tripsRes.error) {
     console.error("[api/user/me] trips", tripsRes.error.message)
   }
-  if (feedbackRes.error && feedbackRes.error.code !== "42P01") {
-    console.error("[api/user/me] feedback", feedbackRes.error.message)
+
+  // A failed read must not look like a new profile or an empty trip history.
+  if (profileRes.error || (includeProfilePage && tripsRes.error)) {
+    return NextResponse.json({ error: "Profile data is temporarily unavailable" }, { status: 503 })
   }
 
   const profile = profileRes.data
@@ -76,12 +73,10 @@ export async function GET(request: Request) {
   return NextResponse.json({
     user,
     profile: profile || null,
-    recentTrips: recentTripsRes.data || [],
-    trips: tripsRes.data || [],
-    feedback: feedbackRes.data || [],
-    genUsage: {
-      used: usageRes.count || 0,
-      limit: genLimit,
-    },
-  })
+    recentTrips: recentTripsRes.data || (tripsRes.data || []).slice(0, 5).map(({ id, title, destination }) => ({ id, title, destination })),
+    trips: summarizeProfileTrips(tripsRes.data || []),
+    ...(!includeProfilePage && {
+      genUsage: usageRes.error ? null : { used: usageRes.count ?? 0, limit: genLimit },
+    }),
+  }, { headers: { "Cache-Control": "private, no-store" } })
 }

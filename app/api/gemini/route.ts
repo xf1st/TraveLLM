@@ -1,3 +1,4 @@
+import { withTimeout, optionalWithTimeout } from "@/lib/async-timeout"
 // Gemini (Primary) -> DeepSeek (Fallback)
 import { jsonrepair } from "jsonrepair"
 import { geminiInference, getGeminiSessionUsage, resetGeminiSessionUsage } from "@/lib/gemini"
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
 
         if (destinations.length > 0 && startDate && endDate) {
             try {
-                const validation = await validateRouteRequest({
+                const [validation, dynamicContext] = await Promise.all([withTimeout(validateRouteRequest({
                     departureCity: effectiveDepartureCity,
                     destinations,
                     startDate,
@@ -221,7 +222,12 @@ export async function POST(req: Request) {
                     budget: budgetCap,
                     citizenship: safePreferences.citizenship || "RU",
                     travelMode,
-                })
+                }), 20000, "route validation"), collectDynamicContext({
+                    departureCity: effectiveDepartureCity,
+                    destinations, startDate, endDate,
+                    interests: safePreferences.interestsDetailed || [],
+                    travelStyle: travelStyles[0] || "",
+                })])
 
                 if (validation.blockers.length > 0) {
                     return NextResponse.json({ error: validation.blockers[0].message }, { status: 400 })
@@ -230,14 +236,6 @@ export async function POST(req: Request) {
                 adjustedBudget = validation.adjustedBudget || budgetCap
                 warningsStr = validation.warnings?.map(w => w.message).join('; ') || ''
 
-                const dynamicContext = await collectDynamicContext({
-                    departureCity: effectiveDepartureCity,
-                    destinations,
-                    startDate,
-                    endDate,
-                    interests: safePreferences.interestsDetailed || [],
-                    travelStyle: travelStyles[0] || ""
-                })
                 dynamicContextStr = formatDynamicContextForPrompt(dynamicContext)
             } catch (e) {
                 console.error("[Validation Error]", e)
@@ -261,7 +259,7 @@ export async function POST(req: Request) {
         if (destinations.length > 0) {
             try {
                 if (travelMode === "flight") {
-                    const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
+                    const flightCheck = await withTimeout(checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate), 12000, "flight check")
                     if (flightCheck.hasDirect && flightCheck.minPrice != null) {
                         dynamicContextStr += `\n🛫 Прямые рейсы в ${destinations[0]} доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
                     } else if (flightCheck.hasDirect) {
@@ -276,7 +274,7 @@ export async function POST(req: Request) {
                 } else {
                     dynamicContextStr += `\n🚗 РЕЖИМ МАРШРУТА: пользователь выбрал автопутешествие — планируй переезды на машине; авиа только если дорога нереалистична.`
                 }
-                const searchContext = await collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate)
+                const searchContext = await optionalWithTimeout(collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate), 10000, "", "search context")
                 if (searchContext) dynamicContextStr += searchContext
             } catch (e) {
                 console.error("[Pre-Check Error]", e)
@@ -382,13 +380,18 @@ export async function POST(req: Request) {
         }): Promise<any> {
             try {
                 const raw = await geminiInference(params.messages, {
+                    signal: req.signal,
                     maxTokens: params.maxTokens,
                     temperature: aiTemperature,
+                    reasoningEffort: "minimal",
+                    responseFormat: "json_object",
                 })
                 return parseJsonObjectResponse(raw, params.geminiSource)
             } catch (geminiError) {
+                req.signal.throwIfAborted()
                 console.warn(`[${params.geminiSource}] Gemini failed, falling back to DeepSeek`, geminiError)
                 const raw = await deepseekInference(toDeepSeekMessages(params.messages), {
+                    signal: req.signal,
                     maxTokens: params.maxTokens,
                     temperature: aiTemperature,
                     tripDays: durationDays,
@@ -458,18 +461,22 @@ export async function POST(req: Request) {
             const tryParse = async (attempt: number): Promise<ItineraryDay[]> => {
                 try {
                     const raw = await geminiInference(messages, {
+                        signal: req.signal,
                         maxTokens: 16000,
                         temperature: attempt === 1 ? aiTemperature : Math.min(aiTemperature + 0.1, 1.0),
+                        reasoningEffort: "minimal",
                     })
                     return parseJsonArrayResponse(raw, `Gemini-Chunk ${startDay}-${endDay}`)
                 } catch (geminiError) {
-                    if (attempt < 2) {
+                    req.signal.throwIfAborted()
+                    if (attempt < 2 && geminiError instanceof Error && /JSON|Empty response/.test(geminiError.message)) {
                         console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Gemini attempt ${attempt} failed, retrying...`, geminiError)
                         return tryParse(attempt + 1)
                     }
 
                     console.warn(`[Gemini-Chunk ${startDay}-${endDay}] Gemini exhausted, falling back to DeepSeek`, geminiError)
                     const raw = await deepseekInference(toDeepSeekMessages(messages), {
+                        signal: req.signal,
                         maxTokens: 16000,
                         temperature: aiTemperature,
                         tripDays: durationDays,
@@ -540,6 +547,7 @@ export async function POST(req: Request) {
             const allDays: ItineraryDay[] = [];
 
             for (const chunk of chunks) {
+                req.signal.throwIfAborted();
                 const chunkDestination = resolveChunkDestination(
                     tripPlan,
                     chunk.start,
@@ -589,7 +597,10 @@ export async function POST(req: Request) {
                     resetGeminiSessionUsage();
                     resetDeepSeekSessionUsage();
 
+                    sendEvent({ type: "progress", phase: "generating" });
                     let routeData = await generateParallel();
+                    req.signal.throwIfAborted();
+                    sendEvent({ type: "progress", phase: "enriching" });
 
                     // Validate day count — AI sometimes skips or adds extra days
                     if (Array.isArray(routeData.itinerary)) {
@@ -611,14 +622,14 @@ export async function POST(req: Request) {
                     
                     // Post-processing
                     routeData = sanitizeActivityUrls(routeData);
-                    await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
-                    routeData = await enrichViralSpotsWithWebSearch(routeData);
+                    await withTimeout(sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket), 30000, "airport logistics");
+                    routeData = await optionalWithTimeout(enrichViralSpotsWithWebSearch(structuredClone(routeData)), 10000, routeData, "places");
                     routeData = normalizeActivityTypes(routeData);
                     routeData = enforceTravelModeConsistency(routeData, travelMode);
                     routeData = removeSameCityFlights(routeData);
                     routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
-                    routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
-                    routeData = await enrichHotelCosts(routeData, startDate);
+                    routeData = await optionalWithTimeout(enrichFlightCosts(structuredClone(routeData), effectiveDepartureCity, startDate), 10000, routeData, "flight prices");
+                    routeData = await optionalWithTimeout(enrichHotelCosts(structuredClone(routeData), startDate), 10000, routeData, "hotel prices");
                     routeData = recalculateDayTotals(routeData);
                     routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
@@ -647,7 +658,7 @@ export async function POST(req: Request) {
                             const imageQuery = destinations.length > 0 
                                 ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
                                 : "travel landmark";
-                            routeData.coverImage = await getDestinationImage(imageQuery);
+                            routeData.coverImage = await optionalWithTimeout(getDestinationImage(imageQuery), 6000, undefined, "cover image");
                         } catch (imgErr) {
                             console.warn("[CoverImage] Failed to fetch cover image:", imgErr);
                         }
@@ -656,15 +667,15 @@ export async function POST(req: Request) {
                     sendEvent({ type: 'result', data: routeData })
                 } catch (e: any) {
                     console.error("Generation failed:", e)
-                    sendEvent({ type: 'error', message: 'Generation failed' })
+                    sendEvent({ type: 'error', message: 'Generation failed', code: e?.code })
                 } finally {
                     clearInterval(keepalive);
-                    controller.close();
+                    try { controller.close(); } catch { /* client already disconnected */ }
                 }
             }
         })
 
-        return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } })
+        return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' } })
     } catch (error: any) {
         console.error("Gemini route error:", error)
         return NextResponse.json({ error: "Internal server error" }, { status: 500 })

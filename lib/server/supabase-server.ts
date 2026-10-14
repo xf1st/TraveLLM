@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import { createServerClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
@@ -16,6 +17,7 @@ export async function createCookieAuthClient() {
 
   const cookieStore = await cookies()
   return createServerClient(url, anonKey, {
+    global: { fetch: (input, init) => fetchWithTimeout(input, init, 10000) },
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
@@ -35,6 +37,7 @@ export function createServiceRoleClient() {
   if (!url || !serviceRoleKey) return null
 
   return createClient(url, serviceRoleKey, {
+    global: { fetch: (input, init) => fetchWithTimeout(input, init, 10000) },
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

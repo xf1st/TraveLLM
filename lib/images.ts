@@ -1,3 +1,5 @@
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Image Search — Multi-Provider Waterfall
  *
@@ -16,7 +18,7 @@ import crypto from "crypto"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+const httpProxy = getHttpProxyUrl()
 
 const supabase = (supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null
 const supabaseAdmin = (supabaseUrl && supabaseServiceKey) ? createClient(supabaseUrl, supabaseServiceKey) : null

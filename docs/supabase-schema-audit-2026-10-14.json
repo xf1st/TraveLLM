@@ -1,0 +1,109 @@
+{
+  "checkedAt": "2026-10-14T18:34:52.116Z",
+  "mode": "read-only, no rows returned",
+  "rateLimitRpcAvailable": false,
+  "tables": [
+    {
+      "table": "admin_audit_log",
+      "available": true,
+      "errorCode": null,
+      "ms": 702
+    },
+    {
+      "table": "admin_invites",
+      "available": true,
+      "errorCode": null,
+      "ms": 596
+    },
+    {
+      "table": "ai_usage_events",
+      "available": true,
+      "errorCode": null,
+      "ms": 683
+    },
+    {
+      "table": "app_settings",
+      "available": true,
+      "errorCode": null,
+      "ms": 737
+    },
+    {
+      "table": "beta_feedback",
+      "available": true,
+      "errorCode": null,
+      "ms": 808
+    },
+    {
+      "table": "budget_expenses",
+      "available": true,
+      "errorCode": null,
+      "ms": 739
+    },
+    {
+      "table": "discovery_reels",
+      "available": true,
+      "errorCode": null,
+      "ms": 332
+    },
+    {
+      "table": "favorites",
+      "available": true,
+      "errorCode": null,
+      "ms": 432
+    },
+    {
+      "table": "image_cache",
+      "available": true,
+      "errorCode": null,
+      "ms": 348
+    },
+    {
+      "table": "memories",
+      "available": true,
+      "errorCode": null,
+      "ms": 479
+    },
+    {
+      "table": "profiles",
+      "available": true,
+      "errorCode": null,
+      "ms": 466
+    },
+    {
+      "table": "reel_comments",
+      "available": true,
+      "errorCode": null,
+      "ms": 506
+    },
+    {
+      "table": "reel_likes",
+      "available": true,
+      "errorCode": null,
+      "ms": 678
+    },
+    {
+      "table": "search_results",
+      "available": true,
+      "errorCode": null,
+      "ms": 709
+    },
+    {
+      "table": "trip_diary",
+      "available": true,
+      "errorCode": null,
+      "ms": 448
+    },
+    {
+      "table": "trip_feedback",
+      "available": true,
+      "errorCode": null,
+      "ms": 385
+    },
+    {
+      "table": "trips",
+      "available": true,
+      "errorCode": null,
+      "ms": 833
+    }
+  ]
+}

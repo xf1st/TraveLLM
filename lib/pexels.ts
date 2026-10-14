@@ -1,3 +1,6 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Pexels Photo Search
  * API: https://api.pexels.com/v1/search
@@ -6,7 +9,7 @@
  */
 
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+const httpProxy = getHttpProxyUrl()
 
 // Create a singleton dispatcher for the proxy
 let proxyDispatcher: any = undefined;
@@ -37,7 +40,7 @@ export async function searchPexels(query: string, count: number = 4, page: numbe
             signal: controller.signal,
         }
 
-        if (proxyDispatcher) {
+        if (proxyDispatcher && !(await isProxyDisabled())) {
             fetchOptions.dispatcher = proxyDispatcher;
         }
 

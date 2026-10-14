@@ -5,6 +5,8 @@
 
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import { getEffectiveAccessMode } from "@/lib/user-access-state"
 
 export type UserAccessState = {
   accessMode: string
@@ -15,7 +17,7 @@ function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+  return createClient(url, key, { global: { fetch: (input, init) => fetchWithTimeout(input, init, 10000) }, auth: { autoRefreshToken: false, persistSession: false } })
 }
 
 /** Load access flags; missing profile row → active (onboarding / edge cases). */
@@ -39,7 +41,7 @@ export async function fetchUserAccessState(userId: string): Promise<UserAccessSt
   }
 
   return {
-    accessMode: typeof data.access_mode === "string" && data.access_mode ? data.access_mode : "active",
+    accessMode: getEffectiveAccessMode(data.access_mode, data.blocked_until),
     blockedUntil: data.blocked_until ?? null,
   }
 }

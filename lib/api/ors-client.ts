@@ -1,3 +1,4 @@
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * OpenRouteService (ORS) API Client
  * 

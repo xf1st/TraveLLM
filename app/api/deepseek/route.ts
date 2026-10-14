@@ -1,3 +1,4 @@
+import { withTimeout, optionalWithTimeout } from "@/lib/async-timeout"
 // DeepSeek (Primary) -> Gemini (Fallback)
 import { jsonrepair } from "jsonrepair"
 import { deepseekInference, getSessionUsage as getDeepSeekSessionUsage, resetSessionUsage as resetDeepSeekSessionUsage } from "@/lib/deepseek"
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
 
         if (destinations.length > 0 && startDate && endDate) {
             try {
-                const validation = await validateRouteRequest({
+                const validation = await withTimeout(validateRouteRequest({
                     departureCity: effectiveDepartureCity,
                     destinations,
                     startDate,
@@ -140,7 +141,7 @@ export async function POST(req: Request) {
                     budget: budgetCap,
                     citizenship: safePreferences.citizenship || "RU",
                     travelMode,
-                })
+                }), 20000, "route validation")
                 if (validation.blockers.length > 0) return NextResponse.json({ error: validation.blockers[0].message }, { status: 400 })
                 adjustedBudget = validation.adjustedBudget || budgetCap
                 warningsStr = validation.warnings?.map(w => w.message).join('; ') || ''
@@ -173,7 +174,7 @@ export async function POST(req: Request) {
         if (destinations.length > 0) {
             try {
                 if (travelMode === "flight") {
-                    const flightCheck = await checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate)
+                    const flightCheck = await withTimeout(checkDirectFlightsLive(effectiveDepartureCity, destinations[0], startDate), 12000, "flight check")
                     if (flightCheck.hasDirect && flightCheck.minPrice != null) {
                         dynamicContextStr += `\n🛫 Прямые рейсы доступны от ${flightCheck.minPrice} ${flightCheck.currency}.`
                     } else if (flightCheck.hasDirect) {
@@ -188,7 +189,7 @@ export async function POST(req: Request) {
                 } else {
                     dynamicContextStr += `\n🚗 РЕЖИМ МАРШРУТА: пользователь выбрал автопутешествие — планируй переезды на машине; авиа только если дорога нереалистична.`
                 }
-                const searchContext = await collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate)
+                const searchContext = await optionalWithTimeout(collectRealTimeSearchContext(effectiveDepartureCity, destinations, startDate), 10000, "", "search context")
                 if (searchContext) dynamicContextStr += searchContext
             } catch (e) { console.error("[Pre-Check Error]", e) }
         }
@@ -213,7 +214,7 @@ export async function POST(req: Request) {
             const raw = await deepseekInference([
                 { role: "system", content: systemPrompt },
                 { role: "user", content: prompt }
-            ], { maxTokens: 8000, temperature: aiTemperature, responseFormat: "json_object" });
+            ], { maxTokens: 8000, temperature: aiTemperature, signal: req.signal, responseFormat: "json_object" });
 
             const clean1 = (raw.match(/\{[\s\S]*\}/)?.[0] ?? raw).replace(/```json\s*/g, '').replace(/```\s*/g, '')
             let routeData: RouteData
@@ -224,14 +225,14 @@ export async function POST(req: Request) {
 
             // Post-processing
             routeData = sanitizeActivityUrls(routeData);
-            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
-            routeData = await enrichViralSpotsWithWebSearch(routeData);
+            await withTimeout(sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket), 30000, "airport logistics");
+            routeData = await optionalWithTimeout(enrichViralSpotsWithWebSearch(structuredClone(routeData)), 10000, routeData, "places");
             routeData = normalizeActivityTypes(routeData);
             routeData = enforceTravelModeConsistency(routeData, travelMode);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
-            routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
-            routeData = await enrichHotelCosts(routeData, startDate);
+            routeData = await optionalWithTimeout(enrichFlightCosts(structuredClone(routeData), effectiveDepartureCity, startDate), 10000, routeData, "flight prices");
+            routeData = await optionalWithTimeout(enrichHotelCosts(structuredClone(routeData), startDate), 10000, routeData, "hotel prices");
             routeData = recalculateDayTotals(routeData);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
@@ -251,7 +252,7 @@ export async function POST(req: Request) {
                     const imageQuery = destinations.length > 0 
                         ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
                         : "travel landmark";
-                    routeData.coverImage = await getDestinationImage(imageQuery);
+                    routeData.coverImage = await optionalWithTimeout(getDestinationImage(imageQuery), 6000, undefined, "cover image");
                 } catch (imgErr) {
                     console.warn("[CoverImage] Failed to fetch cover image:", imgErr);
                 }
@@ -259,11 +260,12 @@ export async function POST(req: Request) {
 
             return NextResponse.json(routeData);
         } catch (e: any) {
+            req.signal.throwIfAborted();
             console.error("DeepSeek failed, falling back to Gemini:", e.message);
             const raw = await geminiInference([
                 { role: "system", content: systemPrompt },
                 { role: "user", content: prompt }
-            ], { maxTokens: 8000, temperature: 0.6 });
+            ], { maxTokens: 16000, temperature: 0.6, signal: req.signal, reasoningEffort: "minimal", responseFormat: "json_object" });
 
             const clean2 = (raw.match(/\{[\s\S]*\}/)?.[0] ?? raw).replace(/```json\s*/g, '').replace(/```\s*/g, '')
             let routeData: RouteData
@@ -272,14 +274,14 @@ export async function POST(req: Request) {
                 routeData = JSON.parse(jsonrepair(clean2))
             }
             routeData = sanitizeActivityUrls(routeData);
-            await sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket);
-            routeData = await enrichViralSpotsWithWebSearch(routeData);
+            await withTimeout(sanitizeClosedAirportLogistics(routeData, effectiveDepartureCity, startDate, bookingMarket), 30000, "airport logistics");
+            routeData = await optionalWithTimeout(enrichViralSpotsWithWebSearch(structuredClone(routeData)), 10000, routeData, "places");
             routeData = normalizeActivityTypes(routeData);
             routeData = enforceTravelModeConsistency(routeData, travelMode);
             routeData = removeSameCityFlights(routeData);
             routeData = enrichTransportLinks(routeData, effectiveDepartureCity, destinations[0] || "", startDate, bookingMarket);
-            routeData = await enrichFlightCosts(routeData, effectiveDepartureCity, startDate);
-            routeData = await enrichHotelCosts(routeData, startDate);
+            routeData = await optionalWithTimeout(enrichFlightCosts(structuredClone(routeData), effectiveDepartureCity, startDate), 10000, routeData, "flight prices");
+            routeData = await optionalWithTimeout(enrichHotelCosts(structuredClone(routeData), startDate), 10000, routeData, "hotel prices");
             routeData = recalculateDayTotals(routeData);
             routeData.itinerary = await sanitizeBookingLinks(routeData.itinerary) as typeof routeData.itinerary;
 
@@ -298,7 +300,7 @@ export async function POST(req: Request) {
                     const imageQuery = destinations.length > 0 
                         ? `${destinations.slice(0, 2).join(" ")} travel landmark` 
                         : "travel landmark";
-                    routeData.coverImage = await getDestinationImage(imageQuery);
+                    routeData.coverImage = await optionalWithTimeout(getDestinationImage(imageQuery), 6000, undefined, "cover image");
                 } catch { /* non-critical */ }
             }
 

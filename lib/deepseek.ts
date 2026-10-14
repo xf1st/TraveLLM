@@ -1,31 +1,26 @@
+import { fetchWithTimeout } from "./fetch-with-timeout.ts"
+import { getAiConnection, type AiConnectionMode } from "./server/ai-connection.ts"
+import { isAiProviderEnabled } from "./proxy-config.ts"
 // Proxy configuration
-import { ProxyAgent } from "undici";
-
-const PROXY_URL = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy || "";
-let proxyDispatcher: ProxyAgent | undefined;
-if (typeof window === "undefined" && PROXY_URL) {
-    try {
-        proxyDispatcher = new ProxyAgent(PROXY_URL);
-    } catch {}
-}
 
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 
-// Models with different token limits
-export const DEEPSEEK_CHAT = "deepseek-chat";        // 8k output
-export const DEEPSEEK_REASONER = "deepseek-reasoner"; // 16k output
+// Current API names; legacy export names remain compatible with callers.
+export const DEEPSEEK_CHAT = "deepseek-flash";
+export const DEEPSEEK_REASONER = "deepseek-v4-pro";
 
-// DeepSeek pricing (Jan 2026) - prices per 1M tokens
+// Peak pricing, October 2026; off-peak is half. Usage costs are estimates.
+// https://api-docs.deepseek.com/quick_start/pricing/
 const PRICING = {
     [DEEPSEEK_CHAT]: {
-        input: 0.14 / 1_000_000,
-        inputCached: 0.014 / 1_000_000,
-        output: 0.28 / 1_000_000,
+        input: 0.30 / 1_000_000,
+        inputCached: 0.006 / 1_000_000,
+        output: 1.20 / 1_000_000,
     },
     [DEEPSEEK_REASONER]: {
-        input: 0.55 / 1_000_000,
-        inputCached: 0.055 / 1_000_000,
-        output: 2.19 / 1_000_000,
+        input: 1.32 / 1_000_000,
+        inputCached: 0.044 / 1_000_000,
+        output: 3.96 / 1_000_000,
     },
 } as const;
 
@@ -35,9 +30,14 @@ interface DeepSeekMessage {
 }
 
 interface DeepSeekOptions {
+    connectionMode?: AiConnectionMode;
+    trackSession?: boolean;
+    model?: typeof DEEPSEEK_CHAT | typeof DEEPSEEK_REASONER;
+    thinking?: boolean;
+    signal?: AbortSignal;
     maxTokens?: number;
     temperature?: number;
-    tripDays?: number; // Smart model selection based on trip length
+    tripDays?: number;
     responseFormat?: "json_object" | "text";
 }
 
@@ -98,11 +98,15 @@ function buildCallUsage(rawUsage: any, model: string, generationTimeMs = 0): Tok
     const completionTokens = rawUsage.completion_tokens || 0;
     const totalTokens = rawUsage.total_tokens || 0;
     const cacheHit = rawUsage.prompt_cache_hit_tokens || 0;
-    const cacheMiss = rawUsage.prompt_cache_miss_tokens || promptTokens || 0;
+    const cacheMiss = rawUsage.prompt_cache_miss_tokens ?? Math.max(0, promptTokens - cacheHit);
 
     const inputCost = cacheHit * pricing.inputCached + cacheMiss * pricing.input;
     const outputCost = completionTokens * pricing.output;
-    const totalCostUsd = inputCost + outputCost;
+    const now = new Date();
+    const weekday = now.getUTCDay() >= 1 && now.getUTCDay() <= 5;
+    const hour = now.getUTCHours();
+    const peak = weekday && ((hour >= 1 && hour < 4) || (hour >= 6 && hour < 10));
+    const totalCostUsd = (inputCost + outputCost) * (peak ? 1 : 0.5);
 
     return {
         promptTokens,
@@ -118,6 +122,8 @@ function buildCallUsage(rawUsage: any, model: string, generationTimeMs = 0): Tok
 }
 
 function applyUsageToSession(callUsage: TokenUsage): void {
+    sessionUsage.model = sessionUsage.totalTokens === 0 ? callUsage.model :
+        sessionUsage.model === callUsage.model ? callUsage.model : "deepseek-mixed";
     sessionUsage.promptTokens += callUsage.promptTokens || 0;
     sessionUsage.completionTokens += callUsage.completionTokens || 0;
     sessionUsage.totalTokens += callUsage.totalTokens || 0;
@@ -132,18 +138,18 @@ async function runDeepseekInference(
     messages: DeepSeekMessage[],
     options: DeepSeekOptions = {}
 ): Promise<DeepSeekInferenceResult> {
+    if (options.connectionMode === undefined && !(await isAiProviderEnabled("deepseek"))) {
+        throw Object.assign(new Error("DeepSeek disabled by administrator"), { code: "PROVIDER_DISABLED" });
+    }
     if (!DEEPSEEK_API_KEY) {
         throw new Error("DEEPSEEK_API_KEY is not configured");
     }
 
     const { maxTokens = 8192, temperature = 0.6, tripDays = 5 } = options;
 
-    // Smart model selection:
-    // - Short trips (<=7 days): use deepseek-chat (faster, 8k limit)
-    // - Long trips (8+ days): use deepseek-reasoner (16k limit)
-    const isLongTrip = tripDays > 7;
-    const model = isLongTrip ? DEEPSEEK_REASONER : DEEPSEEK_CHAT;
-    const tokenLimit = isLongTrip ? 16384 : 8192;
+    // Long itineraries need more output, not an automatic slower reasoning mode.
+    const model = options.model ?? DEEPSEEK_CHAT;
+    const tokenLimit = 393216;
     const cappedMaxTokens = Math.min(maxTokens, tokenLimit);
 
     console.log(`DeepSeek: Using ${model} for ${tripDays} days trip (max ${cappedMaxTokens} tokens)`);
@@ -154,6 +160,7 @@ async function runDeepseekInference(
         max_tokens: cappedMaxTokens,
         temperature,
         stream: false,
+        thinking: { type: options.thinking ? "enabled" : "disabled" },
     };
 
     if (options.responseFormat === "json_object") {
@@ -163,6 +170,7 @@ async function runDeepseekInference(
     const startTime = Date.now();
 
     const fetchOptions: RequestInit & { dispatcher?: any } = {
+        signal: options.signal,
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -171,11 +179,12 @@ async function runDeepseekInference(
         body: JSON.stringify(bodyPayload),
     };
 
-    if (proxyDispatcher) {
-        fetchOptions.dispatcher = proxyDispatcher;
+    const connection = await getAiConnection(options.connectionMode);
+    if (connection.dispatcher) {
+        fetchOptions.dispatcher = connection.dispatcher;
     }
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", fetchOptions);
+    const response = await fetchWithTimeout("https://api.deepseek.com/chat/completions", fetchOptions, 120000);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -188,7 +197,7 @@ async function runDeepseekInference(
     const callUsage = buildCallUsage(result?.usage, model, generationTimeMs);
 
     if (callUsage) {
-        applyUsageToSession(callUsage);
+        if (options.trackSession !== false) applyUsageToSession(callUsage);
 
         console.log(
             `DeepSeek: Tokens used - prompt: ${callUsage.promptTokens}, completion: ${callUsage.completionTokens}, total: ${callUsage.totalTokens}`

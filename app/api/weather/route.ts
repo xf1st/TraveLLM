@@ -1,9 +1,11 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
 import { NextRequest, NextResponse } from "next/server";
 import { ProxyAgent } from "undici";
 import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // Create a singleton dispatcher for the proxy
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+const httpProxy = getHttpProxyUrl();
 const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {
@@ -81,7 +83,7 @@ export async function GET(req: NextRequest) {
         }
 
         const fetchOptions: any = { signal: AbortSignal.timeout(8000) };
-        if (proxyDispatcher) {
+        if (proxyDispatcher && !(await isProxyDisabled())) {
             fetchOptions.dispatcher = proxyDispatcher;
         }
 

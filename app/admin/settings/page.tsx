@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
-import { Settings, Wrench, Save, AlertCircle, Globe } from "lucide-react"
+import { Settings, Wrench, Save, AlertCircle } from "lucide-react"
+import { NetworkSettingsCard } from "@/components/admin/network-settings-card"
 import { appToast as toast } from "@/components/ui/sonner"
 
 export default function AdminSettingsPage() {
@@ -23,7 +24,6 @@ export default function AdminSettingsPage() {
     ai_provider_deepseek_enabled: true,
     ai_provider_openrouter_enabled: true,
     generation_rate_limit_per_day: 10,
-    proxy_disabled: false,
     reels_generation_enabled: false,
   })
 
@@ -49,7 +49,6 @@ export default function AdminSettingsPage() {
           ai_provider_deepseek_enabled: data.ai_provider_deepseek_enabled ?? true,
           ai_provider_openrouter_enabled: data.ai_provider_openrouter_enabled ?? true,
           generation_rate_limit_per_day: data.generation_rate_limit_per_day || 10,
-          proxy_disabled: data.proxy_disabled ?? false,
           reels_generation_enabled: (data as { reels_generation_enabled?: boolean }).reels_generation_enabled ?? false,
         })
       }
@@ -75,7 +74,6 @@ export default function AdminSettingsPage() {
         ai_provider_deepseek_enabled: settings.ai_provider_deepseek_enabled,
         ai_provider_openrouter_enabled: settings.ai_provider_openrouter_enabled,
         generation_rate_limit_per_day: settings.generation_rate_limit_per_day,
-        proxy_disabled: settings.proxy_disabled,
         reels_generation_enabled: settings.reels_generation_enabled,
       }
 
@@ -232,9 +230,9 @@ export default function AdminSettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="deepseek_enabled">DeepSeek (основной)</Label>
+                  <Label htmlFor="deepseek_enabled">DeepSeek (резервный)</Label>
                   <p className="text-sm text-muted-foreground">
-                    Включить использование DeepSeek для генерации маршрутов
+                    Использовать DeepSeek Flash, когда основной провайдер недоступен
                   </p>
                 </div>
                 <Switch
@@ -248,9 +246,9 @@ export default function AdminSettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label htmlFor="openrouter_enabled">OpenRouter (резервный)</Label>
+                  <Label htmlFor="openrouter_enabled">Gemini через OpenRouter (основной)</Label>
                   <p className="text-sm text-muted-foreground">
-                    Включить использование OpenRouter как fallback
+                    Использовать Gemini Flash Lite для генерации и AI-чата
                   </p>
                 </div>
                 <Switch
@@ -292,33 +290,7 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Proxy Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Прокси
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="proxy_disabled">Отключить прокси</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Отключает HTTP-прокси для всех внешних запросов (фото, API и
-                    т.д.). Используйте, если прокси не нужен или вызывает ошибки.
-                  </p>
-                </div>
-                <Switch
-                  id="proxy_disabled"
-                  checked={settings.proxy_disabled}
-                  onCheckedChange={(checked) =>
-                    setSettings({ ...settings, proxy_disabled: checked })
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <NetworkSettingsCard />
 
           {/* Save Button */}
           <div className="flex justify-end">

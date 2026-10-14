@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import {
-  getRequestUserId,
-  checkMonthlyGenerationLimit,
-  monthlyGenerationBackendUnavailableResponse,
-} from "@/lib/ai-usage-events"
-import { enforceAiAccess } from "@/lib/server/user-access"
+import { getRequestUserId } from "@/lib/ai-usage-events"
+import { enforceFullSiteAccess } from "@/lib/server/user-access"
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit"
 import { normalizeTravelMode } from "@/lib/travel-mode"
 
@@ -15,7 +12,7 @@ function getServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
-  return createClient(url, key)
+  return createClient(url, key, { global: { fetch: (input, init) => fetchWithTimeout(input, init, 10000) } })
 }
 
 export async function POST(req: Request) {
@@ -25,29 +22,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const accessErr = await enforceAiAccess(userId)
+    const accessErr = await enforceFullSiteAccess(userId)
     if (accessErr) return accessErr
 
     // Rate limit: max 10 saves per minute (generous for legit use, blocks bots)
     const rl = await checkRateLimit(userId, "trips-save", 10)
     if (!rl.allowed) return rateLimitResponse(rl)
 
-    // Monthly generation limit
-    const genLimit = await checkMonthlyGenerationLimit(userId)
-    if (!genLimit.allowed) {
-      if (genLimit.backendUnavailable) return monthlyGenerationBackendUnavailableResponse()
-      return NextResponse.json(
-        {
-          error: "Лимит исчерпан",
-          message: `Вы использовали все ${genLimit.limit} генераций в этом месяце.`,
-          limitExceeded: true,
-          count: genLimit.count,
-          limit: genLimit.limit,
-          resetAt: genLimit.resetAt,
-        },
-        { status: 429 },
-      )
-    }
+    // Saving does not call AI. The generation endpoints enforce/record the quota;
+    // checking it again here prevented the last allowed generation from saving.
 
     const client = getServiceClient()
     if (!client) {
@@ -55,10 +38,12 @@ export async function POST(req: Request) {
     }
 
     // Hard cap check before insert (belt-and-suspenders alongside DB trigger)
-    const { count } = await client
+    const { count, error: countError } = await client
       .from("trips")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+
+    if (countError) return NextResponse.json({ error: "Trip storage unavailable" }, { status: 503 })
 
     if ((count ?? 0) >= MAX_TRIPS_PER_USER) {
       return NextResponse.json(
@@ -124,10 +109,10 @@ export async function POST(req: Request) {
     }
 
     if (autoFavorites && insertedTrip) {
-      await client
+      const { error: favoriteError } = await client
         .from("favorites")
         .insert({ user_id: userId, trip_id: insertedTrip.id })
-        .throwOnError()
+      if (favoriteError) console.warn("[trips/save] Favorite could not be added", favoriteError.code)
     }
 
     return NextResponse.json({ trip: insertedTrip })

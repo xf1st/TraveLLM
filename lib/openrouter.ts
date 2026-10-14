@@ -1,12 +1,10 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import { getAiConnection } from "@/lib/server/ai-connection"
+import { isAiProviderEnabled } from "@/lib/proxy-config"
 // OpenRouter API Client
 // https://openrouter.ai/api/v1
-import { ProxyAgent } from "undici";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
-const PROXY_URL = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy || "";
-const proxyDispatcher = typeof window === "undefined" && PROXY_URL
-    ? new ProxyAgent(PROXY_URL)
-    : undefined;
 
 export const OPENROUTER_MODEL = "google/gemini-3.1-flash-lite";
 
@@ -28,6 +26,7 @@ export async function openrouterInference(
     messages: OpenRouterMessage[],
     options: OpenRouterOptions = {}
 ): Promise<string> {
+    if (!(await isAiProviderEnabled("gemini"))) throw Object.assign(new Error("OpenRouter disabled by administrator"), { code: "PROVIDER_DISABLED" });
     if (!OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
@@ -53,9 +52,10 @@ export async function openrouterInference(
         }),
     };
 
-    if (proxyDispatcher) fetchOptions.dispatcher = proxyDispatcher;
+    const connection = await getAiConnection();
+    if (connection.dispatcher) fetchOptions.dispatcher = connection.dispatcher;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", fetchOptions);
+    const response = await fetchWithTimeout("https://openrouter.ai/api/v1/chat/completions", fetchOptions, 120000);
 
     if (!response.ok) {
         const errorText = await response.text();

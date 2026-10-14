@@ -2,7 +2,6 @@ import type React from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import type { Metadata, Viewport } from "next"
-import { Rubik, JetBrains_Mono, Space_Grotesk, Plus_Jakarta_Sans } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 import { GuardsWrapper } from "@/components/admin/guards-wrapper"
@@ -21,30 +20,6 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import "./globals.css"
 import "material-symbols/outlined.css"
-
-const rubik = Rubik({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-sans",
-  display: "swap",
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin", "cyrillic"],
-  variable: "--font-mono",
-  display: "swap",
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-})
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta-sans",
-  display: "swap",
-})
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -126,15 +101,18 @@ export default async function RootLayout({
 
   return (
     <html
+      data-scroll-behavior="smooth"
       lang={getHtmlLang(locale)}
       className="bg-background"
       suppressHydrationWarning
     >
       <head>
-        {/* material-symbols loaded locally via npm */}
+        {/* Critical RU/EN face subsets; other families load only where used. */}
+        <link rel="preload" href="/fonts/rubik-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/rubik-cyrillic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body
-        className={`${rubik.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable} ${plusJakartaSans.variable} font-sans antialiased min-h-dvh bg-background overflow-x-hidden`}
+        className="travellm-fonts font-sans antialiased min-h-dvh bg-background overflow-x-hidden"
         suppressHydrationWarning
       >
         <NextIntlClientProvider messages={messages} locale={locale}>

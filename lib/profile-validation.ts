@@ -73,9 +73,14 @@ export function sanitizePlainPreferenceString(raw: string, maxGraphemes: number)
 }
 
 export function sanitizeDisplayName(raw: string): string {
+  return sanitizeDisplayNameInput(raw).trim()
+}
+
+/** Editing values retain spaces; trim only when committing the form. */
+export function sanitizeDisplayNameInput(raw: string): string {
   let s = normalizeProfileScalar(raw)
   s = s.replace(/[^\p{L}0-9\s\-']/gu, "")
-  s = s.replace(/\s+/g, " ").trim()
+  s = s.replace(/\s+/g, " ")
   return sliceGraphemesMax(s, PROFILE_NAME_MAX)
 }
 
@@ -108,7 +113,11 @@ export function validateDisplayName(value: string): { ok: true } | { ok: false; 
 
 /** Bio: allow normal punctuation; no HTML-ish brackets; cap graphemes and newlines */
 export function sanitizeBioText(raw: string, maxGraphemes: number = PROFILE_BIO_MAX): string {
-  let s = normalizeProfileScalar(raw).trim()
+  return sanitizeBioInput(raw, maxGraphemes).trim()
+}
+
+export function sanitizeBioInput(raw: string, maxGraphemes: number = PROFILE_BIO_MAX): string {
+  let s = normalizeProfileScalar(raw)
   const lines = s.split(/\n/)
   if (lines.length > 40) s = lines.slice(0, 40).join("\n")
   return sliceGraphemesMax(s, maxGraphemes)
@@ -122,6 +131,10 @@ export function sanitizeLongText(raw: string, max: number = PROFILE_TEXT_MAX): s
 
 export function sanitizeCitizenshipNationality(raw: string): string {
   return sanitizePlainPreferenceString(raw, PROFILE_LOCALE_LINE_MAX)
+}
+
+export function sanitizeLocaleInput(raw: string): string {
+  return sliceGraphemesMax(normalizeProfileScalar(raw).replace(/[\r\n\t]/g, " "), PROFILE_LOCALE_LINE_MAX)
 }
 
 /** Fixed language tags stored in profiles.languages */

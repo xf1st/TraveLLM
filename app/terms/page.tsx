@@ -17,7 +17,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const COMPANY = LEGAL.serviceName
-const EMAIL = LEGAL.legalEmail
+const EMAIL = LEGAL.legalEmail || LEGAL.supportTelegramHandle
+const CONTACT_HREF = LEGAL.legalEmail ? `mailto:${LEGAL.legalEmail}` : LEGAL.supportTelegram
 
 export default async function TermsPage() {
   const locale = await getLocale()
@@ -63,12 +64,6 @@ export default async function TermsPage() {
                 ? "By using the Service, you confirm that you are at least 18 years old and that you accept these Terms in full. If you disagree with any provision, please discontinue use of the Service."
                 : "Пользуясь Сервисом, вы подтверждаете, что вам исполнилось 18 лет, и что вы принимаете настоящие Условия в полном объёме. Если вы не согласны с какими-либо положениями, пожалуйста, прекратите использование Сервиса."}
             </p>
-            <div className="mt-4 rounded-xl border border-border bg-muted/30 p-4">
-              <p className="font-semibold text-foreground">{isEn ? "Service operator" : "Оператор сервиса"}</p>
-              <p className="mt-2">{LEGAL.operatorName}</p>
-              <p>{LEGAL.operatorInn} · {LEGAL.operatorOgrn}</p>
-              <p>{LEGAL.operatorAddress}</p>
-            </div>
           </section>
 
           <section>
@@ -311,7 +306,7 @@ export default async function TermsPage() {
                 : "По вопросам, связанным с настоящими Условиями, обращайтесь:"}
             </p>
             <ul className="mt-2 space-y-1">
-              <li>Email: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a></li>
+              <li>Email: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a></li>
               <li>Telegram: <a href="https://t.me/travellm_support_bot" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@travellm_support_bot</a></li>
             </ul>
           </section>

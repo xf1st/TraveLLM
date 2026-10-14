@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
+import { DEEPSEEK_CHAT } from '@/lib/deepseek'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN_PR!
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY!
@@ -66,7 +67,8 @@ async function generatePost(description: string, hasPhotos: boolean): Promise<st
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'deepseek-chat',
+      model: DEEPSEEK_CHAT,
+      thinking: { type: 'disabled' },
       messages: [
         {
           role: 'system',

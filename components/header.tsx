@@ -1,5 +1,8 @@
 "use client"
 
+import { getAccountSummary } from "@/lib/account-summary-client"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Map, User, LogOut, Settings, Shield, History, Compass } from "lucide-react"
@@ -45,10 +48,11 @@ export function Header({ floating = false }: HeaderProps) {
   useEffect(() => {
     setIsMounted(true)
 
+    let cancelled = false
     const loadUserData = async () => {
       if (user) {
-        const res = await fetch("/api/user/me", { credentials: "same-origin" })
-        const data = await res.json().catch(() => ({}))
+        const data = await getAccountSummary(user.id).catch(() => null)
+        if (cancelled || !data) return
         const profile = data.profile
 
         if (profile) {
@@ -57,13 +61,13 @@ export function Header({ floating = false }: HeaderProps) {
             full_name: profile.full_name || user.user_metadata?.full_name,
             avatar_url: profile.avatar_url || user.user_metadata?.avatar_url
           })
-          setGenUsage(data.genUsage || { used: 0, limit: profile.gen_limit_override ?? 10 })
+          setGenUsage(data.genUsage ?? null)
         } else {
           setUserData({
             full_name: user.user_metadata?.full_name,
             avatar_url: user.user_metadata?.avatar_url
           })
-          setGenUsage(data.genUsage || { used: 0, limit: 10 })
+          setGenUsage(data.genUsage ?? null)
         }
       } else {
         setIsAdmin(false)
@@ -91,6 +95,7 @@ export function Header({ floating = false }: HeaderProps) {
     window.addEventListener("scroll", handleScroll, { passive: true })
 
     return () => {
+      cancelled = true
       clearTimeout(scrollTimer)
       window.removeEventListener("scroll", handleScroll)
       window.removeEventListener('profile_updated', handleProfileUpdate)
@@ -129,7 +134,7 @@ export function Header({ floating = false }: HeaderProps) {
       }
 
       localStorage.removeItem("user")
-      // Auth state will be updated by AuthProvider via onAuthStateChange
+      // Auth state will be updated by AuthProvider via its verified session endpoint
 
       toast.success(t("signOut"))
 
@@ -144,7 +149,7 @@ export function Header({ floating = false }: HeaderProps) {
 
   const navLinks = [
     { href: "/trips", label: t("routes") },
-    { href: "/reels", label: t("reels") },
+    ...(PUBLIC_REELS_ENABLED ? [{ href: "/reels", label: t("reels") }] : []),
     ...(isAdmin ? [{ href: "/admin", label: t("adminPanel") }] : []),
     { href: "/plan", label: t("plan") },
   ]
@@ -226,7 +231,7 @@ export function Header({ floating = false }: HeaderProps) {
                         <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                       </div>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.84b</p>
+                      <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.89b</p>
                     </div>
                     {userMenuGenUsage}
                   </DropdownMenuLabel>
@@ -382,7 +387,7 @@ export function Header({ floating = false }: HeaderProps) {
                       <p className="text-sm font-medium">{userData?.full_name || user.user_metadata?.full_name || t("traveler", { ns: "common" })}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.84b</p>
+                    <p className="text-[10px] font-mono text-muted-foreground/40 mt-1 select-none font-bold tracking-widest">TraveLLM AI V: 2.08.89b</p>
                   </div>
                   {userMenuGenUsage}
                 </DropdownMenuLabel>

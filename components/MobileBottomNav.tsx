@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Compass, Map, User, Sparkles, Clapperboard } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
 
 export function MobileBottomNav() {
   const pathname = usePathname()
@@ -17,12 +18,12 @@ export function MobileBottomNav() {
       icon: Compass,
       color: "text-indigo-500",
     },
-    {
+    ...(PUBLIC_REELS_ENABLED ? [{
       label: t("reels"),
       href: "/reels",
       icon: Clapperboard,
       color: "text-fuchsia-500",
-    },
+    }] : []),
     {
       label: t("routes"),
       href: "/trips",

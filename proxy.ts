@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { fetchWithTimeout } from '@/lib/fetch-with-timeout'
+import { PUBLIC_REELS_ENABLED } from '@/lib/features'
 
 // ─── Global API rate limit ────────────────────────────────────────────────────
 const GLOBAL_API_LIMIT = 30      // requests
@@ -82,6 +84,20 @@ export async function proxy(request: NextRequest) {
   if (request.headers.has('x-middleware-subrequest')) {
     return new NextResponse(null, { status: 403 })
   }
+
+  // Apply to every visitor, including admins and the local auth-skip mode.
+  const isReelsApi = pathname === '/api/reels' || pathname.startsWith('/api/reels/')
+  const isReelsPage = pathname === '/reels' || pathname.startsWith('/reels/') ||
+    pathname === '/plan/from-reel' || pathname.startsWith('/plan/from-reel/')
+  if (!PUBLIC_REELS_ENABLED && isReelsApi) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  if (!PUBLIC_REELS_ENABLED && isReelsPage) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/plan'
+    url.search = ''
+    return NextResponse.redirect(url)
+  }
   // ──────────────────────────────────────────────────────────────────────────
 
   // ─── DEV MODE (opt-in): skip Supabase auth in proxy for faster local dev ───
@@ -126,17 +142,17 @@ export async function proxy(request: NextRequest) {
     const isSkipped = API_RATE_LIMIT_SKIP.some(p => pathname.startsWith(p))
 
     if (!isSkipped) {
-      // Read session from cookie — no network call, just cookie parsing
+      // Authenticate the identity used for rate limits; never trust a cookie user.
       const tempSupabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } },
+        { global: { fetch: (input, init) => fetchWithTimeout(input, init, 8000) }, cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } },
       )
-      const { data: { session } } = await tempSupabase.auth.getSession()
+      const { data: { user: apiUser } } = await tempSupabase.auth.getUser()
 
       // Rate limit by user ID (from session cookie) or IP for unauthenticated
-      const rlKey = session?.user?.id
-        ? `user:${session.user.id}`
+      const rlKey = apiUser?.id
+        ? `user:${apiUser.id}`
         : `ip:${getRequestIp(request)}`
 
       // 1. Global rate limit (30 req/min for all API)
@@ -185,7 +201,7 @@ export async function proxy(request: NextRequest) {
         status: 204,
         headers: {
           ...(corsOrigin ? { 'Access-Control-Allow-Origin': corsOrigin, 'Vary': 'Origin' } : {}),
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Access-Control-Max-Age': '86400',
         },
@@ -208,6 +224,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: { fetch: (input, init) => fetchWithTimeout(input, init, 8000) },
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -291,12 +308,8 @@ export async function proxy(request: NextRequest) {
   // ──────────────────────────────────────────────────────────────────────────
 
   // ─── Regular routes ───────────────────────────────────────────────────────
-  // Use getSession() — reads from cookie, no network round-trip (~0ms).
-  // We only need to know *if* a user exists to guard protected paths.
-  // Actual data is protected by Supabase RLS; UserAccessGuard handles
-  // the full_blocked check client-side.
-  const { data: { session } } = await supabase.auth.getSession()
-  const user = session?.user ?? null
+  // Verify the user before granting access to protected pages.
+  const { data: { user } } = await supabase.auth.getUser()
 
   const protectedPaths = [
     '/dashboard',
@@ -333,6 +346,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/reels/:path*',
+    '/plan/from-reel/:path*',
+    '/api/reels/:path*',
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 }

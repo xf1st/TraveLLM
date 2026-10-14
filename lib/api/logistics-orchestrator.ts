@@ -56,8 +56,9 @@ export async function determineOptimalTransport(
     // 3. Можно ли доехать на поезде?
 
     // ШАГ 2: Получение координат городов (AeroDataBox) - ~2 Units (за оба)
-    const originInfo = await getAirportInfo(originIata);
-    const destInfo = await getAirportInfo(destIata);
+    const [originInfo, destInfo] = await Promise.all([
+        getAirportInfo(originIata), getAirportInfo(destIata),
+    ]);
 
     if (!originInfo || !destInfo) {
         // Если не нашли координаты, fallback на самолет с пересадкой

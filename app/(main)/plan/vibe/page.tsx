@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
-import { Epilogue, Plus_Jakarta_Sans } from "next/font/google"
 import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -21,26 +20,13 @@ import {
 import { PLAN_PENDING_GENERATION_KEY } from "@/lib/trip-generation-stream"
 import { useTripGeneration } from "@/lib/context/trip-generation-context"
 import { ErrorModal } from "@/components/ErrorModal"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { EconomyRouteDialog } from "@/components/plan/economy-route-dialog"
 import { cn } from "@/lib/utils"
 
-/** Moodboard image — scripts/Vibe/code.html */
-const MOODBOARD_IMG =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCvw0vQMzDfDDt8t4bxngK0Hw_nJ26IwdB_VVHla-UPBRkR90Bsk-hrVl35-g9I6nzRwA2iiJC5Li3piUtcTTZAMP8C5FbG-0nv6WLdjlOa9YoP72S3ccEIWgnFTwHjmIYU_AzqKtSf3dMPgPVZUzZvH6TQfRUNqy34aXpioVVbZWFf5AGsVW2JF3kvlMtfv3U8t4SGBlXY-p8VfbczblAIGG7KCQuQQxthIh9MFO1VyK7FKq0meEcar5DpEy-ZmaLKio2MGHGMWhbg"
+const MOODBOARD_IMG = "/night_city.jpg"
 
-/** Epilogue в next/font — только latin/latin-ext; кириллица уйдёт в системный fallback из стека. */
-const fontHeadline = Epilogue({
-  subsets: ["latin", "latin-ext"],
-  weight: ["700", "800", "900"],
-  style: ["normal", "italic"],
-  display: "swap",
-})
-
-const fontBody = Plus_Jakarta_Sans({
-  subsets: ["latin", "cyrillic-ext"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-})
+const fontHeadline = { className: "font-epilogue" }
+const fontBody = { className: "font-jakarta" }
 
 const FORBIDDEN_STEMS = [
   "хуй", "хуе", "хуи", "хуя", "пизд", "ебал", "ебать", "ебан", "ёбал", "ёбать", "ёбан", "наебал",
@@ -227,45 +213,7 @@ export default function PlanVibePage() {
           details={errorModal.details}
         />
 
-        <Dialog open={showEconomyWarning} onOpenChange={setShowEconomyWarning}>
-          <DialogContent className="w-[calc(100vw-1.25rem)] max-w-md border-[#c0a5bd]/40 bg-[#fff3fa] dark:border-white/10 dark:bg-zinc-900/95 dark:text-zinc-100 sm:w-full">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 font-bold text-foreground">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                {t("economyWarning.title")}
-              </DialogTitle>
-              <DialogDescription className="pt-1 text-sm text-[#6b5469] dark:text-zinc-400">
-                {t("economyWarning.description")}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => handleEconomyChoice(true)}
-                className={cn(
-                  "w-full touch-manipulation rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
-                  "dark:border-white/10 dark:bg-zinc-800/90 dark:hover:bg-zinc-800",
-                  stickerShadow,
-                )}
-              >
-                <p className="text-sm font-bold text-[#3b283b] dark:text-zinc-100">{t("economyWarning.strict")}</p>
-                <p className="mt-1 text-xs text-[#6b5469] dark:text-zinc-400">{t("economyWarning.strictHint")}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleEconomyChoice(false)}
-                className={cn(
-                  "w-full touch-manipulation rounded-2xl border border-[#c0a5bd]/30 bg-white p-4 text-left transition-colors hover:bg-[#ffebfa]",
-                  "dark:border-white/10 dark:bg-zinc-800/90 dark:hover:bg-zinc-800",
-                  stickerShadow,
-                )}
-              >
-                <p className="text-sm font-bold text-[#3b283b] dark:text-zinc-100">{t("economyWarning.flexible")}</p>
-                <p className="mt-1 text-xs text-[#6b5469] dark:text-zinc-400">{t("economyWarning.flexibleHint")}</p>
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <EconomyRouteDialog open={showEconomyWarning} onOpenChange={setShowEconomyWarning} onChoose={handleEconomyChoice} />
 
         {/* Decorative blobs — DESIGN.md */}
         <div

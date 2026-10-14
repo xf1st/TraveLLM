@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, Suspense } from "react"
+import { useState, useEffect, useMemo, useRef, Suspense } from "react"
 import Link from "next/link"
 import { useTranslations, useLocale } from "next-intl"
 import { AppLayout } from "@/components/app-layout"
@@ -27,12 +27,13 @@ import { Input } from "@/components/ui/input"
 import { useSearchParams } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
+import { ProfileSkeleton } from "@/components/profile/profile-skeleton"
 import { supabase, signOut } from "@/lib/supabase"
 import { patchMyProfile, ProfilePatchError } from "@/lib/user-profile-client"
-import { appToast as toast } from "@/components/ui/sonner"
+import { appToast } from "@/components/ui/sonner"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { motion, AnimatePresence } from "framer-motion"
-import { TripFeedbackDialog, type TripFeedbackRecord } from "@/components/travel/TripFeedbackDialog"
 import { cn } from "@/lib/utils"
 import {
   PROFILE_NAME_MAX,
@@ -42,6 +43,9 @@ import {
   PROFILE_LANGUAGE_IDS,
   PROFILE_INTEREST_IDS,
   sanitizeDisplayName,
+  sanitizeDisplayNameInput,
+  sanitizeBioInput,
+  sanitizeLocaleInput,
   sanitizeUsernameInput,
   normalizeUsername,
   sanitizeBioText,
@@ -168,14 +172,15 @@ function EditSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="rounded-xl border border-border/50 overflow-hidden">
+    <div className="trip-glass overflow-hidden rounded-[1.75rem]">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex min-h-11 w-full touch-manipulation items-center gap-3 border-b border-border/30 bg-muted/30 px-4 py-3.5 text-left transition-colors hover:bg-muted/50 sm:px-5"
+        aria-expanded={open}
+        className="flex min-h-11 w-full touch-manipulation items-center gap-3 px-5 py-5 text-left transition-colors hover:bg-primary/5 sm:px-6"
       >
-        <span className="text-primary/80">{icon}</span>
-        <span className="text-sm font-semibold text-foreground flex-1">{title}</span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">{icon}</span>
+        <span className="text-base font-bold text-foreground flex-1">{title}</span>
         <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence initial={false}>
@@ -187,7 +192,7 @@ function EditSection({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-5 space-y-4">{children}</div>
+            <div className="border-t border-border/40 p-5 space-y-4 sm:p-6">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -196,11 +201,14 @@ function EditSection({
 }
 
 // Settings section header
-function SettingsSectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SettingsSectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description?: string }) {
   return (
-    <div className="px-5 py-3 bg-muted/30 border-b border-border/30 text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-      {icon}
-      {title}
+    <div className="flex items-start gap-3 border-b border-border/40 p-5 sm:p-6">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary [&_svg]:size-[18px]">{icon}</span>
+      <div className="min-w-0 pt-0.5">
+        <h3 className="text-base font-bold tracking-tight text-foreground">{title}</h3>
+        {description && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>}
+      </div>
     </div>
   )
 }
@@ -221,19 +229,47 @@ function SettingsRow({
 }) {
   return (
     <div className={cn(
-      "flex items-center justify-between px-5 py-4",
+      "flex flex-wrap items-center justify-between gap-x-3 gap-y-3 px-5 py-4 sm:px-6",
       !last && "border-b border-border/30"
     )}>
-      <div className="flex items-center gap-3 min-w-0">
-        {icon && <span className="text-muted-foreground shrink-0">{icon}</span>}
+      <div className="flex flex-1 items-center gap-3 min-w-[160px]">
+        {icon && <span className="flex size-9 items-center justify-center rounded-xl bg-primary/5 text-primary shrink-0">{icon}</span>}
         <div className="min-w-0">
           <div className="text-sm font-medium text-foreground">{label}</div>
-          {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
+          {description && <div className="text-xs leading-relaxed text-muted-foreground mt-1">{description}</div>}
         </div>
       </div>
-      <div className="shrink-0 ml-4">{control}</div>
+      <div className="shrink-0 ml-auto">{control}</div>
     </div>
   )
+}
+
+function createProfileEditForm(data: any = {}) {
+  const prefs = data.preferences || {}
+  return {
+            full_name: data.full_name || "",
+            citizenship: data.citizenship || "",
+            nationality: data.nationality || "",
+            gender: prefs.gender || "",
+            age: prefs.age ? String(prefs.age) : "",
+            pace: prefs.pace || "moderate",
+            languages: migrateLanguageList(data.languages) as string[],
+            interests: filterInterestList(prefs.interestsDetailed) as string[],
+            notifications_enabled: data.notifications_enabled ?? true,
+            accommodation: (() => {
+              const val = (prefs.accommodation || "").toLowerCase();
+              if (val.includes("хостел") || val === "hostel") return "hostel";
+              if (val.includes("апартамент") || val.includes("airbnb") || val === "airbnb") return "airbnb";
+              if (val.includes("курорт") || val === "resort") return "resort";
+              return "hotel";
+            })(),
+            profileBackground: prefs.profileBackground || "ocean",
+            autoFavorites: prefs.autoFavorites || false,
+            publicProfile: data.public_profile || false,
+            username: data.username || "",
+            bio: data.bio || "",
+            defaultTripDuration: prefs.defaultTripDuration || "7",
+  }
 }
 
 function ProfileContent() {
@@ -244,29 +280,21 @@ function ProfileContent() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [userRoutes, setUserRoutes] = useState<any[]>([])
-  const [debugInfo, setDebugInfo] = useState<any>({ userId: null, error: null, sessionStatus: "Checking..." })
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [savingSetting, setSavingSetting] = useState<string | null>(null)
+  const settingSaveInFlight = useRef(false)
   const [isEditing, setIsEditing] = useState(false)
   const initialTab = searchParams?.get("tab")
   const [activeTab, setActiveTab] = useState(initialTab === "settings" ? "settings" : "overview")
-  const [editForm, setEditForm] = useState({
-    full_name: "",
-    citizenship: "",
-    nationality: "",
-    gender: "",
-    age: "",
-    pace: "moderate",
-    languages: [] as string[],
-    interests: [] as string[],
-    notifications_enabled: true,
-    accommodation: "hotel",
-    profileBackground: "ocean",
-    autoFavorites: false,
-    publicProfile: false,
-    username: "",
-    bio: "",
-    defaultTripDuration: "7",
-  })
+  const [editForm, setEditForm] = useState(() => createProfileEditForm())
+  const toastSource = isEditing || activeTab !== "settings" ? "profile" : "settings"
+  const toast = {
+    success: (msg: string) => appToast.success(msg, { source: toastSource }),
+    error: (msg: string) => appToast.error(msg, { source: toastSource }),
+  }
 
   const [siteOrigin, setSiteOrigin] = useState("")
   useEffect(() => {
@@ -277,8 +305,6 @@ function ProfileContent() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [feedbackByTripId, setFeedbackByTripId] = useState<Record<string, TripFeedbackRecord>>({})
-  const [feedbackTrip, setFeedbackTrip] = useState<any | null>(null)
   const [usernameEditing, setUsernameEditing] = useState(false)
   const [usernameTemp, setUsernameTemp] = useState("")
   const [savingUsername, setSavingUsername] = useState(false)
@@ -371,49 +397,31 @@ function ProfileContent() {
       citiesByCountry: citiesList,
       totalCities: citiesList.reduce((sum, item) => sum + item.cities.length, 0),
     }
-  }, [completedTrips, profile?.preferences?.visitedCountries])
+  }, [completedTrips])
 
   useEffect(() => {
+    const controller = new AbortController()
+    let cancelled = false
+    const timeout = window.setTimeout(() => controller.abort(), 15000)
+    setLoading(true)
+    setLoadError(false)
     const loadProfile = async () => {
-      const meRes = await fetch("/api/user/me?include=profile-page", { credentials: "same-origin" })
-      const meData = await meRes.json().catch(() => ({}))
-      const authUser = meRes.ok ? meData.user || null : null
+      const meRes = await fetch("/api/user/me?include=profile-page", { credentials: "same-origin", signal: controller.signal, cache: "no-store" })
+      if (!meRes.ok) throw new Error(`Profile request failed (${meRes.status})`)
+      const meData = await meRes.json()
+      if (!meData.user || !Array.isArray(meData.trips)) throw new Error("Incomplete profile response")
+      if (cancelled) return
+      const authUser = meData.user
       setUser(authUser)
-      setDebugInfo((prev: any) => ({ ...prev, sessionStatus: authUser ? "ACTIVE" : "NONE", userId: authUser?.id }))
 
       if (authUser) {
-        let data = meData.profile
+        const data = meData.profile || { full_name: authUser.user_metadata?.full_name, avatar_url: authUser.user_metadata?.avatar_url, preferences: {} }
         if (data) {
           setProfile(data)
-          setAvatarUrl(data.avatar_url)
-          const prefs = data.preferences || {}
-          setEditForm({
-            full_name: data.full_name || "",
-            citizenship: data.citizenship || "",
-            nationality: data.nationality || "",
-            gender: prefs.gender || "",
-            age: prefs.age ? String(prefs.age) : "",
-            pace: prefs.pace || "moderate",
-            languages: migrateLanguageList(data.languages),
-            interests: filterInterestList(prefs.interestsDetailed),
-            notifications_enabled: data.notifications_enabled ?? true,
-            accommodation: (() => {
-              const val = (prefs.accommodation || "").toLowerCase();
-              if (val.includes("хостел") || val === "hostel") return "hostel";
-              if (val.includes("апартамент") || val.includes("airbnb") || val === "airbnb") return "airbnb";
-              if (val.includes("курорт") || val === "resort") return "resort";
-              return "hotel";
-            })(),
-            profileBackground: prefs.profileBackground || "ocean",
-            autoFavorites: prefs.autoFavorites || false,
-            publicProfile: data.public_profile || false,
-            username: data.username || "",
-            bio: data.bio || "",
-            defaultTripDuration: prefs.defaultTripDuration || "7",
-          })
+          setAvatarUrl(data.avatar_url || authUser.user_metadata?.avatar_url || null)
+          setEditForm(createProfileEditForm(data))
         }
 
-        setDebugInfo((prev: any) => ({ ...prev, userId: authUser.id }))
         const localTrips: any[] = []
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i)
@@ -445,41 +453,47 @@ function ProfileContent() {
 
         setUserRoutes(allRoutes.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
 
-        if (Array.isArray(meData.feedback)) {
-          const byTrip: Record<string, TripFeedbackRecord> = {}
-          meData.feedback.forEach((row: any) => {
-            const tripKey = String(row?.trip_id || "")
-            if (!tripKey) return
-            byTrip[tripKey] = row
-          })
-          setFeedbackByTripId(byTrip)
-        }
-      } else {
-        // GUEST MODE
-        const localTrips: any[] = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.startsWith('trip-') || key === 'lastGeneratedRoute')) {
-            try {
-              const tripData = JSON.parse(localStorage.getItem(key) || '{}')
-              if (tripData.title) {
-                const id = key === 'lastGeneratedRoute' ? 'ai-last' : key.replace('trip-', '')
-                localTrips.push({
-                  id,
-                  ...tripData,
-                  created_at: tripData.created_at || new Date().toISOString()
-                })
-              }
-            } catch (e) { }
-          }
-        }
-        setUserRoutes(localTrips.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-        setFeedbackByTripId({})
+
       }
       setLoading(false)
     }
-    loadProfile()
-  }, [])
+    void loadProfile().catch(() => {
+      if (!cancelled) setLoadError(true)
+    }).finally(() => {
+      window.clearTimeout(timeout)
+      if (!cancelled) setLoading(false)
+    })
+    return () => {
+      cancelled = true
+      controller.abort()
+      window.clearTimeout(timeout)
+    }
+  }, [loadAttempt])
+
+  // Wait for the server before changing a setting. Serial saves avoid stale preferences
+  // overwriting one another, and a failed request leaves the saved value visible.
+  const saveServiceSetting = async (key: string, value: string | boolean) => {
+    if (!user || settingSaveInFlight.current) return false
+    settingSaveInFlight.current = true
+    setSavingSetting(key)
+    try {
+      const body = key === "notifications_enabled" ? { notifications_enabled: value } : { preferences: { [key]: value } }
+      const { profile: p } = await patchMyProfile(body)
+      setProfile((prev: any) => ({ ...prev, ...p }))
+      if (key === "notifications_enabled" || key === "autoFavorites") {
+        setEditForm((prev) => ({ ...prev, [key]: value }))
+      }
+      window.dispatchEvent(new Event("profile_updated"))
+      return true
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error"
+      toast.error(tp("toast.saveError", { message: msg }))
+      return false
+    } finally {
+      settingSaveInFlight.current = false
+      setSavingSetting(null)
+    }
+  }
 
   const handleUpdateProfile = async () => {
     if (!user) return
@@ -513,7 +527,7 @@ function ProfileContent() {
     const langs = migrateLanguageList(editForm.languages)
     const interests = filterInterestList(editForm.interests)
 
-    setLoading(true)
+    setSavingProfile(true)
 
     const prevPrefs = profile.preferences || {}
     const updatedPreferences = {
@@ -570,7 +584,7 @@ function ProfileContent() {
         toast.error(tp("toast.profileSaveError", { message: msg }))
       }
     }
-    setLoading(false)
+    setSavingProfile(false)
   }
 
   const [savingPublicProfile, setSavingPublicProfile] = useState(false)
@@ -699,9 +713,11 @@ function ProfileContent() {
         .from('avatars')
         .getPublicUrl(filePath)
 
-      await patchMyProfile({ avatar_url: publicUrl })
+      const { profile: p } = await patchMyProfile({ avatar_url: publicUrl })
+      setProfile((prev: any) => ({ ...prev, ...p }))
 
       setAvatarUrl(publicUrl)
+      window.dispatchEvent(new Event("profile_updated"))
       toast.success(tp("toast.avatarUpdated"))
     } catch (error: any) {
       toast.error('Error uploading avatar: ' + error.message)
@@ -721,7 +737,29 @@ function ProfileContent() {
     ? tp("stats.relaxedPace")
     : tp("stats.balanced")
 
+  const cancelEditing = () => {
+    setEditForm(createProfileEditForm(profile || {}))
+    setIsEditing(false)
+  }
+
   const currentBg = PROFILE_BACKGROUNDS.find(b => b.id === editForm.profileBackground)
+
+  if (loading) return <AppLayout className="bg-background"><ProfileSkeleton settings={activeTab === "settings"} /></AppLayout>
+
+  if (loadError) return (
+    <AppLayout className="bg-background">
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <div role="alert" className="trip-glass rounded-[1.75rem] p-6 sm:p-8">
+          <h1 className="text-xl font-bold">{tp("loadErrorTitle")}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{tp("loadErrorDesc")}</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button onClick={() => setLoadAttempt((attempt) => attempt + 1)}><RotateCcw className="mr-2 size-4" />{tp("retryLoad")}</Button>
+            <Button asChild variant="outline"><Link href="/auth">{tp("signInAgain")}</Link></Button>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  )
 
   return (
     <AppLayout className="bg-background">
@@ -799,7 +837,7 @@ function ProfileContent() {
                       <input
                         autoFocus
                         value={nameTemp}
-                        onChange={(e) => setNameTemp(sanitizeDisplayName(e.target.value))}
+                        onChange={(e) => setNameTemp(sanitizeDisplayNameInput(e.target.value))}
                         maxLength={PROFILE_NAME_MAX}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveNameInline()
@@ -844,7 +882,7 @@ function ProfileContent() {
                       <input
                         autoFocus
                         value={usernameTemp}
-                        onChange={(e) => setUsernameTemp(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                        onChange={(e) => setUsernameTemp(sanitizeUsernameInput(e.target.value).toLowerCase())}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") saveUsernameInline()
                           if (e.key === "Escape") setUsernameEditing(false)
@@ -910,7 +948,8 @@ function ProfileContent() {
                   </Button>
                 )}
                 <Button
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={() => { if (isEditing) cancelEditing(); else setIsEditing(true) }}
+                  aria-label={isEditing ? tp("cancel") : tp("configure")}
                   variant="outline"
                   size="icon"
                   className="h-11 touch-manipulation rounded-xl border-white/20 bg-white/10 backdrop-blur-md dark:bg-white/5 hover:bg-white/20 sm:h-10 sm:w-10 md:w-auto md:px-4 md:gap-2"
@@ -967,16 +1006,17 @@ function ProfileContent() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.25 }}
             >
-              <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
+              <div className="space-y-4">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-muted/20">
+                <div className="flex items-start justify-between gap-4 px-1 py-2">
                   <div className="flex items-center gap-2">
                     <Edit2 className="h-4 w-4 text-primary" />
-                    <h2 className="text-base font-bold">{tp("editProfileTitle")}</h2>
+                    <div><h2 className="text-2xl font-bold tracking-tight">{tp("editProfileTitle")}</h2><p className="mt-1.5 text-sm text-muted-foreground">{tp("editProfileSubtitle")}</p></div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsEditing(false)}
+                    onClick={cancelEditing}
+                    aria-label={tp("cancel")}
                     className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
@@ -984,27 +1024,29 @@ function ProfileContent() {
                 </div>
 
                 {/* Scrollable body */}
-                <div className="max-h-[80vh] overflow-y-auto p-5 space-y-3">
+                <div className="space-y-4">
 
                   {/* Section 1: Личные данные */}
                   <EditSection title={tp("personalSection")} icon={<User className="h-4 w-4" />} defaultOpen={true}>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("fullNameLabel")}</label>
+                        <label htmlFor="edit-full-name" className="text-sm font-medium">{tp("fullNameLabel")}</label>
                         <Input
+                          id="edit-full-name"
                           value={editForm.full_name}
                           onChange={(e) =>
-                            setEditForm({ ...editForm, full_name: sanitizeDisplayName(e.target.value) })
+                            setEditForm({ ...editForm, full_name: sanitizeDisplayNameInput(e.target.value) })
                           }
                           maxLength={PROFILE_NAME_MAX}
-                          className="bg-background/50"
+                          className="h-11 w-full rounded-xl bg-background/50"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">Username</label>
-                        <div className="flex items-center">
-                          <span className="px-3 py-2 text-sm bg-muted/50 border border-input border-r-0 rounded-l-md text-muted-foreground">@</span>
+                        <label htmlFor="edit-username" className="text-sm font-medium">{tp("username")}</label>
+                        <div className="relative">
+                          <span aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm text-muted-foreground">@</span>
                           <Input
+                            id="edit-username"
                             value={editForm.username}
                             onChange={(e) =>
                               setEditForm({
@@ -1014,67 +1056,70 @@ function ProfileContent() {
                             }
                             placeholder="username"
                             maxLength={PROFILE_USERNAME_MAX}
-                            className="bg-background/50 font-mono rounded-l-none"
+                            className="h-11 rounded-xl bg-background/50 pl-9 font-mono"
                           />
                         </div>
                       </div>
                       <div className="sm:col-span-2 space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("aboutMeLabel")}</label>
+                        <label htmlFor="edit-bio" className="text-sm font-medium">{tp("aboutMeLabel")}</label>
                         <textarea
+                          id="edit-bio"
                           value={editForm.bio}
                           onChange={(e) =>
                             setEditForm({
                               ...editForm,
-                              bio: sanitizeBioText(e.target.value, PROFILE_BIO_MAX),
+                              bio: sanitizeBioInput(e.target.value, PROFILE_BIO_MAX),
                             })
                           }
                           placeholder={tp("aboutMePlaceholder")}
-                          maxLength={2000}
-                          rows={2}
-                          className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
+                          maxLength={PROFILE_BIO_MAX}
+                          rows={3}
+                          className="w-full resize-none rounded-xl border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                         />
                         <p className="text-xs text-muted-foreground text-right">{editForm.bio.length}/{PROFILE_BIO_MAX}</p>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("uploadAvatar")}</label>
-                        <label htmlFor="avatar-upload-edit" className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-background/50 cursor-pointer hover:bg-muted/30 transition-colors text-sm text-muted-foreground">
+                        <label className="text-sm font-medium">{tp("uploadAvatar")}</label>
+                        <label htmlFor="avatar-upload-edit" className="flex items-center gap-2 px-3 py-2 rounded-xl border border-input bg-background/50 cursor-pointer hover:bg-muted/30 transition-colors text-sm text-muted-foreground">
                           <Camera className="h-4 w-4" />
                           {uploading ? tp("uploading") : tp("selectPhoto")}
                           <input id="avatar-upload-edit" type="file" accept="image/*" className="hidden" onChange={uploadAvatar} disabled={uploading} />
                         </label>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("citizenshipLabel")}</label>
+                        <label htmlFor="edit-citizenship" className="text-sm font-medium">{tp("citizenshipLabel")}</label>
                         <Input
+                          id="edit-citizenship"
                           value={editForm.citizenship}
                           onChange={(e) =>
                             setEditForm({
                               ...editForm,
-                              citizenship: sanitizeCitizenshipNationality(e.target.value),
+                              citizenship: sanitizeLocaleInput(e.target.value),
                             })
                           }
                           maxLength={PROFILE_LOCALE_LINE_MAX}
-                          className="bg-background/50"
+                          className="h-11 w-full rounded-xl bg-background/50"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("nationalityLabel")}</label>
+                        <label htmlFor="edit-nationality" className="text-sm font-medium">{tp("nationalityLabel")}</label>
                         <Input
+                          id="edit-nationality"
                           value={editForm.nationality}
                           onChange={(e) =>
                             setEditForm({
                               ...editForm,
-                              nationality: sanitizeCitizenshipNationality(e.target.value),
+                              nationality: sanitizeLocaleInput(e.target.value),
                             })
                           }
                           maxLength={PROFILE_LOCALE_LINE_MAX}
-                          className="bg-background/50"
+                          className="h-11 w-full rounded-xl bg-background/50"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("genderLabel")}</label>
+                        <label className="text-sm font-medium">{tp("genderLabel")}</label>
                         <Select value={editForm.gender || "unspecified"} onValueChange={(v) => setEditForm({ ...editForm, gender: v })}>
-                          <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-11 w-full rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="unspecified">{tp("genderUnspecified")}</SelectItem>
                             <SelectItem value="male">{tp("genderMale")}</SelectItem>
@@ -1083,15 +1128,15 @@ function ProfileContent() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("ageLabel")}</label>
-                        <Input type="number" min={10} max={100} placeholder="28" value={editForm.age} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} className="bg-background/50" />
+                        <label className="text-sm font-medium">{tp("ageLabel")}</label>
+                        <Input type="number" min={10} max={120} placeholder="28" value={editForm.age} onChange={(e) => setEditForm({ ...editForm, age: e.target.value })} className="h-11 w-full rounded-xl bg-background/50" />
                       </div>
                     </div>
                   </EditSection>
 
                   {/* Section 2: Фон профиля */}
                   <EditSection title={tp("backgroundSection")} icon={<Camera className="h-4 w-4" />} defaultOpen={false}>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                    <div className="order-1 md:order-none grid grid-cols-3 sm:grid-cols-5 gap-3">
                       {PROFILE_BACKGROUNDS.map((bg) => (
                         <button
                           key={bg.id}
@@ -1130,11 +1175,11 @@ function ProfileContent() {
 
                   {/* Section 3: Travel */}
                   <EditSection title={tp("travelSection")} icon={<Plane className="h-4 w-4" />} defaultOpen={false}>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="order-2 md:order-none grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("paceLabel")}</label>
+                        <label className="text-sm font-medium">{tp("paceLabel")}</label>
                         <Select value={editForm.pace} onValueChange={(v) => setEditForm({ ...editForm, pace: v })}>
-                          <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-11 w-full rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="slow">{tp("paceOptions.slow")}</SelectItem>
                             <SelectItem value="moderate">{tp("paceOptions.moderate")}</SelectItem>
@@ -1143,9 +1188,9 @@ function ProfileContent() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground">{tp("accommodationLabel")}</label>
+                        <label className="text-sm font-medium">{tp("accommodationLabel")}</label>
                         <Select value={editForm.accommodation} onValueChange={(v) => setEditForm({ ...editForm, accommodation: v })}>
-                          <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="h-11 w-full rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="hotel">{tp("accom.hotel")}</SelectItem>
                             <SelectItem value="hostel">{tp("accom.hostel")}</SelectItem>
@@ -1159,9 +1204,9 @@ function ProfileContent() {
 
                   {/* Section 5: Languages & interests */}
                   <EditSection title={tp("languagesSection")} icon={<Heart className="h-4 w-4" />} defaultOpen={false}>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">{tp("languagesLabel")}</label>
-                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
+                    <div className="order-4 md:order-none space-y-1.5">
+                      <label className="text-sm font-medium">{tp("languagesLabel")}</label>
+                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-xl min-h-[42px]">
                         {editForm.languages.map((lang, i) => (
                           <Badge
                             key={lang}
@@ -1178,7 +1223,7 @@ function ProfileContent() {
                         ))}
                       </div>
                       <select
-                        className="w-full h-9 rounded-md border border-input bg-background/50 px-3 text-sm"
+                        className="w-full h-9 rounded-xl border border-input bg-background/50 px-3 text-sm"
                         defaultValue=""
                         onChange={(e) => {
                           const v = e.target.value
@@ -1198,8 +1243,8 @@ function ProfileContent() {
                     </div>
 
                     <div className="space-y-1.5 mt-2">
-                      <label className="text-xs font-medium text-muted-foreground">{tp("interestsLabel")}</label>
-                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-md min-h-[42px]">
+                      <label className="text-sm font-medium">{tp("interestsLabel")}</label>
+                      <div className="flex flex-wrap gap-2 p-2 bg-background/50 border border-input rounded-xl min-h-[42px]">
                         {editForm.interests.map((tag, i) => (
                           <Badge
                             key={tag}
@@ -1216,7 +1261,7 @@ function ProfileContent() {
                         ))}
                       </div>
                       <select
-                        className="w-full h-9 rounded-md border border-input bg-background/50 px-3 text-sm"
+                        className="w-full h-9 rounded-xl border border-input bg-background/50 px-3 text-sm"
                         defaultValue=""
                         onChange={(e) => {
                           const v = e.target.value
@@ -1239,10 +1284,10 @@ function ProfileContent() {
                 </div>
 
                 {/* Sticky footer */}
-                <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-border/50 bg-card/80 px-4 py-4 backdrop-blur-md sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
-                  <Button onClick={() => setIsEditing(false)} variant="ghost" className="w-full touch-manipulation sm:w-auto">{tp("cancel")}</Button>
-                  <Button onClick={handleUpdateProfile} disabled={loading} className="w-full touch-manipulation bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
-                    {loading ? tp("saving") : tp("saveChanges")}
+                <div className="trip-glass flex flex-col-reverse gap-2 rounded-[1.75rem] p-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                  <Button onClick={cancelEditing} variant="ghost" className="w-full touch-manipulation sm:w-auto">{tp("cancel")}</Button>
+                  <Button onClick={handleUpdateProfile} disabled={savingProfile} className="w-full touch-manipulation bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto">
+                    {savingProfile ? tp("saving") : tp("saveChanges")}
                   </Button>
                 </div>
               </div>
@@ -1308,7 +1353,7 @@ function ProfileContent() {
                       <div className="trip-glass border border-white/20 rounded-2xl p-5">
                         <h3 className="text-sm font-bold flex items-center gap-2 mb-3">
                           <Heart className="h-4 w-4 text-rose-400" />
-                          Интересы
+                          {tp("interestsLabel")}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                           {profile?.preferences?.interestsDetailed?.length > 0 ? (
@@ -1329,7 +1374,7 @@ function ProfileContent() {
                               )
                             })
                           ) : (
-                            <p className="text-sm text-muted-foreground">Добавьте интересы в настройках</p>
+                            <p className="text-sm text-muted-foreground">{tp("addInterestsHint")}</p>
                           )}
                         </div>
                       </div>
@@ -1364,135 +1409,26 @@ function ProfileContent() {
                     </div>
                   )}
 
-                  {/* ====== PREFERENCES TAB ====== */}
-                  {activeTab === "preferences" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <Card className="p-6 trip-glass border-white/20 space-y-4">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                            <Utensils className="h-5 w-5" />
-                          </div>
-                          <h3 className="font-medium text-lg">{tp("foodSection")}</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{tp("foodRestrictions")}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {profile?.preferences?.dietaryRestrictions?.length > 0 ? (
-                              profile.preferences.dietaryRestrictions.map((r: string) => (
-                                <Badge key={r} variant="secondary" className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">{r}</Badge>
-                              ))
-                            ) : <span className="text-sm">{tp("noRestrictions")}</span>}
-                          </div>
-                          {profile?.preferences?.dietaryCustom && (
-                            <p className="text-sm italic text-muted-foreground mt-2">"{profile.preferences.dietaryCustom}"</p>
-                          )}
-                        </div>
-                      </Card>
-
-                      <Card className="p-6 trip-glass border-white/20 space-y-4">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                            <ClockIcon className="h-5 w-5" />
-                          </div>
-                          <h3 className="font-medium text-lg">{tp("paceSection")}</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{tp("preferredPace")}</p>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 capitalize">
-                              {paceLabel}
-                            </Badge>
-                          </div>
-                        </div>
-                      </Card>
-
-                      <Card className="p-6 trip-glass border-white/20 space-y-4">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                            <BookOpen className="h-5 w-5" />
-                          </div>
-                          <h3 className="font-medium text-lg">{tp("languagesSectionTitle")}</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">{tp("languagesSpoken")}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {profile?.languages?.length > 0 ? (
-                              profile.languages.map((l: string) => (
-                                <Badge key={l} variant="secondary" className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">{l}</Badge>
-                              ))
-                            ) : <span className="text-sm">{tp("notSpecified")}</span>}
-                          </div>
-                        </div>
-                      </Card>
-                    </div>
-                  )}
-
-                  {/* ====== HISTORY TAB ====== */}
-                  {activeTab === "history" && (() => {
-                    const dbTrips = userRoutes.filter((trip: any) =>
-                      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trip.id)
-                    )
-                    return (
-                      <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm">
-                        <div className="p-6 border-b border-border/50">
-                          <h3 className="font-bold text-xl flex items-center gap-2">
-                            <Zap className="h-5 w-5 text-primary" />
-                            {tp("historyTitle")}
-                          </h3>
-                          <p className="text-muted-foreground text-sm">{tp("historySubtitle")}</p>
-                        </div>
-                        <div className="divide-y divide-border/30">
-                          {dbTrips.map((trip: any) => (
-                            <div
-                              key={trip.id}
-                              className="p-4 flex items-center justify-between hover:bg-muted/30 dark:hover:bg-white/5 transition-colors group cursor-pointer"
-                              onClick={() => window.location.href = `/trip/${trip.id}`}
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary border border-primary/20">
-                                  <MapPin className="h-6 w-6" />
-                                </div>
-                                <div className="space-y-1">
-                                  <h4 className="font-medium group-hover:text-primary transition-colors">{trip.title}</h4>
-                                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                    <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{trip.destination}</Badge>
-                                    {trip.duration_days && <Badge variant="outline" className="text-[10px] px-2 py-0.5">{trip.duration_days} {tc("days")}</Badge>}
-                                    <span className="text-muted-foreground/60">{new Date(trip.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ArrowRight className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          {dbTrips.length === 0 && (
-                            <div className="p-12 text-center">
-                              <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-muted/30 flex items-center justify-center">
-                                <Zap className="h-8 w-8 text-muted-foreground/30" />
-                              </div>
-                              <p className="font-medium text-muted-foreground">{tp("historyEmpty")}</p>
-                              <p className="text-sm text-muted-foreground/60 mt-1 max-w-xs mx-auto">{tp("historyEmptyDesc")}</p>
-                              <Button variant="outline" className="mt-4" onClick={() => window.location.href = '/plan'}>
-                                {tp("createFirst")}
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })()}
-
                   {/* ====== SETTINGS TAB (redesigned) ====== */}
                   {activeTab === "settings" && (
-                    <div className="max-w-2xl mx-auto space-y-4 pb-20">
+                    <div className="grid min-w-0 items-start gap-4 pb-8 md:grid-cols-2">
+
+                      <div className="flex flex-wrap items-end justify-between gap-3 px-1 pb-2 md:col-span-2">
+                        <div>
+                          <h2 className="text-2xl font-bold tracking-tight">{tp("serviceSettingsTitle")}</h2>
+                          <p className="mt-1.5 text-sm text-muted-foreground">{tp("serviceSettingsDesc")}</p>
+                        </div>
+                        <span role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {savingSetting ? <><Loader2 className="size-3.5 animate-spin" />{tp("saving")}</> : <><Check className="size-3.5 text-emerald-500" />{tp("settingsAutoSave")}</>}
+                        </span>
+                      </div>
 
                       {/* Section 1: Профиль */}
-                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<User className="h-3.5 w-3.5" />} title={tp("sectionProfile")} />
-                        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+                      <div className="trip-glass min-w-0 overflow-hidden rounded-[1.75rem] md:col-span-2">
+                        <SettingsSectionHeader icon={<User className="h-3.5 w-3.5" />} title={tp("sectionProfile")} description={tp("settingsProfileDesc")} />
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-5 border-b border-border/30 sm:px-6">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-10 w-10 rounded-full bg-muted overflow-hidden shrink-0">
+                            <div className="h-12 w-12 rounded-2xl bg-muted overflow-hidden shrink-0 ring-1 ring-border/50">
                               {avatarUrl ? (
                                 <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                               ) : (
@@ -1516,8 +1452,8 @@ function ProfileContent() {
                             {tp("edit")}
                           </Button>
                         </div>
-                        <div className="flex items-center justify-between px-5 py-3.5">
-                          <div className="text-sm text-muted-foreground">Username</div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-6">
+                          <div className="text-sm text-muted-foreground">{tp("username")}</div>
                           <div className="flex items-center gap-1.5">
                             {usernameEditing ? (
                               <div className="flex items-center gap-1">
@@ -1561,27 +1497,21 @@ function ProfileContent() {
                         </div>
                       </div>
 
+                      <div className="contents md:block md:space-y-4">
                       {/* Section 2: Приложение */}
-                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionApp")} />
+                      <div className="trip-glass min-w-0 overflow-hidden rounded-[1.75rem]">
+                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionApp")} description={tp("settingsAppDesc")} />
                         <SettingsRow
                           icon={<Bell className="h-4 w-4" />}
                           label={tp("notificationsLabel")}
                           description={tp("notificationsDesc")}
                           control={
-                            <Checkbox
+                            <Switch
+                              className="relative h-6 w-11 data-[state=unchecked]:bg-muted data-[state=unchecked]:border-border after:absolute after:-inset-y-2 after:inset-x-0 [&_[data-slot=switch-thumb]]:size-5 [&_[data-slot=switch-thumb][data-state=checked]]:translate-x-5"
+                              aria-label={tp("notificationsLabel")}
                               checked={editForm.notifications_enabled}
-                              onCheckedChange={async (checked) => {
-                                const v = !!checked
-                                setEditForm({ ...editForm, notifications_enabled: v })
-                                try {
-                                  const { profile: p } = await patchMyProfile({ notifications_enabled: v })
-                                  setProfile((prev: any) => ({ ...prev, ...p }))
-                                } catch (err: unknown) {
-                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
-                                  toast.error(msg)
-                                }
-                              }}
+                              disabled={savingSetting !== null}
+                              onCheckedChange={(value) => { void saveServiceSetting("notifications_enabled", value) }}
                             />
                           }
                         />
@@ -1590,21 +1520,12 @@ function ProfileContent() {
                           label={tp("autoFavoritesLabel")}
                           description={tp("autoFavoritesDesc")}
                           control={
-                            <Checkbox
+                            <Switch
+                              className="relative h-6 w-11 data-[state=unchecked]:bg-muted data-[state=unchecked]:border-border after:absolute after:-inset-y-2 after:inset-x-0 [&_[data-slot=switch-thumb]]:size-5 [&_[data-slot=switch-thumb][data-state=checked]]:translate-x-5"
+                              aria-label={tp("autoFavoritesLabel")}
                               checked={editForm.autoFavorites}
-                              onCheckedChange={async (checked) => {
-                                const newVal = !!checked
-                                setEditForm({ ...editForm, autoFavorites: newVal })
-                                const newPrefs = { ...profile.preferences, autoFavorites: newVal }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                try {
-                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
-                                  setProfile((prev: any) => ({ ...prev, ...p }))
-                                } catch (err: unknown) {
-                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
-                                  toast.error(msg)
-                                }
-                              }}
+                              disabled={savingSetting !== null}
+                              onCheckedChange={(value) => { void saveServiceSetting("autoFavorites", value) }}
                             />
                           }
                         />
@@ -1615,19 +1536,10 @@ function ProfileContent() {
                           control={
                             <Select
                               value={profile?.preferences?.currency ?? "rub"}
-                              onValueChange={async (val) => {
-                                const newPrefs = { ...profile.preferences, currency: val }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                try {
-                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
-                                  setProfile((prev: any) => ({ ...prev, ...p }))
-                                } catch (err: unknown) {
-                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
-                                  toast.error(msg)
-                                }
-                              }}
+                              disabled={savingSetting !== null}
+                              onValueChange={(value) => { void saveServiceSetting("currency", value) }}
                             >
-                              <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                              <SelectTrigger aria-label={tp("currencyLabel")} className="h-10 w-[108px] rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="rub">₽ RUB</SelectItem>
                                 <SelectItem value="usd">$ USD</SelectItem>
@@ -1644,24 +1556,16 @@ function ProfileContent() {
                           control={
                             <Select
                               value={locale}
+                              disabled={savingSetting !== null}
                               onValueChange={async (val) => {
-                                const newPrefs = { ...profile.preferences, language: val }
-                                setProfile({ ...profile, preferences: newPrefs })
-                                try {
-                                  const { profile: p } = await patchMyProfile({ preferences: newPrefs })
-                                  setProfile((prev: any) => ({ ...prev, ...p }))
-                                } catch (err: unknown) {
-                                  const msg = err instanceof ProfilePatchError ? err.message : "Error"
-                                  toast.error(msg)
-                                  return
-                                }
+                                if (!await saveServiceSetting("language", val)) return
                                 const expires = new Date()
                                 expires.setFullYear(expires.getFullYear() + 1)
                                 document.cookie = `NEXT_LOCALE=${val};path=/;expires=${expires.toUTCString()};SameSite=Lax`
                                 window.location.reload()
                               }}
                             >
-                              <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                              <SelectTrigger aria-label={tp("languageLabel")} className="h-10 w-[128px] rounded-xl bg-background/50"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="ru">Русский</SelectItem>
                                 <SelectItem value="en">English</SelectItem>
@@ -1671,15 +1575,36 @@ function ProfileContent() {
                         />
                       </div>
 
+                      {/* Section 4: Управление */}
+                      <div className="order-3 md:order-none trip-glass min-w-0 overflow-hidden rounded-[1.75rem]">
+                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionManagement")} description={tp("settingsManagementDesc")} />
+                        <div className="space-y-3 p-5 sm:p-6">
+                          <Button variant="outline" className="h-auto min-h-11 w-full justify-start whitespace-normal rounded-xl text-left hover:bg-primary/10 hover:text-primary" onClick={() => window.location.href = "/onboarding"}>
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            {tp("resetPreferences")}
+                          </Button>
+                          <Button variant="ghost" className="h-auto min-h-11 w-full justify-start whitespace-normal rounded-xl text-left" onClick={() => {
+                            const keys = Object.keys(localStorage).filter((key) => key.startsWith("travellm_hint_") || key === "travellm_welcome_seen")
+                            keys.forEach((key) => localStorage.removeItem(key))
+                            toast.success(tp("toast.hintReset"))
+                          }}>
+                            <BookOpen className="mr-2 size-4 shrink-0" />{tp("resetHints")}
+                          </Button>
+                        </div>
+                      </div>
+
+                      </div>
+                      <div className="contents md:block md:space-y-4">
                       {/* Section 3: Публичный профиль */}
-                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Globe className="h-3.5 w-3.5" />} title={tp("sectionPublicProfile")} />
-                        <div className="p-5 space-y-4">
+                      <div className="trip-glass min-w-0 overflow-hidden rounded-[1.75rem]">
+                        <SettingsSectionHeader icon={<Globe className="h-3.5 w-3.5" />} title={tp("sectionPublicProfile")} description={tp("settingsPublicDesc")} />
+                        <div className="p-5 space-y-5 sm:p-6">
                           <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground">Username</label>
+                            <label htmlFor="public-username" className="text-sm font-medium">{tp("username")}</label>
                             <div className="flex items-center gap-2">
                               <span className="text-muted-foreground font-mono text-sm">@</span>
                               <Input
+                                id="public-username"
                                 value={editForm.username}
                                 onChange={(e) =>
                                   setEditForm({
@@ -1689,7 +1614,7 @@ function ProfileContent() {
                                 }
                                 placeholder="username"
                                 maxLength={PROFILE_USERNAME_MAX}
-                                className="bg-background/50 font-mono"
+                                className="h-11 rounded-xl bg-background/50 font-mono"
                               />
                             </div>
                             <p className="text-xs text-muted-foreground">{tp("usernameHint")}</p>
@@ -1701,19 +1626,20 @@ function ProfileContent() {
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-muted-foreground">{tp("aboutLabel")}</label>
+                            <label htmlFor="public-bio" className="text-sm font-medium">{tp("aboutLabel")}</label>
                             <textarea
+                              id="public-bio"
                               value={editForm.bio}
                               onChange={(e) =>
                                 setEditForm({
                                   ...editForm,
-                                  bio: sanitizeBioText(e.target.value, PROFILE_BIO_MAX),
+                                  bio: sanitizeBioInput(e.target.value, PROFILE_BIO_MAX),
                                 })
                               }
                               placeholder={tp("bioPlaceholder")}
-                              maxLength={2000}
+                              maxLength={PROFILE_BIO_MAX}
                               rows={3}
-                              className="w-full resize-none rounded-md border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
+                              className="w-full resize-none rounded-xl border border-input bg-background/50 px-3 py-2 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-sm"
                             />
                             <p className="text-xs text-muted-foreground">{editForm.bio.length}/{PROFILE_BIO_MAX}</p>
                           </div>
@@ -1723,40 +1649,32 @@ function ProfileContent() {
                               <div className="text-sm font-medium">{tp("publicProfile")}</div>
                               <div className="text-xs text-muted-foreground mt-0.5">{tp("shareHint")}</div>
                             </div>
-                            <Checkbox
+                            <Switch
+                              className="relative h-6 w-11 data-[state=unchecked]:bg-muted data-[state=unchecked]:border-border after:absolute after:-inset-y-2 after:inset-x-0 [&_[data-slot=switch-thumb]]:size-5 [&_[data-slot=switch-thumb][data-state=checked]]:translate-x-5"
+                              aria-label={tp("publicProfile")}
                               checked={editForm.publicProfile}
+                              disabled={savingPublicProfile || savingSetting !== null}
                               onCheckedChange={(checked) => setEditForm({ ...editForm, publicProfile: !!checked })}
                             />
                           </div>
 
                           <Button
                             onClick={handleSavePublicProfile}
-                            disabled={savingPublicProfile}
-                            className="w-full sm:w-auto"
+                            disabled={savingPublicProfile || savingSetting !== null}
+                            className="w-full rounded-full sm:w-auto"
                           >
                             {savingPublicProfile ? tp("saving") : tp("saveChanges")}
                           </Button>
                         </div>
                       </div>
 
-                      {/* Section 4: Управление */}
-                      <div className="rounded-2xl border border-border/50 bg-card/40 overflow-hidden">
-                        <SettingsSectionHeader icon={<Settings className="h-3.5 w-3.5" />} title={tp("sectionManagement")} />
-                        <div className="px-5 py-4">
-                          <Button variant="outline" className="w-full justify-start hover:bg-primary/10 hover:text-primary" onClick={() => window.location.href = "/onboarding"}>
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            {tp("resetPreferences")}
-                          </Button>
-                        </div>
-                      </div>
-
                       {/* Section 5: Аккаунт */}
-                      <div className="rounded-2xl border border-red-500/20 bg-red-500/5 overflow-hidden">
-                        <SettingsSectionHeader icon={<LogOut className="h-3.5 w-3.5 text-red-400" />} title={tp("sectionAccount")} />
-                        <div className="p-5 flex flex-col gap-3">
+                      <div className="min-w-0 overflow-hidden rounded-[1.75rem] border border-border/50 bg-card/40">
+                        <SettingsSectionHeader icon={<LogOut className="h-3.5 w-3.5 text-red-400" />} title={tp("sectionAccount")} description={tp("settingsAccountDesc")} />
+                        <div className="p-5 flex flex-col gap-3 sm:p-6">
                           <Button
                             variant="outline"
-                            className="w-full justify-start text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 border-red-500/20"
+                            className="min-h-11 w-full justify-start rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 border-red-500/20"
                             onClick={async () => {
                               await signOut()
                               window.location.href = "/"
@@ -1767,13 +1685,14 @@ function ProfileContent() {
                           </Button>
                           <Button
                             variant="ghost"
-                            className="w-full justify-start text-muted-foreground hover:text-red-600"
+                            className="min-h-11 w-full justify-start rounded-xl text-muted-foreground hover:text-red-600"
                             onClick={() => setDeleteDialogOpen(true)}
                           >
                             <X className="h-4 w-4 mr-2" />
                             {tp("deleteAccountLabel")}
                           </Button>
                         </div>
+                      </div>
                       </div>
 
                     </div>
@@ -1817,21 +1736,7 @@ function ProfileContent() {
         </DialogContent>
       </Dialog>
 
-      {feedbackTrip && (
-        <TripFeedbackDialog
-          open={!!feedbackTrip}
-          onOpenChange={(open) => {
-            if (!open) setFeedbackTrip(null)
-          }}
-          tripId={String(feedbackTrip.id)}
-          tripTitle={feedbackTrip.title || "Completed trip"}
-          source="profile"
-          initialFeedback={feedbackByTripId[String(feedbackTrip.id)] || null}
-          onSubmitted={(saved) => {
-            setFeedbackByTripId((prev) => ({ ...prev, [String(saved.trip_id)]: saved }))
-          }}
-        />
-      )}
+
     </AppLayout>
   )
 }
@@ -1839,9 +1744,7 @@ function ProfileContent() {
 export default function ProfilePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
+      <AppLayout className="bg-background"><ProfileSkeleton /></AppLayout>
     }>
       <ProfileContent />
     </Suspense>

@@ -12,13 +12,14 @@ import {
   Building, Plane, Film, PlayCircle, PiggyBank, Thermometer, Car, Wand2, ChevronDown
 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/components/auth-provider"
 import { motion, useInView, Variants } from "framer-motion"
 import { Footer } from "@/components/footer"
 import { LandingNewsSection } from "@/components/landing/LandingNewsSection"
 import { VideoText } from "@/components/ui/video-text"
 import { FloatingIcons } from "@/components/FloatingIcons"
 import { MobileLanding } from "./MobileLanding"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
 import { ItineraryPreview } from "@/components/landing/ItineraryPreview"
 import { cn } from "@/lib/utils"
 import { useTranslations } from "next-intl"
@@ -110,13 +111,9 @@ const FAQ_DATA = [
 export default function LandingPage() {
   const t = useTranslations("landing")
   const tm = useTranslations("meta")
-  const [user, setUser] = useState<any>(null)
+  const { user } = useAuth()
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null)
-    })
-  }, [])
+
 
   return (
     <>
@@ -302,7 +299,7 @@ export default function LandingPage() {
       {/* ═══════════════════════════════════════════════
           ИНТЕРАКТИВНЫЕ REELS АКТИВНОСТЕЙ
       ═══════════════════════════════════════════════ */}
-      <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/20 overflow-visible overflow-x-clip relative">
+      {PUBLIC_REELS_ENABLED && <section className="py-24 md:py-40 px-4 md:px-8 bg-muted/20 overflow-visible overflow-x-clip relative">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[600px] bg-blue-500/10 blur-[150px] pointer-events-none rounded-full" />
         
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-16 md:gap-24 relative z-10">
@@ -352,7 +349,7 @@ export default function LandingPage() {
              </div>
           </motion.div>
         </div>
-      </section>
+      </section>}
 
       {/* ═══════════════════════════════════════════════
           ПРЕВЬЮ РЕАЛЬНОГО МАРШРУТА

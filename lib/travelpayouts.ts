@@ -1,3 +1,6 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Travelpayouts Partner Links Generator
  *
@@ -16,7 +19,7 @@ function aviasalesOrigin(market?: BookingMarket): string {
 
 // No static import of undici, it causes "Cannot find module 'node:net'" when imported in Client Components
 // Proxy configuration deferred to avoid client-side bundling issues
-const PROXY_URL = process.env.HTTP_PROXY || process.env.http_proxy || "";
+const PROXY_URL = getHttpProxyUrl();
 let proxyDispatcher: any = undefined;
 if (typeof window === "undefined" && PROXY_URL) {
     try {
@@ -1062,7 +1065,7 @@ export async function getCheapestTickets(
 
   try {
     const fetchOptions: RequestInit & { dispatcher?: any } = {};
-    if (proxyDispatcher) {
+    if (proxyDispatcher && !(await isProxyDisabled())) {
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -1207,7 +1210,7 @@ export async function getPriceCalendar(
 
   try {
     const fetchOptions: RequestInit & { dispatcher?: any } = {};
-    if (proxyDispatcher) {
+    if (proxyDispatcher && !(await isProxyDisabled())) {
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -1268,7 +1271,7 @@ export async function getWeekMatrix(
 
   try {
     const fetchOptions: RequestInit & { dispatcher?: any } = {};
-    if (proxyDispatcher) {
+    if (proxyDispatcher && !(await isProxyDisabled())) {
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(
@@ -1320,7 +1323,7 @@ export async function getSpecialOffers(
 
   try {
     const fetchOptions: RequestInit & { dispatcher?: any } = {};
-    if (proxyDispatcher) {
+    if (proxyDispatcher && !(await isProxyDisabled())) {
         fetchOptions.dispatcher = proxyDispatcher;
     }
     const response = await fetch(

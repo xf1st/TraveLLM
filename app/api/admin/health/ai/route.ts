@@ -19,6 +19,8 @@ export async function GET() {
         temperature: 0,
         responseFormat: "text",
         reasoningEffort: "minimal",
+        signal: AbortSignal.timeout(15000),
+        trackSession: false,
       }
     )
 
@@ -40,7 +42,7 @@ export async function GET() {
       ok: true,
       provider: "openrouter",
       model: result.usage?.model || GEMINI_FLASH,
-      proxy: getGeminiProxyStatus(),
+      proxy: await getGeminiProxyStatus(),
       duration: Date.now() - startedAt,
       usage: result.usage
         ? {
@@ -58,7 +60,7 @@ export async function GET() {
         ok: false,
         model: GEMINI_FLASH,
         error: message,
-        proxy: getGeminiProxyStatus(),
+        proxy: await getGeminiProxyStatus(),
         duration: Date.now() - startedAt,
       },
       { status: 502 }

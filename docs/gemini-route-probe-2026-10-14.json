@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-10-14T20:44:10.791Z",
+  "ms": 11124,
+  "model": "google/gemini-3.1-flash-lite",
+  "days": 7,
+  "activities": 21,
+  "promptTokens": 9316,
+  "outputTokens": 4746,
+  "costUsd": 0.009448
+}

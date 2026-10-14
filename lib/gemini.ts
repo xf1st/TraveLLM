@@ -1,32 +1,19 @@
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout"
+import { getAiConnection, type AiConnectionMode } from "@/lib/server/ai-connection"
+import { isAiProviderEnabled } from "@/lib/proxy-config"
 // Gemini via OpenRouter (Primary AI Provider)
 // https://openrouter.ai
-import { ProxyAgent } from "undici";
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const httpProxy = process.env.TRAVELLM_HTTP_PROXY || process.env.HTTP_PROXY || process.env.http_proxy
 
 export const GEMINI_FLASH = "google/gemini-3.1-flash-lite";
 
 // Static import is intentional: Next standalone must include undici in the
 // production image. A dynamic eval(require()) could fail silently and bypass
 // the proxy, exposing the Timeweb egress IP to OpenRouter.
-let proxyDispatcher: ProxyAgent | undefined;
-let proxyConfigurationError = false;
-if (typeof window === "undefined" && httpProxy) {
-    try {
-        proxyDispatcher = new ProxyAgent(httpProxy);
-    } catch {
-        proxyConfigurationError = true;
-    }
-}
-
-export function getGeminiProxyStatus() {
-    return {
-        configured: Boolean(httpProxy),
-        active: Boolean(proxyDispatcher),
-        configurationError: proxyConfigurationError,
-    };
+export async function getGeminiProxyStatus() {
+    return (await getAiConnection()).status;
 }
 
 // OpenRouter pricing (Aug 2026) — $0.25 input / $1.50 output per 1M tokens
@@ -57,6 +44,9 @@ export interface GeminiInferenceResult {
 }
 
 interface GeminiOptions {
+    connectionMode?: AiConnectionMode;
+    trackSession?: boolean;
+    signal?: AbortSignal;
     maxTokens?: number;
     temperature?: number;
     tripDays?: number;
@@ -107,6 +97,8 @@ export function resetGeminiSessionUsage(): void {
 }
 
 function applyUsageToSession(usage: TokenUsage): void {
+    sessionUsage.model = sessionUsage.totalTokens === 0 ? usage.model :
+        sessionUsage.model === usage.model ? usage.model : "gemini-mixed";
     sessionUsage.promptTokens     += usage.promptTokens;
     sessionUsage.completionTokens += usage.completionTokens;
     sessionUsage.totalTokens      += usage.totalTokens;
@@ -120,6 +112,9 @@ async function runGeminiInference(
     messages: ChatMessage[],
     options: GeminiOptions = {}
 ): Promise<GeminiInferenceResult> {
+    if (options.connectionMode === undefined && !(await isAiProviderEnabled("gemini"))) {
+        throw Object.assign(new Error("Gemini disabled by administrator"), { code: "PROVIDER_DISABLED" });
+    }
     if (!OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
@@ -153,6 +148,7 @@ async function runGeminiInference(
     }
 
     const fetchOptions: any = {
+        signal: options.signal,
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -163,11 +159,13 @@ async function runGeminiInference(
         body: JSON.stringify(bodyPayload),
     };
 
-    if (proxyDispatcher) {
-        fetchOptions.dispatcher = proxyDispatcher;
+    const connection = await getAiConnection(options.connectionMode);
+    if (connection.dispatcher) {
+        fetchOptions.dispatcher = connection.dispatcher;
     }
 
-    const response = await fetch(OPENROUTER_URL, fetchOptions);
+    const startedAt = Date.now();
+    const response = await fetchWithTimeout(OPENROUTER_URL, fetchOptions, 120000);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -198,10 +196,10 @@ async function runGeminiInference(
             model,
             costUsd,
             costRub: costUsd * 90,
-            generationTimeMs: result.generation_time_ms || 0
+            generationTimeMs: Date.now() - startedAt
         };
 
-        applyUsageToSession(usage);
+        if (options.trackSession !== false) applyUsageToSession(usage);
 
         console.log(
             `Gemini (OR): prompt=${promptTokens} completion=${completionTokens} ` +

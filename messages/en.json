@@ -1,4 +1,20 @@
 {
+  "toastSections": {
+    "service": "TraveLLM",
+    "settings": "Settings",
+    "profile": "Profile",
+    "planning": "Trip planning",
+    "trips": "Trips",
+    "trip": "Trip",
+    "account": "Account",
+    "preferences": "Preferences",
+    "guide": "AI assistant",
+    "feedback": "Feedback",
+    "support": "Support",
+    "admin": "Admin panel",
+    "news": "Travel guides",
+    "reels": "Reels"
+  },
   "landing": {
     "hero": {
       "badge": "AI-powered trip planner",
@@ -136,6 +152,12 @@
     "stickyNote": "On TraveLLM you don’t just read a guide — you turn the idea into a real day-by-day itinerary."
   },
   "generating": {
+    "phases": {
+          "preparing": "Checking your settings",
+          "generating": "Creating your itinerary",
+          "enriching": "Adding details",
+          "saving": "Saving your trip"
+    },
     "title": "Planning your trip",
     "processing": "Processing",
     "miniTitle": "Progress",
@@ -323,8 +345,7 @@
     "forTravelers": "for travelers",
     "affiliate": "Affiliate links",
     "personalDataConsent": "Personal data consent",
-    "contacts": "Contacts and legal details",
-    "operatorTitle": "Service operator"
+    "contacts": "Contacts"
   },
   "partners": {
     "disclosure": "Links to external booking services may be affiliate links: we may earn a commission at no extra cost to you.",
@@ -370,6 +391,10 @@
     "and": "and"
   },
   "plan": {
+    "chooseVibeLabel": "I want to choose a trip vibe",
+    "chooseVibeDescription": "Open an extra step to choose the mood and tell your story. Leave unchecked to generate a route with these settings.",
+    "generationTimeout": "Creating the route took too long. The request has stopped. Please try again.",
+    "localRouteSaved": "Your route is saved on this device: server storage is temporarily unavailable.",
     "title": "Plan Your Trip",
     "subtitle": "Tell us your preferences and AI will craft a perfect itinerary",
     "departure": "Departure city",
@@ -565,6 +590,7 @@
       "finish": "Got it — let’s build the route"
     },
     "actions": {
+      "generateNow": "Create itinerary",
       "lucky": "Surprise me",
       "create": "Create itinerary",
       "continueToVibe": "Continue",
@@ -574,7 +600,6 @@
       "optimizeOrder": "Optimize order"
     },
     "info": {
-      "accuracy": "Accuracy: 98.4%",
       "for1": "Itinerary for 1 traveler",
       "for2": "Itinerary for 2 travelers",
       "forN": "Itinerary for {count} travelers",
@@ -937,6 +962,22 @@
     }
   },
   "profile": {
+    "addInterestsHint": "Add your interests in settings",
+    "editProfileSubtitle": "Update your details, appearance and preferences for future trips.",
+    "loadingProfile": "Loading your profile",
+    "loadErrorTitle": "Could not load your profile",
+    "loadErrorDesc": "Check your connection and try again. If your session has expired, sign in again.",
+    "retryLoad": "Try again",
+    "signInAgain": "Sign in",
+    "serviceSettingsTitle": "Service settings",
+    "serviceSettingsDesc": "Make TraveLLM work the way you like.",
+    "settingsAutoSave": "App preferences are saved automatically",
+    "settingsProfileDesc": "Your name, photo and traveler details.",
+    "settingsAppDesc": "Notifications, saved routes and interface language.",
+    "settingsPublicDesc": "Choose what other travelers can see.",
+    "settingsManagementDesc": "Update your preferences or explore the service again.",
+    "settingsAccountDesc": "Manage sign-in and account data.",
+    "resetHints": "Reset tips and welcome screen",
     "title": "Profile",
     "trips": "Trips",
     "countries": "Countries",

@@ -1,4 +1,5 @@
 "use client"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -253,7 +254,7 @@ export default function NewLandingPage() {
             </div>
 
             {/* --- ACCURATE REELS SECTION --- */}
-            <motion.div 
+            {PUBLIC_REELS_ENABLED && <motion.div
                variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }}
                className="relative bg-[#131B2B] rounded-[2.5rem] p-8 md:p-12 lg:py-24 lg:pl-24 lg:pr-0 overflow-visible shadow-2xl flex flex-col lg:flex-row items-center border border-white/5"
             >
@@ -289,7 +290,7 @@ export default function NewLandingPage() {
                   style={{ transform: "rotate(16deg) translateY(5%)" }}
                 />
               </div>
-            </motion.div>
+            </motion.div>}
 
             {/* --- FEATURES GRID --- */}
             <div className="grid lg:grid-cols-2 gap-16 md:gap-32 items-center">

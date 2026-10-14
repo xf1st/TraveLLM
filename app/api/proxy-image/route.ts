@@ -1,3 +1,4 @@
+import { getHttpProxyUrl } from "@/lib/http-proxy"
 
 import { NextRequest, NextResponse } from "next/server";
 import { ProxyAgent } from "undici";
@@ -5,7 +6,7 @@ import { checkIpRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { isProxyDisabled } from "@/lib/proxy-config";
 
 // Create a singleton dispatcher for the proxy
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+const httpProxy = getHttpProxyUrl();
 const proxyDispatcher = httpProxy ? new ProxyAgent(httpProxy) : undefined;
 
 export async function GET(req: NextRequest) {

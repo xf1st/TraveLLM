@@ -16,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
       }
 }
 
-const EMAIL = LEGAL.privacyEmail
+const EMAIL = LEGAL.privacyEmail || LEGAL.supportTelegramHandle
+const CONTACT_HREF = LEGAL.privacyEmail ? `mailto:${LEGAL.privacyEmail}` : LEGAL.supportTelegram
 
 export default async function PrivacyPage() {
   const locale = await getLocale()
@@ -94,15 +95,9 @@ export default async function PrivacyPage() {
             </h2>
             <p>
               {isEn
-                ? <>The data controller is TraveLLM (hereinafter &quot;we&quot;, &quot;the Service&quot;). For data protection inquiries, contact us at: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>.</>
-                : <>Оператором персональных данных является TraveLLM (далее — «мы», «Сервис»). Контакт по вопросам персональных данных: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>.</>}
+                ? <>TraveLLM is a personal travel-planning project (hereinafter &quot;we&quot;, &quot;the Service&quot;). For questions about personal data, contact: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a>.</>
+                : <>TraveLLM — личный проект для планирования путешествий (далее — «мы», «Сервис»). По вопросам персональных данных можно обратиться по адресу: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a>.</>}
             </p>
-            <dl className="mt-4 grid gap-2 rounded-xl border border-border bg-muted/30 p-4">
-              <div><dt className="font-semibold text-foreground">{isEn ? "Full legal name" : "Полное наименование"}</dt><dd>{LEGAL.operatorName}</dd></div>
-              <div><dt className="font-semibold text-foreground">ИНН</dt><dd>{LEGAL.operatorInn}</dd></div>
-              <div><dt className="font-semibold text-foreground">ОГРН/ОГРНИП</dt><dd>{LEGAL.operatorOgrn}</dd></div>
-              <div><dt className="font-semibold text-foreground">{isEn ? "Postal address" : "Почтовый адрес"}</dt><dd>{LEGAL.operatorAddress}</dd></div>
-            </dl>
           </section>
 
           <section>
@@ -283,8 +278,8 @@ export default async function PrivacyPage() {
             </ul>
             <p className="mt-3">
               {isEn
-                ? <>To exercise your rights, send a request to <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>. We will respond within 30 days.</>
-                : <>Для реализации прав направьте запрос на <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a>. Срок ответа — 30 дней.</>}
+                ? <>To exercise your rights, send a request to <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a>. We will respond within 30 days.</>
+                : <>Для реализации прав направьте запрос на <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a>. Срок ответа — 30 дней.</>}
             </p>
             {!isEn && (
               <p className="mt-2">
@@ -317,7 +312,7 @@ export default async function PrivacyPage() {
             </p>
             {!isEn && (
               <p className="mt-2">
-                Для срочных сообщений об инцидентах используйте <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a> с темой «Инцидент ПДн».
+                Для срочных сообщений об инцидентах используйте <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a> с темой «Инцидент ПДн».
               </p>
             )}
           </section>
@@ -349,7 +344,7 @@ export default async function PrivacyPage() {
               {isEn ? "12. Contact Us" : "12. Контакты"}
             </h2>
             <ul className="space-y-1">
-              <li>Email: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a></li>
+              <li>Email: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a></li>
               <li>Telegram: <a href="https://t.me/travellm_support_bot" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">@travellm_support_bot</a></li>
             </ul>
           </section>

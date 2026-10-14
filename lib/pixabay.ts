@@ -1,3 +1,6 @@
+import { isProxyDisabled } from "@/lib/proxy-config"
+import { getHttpProxyUrl } from "@/lib/http-proxy"
+import { fetchWithTimeout as fetch } from "@/lib/fetch-with-timeout"
 /**
  * Pixabay Photo Search
  * API: https://pixabay.com/api/
@@ -7,7 +10,7 @@
  */
 
 const PIXABAY_API_KEY = process.env.PIXABAY_API_KEY
-const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy
+const httpProxy = getHttpProxyUrl()
 
 // Create a singleton dispatcher for the proxy
 let proxyDispatcher: any = undefined;
@@ -37,7 +40,7 @@ export async function searchPixabay(query: string, count: number = 4, page: numb
             signal: controller.signal,
         }
 
-        if (proxyDispatcher) {
+        if (proxyDispatcher && !(await isProxyDisabled())) {
             fetchOptions.dispatcher = proxyDispatcher;
         }
 

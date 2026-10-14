@@ -6,14 +6,14 @@ TraveLLM — AI-powered travel planning app that generates personalized trip iti
 
 ## Tech Stack
 
-- **Framework**: Next.js 16.1 (App Router), React 19.2, TypeScript 5
+- **Framework**: Next.js 16.2 (App Router), React 19.2, TypeScript 5
 - **Styling**: Tailwind CSS 4 + CSS variables (`@theme inline`), shadcn/ui (Radix UI + Lucide icons)
 - **i18n**: next-intl v4.8.3 — `localePrefix: 'never'`, locale via `NEXT_LOCALE` cookie
 - **Production URLs**: `https://travellm.ru` (RU default) · `https://travellm.world` (EN default)
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time subscriptions, RLS)
 - **AI**:
   - **Gemini 3.1 Flash Lite** (Primary: `google/gemini-3.1-flash-lite` via OpenRouter)
-  - **DeepSeek** (Fallback: `deepseek-chat` / `deepseek-reasoner`)
+  - **DeepSeek** (Fallback: `deepseek-flash` / `deepseek-v4-pro`)
   - **OpenRouter** (Routing layer для Gemini + Qwen fallback)
 - **Animation**: Framer Motion, Three.js, OGL (WebGL), Lottie, `tailwindcss-animate`
 - **UI Components**: Sonner (Toasts), Vaul (Drawers), CMDK (Command Palette), Embla Carousel
@@ -21,7 +21,7 @@ TraveLLM — AI-powered travel planning app that generates personalized trip iti
 
 > **Removed**: Leaflet, MapLibre GL, react-leaflet, react-leaflet-cluster — карт на сайте нет.
 > **Removed**: Subscription tiers (PRO, trial) — заменены на глобальный лимит генераций.
-> **Removed**: News pages (`/news`, `/news/[id]`).
+> **News**: `/news` и `/news/[slug]` используются на desktop/mobile лендинге и в sitemap; это действующие страницы.
 
 ## Commands
 
@@ -127,24 +127,22 @@ supabase/
 ```
 POST /api/gemini  ←  фронт использует сейчас
   Primary:  google/gemini-3.1-flash-lite (OpenRouter) — все маршруты
-  Fallback: deepseek-chat / deepseek-reasoner
+  Fallback: deepseek-flash (DeepSeek V4.1 Flash, thinking disabled)
 
 POST /api/deepseek  ←  готов для быстрого переключения
-  Primary:  deepseek-chat (≤7 дней) / deepseek-reasoner (8+ дней)
+  Primary:  deepseek-flash (thinking disabled, все длины маршрута)
   Fallback: google/gemini-3.1-flash-lite
 ```
 
-**Переключение провайдера** — одна строка в `app/(main)/plan/page.tsx`:
-```ts
-const endpoint = "/api/gemini";   // текущий
-const endpoint = "/api/deepseek"; // переключить на DeepSeek
-```
+**Переключение провайдера** — `lib/route-generation-provider.ts` / `NEXT_PUBLIC_ROUTE_GENERATION_PROVIDER`. Общий клиент `lib/trip-generation-stream.ts` принимает SSE Gemini и JSON DeepSeek.
+
+**Шаг вайба** — чекбокс на `/plan`: включён → `/plan/vibe`, выключен → генерация с `/plan`. Economy-диалог общий для обоих путей (`components/plan/economy-route-dialog.tsx`).
 
 **Локаль в промптах**: оба роута читают `locale` из body → `buildEnrichedPrompt({ locale })` → промпт и бюджет на нужном языке (RUB/USD).
 
-### Чанкинг длинных маршрутов (>7 дней)
+### Чанкинг длинных маршрутов Gemini (>14 дней)
 
-- Разбивка на 4-дневные чанки (sequential, с контекстом предыдущего чанка)
+- Разбивка на 7-дневные чанки (sequential, с контекстом предыдущего чанка); ≤14 дней — один запрос
 - Отдельный запрос для metadata (title, budget, tags)
 - Всё через `gemini-3.1-flash-lite` ($0.25/$1.50 per 1M tokens)
 
@@ -218,11 +216,16 @@ const endpoint = "/api/deepseek"; // переключить на DeepSeek
 
 ## Notes
 
+- **Прокси исходящих запросов**: `lib/http-proxy.ts` — приоритет `TRAVELLM_HTTP_PROXY`, затем `HTTP_PROXY`/`http_proxy`. Явное `TRAVELLM_HTTP_PROXY=off` отключает прокси; автоматического обхода при сбое нет. Локально 14.10.2026 старый HTTP_PROXY устанавливал TCP-соединение, но зависал на HTTPS CONNECT; прямые Gemini и DeepSeek проверены, в игнорируемом `.env` задано `TRAVELLM_HTTP_PROXY=off`. Продакшен проверяется отдельно.
+- **Личные реквизиты**: вымышленные оператор/ИНН/ОГРН/адрес удалены из UI и `lib/legal.ts`; незаданные email не выдумываются, контакт документов переключается на существующую Telegram-поддержку.
+
+- **Trip Reels временно скрыты для всех посетителей**: `lib/features.ts` → `PUBLIC_REELS_ENABLED = false`. Флаг убирает публичную навигацию/рекламу/sitemap; `proxy.ts` перенаправляет `/reels` и `/plan/from-reel/*` на `/plan`, а `/api/reels/*` отвечает 404. Внутренние инструменты администратора и данные сохранены для доработки.
+
 - **Middleware**: Next.js 16 использует `proxy.ts` (не `middleware.ts`) — оба файла одновременно не могут существовать.
 - **Telegram webhooks** (`/api/telegram/webhook`, `webhook-pr`): секреты сравниваются через `timingSafeEqual` (длина буферов выравнивается).
 - **`/api/image`**: лимит по IP (`checkIpRateLimit`, ключ `api-destination-image`, 60/окно — как у proxy-image) против злоупотреблений.
 - **Deployment**: `output: 'standalone'` в `next.config.mjs` для Docker на Timeweb Cloud.
-- **TypeScript errors**: `ignoreBuildErrors: true` в `next.config.mjs` — ошибки TS не блокируют билд.
+- **TypeScript errors**: `ignoreBuildErrors: false` в `next.config.mjs` — ошибки TS блокируют билд.
 - **Admin**: Защита через subdomain `admin.*` в `proxy.ts` + проверка роли `admin`/`super_admin` в Supabase.
 - **OAuth**: `redirectUri` и `siteUrl` в auth-роутах берутся из `new URL(request.url).origin` — работает на обоих доменах без env-переменных.
 - **Header (mobile)**: статичная (`sticky top-0`), без бургер-меню — навигация через bottom nav.

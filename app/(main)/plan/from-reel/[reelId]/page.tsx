@@ -931,7 +931,6 @@ export default function PlanFromReelPage() {
                     ? tPlan("info.for2")
                     : tPlan("info.forN", { count: travelers })}
                 <br />
-                <span className="text-emerald-400/70">{tPlan("info.accuracy")}</span>
               </p>
               {!anchorOk && (
                 <div

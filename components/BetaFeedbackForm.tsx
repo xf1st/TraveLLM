@@ -251,35 +251,7 @@ export function BetaFeedbackForm() {
               {/* Вопрос 10 */}
               <motion.div variants={itemVariants} className="group p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all">
                 <Label className="text-xl font-medium flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-fuchsia-500/20 text-fuchsia-400 text-sm font-bold">10</span>
-                  Насколько удобна 3D-карта для визуализации маршрута?
-                </Label>
-                <RatingScale name="map_convenience" activeColor="border-fuchsia-500 bg-fuchsia-500/20 text-fuchsia-300" />
-              </motion.div>
-
-              {/* Вопрос 11 */}
-              <motion.div variants={itemVariants} className="group p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all">
-                <Label className="text-xl font-medium flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 text-green-400 text-sm font-bold">11</span>
-                  Какую цену вы считаете справедливой за подписку на TraveLLM?
-                </Label>
-                <ChoiceList 
-                  name="subscription_price" 
-                  colorClass="peer-data-[state=checked]:border-green-500 peer-data-[state=checked]:bg-green-500/10 peer-data-[state=checked]:shadow-[0_0_15px_rgba(34,197,94,0.15)]"
-                  options={[
-                    "До 300 рублей в месяц",
-                    "300 - 500 рублей в месяц",
-                    "500 - 1000 рублей в месяц",
-                    "Готов платить больше за премиум функции",
-                    "Предпочел бы разовую оплату за каждый сгенерированный маршрут"
-                  ]} 
-                />
-              </motion.div>
-
-              {/* Вопрос 12 */}
-              <motion.div variants={itemVariants} className="group p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all">
-                <Label className="text-xl font-medium flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold">12</span>
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 text-sm font-bold">10</span>
                   Как часто вы бы планировали пользоваться сервисом?
                 </Label>
                 <ChoiceList 
@@ -294,11 +266,11 @@ export function BetaFeedbackForm() {
                 />
               </motion.div>
 
-              {/* Вопрос 13 */}
+              {/* Вопрос 11 */}
               <motion.div variants={itemVariants} className="group p-6 rounded-2xl bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles className="w-24 h-24" /></div>
                 <Label className="text-xl font-medium flex items-center gap-3 mb-2 text-emerald-400 relative z-10">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 text-sm font-bold">13</span>
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-300 text-sm font-bold">11</span>
                   Ваши смелые идеи и предложения
                 </Label>
                 <p className="text-sm text-gray-400 pl-11 mb-4 relative z-10">Любые безумные фичи, которых вам не хватает, или просто пожелания команде.</p>

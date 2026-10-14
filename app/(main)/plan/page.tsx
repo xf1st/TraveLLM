@@ -1,4 +1,3 @@
-// Force HMR update
 "use client"
 
 import type React from "react"
@@ -51,7 +50,9 @@ import {
 } from "lucide-react"
 import { ErrorModal } from "@/components/ErrorModal"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { supabase } from "@/lib/supabase"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useTripGeneration } from "@/lib/context/trip-generation-context"
+import { EconomyRouteDialog } from "@/components/plan/economy-route-dialog"
 import { PlanTooltips } from "@/components/plan/PlanTooltips"
 import { PLAN_PENDING_GENERATION_KEY } from "@/lib/trip-generation-stream"
 import { appToast as toast } from "@/components/ui/sonner"
@@ -78,6 +79,9 @@ const BUDGET_COLORS: Record<string, string> = {
 
 export default function PlanPage() {
   const router = useRouter()
+  const { isGenerating, startGeneration } = useTripGeneration()
+  const [chooseVibe, setChooseVibe] = useState(false)
+  const [economyPayload, setEconomyPayload] = useState<Record<string, unknown> | null>(null)
   const locale = useLocale()
   const t = useTranslations('plan')
   const dateFnsLocale = locale === 'ru' ? ru : enUS
@@ -159,24 +163,24 @@ export default function PlanPage() {
   useEffect(() => {
     let mounted = true
     const ac = new AbortController()
-    const fetch = async () => {
+    const loadPreferences = async () => {
       try {
-        const { data: sd } = await supabase.auth.getSession()
-        if (sd?.session?.user && !ac.signal.aborted) {
-          const { data: pd } = await supabase.from("profiles").select("*").eq("id", sd.session.user.id).single()
-          if (pd && mounted) {
-            setProfile(pd)
-            const prefs = pd.preferences || {}
-            if (prefs.departureCity && !departureCity) setDepartureCity(prefs.departureCity)
-            if (prefs.aiCreativity) setAiCreativity(prefs.aiCreativity)
-            if (prefs.autoFavorites !== undefined) setAutoFavorites(prefs.autoFavorites)
-            setAccessMode(pd.access_mode || "active")
-            if (pd.access_mode === "full_blocked" && !ac.signal.aborted) router.push("/blocked")
-          }
+        const response = await fetch("/api/user/me", { credentials: "same-origin", signal: ac.signal })
+        if (!response.ok) return
+        const { profile: pd } = await response.json()
+        if (pd && mounted) {
+          setProfile(pd)
+          const prefs = pd.preferences || {}
+          if (prefs.departureCity) setDepartureCity((current) => current || prefs.departureCity)
+          if (prefs.aiCreativity) setAiCreativity(prefs.aiCreativity)
+          if (prefs.autoFavorites !== undefined) setAutoFavorites(prefs.autoFavorites)
+          const expired = pd.blocked_until && new Date(pd.blocked_until).getTime() <= Date.now()
+          setAccessMode(expired ? "active" : pd.access_mode || "active")
+          if (pd.access_mode === "full_blocked" && !expired) router.push("/blocked")
         }
       } catch (e) { if (!ac.signal.aborted) console.error(e) }
     }
-    fetch()
+    void loadPreferences()
     return () => { mounted = false; ac.abort() }
   }, [router])
 
@@ -277,7 +281,21 @@ export default function PlanPage() {
       setErrorModal({ open: true, title: t('validation.checkTitle'), message: t('errors.storageFailed'), details: undefined })
       return
     }
-    router.push("/plan/vibe")
+    if (chooseVibe) {
+      router.push("/plan/vibe")
+    } else if (requestPayload.budget === "economy") {
+      setEconomyPayload(requestPayload)
+    } else {
+      await runGeneration(requestPayload)
+    }
+  }
+
+  const runGeneration = async (payload: Record<string, unknown>) => {
+    await startGeneration(payload, {
+      autoFavorites: Boolean(payload.autoFavorites),
+      defaultTripTitle: t("defaultTripTitle"),
+      defaultDestination: t("defaultDestination"),
+    })
   }
 
   const toggleStyle = (style: string) =>
@@ -524,6 +542,12 @@ export default function PlanPage() {
         warnings={errorModal.warnings}
         details={errorModal.details}
       />
+      <EconomyRouteDialog open={economyPayload !== null} onOpenChange={(open) => { if (!open) setEconomyPayload(null) }} onChoose={(strict) => {
+        if (!economyPayload) return
+        const payload = { ...economyPayload, strictDestinations: strict }
+        setEconomyPayload(null)
+        void runGeneration(payload)
+      }} />
 
       {/* Route Builder Modal */}
       <Dialog open={showRouteModal} onOpenChange={setShowRouteModal}>
@@ -536,6 +560,7 @@ export default function PlanPage() {
           )}
         >
           <DialogTitle className="sr-only">{t('routeBuilder.title')}</DialogTitle>
+          <DialogDescription className="sr-only">{t('routeBuilder.subtitle')}</DialogDescription>
           <div className="shrink-0 border-b border-white/10 px-4 pb-4 pt-[calc(3.25rem+env(safe-area-inset-top,0px))] sm:p-6 sm:pt-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(16,185,129,0.15)" }}>
@@ -919,7 +944,7 @@ export default function PlanPage() {
                       )}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border-border shadow-2xl rounded-2xl" align="start">
+                  <PopoverContent className="w-auto max-h-[min(80dvh,var(--radix-popover-content-available-height))] overflow-y-auto p-0 bg-card border-border shadow-2xl rounded-2xl" align="start">
                     <Calendar
                       initialFocus
                       mode="range"
@@ -1309,7 +1334,6 @@ export default function PlanPage() {
               <div className="w-full lg:w-64 flex flex-col items-stretch lg:items-end gap-3">
                 <p className="text-[11px] text-white/40 font-medium text-center lg:text-right leading-relaxed">
                   {companions === "solo" ? t('info.for1') : companions === "couple" ? t('info.for2') : t('info.forN', { count: travelers })}<br />
-                  <span className="text-emerald-400/70">{t('info.accuracy')}</span>
                 </p>
 
                 {/* Suboptimal order warning */}
@@ -1325,12 +1349,17 @@ export default function PlanPage() {
                   </div>
                 )}
 
+                <label htmlFor="choose-trip-vibe" className="mb-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-border/60 bg-card/40 p-4 transition-colors hover:border-primary/40">
+                  <Checkbox aria-label={t("chooseVibeLabel")} aria-describedby="choose-vibe-description" id="choose-trip-vibe" checked={chooseVibe} disabled={isGenerating} onCheckedChange={(checked) => setChooseVibe(checked === true)} className="mt-0.5" />
+                  <span><span className="block text-sm font-semibold">{t("chooseVibeLabel")}</span><span id="choose-vibe-description" className="mt-1 block text-xs leading-relaxed text-muted-foreground">{t("chooseVibeDescription")}</span></span>
+                </label>
                 <button
                   type="button"
                   onClick={handleSubmit}
+                  disabled={isGenerating}
                   className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 px-6 sm:px-8 rounded-2xl font-bold text-base sm:text-lg bg-blue-500 text-white shadow-[0_0_30px_rgba(0,122,255,0.4)] hover:bg-blue-600 hover:shadow-[0_0_40px_rgba(0,122,255,0.5)] active:scale-[0.98] transition-all duration-200 touch-manipulation"
                 >
-                  {t('actions.continueToVibe')}
+                  {isGenerating ? t('generating') : chooseVibe ? t('actions.continueToVibe') : t('actions.generateNow')}
                   <Sparkles className="h-5 w-5" />
                 </button>
               </div>

@@ -16,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
       }
 }
 
-const EMAIL = LEGAL.privacyEmail
+const EMAIL = LEGAL.privacyEmail || LEGAL.supportTelegramHandle
+const CONTACT_HREF = LEGAL.privacyEmail ? `mailto:${LEGAL.privacyEmail}` : LEGAL.supportTelegram
 
 function getCookies(isEn: boolean) {
   return [
@@ -322,8 +323,8 @@ export default async function CookiesPage() {
             </h2>
             <p>
               {isEn
-                ? <>Questions about cookies: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a></>
-                : <>По вопросам использования cookies: <a href={`mailto:${EMAIL}`} className="text-sky-400 hover:underline">{EMAIL}</a></>}
+                ? <>Questions about cookies: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a></>
+                : <>По вопросам использования cookies: <a href={CONTACT_HREF} className="text-sky-400 hover:underline">{EMAIL}</a></>}
             </p>
           </section>
 

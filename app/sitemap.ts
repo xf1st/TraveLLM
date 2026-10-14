@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
 import { getAllArticleIds } from '@/lib/articles'
+import { PUBLIC_REELS_ENABLED } from '@/lib/features'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const headersList = await headers()
@@ -12,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/plan', priority: 0.9, changefreq: 'weekly' as const },
     { path: '/guide', priority: 0.85, changefreq: 'weekly' as const },
     { path: '/news', priority: 0.7, changefreq: 'weekly' as const },
-    { path: '/reels', priority: 0.75, changefreq: 'daily' as const },
+    ...(PUBLIC_REELS_ENABLED ? [{ path: '/reels', priority: 0.75, changefreq: 'daily' as const }] : []),
     { path: '/support', priority: 0.7, changefreq: 'monthly' as const },
     { path: '/privacy', priority: 0.5, changefreq: 'yearly' as const },
     { path: '/terms', priority: 0.5, changefreq: 'yearly' as const },

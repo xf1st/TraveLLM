@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/components/auth-provider"
+import { getAccountSummary } from "@/lib/account-summary-client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Shield, AlertTriangle } from "lucide-react"
 
@@ -16,52 +17,26 @@ export function UserAccessGuard({ children, allowAiBlocked = false }: UserAccess
   const [accessMode, setAccessMode] = useState<string | null>(null)
   const [blockReason, setBlockReason] = useState<string | null>(null)
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const { user, isLoading } = useAuth()
+  const userId = user?.id
   const router = useRouter()
   const pathname = usePathname()
 
   const isAdminRoute = pathname?.startsWith('/admin')
 
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (!user) {
-          setLoading(false)
-          return
-        }
-
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('access_mode, block_reason, blocked_until')
-          .eq('id', user.id)
-          .single()
-
-        const mode = profile?.access_mode || 'active'
-        setAccessMode(mode)
-        setBlockReason(profile?.block_reason || null)
-
-        // Check if temporary block expired
-        if (profile?.blocked_until) {
-          const blockedUntil = new Date(profile.blocked_until)
-          if (blockedUntil < new Date()) {
-            // Block expired, reset to active
-            await supabase
-              .from('profiles')
-              .update({ access_mode: 'active', block_reason: null, blocked_until: null })
-              .eq('id', user.id)
-            setAccessMode('active')
-          }
-        }
-      } catch (error) {
-        console.error('Access check failed:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkAccess()
-  }, [])
+    let cancelled = false
+    if (isLoading) return
+    if (!userId) { setAccessMode(null); setLoading(false); return }
+    setLoading(true)
+    void getAccountSummary(userId).then(({ profile }) => {
+      if (cancelled) return
+      const expired = profile?.blocked_until && new Date(profile.blocked_until).getTime() <= Date.now()
+      setAccessMode(expired ? "active" : profile?.access_mode || "active")
+      setBlockReason(expired ? null : profile?.block_reason || null)
+    }).catch(() => {}).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [userId, isLoading])
 
   useEffect(() => {
     // Sync with sidebar state

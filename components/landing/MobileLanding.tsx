@@ -1,9 +1,10 @@
 "use client"
+import { PUBLIC_REELS_ENABLED } from "@/lib/features"
 
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence, Variants } from "framer-motion"
 import { useTranslations } from "next-intl"
-import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/components/auth-provider"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { MobileBottomNav } from "@/components/MobileBottomNav"
@@ -46,14 +47,10 @@ const staggerContainer: Variants = {
 
 export function MobileLanding() {
   const t = useTranslations("landing")
-  const [user, setUser] = useState<any>(null)
+  const { user } = useAuth()
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(1)
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null)
-    })
-  }, [])
+
 
   const faqData = [
     { q: t("faq.q1"), a: t("faq.a1") },
@@ -123,7 +120,7 @@ export function MobileLanding() {
         </section>
 
         {/* Reels Style Section */}
-        <section className="px-6 overflow-hidden">
+        {PUBLIC_REELS_ENABLED && <section className="px-6 overflow-hidden">
           <h2 className="mb-8 text-3xl font-extrabold leading-tight text-foreground">
             {t("mobile.activitiesTitle")}
           </h2>
@@ -149,7 +146,7 @@ export function MobileLanding() {
               />
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* Bento AI Features */}
         <section className="px-6">

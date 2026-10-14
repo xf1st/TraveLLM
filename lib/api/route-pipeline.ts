@@ -8,7 +8,7 @@ import type { BookingMarket } from "@/lib/booking-market"
 import { getFlightSearchLink, getTrainSearchLink, parseCityIata, getIataCode } from "@/lib/travelpayouts"
 import type { RealFlight } from "@/lib/travelpayouts"
 import { googleSearch } from "@/lib/google-search"
-import { determineOptimalTransport } from "@/lib/api/logistics-orchestrator"
+import { determineOptimalTransport, type TransportDecision } from "@/lib/api/logistics-orchestrator"
 import type { TravelMode } from "@/lib/travel-mode"
 
 /* ───────────────────────────────────────────────
@@ -351,6 +351,7 @@ export async function sanitizeClosedAirportLogistics(
 ) {
     const itinerary = Array.isArray(routeData?.itinerary) ? routeData.itinerary : []
     let currentCity = departureCity || "Москва"
+    const transportDecisions = new Map<string, Promise<TransportDecision>>()
 
     for (let i = 0; i < itinerary.length; i++) {
         const day = itinerary[i]
@@ -365,7 +366,13 @@ export async function sanitizeClosedAirportLogistics(
             const toCity = lg.to || day.title || "Пункт назначения"
 
             try {
-                const decision = await determineOptimalTransport(fromCity, toCity, startDate);
+                const decisionKey = JSON.stringify([fromCity, toCity, startDate])
+                let pendingDecision = transportDecisions.get(decisionKey)
+                if (!pendingDecision) {
+                    pendingDecision = determineOptimalTransport(fromCity, toCity, startDate)
+                    transportDecisions.set(decisionKey, pendingDecision)
+                }
+                const decision = await pendingDecision;
 
                 if (isFlightLogistics && (decision.mode === 'train' || decision.mode === 'bus')) {
                     // Flight → replace with ground transport
