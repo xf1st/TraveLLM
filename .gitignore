@@ -18,6 +18,16 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.example
+*.log
+/.local-audits/
+/docs/profile-audit-*.md
+/docs/site-audit-*.md
+/docs/site-route-inventory-*.json
+/docs/supabase-schema-audit-*.json
+/docs/supabase-rate-limit-verification-*.json
+/docs/gemini-route-probe-*.json
+/docs/ai-generation-fix-*.md
 
 # vercel
 .vercel
@@ -64,7 +74,6 @@ TraveLLMux/profile.html
 Obsidian/
 
 temp_stitch.html
-.gitignore
 TraveLLMux/code.html
 TraveLLMux/DESIGN.md
 BUG_CHECKLIST.md

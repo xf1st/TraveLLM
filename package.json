@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "start": "next start",
     "preview": "next build && next start",
-    "check": "npm run typecheck && npm run lint && npm run build"
+    "check": "npm run typecheck && npm run lint && npm run build",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
